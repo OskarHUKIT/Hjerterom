@@ -57,11 +57,11 @@ body {
   color: var(--text-main);
   background-color: var(--bg-app);
   background-image: 
-    linear-gradient(to bottom, rgba(2, 6, 23, 0.9), rgba(2, 6, 23, 0.98)),
-    url('https://images.unsplash.com/photo-1579033390034-80845f79b08a?auto=format&fit=crop&w=2000&q=80'); /* Beautiful Northern Norway Night Scenery */
+    linear-gradient(to bottom, rgba(2, 6, 23, 0.7) 0%, rgba(2, 6, 23, 0.95) 100%),
+    url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=2500&q=80'); /* Dramatic Lofoten/Northern Norway Mountains */
   background-attachment: fixed;
   background-size: cover;
-  background-position: center;
+  background-position: center 20%;
   min-height: 100vh;
 }
 
@@ -87,18 +87,20 @@ a {
 }
 
 .card {
-  background: var(--bg-card);
-  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
   padding: var(--space-5);
   box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-subtle);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card:not(.no-hover):hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  border-color: rgba(59, 130, 246, 0.4);
+  background: rgba(15, 23, 42, 0.6);
 }
 
 .no-hover {
