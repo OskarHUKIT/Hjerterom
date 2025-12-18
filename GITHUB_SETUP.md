@@ -145,21 +145,26 @@ git merge feature-name
 
 ### Authentication Issues
 
-If you get authentication errors:
+If you get authentication errors, see **GITHUB_AUTH.md** for detailed authentication instructions.
 
-1. **Use Personal Access Token** (for HTTPS):
-   - GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
-   - Generate new token with `repo` permissions
-   - Use token as password when pushing
+**Quick Solution - Use GitHub CLI (Easiest):**
+```powershell
+# Install GitHub CLI
+winget install GitHub.cli
 
-2. **Or use GitHub CLI**:
-   ```bash
-   # Install GitHub CLI
-   winget install GitHub.cli
-   
-   # Authenticate
-   gh auth login
-   ```
+# Authenticate
+gh auth login
+
+# Then push
+git push -u origin main
+```
+
+**Or run the authentication setup script:**
+```powershell
+.\setup-github-auth.ps1
+```
+
+For more details, see **GITHUB_AUTH.md**.
 
 ### Port Already in Use
 

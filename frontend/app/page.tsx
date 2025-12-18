@@ -1,63 +1,118 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 
 export default function Home() {
   return (
-    <div>
-      <header className="header">
-        <div className="container">
-          <h1>Boligbanken</h1>
-        </div>
-      </header>
+    <main className="container">
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <h1 style={{ 
+          fontSize: '3rem', 
+          fontWeight: 700, 
+          background: 'linear-gradient(135deg, var(--color-dark-navy) 0%, var(--color-royal-blue) 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          marginBottom: '1rem'
+        }}>
+          Velkommen til Bo.ly
+        </h1>
+        <p style={{ fontSize: '1.25rem', color: 'var(--color-dark-navy)', opacity: 0.8 }}>
+          Ditt moderne system for boliglån og boligbanktjenester
+        </p>
+      </div>
 
-      <main className="container">
-        <div className="card">
-          <h2 style={{ marginBottom: '1rem', color: '#1f2937' }}>
-            Velkommen til Boligbanken
-          </h2>
-          <p style={{ marginBottom: '1.5rem', color: '#6b7280' }}>
-            Ditt system for boliglån og boligbanktjenester.
-          </p>
-
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <Link href="/applications" className="button">
-              Søknader
-            </Link>
-            <Link href="/terms" className="button">
-              Vilkår og betingelser
-            </Link>
-            <Link href="/documents" className="button">
-              Dokumenter
-            </Link>
-            <Link href="/training" className="button">
-              Kunnskapstrening
-            </Link>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+        <Link href="/applications" className="card" style={{ textDecoration: 'none', display: 'block' }}>
+          <div style={{ 
+            width: '60px', 
+            height: '60px', 
+            borderRadius: '12px', 
+            background: 'linear-gradient(135deg, var(--color-royal-blue) 0%, var(--color-muted-blue) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            📋
           </div>
-        </div>
+          <h3>Søknader</h3>
+          <p style={{ marginTop: '0.5rem', opacity: 0.8 }}>
+            Administrer og opprett nye boliglånsøknader
+          </p>
+        </Link>
 
-        <div className="card">
-          <h3 style={{ marginBottom: '1rem', color: '#1f2937' }}>
-            Funksjoner
-          </h3>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            <li style={{ padding: '0.5rem 0', borderBottom: '1px solid #e5e7eb' }}>
-              ✓ Boliglånsøknader
-            </li>
-            <li style={{ padding: '0.5rem 0', borderBottom: '1px solid #e5e7eb' }}>
-              ✓ Vilkårsavtale håndtering
-            </li>
-            <li style={{ padding: '0.5rem 0', borderBottom: '1px solid #e5e7eb' }}>
-              ✓ Dokumentadministrasjon
-            </li>
-            <li style={{ padding: '0.5rem 0' }}>
-              ✓ IT kunnskapstrening
-            </li>
-          </ul>
-        </div>
-      </main>
-    </div>
+        <Link href="/terms" className="card" style={{ textDecoration: 'none', display: 'block' }}>
+          <div style={{ 
+            width: '60px', 
+            height: '60px', 
+            borderRadius: '12px', 
+            background: 'linear-gradient(135deg, var(--color-teal) 0%, var(--color-dark-teal) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            📄
+          </div>
+          <h3>Vilkår og betingelser</h3>
+          <p style={{ marginTop: '0.5rem', opacity: 0.8 }}>
+            Se og administrer vilkårsavtaler
+          </p>
+        </Link>
+
+        <Link href="/documents" className="card" style={{ textDecoration: 'none', display: 'block' }}>
+          <div style={{ 
+            width: '60px', 
+            height: '60px', 
+            borderRadius: '12px', 
+            background: 'linear-gradient(135deg, var(--color-muted-blue) 0%, var(--color-sky-blue) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            📁
+          </div>
+          <h3>Dokumenter</h3>
+          <p style={{ marginTop: '0.5rem', opacity: 0.8 }}>
+            Last opp og administrer dokumenter
+          </p>
+        </Link>
+
+        <Link href="/training" className="card" style={{ textDecoration: 'none', display: 'block' }}>
+          <div style={{ 
+            width: '60px', 
+            height: '60px', 
+            borderRadius: '12px', 
+            background: 'linear-gradient(135deg, var(--color-dark-teal) 0%, var(--color-teal) 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            🎓
+          </div>
+          <h3>Kunnskapstrening</h3>
+          <p style={{ marginTop: '0.5rem', opacity: 0.8 }}>
+            IT kunnskapstrening og ressurser
+          </p>
+        </Link>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginBottom: '1.5rem' }}>Funksjoner</h2>
+        <ul className="feature-list">
+          <li>Boliglånsøknader</li>
+          <li>Vilkårsavtale håndtering</li>
+          <li>Dokumentadministrasjon</li>
+          <li>IT kunnskapstrening</li>
+        </ul>
+      </div>
+    </main>
   )
 }
 
