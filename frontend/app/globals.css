@@ -1,23 +1,23 @@
-/* Professional Design System */
+/* Professional Dark Design System with Northern Scenery */
 :root {
   /* Core Colors */
-  --color-dark-navy: #213366;
-  --color-royal-blue: #2f4ca0;
-  --color-muted-blue: #6b89c5;
-  --color-sky-blue: #aadff0;
-  --color-teal: #20bbaf;
-  --color-dark-teal: #045d74;
+  --color-dark-navy: #0f172a;
+  --color-royal-blue: #3b82f6;
+  --color-muted-blue: #60a5fa;
+  --color-sky-blue: #7dd3fc;
+  --color-teal: #2dd4bf;
+  --color-dark-teal: #0d9488;
   
-  /* Neutral Palette */
-  --bg-app: #fcfcfd;
-  --bg-card: #ffffff;
-  --border-subtle: rgba(33, 51, 102, 0.06);
-  --border-medium: rgba(33, 51, 102, 0.12);
+  /* Neutral Palette - Dark Mode */
+  --bg-app: #020617;
+  --bg-card: #0f172a;
+  --border-subtle: rgba(51, 65, 85, 0.4);
+  --border-medium: rgba(51, 65, 85, 0.8);
   
   /* Typography Colors */
-  --text-main: #1a1f36;
-  --text-body: #4f566b;
-  --text-muted: #697386;
+  --text-main: #f8fafc;
+  --text-body: #cbd5e1;
+  --text-muted: #94a3b8;
   --text-on-dark: #ffffff;
   
   /* Spacing (8px grid) */
@@ -31,10 +31,10 @@
   --space-10: 80px;
   
   /* Elevation */
-  --shadow-sm: 0 1px 3px rgba(33, 51, 102, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(33, 51, 102, 0.08), 0 2px 4px -1px rgba(33, 51, 102, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(33, 51, 102, 0.1), 0 4px 6px -2px rgba(33, 51, 102, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(33, 51, 102, 0.1), 0 10px 10px -5px rgba(33, 51, 102, 0.04);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -56,6 +56,12 @@ body {
 body {
   color: var(--text-main);
   background-color: var(--bg-app);
+  background-image: 
+    linear-gradient(to bottom, rgba(2, 6, 23, 0.9), rgba(2, 6, 23, 0.98)),
+    url('https://images.unsplash.com/photo-1579033390034-80845f79b08a?auto=format&fit=crop&w=2000&q=80'); /* Beautiful Northern Norway Night Scenery */
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center;
   min-height: 100vh;
 }
 
@@ -71,14 +77,13 @@ a {
 }
 
 .header {
-  background: var(--bg-card);
+  background: rgba(15, 23, 42, 0.8);
   border-bottom: 1px solid var(--border-subtle);
   padding: var(--space-2) 0;
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
 }
 
 .card {
@@ -90,10 +95,14 @@ a {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.card:hover {
+.card:not(.no-hover):hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
-  border-color: var(--border-medium);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.no-hover {
+  cursor: default;
 }
 
 .button {
@@ -114,7 +123,7 @@ a {
 }
 
 .button:hover {
-  background-color: var(--color-dark-navy);
+  background-color: #2563eb;
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -138,7 +147,7 @@ a {
   border-radius: 10px;
   font-size: 1rem;
   margin-bottom: var(--space-3);
-  background-color: #fff;
+  background-color: rgba(2, 6, 23, 0.5);
   transition: all 0.2s;
   color: var(--text-main);
 }
@@ -146,14 +155,15 @@ a {
 .input:focus {
   outline: none;
   border-color: var(--color-royal-blue);
-  box-shadow: 0 0 0 4px rgba(47, 76, 160, 0.1);
+  background-color: rgba(2, 6, 23, 0.8);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
 
 .label {
   display: block;
   margin-bottom: var(--space-2);
   font-weight: 600;
-  color: var(--color-dark-navy);
+  color: var(--color-sky-blue);
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -161,7 +171,7 @@ a {
 
 /* Typography */
 h1 {
-  color: var(--color-dark-navy);
+  color: #ffffff;
   font-size: 3.5rem;
   font-weight: 800;
   line-height: 1.1;
@@ -170,7 +180,7 @@ h1 {
 }
 
 h2 {
-  color: var(--color-dark-navy);
+  color: #ffffff;
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -178,7 +188,7 @@ h2 {
 }
 
 h3 {
-  color: var(--color-dark-navy);
+  color: #ffffff;
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: var(--space-2);
@@ -195,6 +205,19 @@ p {
   color: var(--text-muted);
 }
 
+.nav-link {
+  color: var(--text-muted);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  background: rgba(125, 211, 252, 0.1);
+  color: var(--color-sky-blue);
+}
+
 /* Utilities */
 .grid-portal {
   display: grid;
@@ -203,7 +226,7 @@ p {
 }
 
 .form-section {
-  background: white;
+  background: var(--bg-card);
   padding: var(--space-6);
   border-radius: 20px;
   box-shadow: var(--shadow-md);
@@ -240,12 +263,3 @@ main > * {
 .animate-delay-1 { animation-delay: 0.1s; }
 .animate-delay-2 { animation-delay: 0.2s; }
 .animate-delay-3 { animation-delay: 0.3s; }
-
-
-
-
-
-
-
-
-

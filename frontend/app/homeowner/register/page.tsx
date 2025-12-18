@@ -182,7 +182,7 @@ export default function HomeownerRegister() {
         <div style={{ 
           marginTop: 'var(--space-4)', 
           padding: 'var(--space-5) var(--space-6)', 
-          background: 'var(--bg-card)', 
+          background: 'rgba(15, 23, 42, 0.9)', 
           borderRadius: '20px', 
           boxShadow: 'var(--shadow-xl)',
           border: '1px solid var(--border-medium)',
@@ -191,8 +191,7 @@ export default function HomeownerRegister() {
           position: 'sticky',
           bottom: 'var(--space-4)',
           zIndex: 10,
-          backdropFilter: 'blur(8px)',
-          background: 'rgba(255, 255, 255, 0.95)'
+          backdropFilter: 'blur(16px)'
         }}>
           <button type="submit" className="button" style={{ padding: 'var(--space-4) var(--space-10)', fontSize: '1.125rem', borderRadius: '14px' }}>
             <Save size={22} /> Publiser og gjør tilgjengelig

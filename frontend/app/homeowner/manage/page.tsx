@@ -41,7 +41,7 @@ export default function HomeownerManage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 'var(--space-6)', alignItems: 'start' }}>
         {/* Sidebar stats */}
-        <div className="card" style={{ background: 'var(--color-dark-navy)', color: 'white', border: 'none', padding: 'var(--space-6)' }}>
+        <div className="card no-hover" style={{ background: 'rgba(15, 23, 42, 0.8)', color: 'white', border: '1px solid var(--border-subtle)', padding: 'var(--space-6)', backdropFilter: 'blur(8px)' }}>
           <h3 style={{ color: 'white', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-5)', fontSize: '1.1rem' }}>
             <LayoutDashboard size={18} /> Oversikt
           </h3>
