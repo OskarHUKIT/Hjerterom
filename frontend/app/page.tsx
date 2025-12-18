@@ -6,38 +6,38 @@ import { Search, Home as HomeIcon, ShieldCheck, HelpCircle, ArrowRight } from 'l
 export default function Home() {
   return (
     <main className="container">
-      <div style={{ padding: '4rem 0', maxWidth: '800px' }}>
-        <h1 style={{ marginBottom: '1.5rem' }}>
-          Effektiv boligformidling for offentlig sektor.
+      <div style={{ padding: 'var(--space-10) 0', maxWidth: '900px' }}>
+        <h1 className="animate-delay-1" style={{ marginBottom: 'var(--space-4)' }}>
+          Forenklet boligformidling for offentlig sektor.
         </h1>
-        <p style={{ fontSize: '1.25rem', marginBottom: '3rem', maxWidth: '600px' }}>
-          Boly kobler NAV-ansatte med private boligeiere for å løse akutte boligbehov gjennom en trygg og oversiktlig plattform.
+        <p className="animate-delay-2" style={{ fontSize: '1.25rem', marginBottom: 'var(--space-8)', maxWidth: '700px', color: 'var(--text-body)' }}>
+          Boly er den profesjonelle bindeleddet mellom NAV og private boligeiere. Vi gjør det trygt og effektivt å løse akutte boligbehov.
         </p>
       </div>
 
-      <div className="grid-portal">
+      <div className="grid-portal animate-delay-3">
         {/* NAV Worker Portal */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ marginBottom: '2rem' }}>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div>
             <div style={{ 
-              width: '48px', 
-              height: '48px', 
-              borderRadius: '10px', 
-              background: 'rgba(32, 187, 175, 0.1)',
+              width: '56px', 
+              height: '56px', 
+              borderRadius: '12px', 
+              background: 'rgba(32, 187, 175, 0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '1.5rem',
+              marginBottom: 'var(--space-4)',
               color: 'var(--color-teal)'
             }}>
-              <Search size={24} />
+              <Search size={28} />
             </div>
             <h2>For NAV-ansatte</h2>
-            <p style={{ marginBottom: '1.5rem' }}>
-              Finn og book ledige boliger i sanntid. Filtrer på pris, lokasjon og kapasitet for å hjelpe dine klienter raskt.
+            <p style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>
+              Søk i vår sanntidsoversikt over ledige boliger. Filtrer på kapasitet, lokasjon og pris for å gi dine klienter en rask og trygg løsning.
             </p>
           </div>
-          <div style={{ marginTop: 'auto' }}>
+          <div style={{ marginTop: 'auto', paddingTop: 'var(--space-4)' }}>
             <Link href="/nav/database" className="button button-accent" style={{ width: '100%' }}>
               Åpne boligbasen <ArrowRight size={18} />
             </Link>
@@ -45,27 +45,27 @@ export default function Home() {
         </div>
 
         {/* Homeowner Portal */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ marginBottom: '2rem' }}>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div>
             <div style={{ 
-              width: '48px', 
-              height: '48px', 
-              borderRadius: '10px', 
-              background: 'rgba(47, 76, 160, 0.1)',
+              width: '56px', 
+              height: '56px', 
+              borderRadius: '12px', 
+              background: 'rgba(47, 76, 160, 0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '1.5rem',
+              marginBottom: 'var(--space-4)',
               color: 'var(--color-royal-blue)'
             }}>
-              <HomeIcon size={24} />
+              <HomeIcon size={28} />
             </div>
             <h2>For boligeiere</h2>
-            <p style={{ marginBottom: '1.5rem' }}>
-              Registrer din bolig for korttidsutleie. Du har full kontroll over tilgjengelighet og styrer alt fra ditt dashbord.
+            <p style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>
+              Registrer din eiendom for korttidsutleie. Du beholder full kontroll over tilgjengelighet og administrerer alt fra et enkelt dashbord.
             </p>
           </div>
-          <div style={{ marginTop: 'auto' }}>
+          <div style={{ marginTop: 'auto', paddingTop: 'var(--space-4)' }}>
             <Link href="/homeowner/manage" className="button" style={{ width: '100%' }}>
               Administrer utleie <ArrowRight size={18} />
             </Link>
@@ -74,32 +74,32 @@ export default function Home() {
       </div>
 
       {/* Trust & Support Section */}
-      <div style={{ 
-        marginTop: '6rem', 
-        padding: '4rem', 
+      <div className="animate-delay-3" style={{ 
+        marginTop: 'var(--space-10)', 
+        padding: 'var(--space-8)', 
         background: 'var(--color-dark-navy)', 
         borderRadius: '24px',
-        color: 'white',
+        color: 'var(--text-on-dark)',
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '4rem'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: 'var(--space-8)'
       }}>
         <div>
-          <div style={{ color: 'var(--color-sky-blue)', marginBottom: '1rem' }}>
-            <ShieldCheck size={32} />
+          <div style={{ color: 'var(--color-sky-blue)', marginBottom: 'var(--space-3)' }}>
+            <ShieldCheck size={36} />
           </div>
-          <h3 style={{ color: 'white', fontSize: '1.25rem' }}>Sikkerhet i fokus</h3>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>
-            Alle avtaler er juridisk kvalitetssikret og følger norske standarder for utleie i offentlig regi.
+          <h3 style={{ color: 'white', fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>Sikkerhet i fokus</h3>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem' }}>
+            Alle leieforhold er dekket av juridisk kvalitetssikrede avtaler som følger gjeldende norske standarder for offentlig boligformidling.
           </p>
         </div>
         <div>
-          <div style={{ color: 'var(--color-sky-blue)', marginBottom: '1rem' }}>
-            <HelpCircle size={32} />
+          <div style={{ color: 'var(--color-sky-blue)', marginBottom: 'var(--space-3)' }}>
+            <HelpCircle size={36} />
           </div>
-          <h3 style={{ color: 'white', fontSize: '1.25rem' }}>Alltid tilgjengelig</h3>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem' }}>
-            Vårt support-team hjelper både saksbehandlere og utleiere med tekniske og praktiske spørsmål.
+          <h3 style={{ color: 'white', fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>Alltid tilgjengelig</h3>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem' }}>
+            Vårt dedikerte support-team er tilgjengelig for å bistå saksbehandlere og utleiere med både tekniske og praktiske utfordringer.
           </p>
         </div>
       </div>

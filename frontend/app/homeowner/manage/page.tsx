@@ -26,33 +26,33 @@ export default function HomeownerManage() {
 
   return (
     <main className="container">
-      <div style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
-          <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             ← Oversikt
           </Link>
-          <h1 style={{ fontSize: '2.5rem' }}>Mine utleieboliger</h1>
-          <p>Administrer dine registrerte boliger og styr tilgjengelighet.</p>
+          <h1 style={{ fontSize: '2.75rem' }}>Mine utleieboliger</h1>
+          <p style={{ fontSize: '1.125rem' }}>Administrer dine registrerte boliger og styr tilgjengelighet i sanntid.</p>
         </div>
-        <Link href="/homeowner/register" className="button">
-          <Plus size={18} /> Registrer ny bolig
+        <Link href="/homeowner/register" className="button" style={{ padding: 'var(--space-4) var(--space-6)', borderRadius: '14px' }}>
+          <Plus size={20} /> Registrer ny bolig
         </Link>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '2rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 'var(--space-6)', alignItems: 'start' }}>
         {/* Sidebar stats */}
-        <div className="card" style={{ background: 'var(--color-dark-navy)', color: 'white', border: 'none' }}>
-          <h3 style={{ color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-            <LayoutDashboard size={18} /> Status
+        <div className="card" style={{ background: 'var(--color-dark-navy)', color: 'white', border: 'none', padding: 'var(--space-6)' }}>
+          <h3 style={{ color: 'white', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-5)', fontSize: '1.1rem' }}>
+            <LayoutDashboard size={18} /> Oversikt
           </h3>
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            <div style={{ padding: '1.25rem', background: 'rgba(255,255,255,0.05)', borderRadius: '10px' }}>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', opacity: 0.6, marginBottom: '0.25rem' }}>Totalt antall</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 700 }}>{myListings.length}</div>
+          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+            <div style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.06)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', opacity: 0.6, fontWeight: 700, letterSpacing: '0.05em', marginBottom: '4px' }}>Boliger totalt</div>
+              <div style={{ fontSize: '2rem', fontWeight: 800 }}>{myListings.length}</div>
             </div>
-            <div style={{ padding: '1.25rem', background: 'rgba(32, 187, 175, 0.15)', borderRadius: '10px' }}>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--color-sky-blue)', marginBottom: '0.25rem' }}>Aktive nå</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-teal)' }}>
+            <div style={{ padding: 'var(--space-4)', background: 'rgba(32, 187, 175, 0.12)', borderRadius: '14px', border: '1px solid rgba(32, 187, 175, 0.2)' }}>
+              <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--color-sky-blue)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '4px' }}>Aktive nå</div>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-teal)' }}>
                 {myListings.filter(l => l.is_available).length}
               </div>
             </div>
@@ -60,42 +60,56 @@ export default function HomeownerManage() {
         </div>
 
         {/* Listings List */}
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          {myListings.map(listing => (
-            <div key={listing.id} className="card" style={{ 
+        <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+          {myListings.map((listing, index) => (
+            <div key={listing.id} className={`card animate-delay-${(index % 3) + 1}`} style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center',
-              padding: '1.25rem 2rem'
+              padding: 'var(--space-4) var(--space-6)',
+              borderRadius: '16px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <div style={{ color: 'var(--color-muted-blue)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)' }}>
+                <div style={{ 
+                  width: '52px', 
+                  height: '52px', 
+                  background: 'var(--bg-app)', 
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--color-muted-blue)'
+                }}>
                   <HomeIcon size={24} />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{listing.address}</h3>
-                  <p style={{ margin: 0, fontSize: '0.85rem' }}>{listing.city} • {listing.price_per_night},- /døgn</p>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{listing.address}</h3>
+                  <p className="text-sm" style={{ marginTop: '2px' }}>{listing.city} • <strong>{listing.price_per_night},-</strong> per døgn</p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '3rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  {listing.is_available ? (
-                    <CheckCircle2 size={18} style={{ color: 'var(--color-teal)' }} />
-                  ) : (
-                    <Circle size={18} style={{ color: 'var(--text-muted)' }} />
-                  )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <div style={{ 
+                    width: '10px', 
+                    height: '10px', 
+                    borderRadius: '50%', 
+                    backgroundColor: listing.is_available ? 'var(--color-teal)' : 'var(--text-muted)',
+                    boxShadow: listing.is_available ? '0 0 8px var(--color-teal)' : 'none'
+                  }}></div>
                   <span style={{ 
                     fontSize: '0.85rem', 
-                    fontWeight: 600, 
+                    fontWeight: 700, 
                     color: listing.is_available ? 'var(--color-teal)' : 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
                     width: '100px'
                   }}>
-                    {listing.is_available ? 'TILGJENGELIG' : 'AVSKRUDD'}
+                    {listing.is_available ? 'Tilgjengelig' : 'Avskrudd'}
                   </span>
                 </div>
 
-                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', height: '28px' }}>
+                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '56px', height: '30px' }}>
                   <input 
                     type="checkbox" 
                     checked={listing.is_available} 
@@ -107,20 +121,21 @@ export default function HomeownerManage() {
                     cursor: 'pointer', 
                     top: 0, left: 0, right: 0, bottom: 0, 
                     backgroundColor: listing.is_available ? 'var(--color-teal)' : '#e2e8f0',
-                    transition: '.3s',
-                    borderRadius: '28px'
+                    transition: '.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    borderRadius: '30px',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
                   }}>
                     <span style={{ 
                       position: 'absolute', 
                       content: '""', 
-                      height: '20px', 
-                      width: '20px', 
-                      left: listing.is_available ? '26px' : '4px', 
+                      height: '22px', 
+                      width: '22px', 
+                      left: listing.is_available ? '30px' : '4px', 
                       bottom: '4px', 
                       backgroundColor: 'white', 
-                      transition: '.3s',
+                      transition: '.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       borderRadius: '50%',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      boxShadow: '0 2px 8px rgba(33, 51, 102, 0.15)'
                     }}></span>
                   </span>
                 </label>

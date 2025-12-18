@@ -65,39 +65,39 @@ export default function NavDatabase() {
 
   return (
     <main className="container">
-      <div style={{ marginBottom: '3rem' }}>
-        <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{ marginBottom: 'var(--space-8)' }}>
+        <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           ← Oversikt
         </Link>
-        <h1 style={{ fontSize: '2.5rem' }}>Boligbasen</h1>
-        <p>Søk i sanntid etter tilgjengelige korttidsboliger for klienter.</p>
+        <h1 style={{ fontSize: '2.75rem' }}>Boligbasen</h1>
+        <p style={{ fontSize: '1.125rem' }}>Søk i sanntid etter tilgjengelige korttidsboliger for klienter.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 'var(--space-6)', alignItems: 'start' }}>
         {/* Filters Sidebar */}
-        <aside className="card" style={{ position: 'sticky', top: '6rem' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        <aside className="card" style={{ position: 'sticky', top: 'calc(var(--space-10) + 20px)', padding: 'var(--space-5)' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', fontSize: '1.1rem' }}>
             <Filter size={18} /> Filtrering
           </h3>
           
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label className="label">Søk</label>
+          <div style={{ marginBottom: 'var(--space-4)' }}>
+            <label className="label" style={{ fontSize: '0.75rem' }}>Søk på adresse</label>
             <div style={{ position: 'relative' }}>
               <input 
                 type="text" 
                 className="input" 
-                placeholder="Adresse eller beskrivelse..." 
+                placeholder="Gatenavn..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ paddingLeft: '2.5rem' }}
+                style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
               />
-              <Search size={16} style={{ position: 'absolute', left: '1rem', top: '1rem', color: 'var(--text-muted)' }} />
+              <Search size={18} style={{ position: 'absolute', left: '1rem', top: '14px', color: 'var(--text-muted)' }} />
             </div>
           </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label className="label">By</label>
-            <select className="input" value={filterCity} onChange={(e) => setFilterCity(e.target.value)}>
+          <div style={{ marginBottom: 'var(--space-5)' }}>
+            <label className="label" style={{ fontSize: '0.75rem' }}>By / Område</label>
+            <select className="input" value={filterCity} onChange={(e) => setFilterCity(e.target.value)} style={{ marginBottom: 0 }}>
               <option value="Alle">Alle byer</option>
               <option value="Oslo">Oslo</option>
               <option value="Bergen">Bergen</option>
@@ -105,67 +105,81 @@ export default function NavDatabase() {
             </select>
           </div>
 
-          <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1.5rem' }}>
-            <p style={{ fontSize: '0.85rem' }}>
-              Viser <strong>{listings.length}</strong> tilgjengelige boliger.
-            </p>
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-4)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="text-sm">Treff i databasen</span>
+              <strong style={{ color: 'var(--color-dark-navy)' }}>{listings.length}</strong>
+            </div>
           </div>
         </aside>
 
-        {/* Listings Table/Grid */}
-        <div style={{ display: 'grid', gap: '1rem' }}>
+        {/* Listings Grid */}
+        <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
           {listings.length > 0 ? (
-            listings.map(item => (
-              <div key={item.id} className="card" style={{ 
+            listings.map((item, index) => (
+              <div key={item.id} className={`card animate-delay-${(index % 3) + 1}`} style={{ 
                 display: 'grid', 
-                gridTemplateColumns: '120px 1fr auto', 
-                gap: '1.5rem', 
+                gridTemplateColumns: '140px 1fr auto', 
+                gap: 'var(--space-5)', 
                 alignItems: 'center',
-                padding: '1rem'
+                padding: 'var(--space-4)'
               }}>
                 <div style={{ 
-                  height: '80px', 
-                  background: 'var(--color-sky-blue)', 
-                  borderRadius: '8px',
+                  height: '100px', 
+                  background: 'linear-gradient(135deg, var(--color-sky-blue) 0%, rgba(170, 223, 240, 0.4) 100%)', 
+                  borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: 'var(--color-dark-navy)',
-                  opacity: 0.6
+                  opacity: 0.8
                 }}>
-                  <HomeIcon size={32} />
+                  <HomeIcon size={36} strokeWidth={1.5} />
                 </div>
                 
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{item.address}</h3>
-                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
-                    <span style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <MapPin size={14} /> {item.city}
-                    </span>
-                    <span style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Users size={14} /> {item.beds} senger
-                    </span>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-teal)', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{item.address}</h3>
+                    <span style={{ 
+                      fontSize: '0.7rem', 
+                      background: 'rgba(32, 187, 175, 0.1)', 
+                      color: 'var(--color-dark-teal)', 
+                      padding: '2px 8px', 
+                      borderRadius: '4px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase'
+                    }}>
                       {item.type}
                     </span>
                   </div>
+                  <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-1)' }}>
+                    <span className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <MapPin size={14} /> {item.city}
+                    </span>
+                    <span className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Users size={14} /> {item.beds} senger
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.95rem', marginTop: 'var(--space-2)', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {item.description}
+                  </p>
                 </div>
 
-                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '1.25rem', color: 'var(--color-dark-navy)' }}>{item.price_per_night},-</div>
-                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', opacity: 0.6 }}>per døgn</div>
+                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 'var(--space-5)' }}>
+                  <div style={{ minWidth: '100px' }}>
+                    <div style={{ fontWeight: 800, fontSize: '1.5rem', color: 'var(--color-dark-navy)', lineHeight: 1 }}>{item.price_per_night},-</div>
+                    <div className="text-sm" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px' }}>per døgn</div>
                   </div>
-                  <button className="button" style={{ padding: '0.6rem' }}>
-                    <ChevronRight size={20} />
+                  <button className="button" style={{ padding: 'var(--space-3)', borderRadius: '12px' }}>
+                    <ChevronRight size={24} />
                   </button>
                 </div>
               </div>
             ))
           ) : (
-            <div className="card" style={{ textAlign: 'center', padding: '4rem', opacity: 0.6 }}>
-              <Info size={48} style={{ margin: '0 auto 1rem' }} />
-              <p>Ingen resultater for dette søket.</p>
+            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)', opacity: 0.6 }}>
+              <Info size={48} style={{ margin: '0 auto var(--space-4)', color: 'var(--color-muted-blue)' }} />
+              <p>Ingen boliger matcher dine søkekriterier.</p>
             </div>
           )}
         </div>

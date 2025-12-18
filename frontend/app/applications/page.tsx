@@ -2,62 +2,47 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { ArrowLeft, Plus, FileText, Search } from 'lucide-react'
 
 export default function Applications() {
   const [applications, setApplications] = useState([])
 
   return (
     <main className="container">
-      <div style={{ marginBottom: '2rem' }}>
-        <Link href="/" className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-          ← Tilbake til forsiden
+      <div style={{ marginBottom: 'var(--space-8)' }}>
+        <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <ArrowLeft size={18} /> Oversikt
         </Link>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--color-dark-navy)', marginBottom: '0.5rem' }}>
-          Boliglånsøknader
-        </h1>
-        <p style={{ fontSize: '1.1rem', color: 'var(--color-dark-navy)', opacity: 0.8 }}>
-          Administrer og opprett nye boliglånsøknader
-        </p>
+        <h1 style={{ fontSize: '2.75rem' }}>Boligsøknader</h1>
+        <p>Her finner du oversikt over dine innsendte søknader og deres status.</p>
       </div>
 
       <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
           <h2 style={{ margin: 0 }}>Mine søknader</h2>
           <button className="button">
-            + Ny søknad
+            <Plus size={18} /> Ny søknad
           </button>
         </div>
 
         <div style={{ 
-          padding: '3rem 2rem', 
+          padding: 'var(--space-10)', 
           textAlign: 'center',
-          background: 'linear-gradient(135deg, var(--color-sky-blue) 0%, rgba(170, 223, 240, 0.3) 100%)',
-          borderRadius: '12px',
-          border: '2px dashed var(--color-muted-blue)'
+          background: 'var(--bg-app)',
+          borderRadius: '16px',
+          border: '2px dashed var(--border-medium)'
         }}>
           {applications.length === 0 ? (
-            <>
-              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📋</div>
-              <p style={{ color: 'var(--color-dark-navy)', fontSize: '1.1rem', marginBottom: '0.5rem', fontWeight: 500 }}>
-                Ingen søknader funnet
-              </p>
-              <p style={{ color: 'var(--color-dark-navy)', opacity: 0.7 }}>
-                Opprett en ny søknad for å komme i gang
-              </p>
-            </>
+            <div style={{ maxWidth: '400px', margin: '0 auto' }}>
+              <div style={{ color: 'var(--color-muted-blue)', marginBottom: 'var(--space-4)' }}>
+                <FileText size={48} strokeWidth={1.5} style={{ margin: '0 auto' }} />
+              </div>
+              <h3 style={{ marginBottom: 'var(--space-2)' }}>Ingen aktive søknader</h3>
+              <p className="text-sm">Du har ikke sendt inn noen boligsøknader ennå. Klikk på knappen over for å starte en ny prosess.</p>
+            </div>
           ) : (
             <ul style={{ listStyle: 'none', padding: 0, textAlign: 'left' }}>
-              {applications.map((app, index) => (
-                <li key={index} style={{ 
-                  padding: '1rem', 
-                  background: '#ffffff', 
-                  borderRadius: '8px', 
-                  marginBottom: '0.75rem',
-                  border: '1px solid rgba(107, 137, 197, 0.2)'
-                }}>
-                  {app}
-                </li>
-              ))}
+              {/* Future application items */}
             </ul>
           )}
         </div>
