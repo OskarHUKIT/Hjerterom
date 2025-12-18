@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, Filter, MapPin, Users, Info, ChevronRight } from 'lucide-react'
+import { Search, Filter, MapPin, Users, Info, ChevronRight, Home as HomeIcon } from 'lucide-react'
 
 // Mock data
 const MOCK_LISTINGS = [
