@@ -79,7 +79,7 @@ a {
 .header {
   background: rgba(15, 23, 42, 0.8);
   border-bottom: 1px solid var(--border-subtle);
-  padding: var(--space-2) 0;
+  padding: var(--space-3) 0;
   position: sticky;
   top: 0;
   z-index: 100;
