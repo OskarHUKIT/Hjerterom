@@ -7,6 +7,8 @@ import { supabase } from '../../lib/supabase'
 
 export default function HomeownerRegister() {
   const [loading, setLoading] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     address: '',
     city: 'Oslo',
@@ -20,6 +22,34 @@ export default function HomeownerRegister() {
     contactPhone: ''
   })
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setImageFile(file)
+      setImagePreview(URL.createObjectURL(file))
+    }
+  }
+
+  const uploadImage = async (file: File) => {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${Math.random()}.${fileExt}`
+    const filePath = `listing-images/${fileName}`
+
+    const { error: uploadError, data } = await supabase.storage
+      .from('listings')
+      .upload(filePath, file)
+
+    if (uploadError) {
+      throw uploadError
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('listings')
+      .getPublicUrl(filePath)
+
+    return publicUrl
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -32,6 +62,11 @@ export default function HomeownerRegister() {
         alert('Du må være logget inn for å registrere en bolig.')
         window.location.href = '/login'
         return
+      }
+
+      let imageUrl = null
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile)
       }
 
       const { data, error } = await supabase
@@ -49,6 +84,7 @@ export default function HomeownerRegister() {
             contact_name: formData.contactName,
             contact_phone: formData.contactPhone,
             owner_id: user.id,
+            image_url: imageUrl,
             is_available: true
           }
         ])
@@ -208,15 +244,48 @@ export default function HomeownerRegister() {
                 padding: 'var(--space-6)', 
                 textAlign: 'center', 
                 borderRadius: '16px',
-                background: 'var(--bg-app)'
+                background: 'var(--bg-app)',
+                position: 'relative'
               }}>
-                <div style={{ color: 'var(--color-muted-blue)', marginBottom: 'var(--space-3)' }}>
-                  <Camera size={40} strokeWidth={1.5} style={{ margin: '0 auto' }} />
-                </div>
-                <p className="text-sm" style={{ marginBottom: 'var(--space-4)' }}>Last opp bilder for å vise boligen fra sin beste side.</p>
-                <button type="button" className="button" style={{ backgroundColor: 'var(--color-muted-blue)', fontSize: '0.875rem' }}>
-                  Velg filer
-                </button>
+                {imagePreview ? (
+                  <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: '12px', overflow: 'hidden', marginBottom: 'var(--space-4)' }}>
+                    <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <button 
+                      type="button" 
+                      onClick={() => { setImageFile(null); setImagePreview(null); }}
+                      style={{ 
+                        position: 'absolute', 
+                        top: '10px', 
+                        right: '10px', 
+                        background: 'rgba(239, 68, 68, 0.9)', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '50%', 
+                        width: '30px', 
+                        height: '30px', 
+                        cursor: 'pointer' 
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ color: 'var(--color-muted-blue)', marginBottom: 'var(--space-3)' }}>
+                    <Camera size={40} strokeWidth={1.5} style={{ margin: '0 auto' }} />
+                  </div>
+                )}
+                <p className="text-sm" style={{ marginBottom: 'var(--space-4)' }}>
+                  {imagePreview ? 'Klikk for å bytte bilde' : 'Last opp bilder for å vise boligen fra sin beste side.'}
+                </p>
+                <label className="button" style={{ backgroundColor: 'var(--color-muted-blue)', fontSize: '0.875rem', cursor: 'pointer' }}>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageChange} 
+                    style={{ display: 'none' }} 
+                  />
+                  {imagePreview ? 'Bytt bilde' : 'Velg fil'}
+                </label>
               </div>
             </section>
           </div>

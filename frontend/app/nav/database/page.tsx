@@ -140,15 +140,18 @@ export default function NavDatabase() {
               }}>
                 <div style={{ 
                   height: '110px', 
-                  background: 'linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%)', 
+                  background: item.image_url ? `url(${item.image_url})` : 'linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%)',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
                   borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: 'var(--color-sky-blue)',
-                  border: '1px solid rgba(125, 211, 252, 0.1)'
+                  border: '1px solid rgba(125, 211, 252, 0.1)',
+                  overflow: 'hidden'
                 }}>
-                  <HomeIcon size={40} strokeWidth={1.2} />
+                  {!item.image_url && <HomeIcon size={40} strokeWidth={1.2} />}
                 </div>
                 
                 <div>
@@ -217,9 +220,9 @@ export default function NavDatabase() {
                     <div style={{ fontWeight: 800, fontSize: '1.75rem', color: 'var(--text-on-dark)', lineHeight: 1 }}>{item.price_per_night},-</div>
                     <div className="text-sm" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '6px', opacity: 0.6 }}>per døgn</div>
                   </div>
-                  <button className="button" style={{ padding: 'var(--space-4)', borderRadius: '14px' }}>
+                  <Link href={`/listings/${item.id}`} className="button" style={{ padding: 'var(--space-4)', borderRadius: '14px' }}>
                     Se detaljer
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))

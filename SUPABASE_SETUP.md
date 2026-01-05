@@ -61,4 +61,40 @@ npm install @supabase/supabase-js
 
 The project is structured to use a Supabase client. You can find the configuration in `frontend/app/lib/supabase.ts`.
 
+## 6. Storage Setup (Images)
+
+To enable image uploads for housing listings, you need to create a storage bucket:
+
+1.  Go to the **Storage** section in your Supabase dashboard.
+2.  Click **New Bucket**.
+3.  Name it `listings`.
+4.  Make sure the bucket is **Public** (so NAV workers can see the images).
+5.  Click **Create Bucket**.
+6.  **Add Policies** for the `listings` bucket:
+    *   **Policy 1 (Select):** Allow **Anyone** to `SELECT` (view) files.
+    *   **Policy 2 (Insert):** Allow **Authenticated Users** to `INSERT` (upload) files.
+    *   **Policy 3 (Update/Delete):** Allow **Authenticated Users** to `UPDATE` or `DELETE` their own files (Optional but recommended).
+
+## 7. Database Updates (Professional Fields)
+
+Run this SQL to ensure all professional fields and image support are ready:
+
+```sql
+-- Add missing professional fields to listings
+alter table listings 
+add column if not exists postal_code text,
+add column if not exists rules text,
+add column if not exists contact_name text,
+add column if not exists contact_phone text,
+add column if not exists energy_class text default 'C',
+add column if not exists distance_to_center text default 'Ukjent',
+add column if not exists image_url text;
+
+-- Storage policies for the 'listings' bucket (Run this if you prefer SQL over UI)
+insert into storage.buckets (id, name, public) values ('listings', 'listings', true) on conflict do nothing;
+
+create policy "Public Access" on storage.objects for select using ( bucket_id = 'listings' );
+create policy "Authenticated Upload" on storage.objects for insert with check ( bucket_id = 'listings' and auth.role() = 'authenticated' );
+```
+
 

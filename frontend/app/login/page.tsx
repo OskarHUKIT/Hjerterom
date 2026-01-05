@@ -137,6 +137,39 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <div style={{ marginTop: 'var(--space-4)', textAlign: 'center' }}>
+          <div style={{ position: 'relative', margin: 'var(--space-6) 0' }}>
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)' }} />
+            <span style={{ 
+              position: 'absolute', 
+              top: '50%', 
+              left: '50%', 
+              transform: 'translate(-50%, -50%)',
+              background: '#161d2b',
+              padding: '0 10px',
+              fontSize: '0.8rem',
+              color: 'var(--text-muted)'
+            }}>eller</span>
+          </div>
+
+          <button 
+            disabled
+            className="button"
+            style={{ 
+              width: '100%', 
+              padding: 'var(--space-3)', 
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-muted)',
+              cursor: 'not-allowed',
+              opacity: 0.8,
+              fontSize: '0.9rem'
+            }}
+          >
+            <ShieldCheck size={18} style={{ marginRight: '8px' }} /> Logg inn med BankID <span style={{ fontSize: '0.7rem', opacity: 0.6, marginLeft: '6px' }}>(Kommer snart)</span>
+          </button>
+        </div>
+
         <div style={{ marginTop: 'var(--space-6)', textAlign: 'center', fontSize: '0.95rem' }}>
           <p style={{ color: 'var(--text-muted)' }}>
             {isSignUp ? 'Har du allerede en konto?' : 'Har du ikke konto?'}
