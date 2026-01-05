@@ -2,54 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, Filter, MapPin, Users, Info, ChevronRight, Home as HomeIcon, ShieldCheck } from 'lucide-react'
-
-// Mock data with "special" metadata for workers
-const MOCK_LISTINGS = [
-  {
-    id: '1',
-    address: 'Storgata 15',
-    city: 'Oslo',
-    price_per_night: 850,
-    beds: 2,
-    type: 'Leilighet',
-    description: 'Lys og trivelig leilighet sentralt i Oslo. Passer for par eller enslige.',
-    is_available: true,
-    last_verified: 'I dag',
-    distance_to_center: '5 min gange',
-    energy_class: 'A'
-  },
-  {
-    id: '2',
-    address: 'Vika allé 4',
-    city: 'Oslo',
-    price_per_night: 1200,
-    beds: 4,
-    type: 'Enebolig',
-    description: 'Stor enebolig med hage. Kort vei til kollektivtransport.',
-    is_available: true,
-    last_verified: '2 dager siden',
-    distance_to_center: '12 min bane',
-    energy_class: 'B'
-  },
-  {
-    id: '3',
-    address: 'Parkveien 12',
-    city: 'Bergen',
-    price_per_night: 700,
-    beds: 1,
-    type: 'Hybel',
-    description: 'Rolig hybel med egen inngang. Inkluderer strøm og internett.',
-    is_available: true,
-    last_verified: 'I går',
-    distance_to_center: '10 min gange',
-    energy_class: 'C'
-  }
-]
+import { Search, Filter, MapPin, Users, Info, ChevronRight, Home as HomeIcon, ShieldCheck, Loader2 } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 
 export default function NavDatabase() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [listings, setListings] = useState(MOCK_LISTINGS)
+  const [listings, setListings] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [filterCity, setFilterCity] = useState('Alle')
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
 
@@ -59,15 +18,43 @@ export default function NavDatabase() {
     setTimeout(() => setCopyFeedback(null), 2000)
   }
 
+  const fetchListings = async () => {
+    setLoading(true)
+    try {
+      let query = supabase
+        .from('listings')
+        .select('*')
+        .eq('is_available', true)
+
+      if (filterCity !== 'Alle') {
+        query = query.eq('city', filterCity)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error fetching listings:', error)
+      } else {
+        // Filter by search term locally if needed, or we could add it to the query
+        let filtered = data || []
+        if (searchTerm) {
+          filtered = filtered.filter(item => 
+            item.address.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+          )
+        }
+        setListings(filtered)
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    const filtered = MOCK_LISTINGS.filter(item => {
-      const matchesSearch = item.address.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           item.description.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCity = filterCity === 'Alle' || item.city === filterCity
-      return matchesSearch && matchesCity
-    })
-    setListings(filtered)
-  }, [searchTerm, filterCity])
+    fetchListings()
+  }, [filterCity, searchTerm])
 
   return (
     <main className="container">
@@ -136,7 +123,12 @@ export default function NavDatabase() {
 
         {/* Listings Grid */}
         <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-          {listings.length > 0 ? (
+          {loading ? (
+            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)', background: 'rgba(15, 23, 42, 0.4)' }}>
+              <Loader2 size={48} className="animate-spin" style={{ margin: '0 auto var(--space-4)', color: 'var(--color-royal-blue)' }} />
+              <p>Henter boliger...</p>
+            </div>
+          ) : listings.length > 0 ? (
             listings.map((item, index) => (
               <div key={item.id} className={`card animate-delay-${(index % 3) + 1}`} style={{ 
                 display: 'grid', 

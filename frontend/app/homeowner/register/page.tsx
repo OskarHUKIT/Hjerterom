@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Save, MapPin, Bed, Tag, FileText, Camera } from 'lucide-react'
+import { ArrowLeft, Save, MapPin, Bed, Tag, FileText, Camera, Loader2 } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 
 export default function HomeownerRegister() {
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     address: '',
     city: 'Oslo',
@@ -18,11 +20,52 @@ export default function HomeownerRegister() {
     contactPhone: ''
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Logic to save to Supabase would go here
-    alert('Bolig registrert! (Demo)')
-    window.location.href = '/homeowner/manage'
+    setLoading(true)
+    
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        alert('Du må være logget inn for å registrere en bolig.')
+        window.location.href = '/login'
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('listings')
+        .insert([
+          {
+            address: formData.address,
+            city: formData.city,
+            postal_code: formData.postalCode,
+            price_per_night: parseFloat(formData.price),
+            beds: parseInt(formData.beds),
+            type: formData.propertyType,
+            description: formData.description,
+            rules: formData.rules,
+            contact_name: formData.contactName,
+            contact_phone: formData.contactPhone,
+            owner_id: user.id,
+            is_available: true
+          }
+        ])
+
+      if (error) {
+        console.error('Error saving listing:', error)
+        alert('Feil ved lagring: ' + error.message)
+      } else {
+        alert('Bolig registrert!')
+        window.location.href = '/homeowner/manage'
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err)
+      alert('En uventet feil oppsto.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -193,8 +236,14 @@ export default function HomeownerRegister() {
           zIndex: 10,
           backdropFilter: 'blur(16px)'
         }}>
-          <button type="submit" className="button" style={{ padding: 'var(--space-4) var(--space-10)', fontSize: '1.125rem', borderRadius: '14px' }}>
-            <Save size={22} /> Publiser og gjør tilgjengelig
+          <button 
+            type="submit" 
+            className="button" 
+            disabled={loading}
+            style={{ padding: 'var(--space-4) var(--space-10)', fontSize: '1.125rem', borderRadius: '14px', opacity: loading ? 0.7 : 1 }}
+          >
+            {loading ? <Loader2 className="animate-spin" size={22} /> : <Save size={22} />} 
+            {loading ? 'Lagrer...' : 'Publiser og gjør tilgjengelig'}
           </button>
         </div>
       </form>

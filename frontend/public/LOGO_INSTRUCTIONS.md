@@ -39,3 +39,4 @@ After adding the logo:
 2. Refresh your browser
 3. The logo should appear in the header
 
+

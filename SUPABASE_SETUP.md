@@ -61,3 +61,4 @@ npm install @supabase/supabase-js
 
 The project is structured to use a Supabase client. You can find the configuration in `frontend/app/lib/supabase.ts`.
 
+

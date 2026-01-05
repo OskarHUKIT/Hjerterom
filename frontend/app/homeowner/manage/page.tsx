@@ -1,27 +1,64 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, LayoutDashboard, Home as HomeIcon, CheckCircle2, Circle, ArrowRight } from 'lucide-react'
-
-// Mock data
-const INITIAL_MY_LISTINGS = [
-  {
-    id: '1',
-    address: 'Storgata 15',
-    city: 'Oslo',
-    is_available: true,
-    price_per_night: 850
-  }
-]
+import { Plus, LayoutDashboard, Home as HomeIcon, CheckCircle2, Circle, ArrowRight, Loader2, Info } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 
 export default function HomeownerManage() {
-  const [myListings, setMyListings] = useState(INITIAL_MY_LISTINGS)
+  const [myListings, setMyListings] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const toggleAvailability = (id: string) => {
-    setMyListings(myListings.map(item => 
-      item.id === id ? { ...item, is_available: !item.is_available } : item
-    ))
+  const fetchMyListings = async () => {
+    setLoading(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        // Redirect to login if not authenticated
+        window.location.href = '/login'
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching my listings:', error)
+      } else {
+        setMyListings(data || [])
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchMyListings()
+  }, [])
+
+  const toggleAvailability = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('listings')
+        .update({ is_available: !currentStatus })
+        .eq('id', id)
+
+      if (error) {
+        console.error('Error updating availability:', error)
+      } else {
+        setMyListings(myListings.map(item => 
+          item.id === id ? { ...item, is_available: !item.is_available } : item
+        ))
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err)
+    }
   }
 
   return (
@@ -61,87 +98,102 @@ export default function HomeownerManage() {
 
         {/* Listings List */}
         <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-          {myListings.map((listing, index) => (
-            <div key={listing.id} className={`card animate-delay-${(index % 3) + 1}`} style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              padding: 'var(--space-4) var(--space-6)',
-              borderRadius: '16px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)' }}>
-                <div style={{ 
-                  width: '52px', 
-                  height: '52px', 
-                  background: 'var(--bg-app)', 
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--color-muted-blue)'
-                }}>
-                  <HomeIcon size={24} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{listing.address}</h3>
-                  <p className="text-sm" style={{ marginTop: '2px' }}>{listing.city} • <strong>{listing.price_per_night},-</strong> per døgn</p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          {loading ? (
+            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)', background: 'rgba(15, 23, 42, 0.4)' }}>
+              <Loader2 size={48} className="animate-spin" style={{ margin: '0 auto var(--space-4)', color: 'var(--color-royal-blue)' }} />
+              <p>Henter dine boliger...</p>
+            </div>
+          ) : myListings.length > 0 ? (
+            myListings.map((listing, index) => (
+              <div key={listing.id} className={`card animate-delay-${(index % 3) + 1}`} style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: 'var(--space-4) var(--space-6)',
+                borderRadius: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)' }}>
                   <div style={{ 
-                    width: '10px', 
-                    height: '10px', 
-                    borderRadius: '50%', 
-                    backgroundColor: listing.is_available ? 'var(--color-teal)' : 'var(--text-muted)',
-                    boxShadow: listing.is_available ? '0 0 8px var(--color-teal)' : 'none'
-                  }}></div>
-                  <span style={{ 
-                    fontSize: '0.85rem', 
-                    fontWeight: 700, 
-                    color: listing.is_available ? 'var(--color-teal)' : 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    width: '100px'
+                    width: '52px', 
+                    height: '52px', 
+                    background: 'var(--bg-app)', 
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--color-muted-blue)'
                   }}>
-                    {listing.is_available ? 'Tilgjengelig' : 'Avskrudd'}
-                  </span>
+                    <HomeIcon size={24} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{listing.address}</h3>
+                    <p className="text-sm" style={{ marginTop: '2px' }}>{listing.city} • <strong>{listing.price_per_night},-</strong> per døgn</p>
+                  </div>
                 </div>
 
-                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '56px', height: '30px' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={listing.is_available} 
-                    onChange={() => toggleAvailability(listing.id)}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{ 
-                    position: 'absolute', 
-                    cursor: 'pointer', 
-                    top: 0, left: 0, right: 0, bottom: 0, 
-                    backgroundColor: listing.is_available ? 'var(--color-teal)' : '#e2e8f0',
-                    transition: '.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    borderRadius: '30px',
-                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
-                  }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                    <div style={{ 
+                      width: '10px', 
+                      height: '10px', 
+                      borderRadius: '50%', 
+                      backgroundColor: listing.is_available ? 'var(--color-teal)' : 'var(--text-muted)',
+                      boxShadow: listing.is_available ? '0 0 8px var(--color-teal)' : 'none'
+                    }}></div>
+                    <span style={{ 
+                      fontSize: '0.85rem', 
+                      fontWeight: 700, 
+                      color: listing.is_available ? 'var(--color-teal)' : 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      width: '100px'
+                    }}>
+                      {listing.is_available ? 'Tilgjengelig' : 'Avskrudd'}
+                    </span>
+                  </div>
+
+                  <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '56px', height: '30px' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={listing.is_available} 
+                      onChange={() => toggleAvailability(listing.id, listing.is_available)}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
                     <span style={{ 
                       position: 'absolute', 
-                      content: '""', 
-                      height: '22px', 
-                      width: '22px', 
-                      left: listing.is_available ? '30px' : '4px', 
-                      bottom: '4px', 
-                      backgroundColor: 'white', 
+                      cursor: 'pointer', 
+                      top: 0, left: 0, right: 0, bottom: 0, 
+                      backgroundColor: listing.is_available ? 'var(--color-teal)' : '#e2e8f0',
                       transition: '.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      borderRadius: '50%',
-                      boxShadow: '0 2px 8px rgba(33, 51, 102, 0.15)'
-                    }}></span>
-                  </span>
-                </label>
+                      borderRadius: '30px',
+                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
+                    }}>
+                      <span style={{ 
+                        position: 'absolute', 
+                        content: '""', 
+                        height: '22px', 
+                        width: '22px', 
+                        left: listing.is_available ? '30px' : '4px', 
+                        bottom: '4px', 
+                        backgroundColor: 'white', 
+                        transition: '.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        borderRadius: '50%',
+                        boxShadow: '0 2px 8px rgba(33, 51, 102, 0.15)'
+                      }}></span>
+                    </span>
+                  </label>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)', background: 'rgba(15, 23, 42, 0.4)' }}>
+              <Info size={48} style={{ margin: '0 auto var(--space-4)', color: 'var(--color-muted-blue)' }} />
+              <p>Du har ingen registrerte boliger ennå.</p>
+              <Link href="/homeowner/register" className="button" style={{ marginTop: 'var(--space-4)' }}>
+                Registrer din første bolig
+              </Link>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </main>

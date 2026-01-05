@@ -78,3 +78,4 @@ git status
 - **Vercel not updating?** Check deployment logs in Vercel dashboard
 - **Git issues?** Run `git status` to see what's happening
 
+
