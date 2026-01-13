@@ -224,8 +224,8 @@ export default function ListingDetails() {
   return (
     <main className="container">
       <div style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Link href={isNav ? "/nav/database" : "/homeowner/manage"} className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: '-1rem' }}>
-          <ArrowLeft size={18} /> Tilbake til {isNav ? "boligbanken" : "mine boliger"}
+        <Link href={isNavView ? "/nav/database" : "/homeowner/manage"} className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: '-1rem' }}>
+          <ArrowLeft size={18} /> Tilbake til {isNavView ? "boligbanken" : "mine boliger"}
         </Link>
         <button onClick={handleCopyLink} className="button" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--color-sky-blue)', border: '1px solid var(--border-subtle)', padding: 'var(--space-2) var(--space-4)', fontSize: '0.85rem' }}>
           <Share2 size={16} /> {copyFeedback ? 'Lenke kopiert!' : 'Del med bruker'}
