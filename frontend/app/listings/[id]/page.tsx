@@ -9,7 +9,7 @@ import {
   Phone, User, Home as HomeIcon, Loader2, CheckCircle2, 
   Ruler, Building, Tag, Wifi, Zap, Tv, Share2, Clipboard, 
   MessageSquare, Send, Trash2, Clock, ChevronLeft, ChevronRight,
-  Maximize2, X, Plus, Camera
+  Maximize2, X, Plus, Camera, Edit3
 } from 'lucide-react'
 
 export default function ListingDetails() {
