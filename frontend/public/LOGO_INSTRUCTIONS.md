@@ -40,3 +40,4 @@ After adding the logo:
 3. The logo should appear in the header
 
 
+

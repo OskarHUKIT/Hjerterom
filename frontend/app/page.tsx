@@ -50,7 +50,7 @@ export default function Home() {
               Søk i vår sanntidsoversikt over ledige boliger. Finn riktig løsning for dine klienter med avansert filtrering.
             </p>
             <Link href="/nav/database" className="button button-accent" style={{ width: '100%', padding: 'var(--space-4)' }}>
-              Åpne boligbasen <ArrowRight size={18} />
+              Åpne boligbanken <ArrowRight size={18} />
             </Link>
           </div>
         </div>
@@ -107,9 +107,9 @@ export default function Home() {
           <div style={{ color: 'var(--color-sky-blue)', marginBottom: 'var(--space-3)' }}>
             <HelpCircle size={36} />
           </div>
-          <h3 style={{ color: 'white', fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>Alltid tilgjengelig</h3>
+          <h3 style={{ color: 'white', fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>Kontinuerlig forbedring</h3>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem' }}>
-            Vårt dedikerte support-team er tilgjengelig for å bistå saksbehandlere og utleiere med både tekniske og praktiske utfordringer.
+            Vi ønsker de absolutt beste funksjonene for denne appen og den vil bli kontinuerlig oppdatert. Hvis du finner problemer, vennligst send en e-post til boly@gamechanging.no
           </p>
         </div>
       </div>

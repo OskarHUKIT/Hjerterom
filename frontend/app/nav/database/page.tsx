@@ -2,51 +2,197 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, Filter, MapPin, Users, Info, ChevronRight, Home as HomeIcon, ShieldCheck, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
+import { 
+  Search, Filter, MapPin, Users, Info, ChevronRight, Home as HomeIcon, 
+  ShieldCheck, Loader2, ArrowUpDown, LayoutList, Map as MapIcon,
+  CheckCircle2, XCircle, AlertCircle, Phone, User, Building, Tag,
+  Ruler, Eye, Calendar, Settings
+} from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
+// Dynamically import Map component to avoid SSR issues
+const MapView = dynamic(() => import('../../components/MapView'), { 
+  ssr: false,
+  loading: () => <div className="card" style={{ height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" /></div>
+})
+
 export default function NavDatabase() {
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [listings, setListings] = useState<any[]>([])
+  const [availability, setAvailability] = useState<Record<string, any[]>>({})
   const [loading, setLoading] = useState(true)
-  const [filterCity, setFilterCity] = useState('Alle')
-  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'Ledig' | 'Utleid' | 'Utløpte'>('Ledig')
+  const [viewMode, setViewMode] = useState<'table' | 'map' | 'timeline'>('timeline')
+  const [sortField, setSortField] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [showFilters, setShowFilters] = useState(false)
+  const [showColumnSettings, setShowColumnSettings] = useState(false)
+  const [timelineOffset, setTimelineOffset] = useState(0)
+  
+  const [visibleColumns, setVisibleColumns] = useState(['address', 'city', 'owner_name', 'price_daily'])
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopyFeedback(text)
-    setTimeout(() => setCopyFeedback(null), 2000)
+  const ALL_COLUMNS = [
+    { id: 'address', label: 'Adresse' },
+    { id: 'city', label: 'By' },
+    { id: 'owner_name', label: 'Eier' },
+    { id: 'price_daily', label: 'Pris' },
+    { id: 'type', label: 'Type' },
+    { id: 'bedrooms', label: 'Soverom' },
+    { id: 'size_sqm', label: 'Areal' },
+    { id: 'max_occupants', label: 'Maks personer' },
+    { id: 'floor_number', label: 'Etasje' },
+  ]
+
+  const toggleColumn = (id: string) => {
+    if (visibleColumns.includes(id)) {
+      if (visibleColumns.length > 1) {
+        setVisibleColumns(visibleColumns.filter(c => c !== id))
+      }
+    } else {
+      setVisibleColumns([...visibleColumns, id])
+    }
   }
+
+  const translateValue = (id: string, val: any) => {
+    if (!val) return '-'
+    if (id === 'price_daily') return `${val},-`
+    if (id === 'type') {
+      const mapping: Record<string, string> = {
+        'Short-term': 'Korttid',
+        'Long-term': 'Langtid',
+        'Apartment': 'Leilighet',
+        'House': 'Enebolig',
+        'Shared': 'Bofelleskap'
+      }
+      return mapping[val] || val
+    }
+    return val
+  }
+
+  // Filters
+  const [filters, setFilters] = useState({
+    city: 'Alle',
+    type: 'Alle',
+    minPrice: '',
+    maxPrice: '',
+    accessibility: [] as string[],
+    minBedrooms: '',
+    minSize: '',
+    minOccupants: '',
+    floor: 'Alle',
+    furnishing: 'Alle'
+  })
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   const fetchListings = async () => {
     setLoading(true)
     try {
-      let query = supabase
-        .from('listings')
-        .select('*')
-        .eq('is_available', true)
+      let query = supabase.from('listings').select('*')
 
-      if (filterCity !== 'Alle') {
-        query = query.eq('city', filterCity)
+      if (viewMode === 'timeline') {
+        // I tidslinjevisning henter vi alle aktive boliger uavhengig av status,
+        // fordi en utleid bolig kan ha ledige perioder i fremtiden.
+        const { data: activeUsers } = await supabase
+          .from('user_agreements')
+          .select('user_id')
+          .eq('is_terminated', false)
+        
+        const userIds = activeUsers?.map(u => u.user_id) || []
+        query = query.in('owner_id', userIds)
+      } else if (activeTab === 'Utløpte') {
+        const { data: terminatedUsers } = await supabase
+          .from('user_agreements')
+          .select('user_id')
+          .eq('is_terminated', true)
+        
+        const userIds = terminatedUsers?.map(u => u.user_id) || []
+        query = query.in('owner_id', userIds)
+      } else {
+        query = query.eq('status', activeTab)
+        const { data: activeUsers } = await supabase
+          .from('user_agreements')
+          .select('user_id')
+          .eq('is_terminated', false)
+        
+        const userIds = activeUsers?.map(u => u.user_id) || []
+        query = query.in('owner_id', userIds)
       }
 
       const { data, error } = await query
 
-      if (error) {
-        console.error('Error fetching listings:', error)
-      } else {
-        // Filter by search term locally if needed, or we could add it to the query
-        let filtered = data || []
-        if (searchTerm) {
-          filtered = filtered.filter(item => 
-            item.address.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
-          )
-        }
-        setListings(filtered)
+      if (error) throw error
+      let filtered = data || []
+
+      if (searchTerm) {
+        filtered = filtered.filter(item => 
+          item.address.toLowerCase().includes(searchTerm.toLowerCase()) || 
+          item.owner_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
       }
-    } catch (err) {
-      console.error('Unexpected error:', err)
+      if (filters.city !== 'Alle') {
+        filtered = filtered.filter(item => item.city === filters.city)
+      }
+      if (filters.type !== 'Alle') {
+        filtered = filtered.filter(item => item.type === filters.type)
+      }
+      if (filters.minPrice) {
+        filtered = filtered.filter(item => item.price_daily >= parseFloat(filters.minPrice))
+      }
+      if (filters.maxPrice) {
+        filtered = filtered.filter(item => item.price_daily <= parseFloat(filters.maxPrice))
+      }
+      if (filters.minBedrooms) {
+        filtered = filtered.filter(item => item.bedrooms >= parseInt(filters.minBedrooms))
+      }
+      if (filters.minSize) {
+        filtered = filtered.filter(item => item.size_sqm >= parseFloat(filters.minSize))
+      }
+      if (filters.minOccupants) {
+        filtered = filtered.filter(item => item.max_occupants >= parseInt(filters.minOccupants))
+      }
+      if (filters.floor !== 'Alle') {
+        filtered = filtered.filter(item => item.floor_number === filters.floor)
+      }
+      if (filters.furnishing !== 'Alle') {
+        filtered = filtered.filter(item => item.furnishing === filters.furnishing)
+      }
+      if (filters.accessibility.length > 0) {
+        filtered = filtered.filter(item => 
+          filters.accessibility.every(a => item.accessibility?.includes(a))
+        )
+      }
+
+      filtered.sort((a, b) => {
+        const valA = a[sortField]
+        const valB = b[sortField]
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1
+        return 0
+      })
+
+      setListings(filtered)
+
+      // Fetch availability periods for the filtered listings
+      if (filtered.length > 0) {
+        const listingIds = filtered.map(l => l.id)
+        const { data: availabilityData } = await supabase
+          .from('listing_availability')
+          .select('*')
+          .in('listing_id', listingIds)
+          .order('start_date', { ascending: true })
+
+        const availMap: Record<string, any[]> = {}
+        availabilityData?.forEach(item => {
+          if (!availMap[item.listing_id]) availMap[item.listing_id] = []
+          availMap[item.listing_id].push(item)
+        })
+        setAvailability(availMap)
+      }
+    } catch (err: any) {
+      console.error('Error fetching listings:', err)
     } finally {
       setLoading(false)
     }
@@ -54,7 +200,41 @@ export default function NavDatabase() {
 
   useEffect(() => {
     fetchListings()
-  }, [filterCity, searchTerm])
+  }, [activeTab, searchTerm, filters, sortField, sortOrder, viewMode])
+
+  const toggleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
+  }
+
+  const handleMarkAsUtleid = async (id: string, address: string) => {
+    if (!confirm(`Vil du markere "${address}" som utleid? Utleier vil få varsel.`)) return
+    
+    try {
+      const { error } = await supabase
+        .from('listings')
+        .update({ status: 'Utleid', is_available: false })
+        .eq('id', id)
+      
+      if (error) throw error
+      
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase.from('audit_logs').insert([{
+        user_id: user?.id,
+        action_type: 'NAV_MARK_UTLEID',
+        listing_address: address,
+        details: { by: 'NAV Worker' }
+      }])
+
+      fetchListings()
+    } catch (err: any) {
+      alert('Feil: ' + err.message)
+    }
+  }
 
   return (
     <main className="container">
@@ -63,177 +243,465 @@ export default function NavDatabase() {
           <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             ← Oversikt
           </Link>
-          <h1 style={{ fontSize: '2.75rem' }}>Boligbasen</h1>
-          <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>Effektivt verktøy for å finne trygge hjem til dine klienter.</p>
+          <h1 style={{ fontSize: '2.75rem' }}>Boligbanken</h1>
         </div>
-        <div style={{ 
-          background: 'rgba(59, 130, 246, 0.1)', 
-          padding: 'var(--space-3) var(--space-5)', 
-          borderRadius: '12px', 
-          border: '1px solid rgba(59, 130, 246, 0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-3)'
-        }}>
-          <div style={{ width: '8px', height: '8px', background: 'var(--color-teal)', borderRadius: '50%', boxShadow: '0 0 10px var(--color-teal)' }}></div>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Systemet er oppdatert</span>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <button onClick={() => setViewMode('table')} style={{ 
+            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'table' ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
+            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'white'
+          }} title="Tabellvisning"><LayoutList size={20} /></button>
+          <button onClick={() => setViewMode('map')} style={{ 
+            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'map' ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
+            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'white'
+          }} title="Kartvisning"><MapPin size={20} /></button>
+          <button onClick={() => setViewMode('timeline')} style={{ 
+            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'timeline' ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
+            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'white'
+          }} title="Tidslinje"><Calendar size={20} /></button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 'var(--space-6)', alignItems: 'start' }}>
-        {/* Filters Sidebar */}
-        <aside className="card no-hover" style={{ position: 'sticky', top: 'calc(var(--space-10) + 20px)', padding: 'var(--space-5)', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(8px)' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', fontSize: '1.1rem' }}>
-            <Filter size={18} /> Filtrering
-          </h3>
-          
-          <div style={{ marginBottom: 'var(--space-4)' }}>
-            <label className="label" style={{ fontSize: '0.75rem' }}>Hurtigsøk</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type="text" 
-                className="input" 
-                placeholder="Adresse, bydel..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
-              />
-              <Search size={18} style={{ position: 'absolute', left: '1rem', top: '14px', color: 'var(--text-muted)' }} />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 'var(--space-5)' }}>
-            <label className="label" style={{ fontSize: '0.75rem' }}>Region</label>
-            <select className="input" value={filterCity} onChange={(e) => setFilterCity(e.target.value)} style={{ marginBottom: 0 }}>
-              <option value="Alle">Hele landet</option>
-              <option value="Oslo">Oslo</option>
-              <option value="Bergen">Bergen</option>
-              <option value="Trondheim">Trondheim</option>
-            </select>
-          </div>
-
-          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-4)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-              <span className="text-sm">Treff i basen</span>
-              <strong style={{ color: 'var(--color-sky-blue)' }}>{listings.length}</strong>
-            </div>
-            <p className="text-sm" style={{ opacity: 0.6, fontSize: '0.75rem' }}>Bruk piltastene for å navigere raskt (kommer snart).</p>
-          </div>
-        </aside>
-
-        {/* Listings Grid */}
-        <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-          {loading ? (
-            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)', background: 'rgba(15, 23, 42, 0.4)' }}>
-              <Loader2 size={48} className="animate-spin" style={{ margin: '0 auto var(--space-4)', color: 'var(--color-royal-blue)' }} />
-              <p>Henter boliger...</p>
-            </div>
-          ) : listings.length > 0 ? (
-            listings.map((item, index) => (
-              <div key={item.id} className={`card animate-delay-${(index % 3) + 1}`} style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '160px 1fr auto', 
-                gap: 'var(--space-6)', 
-                alignItems: 'center',
-                padding: 'var(--space-4)',
-                background: 'rgba(15, 23, 42, 0.4)'
+      <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-1)', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+          {viewMode !== 'timeline' ? (
+            (['Ledig', 'Utleid', 'Utløpte'] as const).map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)} style={{
+                padding: 'var(--space-3) var(--space-6)', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
+                background: 'none', border: 'none', color: activeTab === tab ? 'var(--color-sky-blue)' : 'var(--text-muted)',
+                borderBottom: activeTab === tab ? '2px solid var(--color-sky-blue)' : '2px solid transparent',
+                transition: 'all 0.2s'
               }}>
-                <div style={{ 
-                  height: '110px', 
-                  background: item.image_url ? `url(${item.image_url})` : 'linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(125, 211, 252, 0.05) 100%)',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--color-sky-blue)',
-                  border: '1px solid rgba(125, 211, 252, 0.1)',
-                  overflow: 'hidden'
-                }}>
-                  {!item.image_url && <HomeIcon size={40} strokeWidth={1.2} />}
-                </div>
-                
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.35rem' }}>{item.address}</h3>
-                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                      <span style={{ 
-                        fontSize: '0.65rem', 
-                        background: 'rgba(32, 187, 175, 0.1)', 
-                        color: 'var(--color-teal)', 
-                        padding: '2px 8px', 
-                        borderRadius: '4px',
-                        fontWeight: 700,
-                        textTransform: 'uppercase'
-                      }}>
-                        {item.type}
-                      </span>
-                      <span style={{ 
-                        fontSize: '0.65rem', 
-                        background: 'rgba(59, 130, 246, 0.1)', 
-                        color: 'var(--color-sky-blue)', 
-                        padding: '2px 8px', 
-                        borderRadius: '4px',
-                        fontWeight: 700
-                      }}>
-                        Klasse {item.energy_class}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: 'var(--space-5)', marginTop: 'var(--space-2)' }}>
-                    <span className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <MapPin size={14} className="text-sky-blue" /> {item.city} • {item.distance_to_center}
-                    </span>
-                    <span className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Users size={14} className="text-sky-blue" /> {item.beds} senger
-                    </span>
-                    <span className="text-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-teal)' }}>
-                      <ShieldCheck size={14} /> Verifisert: {item.last_verified}
-                    </span>
-                  </div>
-
-                  <div style={{ marginTop: 'var(--space-3)', display: 'flex', gap: 'var(--space-2)' }}>
-                    <button 
-                      onClick={() => handleCopy(item.address)}
-                      className="text-sm"
-                      style={{ 
-                        background: 'rgba(255,255,255,0.05)', 
-                        border: 'none', 
-                        padding: '4px 10px', 
-                        borderRadius: '6px', 
-                        cursor: 'pointer',
-                        color: copyFeedback === item.address ? 'var(--color-teal)' : 'inherit',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      {copyFeedback === item.address ? 'Kopiert!' : 'Kopier adresse'}
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 'var(--space-6)' }}>
-                  <div style={{ minWidth: '110px' }}>
-                    <div style={{ fontWeight: 800, fontSize: '1.75rem', color: 'var(--text-on-dark)', lineHeight: 1 }}>{item.price_per_night},-</div>
-                    <div className="text-sm" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '6px', opacity: 0.6 }}>per døgn</div>
-                  </div>
-                  <Link href={`/listings/${item.id}`} className="button" style={{ padding: 'var(--space-4)', borderRadius: '14px' }}>
-                    Se detaljer
-                  </Link>
-                </div>
-              </div>
+                {tab === 'Ledig' && <CheckCircle2 size={16} style={{ display: 'inline', marginRight: '8px' }} />}
+                {tab === 'Utleid' && <XCircle size={16} style={{ display: 'inline', marginRight: '8px' }} />}
+                {tab === 'Utløpte' && <AlertCircle size={16} style={{ display: 'inline', marginRight: '8px' }} />}
+                {tab}
+              </button>
             ))
           ) : (
-            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)', background: 'rgba(15, 23, 42, 0.4)' }}>
-              <Info size={48} style={{ margin: '0 auto var(--space-4)', color: 'var(--color-muted-blue)' }} />
-              <p>Ingen boliger matcher dine søkekriterier.</p>
+            <div style={{ padding: 'var(--space-3) 0', color: 'var(--color-sky-blue)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Calendar size={18} /> Tilgjengelighetskalender
             </div>
           )}
         </div>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <button 
+            onClick={() => {
+              setShowColumnSettings(!showColumnSettings)
+              setShowFilters(false)
+            }}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px',
+              background: showColumnSettings ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--border-subtle)', color: 'white', cursor: 'pointer', fontWeight: 600
+            }}
+          >
+            <Settings size={18} /> Tilpass kolonner
+          </button>
+          <button 
+            onClick={() => {
+              setShowFilters(!showFilters)
+              setShowColumnSettings(false)
+            }}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px',
+              background: showFilters ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--border-subtle)', color: 'white', cursor: 'pointer', fontWeight: 600
+            }}
+          >
+            <Filter size={18} /> {showFilters ? 'Lukk filter' : 'Filtrer resultater'}
+          </button>
+        </div>
       </div>
+
+      {showColumnSettings && (
+        <div className="card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)' }}>
+          <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem' }}>Velg informasjon som skal vises i tabellen</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--space-3)' }}>
+            {ALL_COLUMNS.map(col => (
+              <label key={col.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)' }}>
+                <input 
+                  type="checkbox" 
+                  checked={visibleColumns.includes(col.id)} 
+                  onChange={() => toggleColumn(col.id)}
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--color-royal-blue)' }}
+                />
+                <span style={{ fontSize: '0.9rem' }}>{col.label}</span>
+              </label>
+            ))}
+          </div>
+          <div style={{ marginTop: 'var(--space-6)', display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={() => setShowColumnSettings(false)} className="button" style={{ padding: '8px 24px' }}>Ferdig</button>
+          </div>
+        </div>
+      )}
+
+      {showFilters && (
+        <div className="card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)' }}>
+            <div>
+              <label className="label">Søk</label>
+              <div style={{ position: 'relative' }}>
+                <input type="text" className="input" placeholder="Adresse / eier..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ paddingLeft: '2.5rem' }} />
+                <Search size={16} style={{ position: 'absolute', left: '12px', top: '14px', opacity: 0.5 }} />
+              </div>
+            </div>
+            <div>
+              <label className="label">Region</label>
+              <select className="input" value={filters.city} onChange={e => setFilters({...filters, city: e.target.value})}>
+                <option>Alle</option>
+                <option>Narvik</option>
+                <option>Gratangen</option>
+                <option>Evenes</option>
+                <option>Oslo</option>
+                <option>Bergen</option>
+                <option>Trondheim</option>
+                <option>Stavanger</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Boligtype</label>
+              <select className="input" value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})}>
+                <option>Alle</option>
+                <option>Enebolig/flermannsbolig</option>
+                <option>Leilighet</option>
+                <option>Hybelleilighet</option>
+                <option>Hybel</option>
+                <option>Bokollektiv</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Prisklasse (Døgn)</label>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                <input type="number" className="input" placeholder="Fra" value={filters.minPrice} onChange={e => setFilters({...filters, minPrice: e.target.value})} style={{ marginBottom: 0 }} />
+                <input type="number" className="input" placeholder="Til" value={filters.maxPrice} onChange={e => setFilters({...filters, maxPrice: e.target.value})} style={{ marginBottom: 0 }} />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-6)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <button 
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              style={{ background: 'none', border: 'none', color: 'var(--color-sky-blue)', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+            >
+              {showAdvancedFilters ? 'Skjul avanserte filter' : 'Vis flere filter (Soverom, Areal, Tilgjengelighet...)'}
+              <ChevronRight size={16} style={{ transform: showAdvancedFilters ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+            </button>
+
+            {showAdvancedFilters && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)', marginTop: 'var(--space-6)' }}>
+                <div>
+                  <label className="label">Min. antall soverom</label>
+                  <input type="number" className="input" placeholder="F.eks. 2" value={filters.minBedrooms} onChange={e => setFilters({...filters, minBedrooms: e.target.value})} />
+                </div>
+                <div>
+                  <label className="label">Min. areal (m²)</label>
+                  <input type="number" className="input" placeholder="F.eks. 50" value={filters.minSize} onChange={e => setFilters({...filters, minSize: e.target.value})} />
+                </div>
+                <div>
+                  <label className="label">Min. antall personer</label>
+                  <input type="number" className="input" placeholder="F.eks. 3" value={filters.minOccupants} onChange={e => setFilters({...filters, minOccupants: e.target.value})} />
+                </div>
+                <div>
+                  <label className="label">Møblering</label>
+                  <select className="input" value={filters.furnishing} onChange={e => setFilters({...filters, furnishing: e.target.value})}>
+                    <option>Alle</option>
+                    <option>Umøblert</option>
+                    <option>Kun hvitevarer</option>
+                    <option>Fullt møblert</option>
+                    <option>Fullt møblert med inventar på kjøkken og bad</option>
+                  </select>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label className="label">Fysisk tilrettelegging</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {[
+                      'Alt på ett plan', 
+                      'Heis i bygget', 
+                      'Terskelfritt', 
+                      'Universell utforming', 
+                      'Omsorgsboligstandard'
+                    ].map(acc => (
+                      <button 
+                        key={acc}
+                        onClick={() => {
+                          const newAcc = filters.accessibility.includes(acc)
+                            ? filters.accessibility.filter(a => a !== acc)
+                            : [...filters.accessibility, acc]
+                          setFilters({...filters, accessibility: newAcc})
+                        }}
+                        style={{
+                          padding: '6px 12px', borderRadius: '20px', fontSize: '0.75rem', cursor: 'pointer',
+                          background: filters.accessibility.includes(acc) ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
+                          border: `1px solid ${filters.accessibility.includes(acc) ? 'var(--color-royal-blue)' : 'var(--border-subtle)'}`,
+                          color: 'white'
+                        }}
+                      >
+                        {acc}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginTop: 'var(--space-6)', display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-4)' }}>
+            <button onClick={() => {
+              setSearchTerm('')
+              setFilters({ 
+                city: 'Alle', 
+                type: 'Alle', 
+                minPrice: '', 
+                maxPrice: '', 
+                accessibility: [], 
+                minBedrooms: '', 
+                minSize: '', 
+                minOccupants: '', 
+                floor: 'Alle',
+                furnishing: 'Alle'
+              })
+            }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Nullstill alle filter</button>
+            <button onClick={() => setShowFilters(false)} className="button" style={{ padding: '8px 24px' }}>Ferdig</button>
+          </div>
+        </div>
+      )}
+
+      <div>
+        {loading ? (
+          <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
+            <Loader2 className="animate-spin" size={48} style={{ margin: '0 auto', color: 'var(--color-royal-blue)' }} />
+            <p style={{ marginTop: 'var(--space-4)' }}>Henter data...</p>
+          </div>
+        ) : listings.length > 0 ? (
+          viewMode === 'table' ? (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(59, 130, 246, 0.1)', textAlign: 'left' }}>
+                    {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => (
+                      <th 
+                        key={col.id}
+                        style={{ padding: 'var(--space-4)', cursor: 'pointer' }} 
+                        onClick={() => toggleSort(col.id)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                          {col.label} <ArrowUpDown size={14} style={{ flexShrink: 0 }} />
+                        </div>
+                      </th>
+                    ))}
+                    <th style={{ padding: 'var(--space-4)' }}>Handling</th>
+                  </tr>
+                </thead>
+                <tbody>
+                    {listings.map((l, i) => (
+                    <tr 
+                      key={l.id} 
+                      onClick={() => router.push(`/listings/${l.id}?view=nav`)}
+                      style={{ 
+                        borderTop: '1px solid var(--border-subtle)', 
+                        background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)'}
+                    >
+                      {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => (
+                        <td key={col.id} style={{ padding: 'var(--space-4)' }}>
+                          {translateValue(col.id, l[col.id])}
+                        </td>
+                      ))}
+                      <td style={{ padding: 'var(--space-4)' }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                          <Link href={`/listings/${l.id}?view=nav`} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)' }}>
+                            <Eye size={16} />
+                          </Link>
+                          {activeTab === 'Ledig' && (
+                            <button onClick={() => handleMarkAsUtleid(l.id, l.address)} style={{ padding: '6px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', color: '#ef4444', border: 'none', cursor: 'pointer' }}>
+                              <XCircle size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : viewMode === 'map' ? (
+            <MapView listings={listings} />
+          ) : (
+            <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+              <div className="card" style={{ padding: 'var(--space-6)', overflowX: 'auto' }}>
+                <div style={{ minWidth: '800px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 'var(--space-4)', borderBottom: '1px solid var(--border-subtle)' }}>
+                    {/* Rad 1: Måneder og År */}
+                    <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ width: '200px' }}></div>
+                      <div style={{ flex: 1, display: 'flex' }}>
+                        {Array.from({ length: 60 }).map((_, i) => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + i + timelineOffset);
+                          const isFirstOfMonth = d.getDate() === 1;
+                          const isJan1st = d.getMonth() === 0 && d.getDate() === 1;
+                          
+                          if (isFirstOfMonth || i === 0) {
+                            // Finn ut hvor mange dager denne måneden har igjen i visningen
+                            let daysInView = 0;
+                            for (let j = i; j < 60; j++) {
+                              const nextD = new Date();
+                              nextD.setDate(nextD.getDate() + j + timelineOffset);
+                              if (nextD.getDate() === 1 && j !== i) break;
+                              daysInView++;
+                            }
+
+                            return (
+                              <div key={i} style={{ 
+                                flex: daysInView,
+                                borderLeft: '2px solid var(--color-sky-blue)',
+                                padding: '4px 8px',
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                color: 'var(--color-sky-blue)',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {d.toLocaleDateString('no-NO', { month: 'long', year: isJan1st || i === 0 ? 'numeric' : undefined })}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+                    </div>
+                    {/* Rad 2: Uker og dager */}
+                    <div style={{ display: 'flex' }}>
+                      <div style={{ width: '200px', fontWeight: 700, fontSize: '0.75rem', opacity: 0.5, display: 'flex', alignItems: 'center', paddingLeft: '8px' }}>BOLIG</div>
+                      <div style={{ flex: 1, display: 'flex' }}>
+                        {Array.from({ length: 60 }).map((_, i) => {
+                          const d = new Date();
+                          d.setDate(d.getDate() + i + timelineOffset);
+                          const isMonday = d.getDay() === 1;
+                          
+                          // Beregn ukenummer
+                          const getWeek = (date: Date) => {
+                            const tempDate = new Date(date.getTime());
+                            tempDate.setHours(0, 0, 0, 0);
+                            tempDate.setDate(tempDate.getDate() + 3 - (tempDate.getDay() + 6) % 7);
+                            const week1 = new Date(tempDate.getFullYear(), 0, 4);
+                            return 1 + Math.round(((tempDate.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+                          };
+
+                          return (
+                            <div key={i} style={{ 
+                              flex: 1, 
+                              textAlign: 'center', 
+                              fontSize: '0.55rem', 
+                              borderLeft: isMonday ? '1px solid rgba(59, 130, 246, 0.3)' : 'none',
+                              padding: '4px 0',
+                              opacity: isMonday ? 1 : 0.4
+                            }}>
+                              <div style={{ fontSize: '0.45rem', fontWeight: 600, visibility: isMonday ? 'visible' : 'hidden' }}>U{getWeek(d)}</div>
+                              <span className={isMonday ? '' : 'timeline-date-optional'}>{d.getDate()}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gap: '2px' }}>
+                    {listings.map(l => (
+                      <div key={l.id} style={{ display: 'flex', alignItems: 'center', height: '28px', background: 'rgba(255,255,255,0.01)', borderRadius: '4px' }}>
+                        <div 
+                          onClick={() => router.push(`/listings/${l.id}?view=nav`)}
+                          style={{ width: '200px', fontSize: '0.7rem', padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer', fontWeight: 500, opacity: 0.9 }}
+                        >
+                          {l.address}
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', height: '20px', gap: '1px' }}>
+                          {Array.from({ length: 60 }).map((_, i) => {
+                            const date = new Date();
+                            date.setHours(0,0,0,0);
+                            date.setDate(date.getDate() + i + timelineOffset);
+                            
+                            const isAvailable = availability[l.id]?.some(p => {
+                              const start = new Date(p.start_date);
+                              start.setHours(0,0,0,0);
+                              const end = new Date(p.end_date);
+                              end.setHours(0,0,0,0);
+                              return date >= start && date <= end;
+                            });
+
+                            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                            return (
+                              <div 
+                                key={i} 
+                                title={`${l.address}: ${date.toLocaleDateString()}`}
+                                style={{ 
+                                  flex: 1, 
+                                  background: isAvailable ? 'var(--color-teal)' : isWeekend ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
+                                  borderRadius: '1px',
+                                  opacity: isAvailable ? 0.8 : 1
+                                }} 
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="card" style={{ padding: 'var(--space-4)', display: 'grid', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Tidslinje-styring</span>
+                  <button onClick={() => setTimelineOffset(0)} style={{ background: 'none', border: 'none', color: 'var(--color-sky-blue)', cursor: 'pointer', fontSize: '0.75rem' }}>Gå til i dag</button>
+                </div>
+                <div style={{ position: 'relative', height: '20px', margin: '10px 0' }}>
+                  <input 
+                    type="range" 
+                    min="-30" 
+                    max="365" 
+                    value={timelineOffset} 
+                    onChange={(e) => setTimelineOffset(parseInt(e.target.value))}
+                    style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--color-royal-blue)', position: 'absolute', top: 0, left: 0, zIndex: 2 }}
+                  />
+                  {/* Markering for "I dag" på slideren */}
+                  <div style={{ 
+                    position: 'absolute', 
+                    left: `${(30 / (365 + 30)) * 100}%`, 
+                    top: '-5px', 
+                    bottom: '-5px', 
+                    width: '2px', 
+                    background: 'var(--color-sky-blue)',
+                    zIndex: 1,
+                    opacity: 0.5
+                  }}></div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', opacity: 0.5 }}>
+                  <span>-30 dager</span>
+                  <span style={{ color: 'var(--color-sky-blue)', fontWeight: 700, marginLeft: '-15%' }}>I dag</span>
+                  <span>+1 år</span>
+                </div>
+              </div>
+            </div>
+          )
+        ) : (
+          <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
+            <Info size={40} style={{ margin: '0 auto var(--space-3)', opacity: 0.3 }} />
+            <p>Ingen boliger matcher dine søkekriterier.</p>
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        @media (max-width: 1200px) {
+          .timeline-date-optional {
+            display: none;
+          }
+        }
+      `}</style>
     </main>
   )
 }
