@@ -41,7 +41,8 @@ export default function HomeownerRegister() {
     max_occupants: '',
     additional_info: '',
     latitude: null as number | null,
-    longitude: null as number | null
+    longitude: null as number | null,
+    has_insurance: false
   })
 
   useEffect(() => {
@@ -164,7 +165,7 @@ export default function HomeownerRegister() {
             image_url: imageUrls[0] || null, // Hovedbilde
             image_urls: imageUrls, // Hele galleriet
             is_available: true,
-            status: 'Ledig',
+            status: 'Tilgjengelig',
             size_sqm: parseFloat(formData.size_sqm),
             bedrooms: parseInt(formData.bedrooms),
             max_occupants: parseInt(formData.max_occupants),
@@ -189,6 +190,18 @@ export default function HomeownerRegister() {
         details: { address: formData.address }
       }])
 
+      // Create notification for Kommune
+      const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'En utleier'
+      
+      await supabase.from('notifications').insert([{
+        listing_id: (data as any)[0].id,
+        owner_id: user.id,
+        type: 'NEW_LISTING',
+        title: 'Ny bolig registrert',
+        message: `${userName} har registrert en ny bolig i ${formData.city}: ${formData.address}`,
+        municipality: formData.city
+      }])
+
       alert('Bolig registrert!')
       router.push('/homeowner/manage')
     } catch (err: any) {
@@ -208,7 +221,7 @@ export default function HomeownerRegister() {
           <ArrowLeft size={18} /> Tilbake til mine boliger
         </Link>
         <h1 style={{ fontSize: '2.75rem' }}>Registrer ny bolig</h1>
-        <p style={{ maxWidth: '700px', opacity: 0.8 }}>Fyll ut alle detaljer om boligen. Denne informasjonen er grunnlaget for NAVs vurdering av boligen.</p>
+        <p style={{ maxWidth: '700px', opacity: 0.8 }}>Fyll ut alle detaljer om boligen. Denne informasjonen er grunnlaget for kommunens vurdering av boligen.</p>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 'var(--space-6)' }}>
@@ -490,12 +503,28 @@ export default function HomeownerRegister() {
         <div style={{ 
           marginTop: 'var(--space-4)', padding: 'var(--space-5) var(--space-6)', 
           background: 'rgba(15, 23, 42, 0.9)', borderRadius: '20px', 
-          display: 'flex', justifyContent: 'flex-end', position: 'sticky', bottom: '20px', zIndex: 10, backdropFilter: 'blur(16px)', border: '1px solid var(--border-subtle)' 
+          display: 'flex', flexDirection: 'column', gap: 'var(--space-4)',
+          position: 'sticky', bottom: '20px', zIndex: 10, backdropFilter: 'blur(16px)', border: '1px solid var(--border-subtle)' 
         }}>
-          <button type="submit" className="button" disabled={loading} style={{ padding: 'var(--space-4) var(--space-10)', fontSize: '1.125rem', borderRadius: '14px' }}>
-            {loading ? <Loader2 className="animate-spin" size={22} /> : <Save size={22} />} 
-            {loading ? 'Lagrer...' : 'Publiser bolig'}
-          </button>
+          <label style={{ display: 'flex', gap: '12px', cursor: 'pointer', alignItems: 'center' }}>
+            <input 
+              type="checkbox" 
+              required
+              checked={formData.has_insurance}
+              onChange={e => setFormData({...formData, has_insurance: e.target.checked})}
+              style={{ width: '20px', height: '20px' }} 
+            />
+            <div style={{ fontSize: '0.85rem' }}>
+              <span style={{ fontWeight: 700, display: 'block' }}>Bolig- og innboforsikring</span>
+              <span style={{ opacity: 0.8 }}>I henhold til vilkårsavtalen plikter utleier å ha både bolig- og innboforsikring.</span>
+            </div>
+          </label>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="submit" className="button" disabled={loading || !formData.has_insurance} style={{ padding: 'var(--space-4) var(--space-10)', fontSize: '1.125rem', borderRadius: '14px' }}>
+              {loading ? <Loader2 className="animate-spin" size={22} /> : <Save size={22} />} 
+              {loading ? 'Lagrer...' : 'Publiser bolig'}
+            </button>
+          </div>
         </div>
       </form>
     </main>

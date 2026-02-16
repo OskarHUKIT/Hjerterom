@@ -8,7 +8,7 @@ export default function Logo() {
 
   return (
     <div style={{ 
-      height: '40px', 
+      height: '60px', 
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
@@ -16,7 +16,7 @@ export default function Logo() {
     }}>
       {logoError ? (
         <div style={{
-          height: '40px',
+          height: '60px',
           padding: '0 0.75rem',
           background: 'var(--color-dark-navy)',
           borderRadius: '6px',
@@ -34,9 +34,9 @@ export default function Logo() {
           src="/logo.png"
           alt="Bo.ly Logo"
           width={140}
-          height={40}
+          height={60}
           className="logo"
-          style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+          style={{ height: '60px', width: 'auto', objectFit: 'contain' }}
           priority
           onError={() => setLogoError(true)}
         />

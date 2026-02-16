@@ -17,9 +17,9 @@ export default function HomeownerManage() {
   const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'boliger' | 'historikk'>('boliger')
-  const [filter, setFilter] = useState<'Alle' | 'Ledig' | 'Utleid'>('Alle')
+  const [filter, setFilter] = useState<'Alle' | 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'>('Alle')
   const [editingAvailability, setEditingAvailability] = useState<string | null>(null)
-  const [newPeriod, setNewPeriod] = useState({ start: '', end: '' })
+  const [newPeriod, setNewPeriod] = useState({ start: '', end: '', status: 'Tilgjengelig' })
 
   const fetchData = async () => {
     setLoading(true)
@@ -27,6 +27,19 @@ export default function HomeownerManage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         window.location.href = '/login'
+        return
+      }
+
+      // Sjekk om brukeren har signert vilkårene
+      const { data: agreement } = await supabase
+        .from('user_agreements')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_terminated', false)
+        .maybeSingle()
+
+      if (!agreement) {
+        router.push('/homeowner/sign-terms')
         return
       }
 
@@ -80,17 +93,21 @@ export default function HomeownerManage() {
   }, [])
 
   const toggleStatus = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'Ledig' ? 'Utleid' : 'Ledig'
+    if (currentStatus === 'Formidla') {
+      alert('Denne boligen er markert som formidlet av kommunen og status kan ikke endres av utleier.')
+      return
+    }
+    const newStatus = currentStatus === 'Tilgjengelig' ? 'Utilgjengelig' : 'Tilgjengelig'
     
     // 1. Oppdater lokal tilstand umiddelbart (Optimistisk oppdatering)
     setMyListings(prev => prev.map(item => 
-      item.id === id ? { ...item, status: newStatus, is_available: newStatus === 'Ledig' } : item
+      item.id === id ? { ...item, status: newStatus, is_available: newStatus === 'Tilgjengelig' } : item
     ))
 
     try {
       const { error } = await supabase
         .from('listings')
-        .update({ status: newStatus, is_available: newStatus === 'Ledig' })
+        .update({ status: newStatus, is_available: newStatus === 'Tilgjengelig' })
         .eq('id', id)
 
       if (error) throw error
@@ -119,7 +136,7 @@ export default function HomeownerManage() {
     } catch (err: any) {
       // Rull tilbake hvis det feiler
       setMyListings(prev => prev.map(item => 
-        item.id === id ? { ...item, status: currentStatus, is_available: currentStatus === 'Ledig' } : item
+        item.id === id ? { ...item, status: currentStatus, is_available: currentStatus === 'Tilgjengelig' } : item
       ))
       alert('Feil ved oppdatering: ' + err.message)
     }
@@ -153,12 +170,12 @@ export default function HomeownerManage() {
     }
   }
 
-  const addAvailability = async (listingId: string, startDate: string, endDate: string) => {
+  const addAvailability = async (listingId: string, startDate: string, endDate: string, status: string = 'Tilgjengelig') => {
     if (!startDate || !endDate) return
     try {
       const { data, error } = await supabase
         .from('listing_availability')
-        .insert([{ listing_id: listingId, start_date: startDate, end_date: endDate }])
+        .insert([{ listing_id: listingId, start_date: startDate, end_date: endDate, status }])
         .select()
         .single()
       
@@ -258,7 +275,7 @@ export default function HomeownerManage() {
             <>
               <div style={{ marginBottom: 'var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                  {['Alle', 'Ledig', 'Utleid'].map(f => (
+                  {['Alle', 'Tilgjengelig', 'Utilgjengelig', 'Formidla'].map(f => (
                     <button key={f} onClick={() => setFilter(f as any)} style={{
                       padding: 'var(--space-2) var(--space-4)', borderRadius: '20px', fontSize: '0.85rem', cursor: 'pointer',
                       background: filter === f ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
@@ -307,8 +324,10 @@ export default function HomeownerManage() {
                               <h3 style={{ margin: 0 }}>{listing.address}</h3>
                               <span style={{ 
                                 fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '4px',
-                                background: listing.status === 'Ledig' ? 'rgba(32, 187, 175, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                color: listing.status === 'Ledig' ? 'var(--color-teal)' : '#ef4444',
+                                background: listing.status === 'Tilgjengelig' ? 'rgba(32, 187, 175, 0.1)' : 
+                                            listing.status === 'Formidla' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                color: listing.status === 'Tilgjengelig' ? 'var(--color-teal)' : 
+                                       listing.status === 'Formidla' ? 'var(--color-sky-blue)' : '#ef4444',
                                 textTransform: 'uppercase'
                               }}>
                                 {listing.status}
@@ -322,14 +341,20 @@ export default function HomeownerManage() {
                           <button 
                             onClick={() => toggleStatus(listing.id, listing.status)}
                             className="button" 
+                            disabled={listing.status === 'Formidla'}
                             style={{ 
                               padding: 'var(--space-2) var(--space-4)', fontSize: '0.85rem', borderRadius: '8px',
-                              background: listing.status === 'Ledig' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(32, 187, 175, 0.1)',
-                              color: listing.status === 'Ledig' ? '#ef4444' : 'var(--color-teal)',
-                              border: `1px solid ${listing.status === 'Ledig' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(32, 187, 175, 0.2)'}`
+                              background: listing.status === 'Tilgjengelig' ? 'rgba(239, 68, 68, 0.1)' : 
+                                          listing.status === 'Formidla' ? 'rgba(255,255,255,0.05)' : 'rgba(32, 187, 175, 0.1)',
+                              color: listing.status === 'Tilgjengelig' ? '#ef4444' : 
+                                     listing.status === 'Formidla' ? 'var(--text-muted)' : 'var(--color-teal)',
+                              border: `1px solid ${listing.status === 'Tilgjengelig' ? 'rgba(239, 68, 68, 0.2)' : 
+                                                  listing.status === 'Formidla' ? 'transparent' : 'rgba(32, 187, 175, 0.2)'}`,
+                              cursor: listing.status === 'Formidla' ? 'not-allowed' : 'pointer'
                             }}
                           >
-                            {listing.status === 'Ledig' ? 'Merk som utleid' : 'Merk som ledig'}
+                            {listing.status === 'Tilgjengelig' ? 'Merk som utilgjengelig' : 
+                             listing.status === 'Formidla' ? 'Formidlet' : 'Merk som tilgjengelig'}
                           </button>
                           
                           <div style={{ width: '1px', height: '30px', background: 'var(--border-subtle)' }}></div>
@@ -370,7 +395,7 @@ export default function HomeownerManage() {
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
                             <h4 style={{ margin: 0, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <Clock size={16} /> Ledige perioder
+                              <Clock size={16} /> Tilgjengelige perioder
                             </h4>
                             <button 
                               onClick={() => setEditingAvailability(null)}
@@ -400,6 +425,13 @@ export default function HomeownerManage() {
 
                           <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
                             <div style={{ flex: 1 }}>
+                              <label className="label" style={{ fontSize: '0.7rem' }}>Status</label>
+                              <select className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.status} onChange={e => setNewPeriod({...newPeriod, status: e.target.value})}>
+                                <option value="Tilgjengelig">Tilgjengelig</option>
+                                <option value="Utilgjengelig">Utilgjengelig</option>
+                              </select>
+                            </div>
+                            <div style={{ flex: 1 }}>
                               <label className="label" style={{ fontSize: '0.7rem' }}>Fra dato</label>
                               <input type="date" className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.start} onChange={e => setNewPeriod({...newPeriod, start: e.target.value})} />
                             </div>
@@ -409,8 +441,8 @@ export default function HomeownerManage() {
                             </div>
                             <button 
                               onClick={() => {
-                                addAvailability(listing.id, newPeriod.start, newPeriod.end)
-                                setNewPeriod({ start: '', end: '' })
+                                addAvailability(listing.id, newPeriod.start, newPeriod.end, newPeriod.status)
+                                setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
                               }}
                               className="button" 
                               style={{ padding: '10px 16px', borderRadius: '8px' }}

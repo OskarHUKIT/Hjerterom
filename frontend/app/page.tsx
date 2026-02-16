@@ -24,12 +24,12 @@ export default function Home() {
           maxWidth: '640px', 
           color: 'var(--text-body)'
         }}>
-          Boly er den profesjonelle bindeleddet mellom NAV og private boligeiere. Vi gjør det trygt og effektivt å løse akutte boligbehov.
+          Boly er den profesjonelle bindeleddet mellom Kommune og private boligeiere. Vi gjør det trygt og effektivt å løse akutte boligbehov.
         </p>
       </div>
 
       <div className="grid-portal animate-delay-3">
-        {/* NAV Worker Portal */}
+        {/* Kommune Worker Portal */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)' }}>
           <div style={{ 
             width: '56px', 
@@ -45,9 +45,9 @@ export default function Home() {
             <Search size={28} />
           </div>
           <div>
-            <h2>For NAV-ansatte</h2>
+            <h2>For Kommune-ansatte</h2>
             <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-              Søk i vår sanntidsoversikt over ledige boliger. Finn riktig løsning for dine klienter med avansert filtrering.
+              Søk i vår sanntidsoversikt over tilgjengelige boliger. Finn riktig løsning for dine klienter med avansert filtrering.
             </p>
             <Link href="/nav/database" className="button button-accent" style={{ width: '100%', padding: 'var(--space-4)' }}>
               Åpne boligbanken <ArrowRight size={18} />

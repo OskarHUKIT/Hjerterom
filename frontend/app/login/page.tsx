@@ -44,6 +44,12 @@ export default function LoginPage() {
     }
   }
 
+  const handleBankIDLogin = async () => {
+    setLoading(true)
+    // Vi sender nå brukeren direkte til vår nye Edge Function "bro"
+    window.location.href = 'https://ayddwbmkclujefnhsaqv.supabase.co/functions/v1/auth-signicat'
+  }
+
   return (
     <main style={{ 
       minHeight: '100vh', 
@@ -153,20 +159,24 @@ export default function LoginPage() {
           </div>
 
           <button 
-            disabled
+            onClick={handleBankIDLogin}
+            disabled={loading}
             className="button"
             style={{ 
               width: '100%', 
               padding: 'var(--space-3)', 
-              background: 'rgba(255,255,255,0.05)',
+              background: 'var(--color-royal-blue)',
               border: '1px solid var(--border-subtle)',
-              color: 'var(--text-muted)',
-              cursor: 'not-allowed',
-              opacity: 0.8,
-              fontSize: '0.9rem'
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}
           >
-            <ShieldCheck size={18} style={{ marginRight: '8px' }} /> Logg inn med BankID <span style={{ fontSize: '0.7rem', opacity: 0.6, marginLeft: '6px' }}>(Kommer snart)</span>
+            <ShieldCheck size={18} /> Logg inn med BankID
           </button>
         </div>
 

@@ -20,11 +20,40 @@ const MapView = dynamic(() => import('../../components/MapView'), {
 
 export default function NavDatabase() {
   const router = useRouter()
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  // ... rest of state ...
+
+  useEffect(() => {
+    async function checkAccess() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const role = user.user_metadata?.role
+      if (role === 'kommune_ansatt') {
+        setIsAuthorized(true)
+        setUserRole(role)
+      } else {
+        // Dobbeltsjekk i profiles hvis ikke i metadata
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+        if (profile?.role === 'kommune_ansatt') {
+          setIsAuthorized(true)
+          setUserRole(profile.role)
+        } else {
+          setIsAuthorized(false)
+        }
+      }
+    }
+    checkAccess()
+  }, [router])
   const [listings, setListings] = useState<any[]>([])
   const [availability, setAvailability] = useState<Record<string, any[]>>({})
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'Ledig' | 'Utleid' | 'Utløpte'>('Ledig')
+  const [activeTab, setActiveTab] = useState<'Tilgjengelig' | 'Utilgjengelig' | 'Utløpte' | 'Formidlet'>('Tilgjengelig')
   const [viewMode, setViewMode] = useState<'table' | 'map' | 'timeline'>('timeline')
   const [sortField, setSortField] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -44,6 +73,7 @@ export default function NavDatabase() {
     { id: 'size_sqm', label: 'Areal' },
     { id: 'max_occupants', label: 'Maks personer' },
     { id: 'floor_number', label: 'Etasje' },
+    { id: 'status', label: 'Status' },
   ]
 
   const toggleColumn = (id: string) => {
@@ -56,9 +86,23 @@ export default function NavDatabase() {
     }
   }
 
-  const translateValue = (id: string, val: any) => {
+  const translateValue = (id: string, val: any, listing?: any) => {
     if (!val) return '-'
     if (id === 'price_daily') return `${val},-`
+    if (id === 'address' && listing) {
+      return (
+        <Link href={`/listings/${listing.id}?view=nav`} style={{ color: 'var(--color-sky-blue)', fontWeight: 600, textDecoration: 'none' }}>
+          {val}
+        </Link>
+      )
+    }
+    if (id === 'owner_name' && listing) {
+      return (
+        <Link href={`/nav/users?id=${listing.owner_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+          {val}
+        </Link>
+      )
+    }
     if (id === 'type') {
       const mapping: Record<string, string> = {
         'Short-term': 'Korttid',
@@ -109,6 +153,15 @@ export default function NavDatabase() {
           .eq('is_terminated', true)
         
         const userIds = terminatedUsers?.map(u => u.user_id) || []
+        query = query.in('owner_id', userIds)
+      } else if (activeTab === 'Formidlet') {
+        query = query.eq('status', 'Formidla')
+        const { data: activeUsers } = await supabase
+          .from('user_agreements')
+          .select('user_id')
+          .eq('is_terminated', false)
+        
+        const userIds = activeUsers?.map(u => u.user_id) || []
         query = query.in('owner_id', userIds)
       } else {
         query = query.eq('status', activeTab)
@@ -199,8 +252,36 @@ export default function NavDatabase() {
   }
 
   useEffect(() => {
-    fetchListings()
-  }, [activeTab, searchTerm, filters, sortField, sortOrder, viewMode])
+    if (isAuthorized) {
+      fetchListings()
+    }
+  }, [activeTab, searchTerm, filters, sortField, sortOrder, viewMode, isAuthorized])
+
+  if (isAuthorized === false) {
+    return (
+      <main className="container" style={{ textAlign: 'center', padding: '100px 20px' }}>
+        <div className="card" style={{ maxWidth: '500px', margin: '0 auto', padding: 'var(--space-10)' }}>
+          <ShieldCheck size={64} style={{ color: '#ef4444', margin: '0 auto var(--space-6)' }} />
+          <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-4)' }}>Ingen tilgang</h1>
+          <p style={{ marginBottom: 'var(--space-8)', opacity: 0.8 }}>
+            Du har ikke de nødvendige rettighetene for å se boligbanken. 
+            Denne delen er forbeholdt kommune-ansatte.
+          </p>
+          <Link href="/" className="button" style={{ width: '100%' }}>
+            Tilbake til forsiden
+          </Link>
+        </div>
+      </main>
+    )
+  }
+
+  if (isAuthorized === null) {
+    return (
+      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 className="animate-spin" size={48} color="var(--color-royal-blue)" />
+      </div>
+    )
+  }
 
   const toggleSort = (field: string) => {
     if (sortField === field) {
@@ -211,13 +292,14 @@ export default function NavDatabase() {
     }
   }
 
-  const handleMarkAsUtleid = async (id: string, address: string) => {
-    if (!confirm(`Vil du markere "${address}" som utleid? Utleier vil få varsel.`)) return
+  const handleMarkAsFormidlet = async (id: string, address: string) => {
+    const listing = listings.find(l => l.id === id)
+    const attachSchema = confirm(`Vil du markere "${address}" som formidlet?\n\nDette vil sende kontaktinformasjon og instruksjoner til utleier.`)
     
     try {
       const { error } = await supabase
         .from('listings')
-        .update({ status: 'Utleid', is_available: false })
+        .update({ status: 'Formidla', is_available: false })
         .eq('id', id)
       
       if (error) throw error
@@ -225,10 +307,39 @@ export default function NavDatabase() {
       const { data: { user } } = await supabase.auth.getUser()
       await supabase.from('audit_logs').insert([{
         user_id: user?.id,
-        action_type: 'NAV_MARK_UTLEID',
+        action_type: 'KOMMUNE_MARK_FORMIDLA',
         listing_address: address,
-        details: { by: 'NAV Worker' }
+        details: { by: 'Kommune-ansatt', attached_schema: attachSchema }
       }])
+
+      // Create notification for Homeowner with Kontaktinfoskjema (Side 5)
+      if (listing?.owner_id) {
+        const contactInfo = `
+BO.LY KONTAKTINFOSKJEMA
+-----------------------
+Boligens adresse: ${address}
+
+UTLEIER:
+Navn: ${listing.owner_name || 'Ikke oppgitt'}
+Telefon: ${listing.contact_phone || 'Ikke oppgitt'}
+
+LEIETAKER:
+(Fylles ut i samråd med Narvik kommune)
+Navn: ____________________
+Telefon: ____________________
+
+Instruksjoner:
+Utleier skriver ut dette skjemaet i to eksemplarer og fyller det ut sammen med leietaker. Begge parter beholder ett eksemplar hver.
+        `
+
+        await supabase.from('notifications').insert([{
+          owner_id: listing.owner_id,
+          type: 'HOUSE_FORMIDLET',
+          title: 'Bolig formidlet - viktig informasjon',
+          message: `Kommunen har markert boligen din i ${address} som formidlet.\n\n${contactInfo}`,
+          listing_id: id
+        }])
+      }
 
       fetchListings()
     } catch (err: any) {
@@ -264,15 +375,16 @@ export default function NavDatabase() {
       <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-1)', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
           {viewMode !== 'timeline' ? (
-            (['Ledig', 'Utleid', 'Utløpte'] as const).map(tab => (
+            (['Tilgjengelig', 'Utilgjengelig', 'Formidlet', 'Utløpte'] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 padding: 'var(--space-3) var(--space-6)', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
                 background: 'none', border: 'none', color: activeTab === tab ? 'var(--color-sky-blue)' : 'var(--text-muted)',
                 borderBottom: activeTab === tab ? '2px solid var(--color-sky-blue)' : '2px solid transparent',
                 transition: 'all 0.2s'
               }}>
-                {tab === 'Ledig' && <CheckCircle2 size={16} style={{ display: 'inline', marginRight: '8px' }} />}
-                {tab === 'Utleid' && <XCircle size={16} style={{ display: 'inline', marginRight: '8px' }} />}
+                {tab === 'Tilgjengelig' && <CheckCircle2 size={16} style={{ display: 'inline', marginRight: '8px' }} />}
+                {tab === 'Utilgjengelig' && <XCircle size={16} style={{ display: 'inline', marginRight: '8px' }} />}
+                {tab === 'Formidlet' && <ShieldCheck size={16} style={{ display: 'inline', marginRight: '8px' }} />}
                 {tab === 'Utløpte' && <AlertCircle size={16} style={{ display: 'inline', marginRight: '8px' }} />}
                 {tab}
               </button>
@@ -508,7 +620,7 @@ export default function NavDatabase() {
                     >
                       {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => (
                         <td key={col.id} style={{ padding: 'var(--space-4)' }}>
-                          {translateValue(col.id, l[col.id])}
+                          {translateValue(col.id, l[col.id], l)}
                         </td>
                       ))}
                       <td style={{ padding: 'var(--space-4)' }} onClick={(e) => e.stopPropagation()}>
@@ -516,9 +628,9 @@ export default function NavDatabase() {
                           <Link href={`/listings/${l.id}?view=nav`} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)' }}>
                             <Eye size={16} />
                           </Link>
-                          {activeTab === 'Ledig' && (
-                            <button onClick={() => handleMarkAsUtleid(l.id, l.address)} style={{ padding: '6px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', color: '#ef4444', border: 'none', cursor: 'pointer' }}>
-                              <XCircle size={16} />
+                          {activeTab === 'Tilgjengelig' && (
+                            <button onClick={() => handleMarkAsFormidlet(l.id, l.address)} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)', border: 'none', cursor: 'pointer' }} title="Marker som formidla">
+                              <ShieldCheck size={16} />
                             </button>
                           )}
                         </div>
@@ -623,25 +735,60 @@ export default function NavDatabase() {
                             date.setHours(0,0,0,0);
                             date.setDate(date.getDate() + i + timelineOffset);
                             
-                            const isAvailable = availability[l.id]?.some(p => {
+                            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                            // Finn alle perioder som overlapper med denne dagen
+                            const periodsOnDay = availability[l.id]?.filter(p => {
                               const start = new Date(p.start_date);
                               start.setHours(0,0,0,0);
                               const end = new Date(p.end_date);
                               end.setHours(0,0,0,0);
                               return date >= start && date <= end;
-                            });
+                            }) || [];
 
-                            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+                            const isFormidlet = periodsOnDay.some(p => p.status === 'Formidla');
+                            const isAvailable = periodsOnDay.some(p => p.status === 'Tilgjengelig' || !p.status);
+                            const isUnavailable = periodsOnDay.some(p => p.status === 'Utilgjengelig');
+
+                            let bgColor = 'rgba(255,255,255,0.06)';
+                            let opacity = 1;
+                            let title = `${l.address}: ${date.toLocaleDateString()}`;
+
+                            if (isFormidlet) {
+                              bgColor = 'var(--color-sky-blue)';
+                              opacity = 0.9;
+                              title += ' - FORMIDLA';
+                              if (isUnavailable) {
+                                bgColor = '#991b1b'; // Mørkerød konflikt
+                                title += ' !!! KONFLIKT MED UTILGJENGELIG !!!';
+                              }
+                            } else if (isAvailable) {
+                              bgColor = 'var(--color-teal)';
+                              opacity = 0.8;
+                              title += ' - TILGJENGELIG';
+                              if (isUnavailable) {
+                                bgColor = '#991b1b'; // Mørkerød konflikt
+                                title += ' !!! KONFLIKT MED UTILGJENGELIG !!!';
+                              }
+                            } else if (isUnavailable) {
+                              bgColor = '#ef4444';
+                              opacity = 0.6;
+                              title += ' - UTILGJENGELIG';
+                            } else if (isWeekend) {
+                              bgColor = 'rgba(255,255,255,0.03)';
+                            }
 
                             return (
                               <div 
                                 key={i} 
-                                title={`${l.address}: ${date.toLocaleDateString()}`}
+                                title={title}
                                 style={{ 
                                   flex: 1, 
-                                  background: isAvailable ? 'var(--color-teal)' : isWeekend ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
+                                  background: bgColor,
                                   borderRadius: '1px',
-                                  opacity: isAvailable ? 0.8 : 1
+                                  opacity: opacity,
+                                  border: (isFormidlet && isUnavailable) ? '1px solid #f87171' : 'none',
+                                  animation: (isFormidlet && isUnavailable) ? 'pulse 2s infinite' : 'none'
                                 }} 
                               />
                             );
@@ -654,6 +801,20 @@ export default function NavDatabase() {
               </div>
               
               <div className="card" style={{ padding: 'var(--space-4)', display: 'grid', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-6)', marginBottom: 'var(--space-2)', fontSize: '0.75rem', opacity: 0.8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '12px', height: '12px', background: 'var(--color-teal)', borderRadius: '2px' }}></div> Tilgjengelig
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '12px', height: '12px', background: 'var(--color-sky-blue)', borderRadius: '2px' }}></div> Formidlet
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '12px', height: '12px', background: '#ef4444', borderRadius: '2px' }}></div> Utilgjengelig
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '12px', height: '12px', background: '#991b1b', borderRadius: '2px' }}></div> Konflikt
+                  </div>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Tidslinje-styring</span>
                   <button onClick={() => setTimelineOffset(0)} style={{ background: 'none', border: 'none', color: 'var(--color-sky-blue)', cursor: 'pointer', fontSize: '0.75rem' }}>Gå til i dag</button>

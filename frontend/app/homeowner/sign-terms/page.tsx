@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ShieldCheck, FileText, ChevronDown, CheckCircle2, Lock, AlertCircle, ArrowLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 export default function SignTerms() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
   const [isSigned, setIsSigned] = useState(false)
@@ -34,7 +35,7 @@ export default function SignTerms() {
       }
     }
     checkAgreement()
-  }, [router])
+  }, [router, searchParams])
 
   const handleScroll = () => {
     if (scrollRef.current) {
@@ -54,28 +55,27 @@ export default function SignTerms() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      const { error } = await supabase
-        .from('user_agreements')
-        .insert([{
-          user_id: user.id,
-          agreement_version: '1.0',
-          signed_at: new Date().toISOString()
-        }])
+      // Kall vår nye Edge Function for å starte ekte signering
+      const response = await fetch('https://ayddwbmkclujefnhsaqv.functions.supabase.co/sign-agreement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          agreementVersion: '1.0',
+          origin: window.location.origin // Legg til origin her
+        })
+      })
 
-      if (error) throw error
-
-      // Log the signing action
-      await supabase.from('audit_logs').insert([{
-        user_id: user.id,
-        action_type: 'SIGN_TERMS',
-        details: { version: '1.0', method: 'BankID Simulation' }
-      }])
-
-      setIsSigned(true)
-      window.location.reload() // Reload to update header
+      const data = await response.json()
+      if (data.url) {
+        // Send brukeren til Signicat for signering
+        window.location.href = data.url
+      } else {
+        const detailMsg = data.message || (data.details ? JSON.stringify(data.details) : '')
+        throw new Error(`${data.error || 'Kunne ikke starte signering'}: ${detailMsg}`)
+      }
     } catch (err: any) {
-      alert('Feil ved signering: ' + err.message)
-    } finally {
+      alert('Feil ved start av signering: ' + err.message)
       setLoading(false)
     }
   }
@@ -130,7 +130,7 @@ export default function SignTerms() {
               ← Mine boliger
             </Link>
             <h1 style={{ fontSize: '2.5rem' }}>Din signerte avtale</h1>
-            <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>Her kan du se din aktive avtale med NAV Boligbanken.</p>
+            <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>Her kan du se din aktive avtale med Kommune-boligbanken.</p>
           </div>
 
           <div className="card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
@@ -162,6 +162,23 @@ export default function SignTerms() {
               >
                 {loading ? 'Behandler...' : 'Si opp avtale'}
               </button>
+
+              <button 
+                onClick={async () => {
+                  const { data: { user } } = await supabase.auth.getUser()
+                  if (user) {
+                    await supabase.from('user_agreements').delete().eq('user_id', user.id)
+                    window.location.reload()
+                  }
+                }}
+                style={{ 
+                  background: 'none', border: '1px dashed var(--border-subtle)', 
+                  color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: 'var(--space-4)',
+                  cursor: 'pointer', padding: '8px', borderRadius: '8px'
+                }}
+              >
+                DEBUG: Nullstill avtale (for å teste ekte signering)
+              </button>
             </div>
 
             <p className="text-sm" style={{ marginTop: 'var(--space-6)', color: '#ef4444' }}>
@@ -182,7 +199,7 @@ export default function SignTerms() {
             <ArrowLeft size={18} /> Avbryt og gå tilbake
           </Link>
           <h1 style={{ fontSize: '2.5rem', marginBottom: 'var(--space-2)' }}>Signering av vilkår</h1>
-          <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>For å bruke Boligbanken må du lese og signere NAVs vilkårsavtale med BankID.</p>
+          <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>For å bruke Boligbanken må du lese og signere kommunens vilkårsavtale med BankID.</p>
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border-medium)', background: '#ffffff' }}>
@@ -215,7 +232,7 @@ export default function SignTerms() {
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
               <h3 style={{ color: '#0f172a', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>1. Formål</h3>
-              <p style={{ color: '#334155' }}>Boligbanken skal lette formidlingen av egnede boliger fra private utleiere til personer som har behov for bistand fra NAV til å skaffe bolig. Systemet fungerer som en brobygger for å sikre trygge boforhold.</p>
+              <p style={{ color: '#334155' }}>Boligbanken skal lette formidlingen av egnede boliger fra private utleiere til personer som har behov for bistand fra kommunen til å skaffe bolig. Systemet fungerer som en brobygger for å sikre trygge boforhold.</p>
             </section>
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
@@ -225,7 +242,7 @@ export default function SignTerms() {
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
               <h3 style={{ color: '#0f172a', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>3. Personvern og Data</h3>
-              <p style={{ color: '#334155' }}>Behandling av personopplysninger i Boligbanken skjer i samsvar med gjeldende personvernregelverk (GDPR). Utleiers kontaktinformasjon gjøres kun tilgjengelig for autoriserte NAV-ansatte for formidlingsformål.</p>
+              <p style={{ color: '#334155' }}>Behandling av personopplysninger i Boligbanken skjer i samsvar med gjeldende personvernregelverk (GDPR). Utleiers kontaktinformasjon gjøres kun tilgjengelig for autoriserte kommune-ansatte for formidlingsformål.</p>
             </section>
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
@@ -235,7 +252,7 @@ export default function SignTerms() {
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
               <h3 style={{ color: '#0f172a', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>5. Ansvarsforhold</h3>
-              <p style={{ color: '#334155' }}>Eventuelle tvister knyttet til selve leieforholdet er et privatrettslig forhold mellom utleier og leietaker. NAV er ikke part i selve leieavtalen med mindre det foreligger en spesifikk garanti eller avtale om dette.</p>
+              <p style={{ color: '#334155' }}>Eventuelle tvister knyttet til selve leieforholdet er et privatrettslig forhold mellom utleier og leietaker. Kommunen er ikke part i selve leieavtalen med mindre det foreligger en spesifikk garanti eller avtale om dette.</p>
             </section>
 
             <div style={{ marginTop: 'var(--space-10)', padding: 'var(--space-8)', background: '#f8fafc', borderRadius: '16px', textAlign: 'center', border: '2px solid #e2e8f0' }}>
