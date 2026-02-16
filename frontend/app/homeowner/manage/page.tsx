@@ -363,7 +363,7 @@ export default function HomeownerManage() {
                             <button 
                               onClick={() => {
                                 setEditingAvailability(editingAvailability === listing.id ? null : listing.id)
-                                setNewPeriod({ start: '', end: '' })
+                                setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
                               }}
                               style={{ padding: '8px', borderRadius: '8px', background: editingAvailability === listing.id ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', color: editingAvailability === listing.id ? 'var(--color-sky-blue)' : 'white' }}
                               title="Administrer ledige perioder"

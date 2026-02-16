@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
-// Mobile build configuration - uses static export for Capacitor
+// Web/Vercel config - no static export (allows auth callback, dynamic routes)
+// Mobile builds use next.config.mobile.js via build-mobile.js
 const nextConfig = {
   reactStrictMode: true,
-  output: 'export',
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true,
   },
   env: {
     API_URL: process.env.API_URL || 'http://localhost:3001',

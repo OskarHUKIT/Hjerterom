@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
@@ -10,7 +10,7 @@ import {
 import { supabase } from '../../lib/supabase'
 import UserProfileClient from './UserProfileClient'
 
-export default function NavUsers() {
+function NavUsersContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const userId = searchParams.get('id')
@@ -176,5 +176,13 @@ export default function NavUsers() {
         }
       `}</style>
     </main>
+  )
+}
+
+export default function NavUsers() {
+  return (
+    <Suspense fallback={<div className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" size={48} /></div>}>
+      <NavUsersContent />
+    </Suspense>
   )
 }

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { 
   AlertCircle, History, UserX, Home, Search, 
-  Loader2, Info, Clock, ChevronRight 
+  Loader2, Info, Clock, ChevronRight, ShieldCheck
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
@@ -12,7 +13,52 @@ export default function NavExpired() {
   const router = useRouter()
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [expiredListings, setExpiredListings] = useState<any[]>([])
-  // ... rest of state ...
+  const [terminatedUsers, setTerminatedUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const { data: termAgreements } = await supabase
+        .from('user_agreements')
+        .select('user_id, terminated_at')
+        .eq('is_terminated', true)
+      
+      const userIds = termAgreements?.map(a => a.user_id) || []
+      const usersWithTerminated = (termAgreements || []).map(a => ({
+        id: a.user_id,
+        terminated_at: a.terminated_at,
+        profiles: { full_name: null as string | null }
+      }))
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds)
+        
+        profiles?.forEach(p => {
+          const u = usersWithTerminated.find(x => x.id === p.id)
+          if (u) u.profiles = { full_name: p.full_name }
+        })
+      }
+      setTerminatedUsers(usersWithTerminated)
+
+      if (userIds.length > 0) {
+        const { data: listings } = await supabase
+          .from('listings')
+          .select('*')
+          .in('owner_id', userIds)
+        setExpiredListings(listings || [])
+      } else {
+        setExpiredListings([])
+      }
+    } catch (err) {
+      console.error('Error fetching expired data:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     async function checkAccess() {

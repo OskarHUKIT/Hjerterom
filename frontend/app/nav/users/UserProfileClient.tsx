@@ -62,13 +62,13 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
         setListings(listingsData || [])
         
         if (profileData && !profileData.full_name && listingsData && listingsData.length > 0) {
-          setUser(prev => ({
+          setUser((prev: any) => ({
             ...prev,
             owner_name: listingsData[0].owner_name || prev?.owner_name,
             contact_phone: listingsData[0].contact_phone
           }))
         } else if (listingsData && listingsData.length > 0) {
-          setUser(prev => prev ? { ...prev, contact_phone: listingsData[0].contact_phone } : prev)
+          setUser((prev: any) => prev ? { ...prev, contact_phone: listingsData[0].contact_phone } : prev)
         }
 
         const { data: logsData } = await supabase

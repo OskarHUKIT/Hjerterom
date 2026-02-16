@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import ListingDetailsClient from './ListingDetailsClient'
 
@@ -17,5 +18,9 @@ export async function generateStaticParams() {
 }
 
 export default function ListingDetailsPage() {
-  return <ListingDetailsClient />
+  return (
+    <Suspense fallback={<div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Laster...</div>}>
+      <ListingDetailsClient />
+    </Suspense>
+  )
 }
