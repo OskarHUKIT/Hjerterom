@@ -7,6 +7,7 @@ import {
   FileText, User, Trash2, Info, AlertTriangle, Send, Home
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import PushPermissionCard from '../../components/PushPermissionCard'
 
 export default function NavNotifications() {
   const [notifications, setNotifications] = useState<any[]>([])
@@ -86,6 +87,8 @@ export default function NavNotifications() {
           {role === 'kommune_ansatt' ? 'Delt varslingssystem for kommune-ansatte.' : 'Viktige oppdateringer om ditt leieforhold.'}
         </p>
       </div>
+
+      <PushPermissionCard />
 
       {loading ? (
         <div className="card" style={{ padding: 'var(--space-10)', minHeight: '200px' }} />
