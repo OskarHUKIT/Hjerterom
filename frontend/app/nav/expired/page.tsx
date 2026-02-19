@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
   AlertCircle, History, UserX, Home, Search, 
-  Loader2, Info, Clock, ChevronRight, ShieldCheck
+  Info, Clock, ChevronRight, ShieldCheck
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
@@ -107,11 +107,7 @@ export default function NavExpired() {
   }
 
   if (isAuthorized === null) {
-    return (
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 className="animate-spin" size={48} color="var(--color-royal-blue)" />
-      </div>
-    )
+    return <div className="container" style={{ minHeight: '80vh' }} />
   }
 
   return (
@@ -129,7 +125,7 @@ export default function NavExpired() {
           <h2 style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <UserX size={24} className="text-muted" /> Inaktive Brukere
           </h2>
-          {loading ? <Loader2 className="animate-spin" /> : terminatedUsers.length > 0 ? (
+          {loading ? <div className="card" style={{ padding: 'var(--space-4)', minHeight: '80px' }} /> : terminatedUsers.length > 0 ? (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
               {terminatedUsers.map(user => (
                 <div key={user.id} className="card" style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.02)', opacity: 0.7 }}>
@@ -145,7 +141,7 @@ export default function NavExpired() {
           <h2 style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Home size={24} className="text-muted" /> Utløpte Boliger
           </h2>
-          {loading ? <Loader2 className="animate-spin" /> : expiredListings.length > 0 ? (
+          {loading ? <div className="card" style={{ padding: 'var(--space-4)', minHeight: '80px' }} /> : expiredListings.length > 0 ? (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
               {expiredListings.map(l => (
                 <div key={l.id} className="card" style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.02)', opacity: 0.7 }}>

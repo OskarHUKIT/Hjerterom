@@ -9,7 +9,9 @@ export default function Home() {
       <div style={{ 
         padding: 'var(--space-10) 0', 
         maxWidth: '800px',
-        textAlign: 'left'
+        textAlign: 'left',
+        paddingLeft: 'max(0px, env(safe-area-inset-left))',
+        paddingRight: 'max(0px, env(safe-area-inset-right))'
       }}>
         <h1 className="animate-delay-1" style={{ 
           fontSize: 'clamp(2.5rem, 6vw, 3.75rem)', 
@@ -45,7 +47,7 @@ export default function Home() {
             <Search size={28} />
           </div>
           <div>
-            <h2>For Kommune-ansatte</h2>
+            <h2>For kommuneansatte</h2>
             <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
               Søk i vår sanntidsoversikt over tilgjengelige boliger. Finn riktig løsning for dine klienter med avansert filtrering.
             </p>
@@ -83,7 +85,7 @@ export default function Home() {
       </div>
 
       {/* Trust & Support Section */}
-      <div className="animate-delay-3" style={{ 
+      <div className="animate-delay-3 trust-section" style={{ 
         marginTop: 'var(--space-10)', 
         padding: 'var(--space-8)', 
         background: 'rgba(15, 23, 42, 0.4)', 

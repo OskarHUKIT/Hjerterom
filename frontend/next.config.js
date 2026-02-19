@@ -7,7 +7,7 @@ const nextConfig = {
     unoptimized: true,
   },
   env: {
-    API_URL: process.env.API_URL || 'http://localhost:3001',
+    API_URL: process.env.API_URL || 'http://localhost:3002',
   },
   // Disable features that don't work with static export
   trailingSlash: true,

@@ -11,11 +11,10 @@ function SignTermsContent() {
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
-  const [isSigned, setIsSigned] = useState(false)
+  const [isSigned, setIsSigned] = useState<boolean | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // Check if already signed
     const checkAgreement = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -30,9 +29,7 @@ function SignTermsContent() {
         .eq('is_terminated', false)
         .maybeSingle()
 
-      if (data) {
-        setIsSigned(true)
-      }
+      setIsSigned(!!data)
     }
     checkAgreement()
   }, [router, searchParams])
@@ -119,6 +116,16 @@ function SignTermsContent() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (isSigned === null) {
+    return (
+      <main className="container">
+        <div style={{ maxWidth: '800px', margin: '0 auto', minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Sjekker avtale...</div>
+        </div>
+      </main>
+    )
   }
 
   if (isSigned) {
@@ -290,7 +297,7 @@ function SignTermsContent() {
                 cursor: hasScrolledToBottom ? 'pointer' : 'not-allowed'
               }}
             >
-              {loading ? <Lock className="animate-pulse" size={20} /> : <ShieldCheck size={20} />}
+              {loading ? <Lock size={20} style={{ opacity: 0.7 }} /> : <ShieldCheck size={20} />}
               {loading ? 'Signerer med BankID...' : 'Signer med BankID'}
             </button>
           </div>
@@ -307,7 +314,7 @@ function SignTermsContent() {
 
 export default function SignTerms() {
   return (
-    <Suspense fallback={<div className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Laster...</div>}>
+    <Suspense fallback={<div className="container" style={{ minHeight: '80vh' }} />}>
       <SignTermsContent />
     </Suspense>
   )

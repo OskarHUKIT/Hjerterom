@@ -2,17 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import Logo from './Logo'
-import { User, LogOut, LogIn, ChevronDown, LayoutDashboard, ShieldCheck, Bell } from 'lucide-react'
+import { User, LogOut, LogIn, ChevronDown, LayoutDashboard, ShieldCheck, Bell, Menu, X, MessageSquare } from 'lucide-react'
 
 export default function Header() {
+  const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [hasSignedTerms, setHasSignedTerms] = useState(false)
   const [role, setRole] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
 
   const fetchHeaderData = async (userId: string, metadata: any) => {
     try {
@@ -28,18 +31,14 @@ export default function Header() {
       setRole(userRole)
       setHasSignedTerms(!!agreementRes.data)
 
-      // Hent unread count
-      let query = supabase
+      // Hent unread count – kun varsler som er til brukeren (owner_id)
+      const { count } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'unread')
-      
-      if (userRole !== 'kommune_ansatt') {
-        query = query.eq('owner_id', userId)
-      }
+        .eq('owner_id', userId)
 
-      const { count } = await query
-      setUnreadCount(count || 0)
+      setUnreadCount(count ?? 0)
     } catch (err) {
       console.error('Error fetching header data:', err)
     } finally {
@@ -79,9 +78,16 @@ export default function Header() {
     }
     window.addEventListener('click', closeMenu)
 
+    // Close mobile nav on resize
+    const handleResize = () => {
+      if (window.innerWidth > 768) setIsMobileNavOpen(false)
+    }
+    window.addEventListener('resize', handleResize)
+
     return () => {
       subscription.unsubscribe()
       window.removeEventListener('click', closeMenu)
+      window.removeEventListener('resize', handleResize)
     }
   }, [])
 
@@ -104,27 +110,24 @@ export default function Header() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    window.location.href = '/'
+    router.push('/')
   }
 
-  return (
-    <header className="header">
-      <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 var(--space-4)' }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <Logo />
-        </Link>
-        
-        <nav style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+  const closeMobileNav = () => setIsMobileNavOpen(false)
+
+  const navContent = (
+    <>
           {role === 'kommune_ansatt' && (
             <>
-              <Link href="/nav/database" className="nav-link">Boligbanken</Link>
-              <Link href="/nav/users" className="nav-link">Brukere</Link>
-              <Link href="/nav/expired" className="nav-link">Utløpte</Link>
+              <Link href="/nav/database" className="nav-link" onClick={closeMobileNav}>Boligbanken</Link>
+              <Link href="/nav/users" className="nav-link" onClick={closeMobileNav}>Brukere</Link>
+              <Link href="/nav/messages" className="nav-link" onClick={closeMobileNav}>Meldinger</Link>
+              <Link href="/nav/expired" className="nav-link" onClick={closeMobileNav}>Utløpte</Link>
             </>
           )}
           
           {user && (
-            <Link href="/nav/notifications" className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }}>
+            <Link href="/nav/notifications" className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }} onClick={closeMobileNav}>
               <Bell size={18} />
               <span className="nav-text">Varsler</span>
               {unreadCount > 0 && (
@@ -139,7 +142,14 @@ export default function Header() {
             </Link>
           )}
 
-          <Link href="/homeowner/manage" className="nav-link">For utleiere</Link>
+          {user && role !== 'kommune_ansatt' && (
+            <Link href="/nav/messages" className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={closeMobileNav}>
+              <MessageSquare size={18} />
+              <span className="nav-text">Meldinger</span>
+            </Link>
+          )}
+
+          <Link href="/homeowner/manage" className="nav-link" onClick={closeMobileNav}>For utleiere</Link>
           
           {loading ? (
             <div style={{ width: '100px' }}></div>
@@ -187,18 +197,18 @@ export default function Header() {
                     <p className="text-sm" style={{ fontWeight: 600, color: 'var(--color-sky-blue)' }}>Brukerpanel</p>
                   </div>
                   
-                  <Link href="/homeowner/manage" className="menu-item" onClick={() => setIsMenuOpen(false)}>
+                  <Link href="/homeowner/manage" className="menu-item" onClick={() => { setIsMenuOpen(false); closeMobileNav(); }}>
                     <LayoutDashboard size={16} /> Mine boliger
                   </Link>
                   
-                  <Link href="/homeowner/sign-terms" className="menu-item" onClick={() => setIsMenuOpen(false)}>
+                  <Link href="/homeowner/sign-terms" className="menu-item" onClick={() => { setIsMenuOpen(false); closeMobileNav(); }}>
                     <ShieldCheck size={16} /> {hasSignedTerms ? 'Signert avtale' : 'Signer vilkår'}
                   </Link>
 
                   <div style={{ height: '1px', background: 'var(--border-subtle)', margin: 'var(--space-2) 0' }}></div>
 
                   <button 
-                    onClick={handleLogout}
+                    onClick={() => { handleLogout(); closeMobileNav(); }}
                     style={{ 
                       display: 'flex', 
                       alignItems: 'center', 
@@ -230,17 +240,75 @@ export default function Header() {
                 marginLeft: 'var(--space-2)',
                 borderRadius: '10px'
               }}
+              onClick={closeMobileNav}
             >
               <LogIn size={16} style={{ marginRight: '6px' }} /> Logg inn
             </Link>
           )}
+    </>
+  )
+
+  return (
+    <header className="header">
+      <div className="header-inner container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 var(--space-4)' }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }} onClick={closeMobileNav}>
+          <Logo />
+        </Link>
+        
+        {/* Desktop nav */}
+        <nav className="header-nav-desktop" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+          {navContent}
         </nav>
+
+        {/* Mobile hamburger */}
+        <button
+          className="header-hamburger"
+          onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+          aria-label={isMobileNavOpen ? 'Lukk meny' : 'Åpne meny'}
+          style={{
+            display: 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '44px',
+            height: '44px',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '10px',
+            color: 'white',
+            cursor: 'pointer'
+          }}
+        >
+          {isMobileNavOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      {/* Mobile nav overlay */}
+      <div 
+        className="header-nav-mobile" 
+        style={{
+          display: isMobileNavOpen ? 'flex' : 'none',
+          flexDirection: 'column',
+          gap: 'var(--space-2)',
+          padding: 'var(--space-4)',
+          borderTop: '1px solid var(--border-subtle)',
+          background: 'rgba(15, 23, 42, 0.98)',
+          backdropFilter: 'blur(16px)'
+        }}
+      >
+        {navContent}
       </div>
 
       <style jsx>{`
+        @media (max-width: 768px) {
+          .header-nav-desktop { display: none !important; }
+          .header-hamburger { display: flex !important; }
+        }
+        @media (min-width: 769px) {
+          .header-nav-mobile { display: none !important; }
+        }
         .menu-item {
           display: flex;
-          alignItems: center;
+          align-items: center;
           gap: var(--space-2);
           width: 100%;
           padding: var(--space-3) var(--space-4);

@@ -6,16 +6,16 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { 
   Search, Filter, MapPin, Users, Info, ChevronRight, Home as HomeIcon, 
-  ShieldCheck, Loader2, ArrowUpDown, LayoutList, Map as MapIcon,
+  ShieldCheck, ArrowUpDown, LayoutList, Map as MapIcon,
   CheckCircle2, XCircle, AlertCircle, Phone, User, Building, Tag,
-  Ruler, Eye, Calendar, Settings
+  Ruler, Eye, Calendar, Settings, RotateCcw, X
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 // Dynamically import Map component to avoid SSR issues
 const MapView = dynamic(() => import('../../components/MapView'), { 
   ssr: false,
-  loading: () => <div className="card" style={{ height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" /></div>
+  loading: () => <div className="card" style={{ height: '500px' }} />
 })
 
 export default function NavDatabase() {
@@ -53,6 +53,8 @@ export default function NavDatabase() {
   const [listings, setListings] = useState<any[]>([])
   const [availability, setAvailability] = useState<Record<string, any[]>>({})
   const [loading, setLoading] = useState(true)
+  const [initialLoad, setInitialLoad] = useState(true)
+  const [tabCache, setTabCache] = useState<Record<string, { listings: any[]; availability: Record<string, any[]> }>>({})
   const [activeTab, setActiveTab] = useState<'Tilgjengelig' | 'Utilgjengelig' | 'Utløpte' | 'Formidlet'>('Tilgjengelig')
   const [viewMode, setViewMode] = useState<'table' | 'map' | 'timeline'>('timeline')
   const [sortField, setSortField] = useState('created_at')
@@ -60,6 +62,10 @@ export default function NavDatabase() {
   const [showFilters, setShowFilters] = useState(false)
   const [showColumnSettings, setShowColumnSettings] = useState(false)
   const [timelineOffset, setTimelineOffset] = useState(0)
+  const [formidletModalListing, setFormidletModalListing] = useState<any>(null)
+  const [formidletStart, setFormidletStart] = useState('')
+  const [formidletEnd, setFormidletEnd] = useState('')
+  const [formidletSending, setFormidletSending] = useState(false)
   
   const [visibleColumns, setVisibleColumns] = useState(['address', 'city', 'owner_name', 'price_daily'])
 
@@ -131,8 +137,20 @@ export default function NavDatabase() {
   })
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
-  const fetchListings = async () => {
-    setLoading(true)
+  const getTabCacheKey = () => `${activeTab}_${viewMode}`
+
+  const fetchListings = async (showLoader = true) => {
+    const cacheKey = getTabCacheKey()
+    if (tabCache[cacheKey]) {
+      setListings(tabCache[cacheKey].listings)
+      setAvailability(tabCache[cacheKey].availability)
+      setLoading(false)
+    } else if (!initialLoad) {
+      setListings([])
+      setAvailability({})
+    }
+    const useLoader = showLoader && !tabCache[cacheKey] && initialLoad
+    if (useLoader) setLoading(true)
     try {
       let query = supabase.from('listings').select('*')
 
@@ -228,7 +246,7 @@ export default function NavDatabase() {
 
       setListings(filtered)
 
-      // Fetch availability periods for the filtered listings
+      let availMap: Record<string, any[]> = {}
       if (filtered.length > 0) {
         const listingIds = filtered.map(l => l.id)
         const { data: availabilityData } = await supabase
@@ -237,13 +255,15 @@ export default function NavDatabase() {
           .in('listing_id', listingIds)
           .order('start_date', { ascending: true })
 
-        const availMap: Record<string, any[]> = {}
         availabilityData?.forEach(item => {
           if (!availMap[item.listing_id]) availMap[item.listing_id] = []
           availMap[item.listing_id].push(item)
         })
         setAvailability(availMap)
       }
+
+      setTabCache(prev => ({ ...prev, [getTabCacheKey()]: { listings: filtered, availability: availMap } }))
+      setInitialLoad(false)
     } catch (err: any) {
       console.error('Error fetching listings:', err)
     } finally {
@@ -276,11 +296,7 @@ export default function NavDatabase() {
   }
 
   if (isAuthorized === null) {
-    return (
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 className="animate-spin" size={48} color="var(--color-royal-blue)" />
-      </div>
-    )
+    return <div className="container" style={{ minHeight: '80vh' }} />
   }
 
   const toggleSort = (field: string) => {
@@ -292,11 +308,37 @@ export default function NavDatabase() {
     }
   }
 
-  const handleMarkAsFormidlet = async (id: string, address: string) => {
-    const listing = listings.find(l => l.id === id)
-    const attachSchema = confirm(`Vil du markere "${address}" som formidlet?\n\nDette vil sende kontaktinformasjon og instruksjoner til utleier.`)
+  const openFormidletModal = (listing: any) => {
+    const today = new Date().toISOString().slice(0, 10)
+    setFormidletModalListing(listing)
+    setFormidletStart(today)
+    setFormidletEnd(today)
+  }
+
+  const handleMarkAsFormidlet = async () => {
+    if (!formidletModalListing || !formidletStart || !formidletEnd) {
+      alert('Velg både start- og sluttdato.')
+      return
+    }
+    if (new Date(formidletEnd) < new Date(formidletStart)) {
+      alert('Sluttdato må være etter eller lik startdato.')
+      return
+    }
+    const id = formidletModalListing.id
+    const address = formidletModalListing.address
+    const listing = formidletModalListing
+    const attachSchema = confirm(`Vil du markere "${address}" som formidlet for perioden ${formidletStart}–${formidletEnd}?`)
     
+    setFormidletSending(true)
     try {
+      // 1. Legg til formidlet-periode i listing_availability
+      const { error: availError } = await supabase
+        .from('listing_availability')
+        .insert([{ listing_id: id, start_date: formidletStart, end_date: formidletEnd, status: 'Formidla' }])
+      
+      if (availError) throw availError
+      
+      // 2. Oppdater listing-status
       const { error } = await supabase
         .from('listings')
         .update({ status: 'Formidla', is_available: false })
@@ -309,39 +351,61 @@ export default function NavDatabase() {
         user_id: user?.id,
         action_type: 'KOMMUNE_MARK_FORMIDLA',
         listing_address: address,
-        details: { by: 'Kommune-ansatt', attached_schema: attachSchema }
+        details: { by: 'Kommune-ansatt', attached_schema: attachSchema, start_date: formidletStart, end_date: formidletEnd }
       }])
 
-      // Create notification for Homeowner with Kontaktinfoskjema (Side 5)
       if (listing?.owner_id) {
-        const contactInfo = `
-BO.LY KONTAKTINFOSKJEMA
------------------------
-Boligens adresse: ${address}
-
-UTLEIER:
-Navn: ${listing.owner_name || 'Ikke oppgitt'}
-Telefon: ${listing.contact_phone || 'Ikke oppgitt'}
-
-LEIETAKER:
-(Fylles ut i samråd med Narvik kommune)
-Navn: ____________________
-Telefon: ____________________
-
-Instruksjoner:
-Utleier skriver ut dette skjemaet i to eksemplarer og fyller det ut sammen med leietaker. Begge parter beholder ett eksemplar hver.
-        `
-
         await supabase.from('notifications').insert([{
           owner_id: listing.owner_id,
           type: 'HOUSE_FORMIDLET',
-          title: 'Bolig formidlet - viktig informasjon',
-          message: `Kommunen har markert boligen din i ${address} som formidlet.\n\n${contactInfo}`,
+          title: 'Bolig formidlet',
+          message: `Kommunen har markert boligen din i ${address} som formidlet for perioden ${formidletStart}–${formidletEnd}. Husk å levere overtakelsesrapport ved overtakelse.`,
           listing_id: id
         }])
       }
 
-      fetchListings()
+      // Optimistic update: move listing to Formidlet in UI immediately
+      setListings(prev => prev.filter(l => l.id !== id))
+      setFormidletModalListing(null)
+      fetchListings(false) // Background refresh, no loader
+    } catch (err: any) {
+      alert('Feil: ' + err.message)
+    } finally {
+      setFormidletSending(false)
+    }
+  }
+
+  const handleRemoveFormidlet = async (id: string, address: string) => {
+    if (!confirm(`Vil du fjerne formidlingen for "${address}"?\n\nBoligen vil igjen vises som tilgjengelig.`)) return
+    try {
+      // Slett alle Formidla-perioder for denne listing
+      const { error: delError } = await supabase
+        .from('listing_availability')
+        .delete()
+        .eq('listing_id', id)
+        .eq('status', 'Formidla')
+      
+      if (delError) throw delError
+      
+      // Oppdater listing til Tilgjengelig
+      const { error } = await supabase
+        .from('listings')
+        .update({ status: 'Tilgjengelig', is_available: true })
+        .eq('id', id)
+      
+      if (error) throw error
+      
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase.from('audit_logs').insert([{
+        user_id: user?.id,
+        action_type: 'KOMMUNE_REMOVE_FORMIDLA',
+        listing_address: address,
+        details: { by: 'Kommune-ansatt' }
+      }])
+      
+      // Optimistic update: remove from Formidlet list immediately
+      setListings(prev => prev.filter(l => l.id !== id))
+      fetchListings(false) // Background refresh
     } catch (err: any) {
       alert('Feil: ' + err.message)
     }
@@ -349,14 +413,14 @@ Utleier skriver ut dette skjemaet i to eksemplarer og fyller det ut sammen med l
 
   return (
     <main className="container">
-      <div style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div className="db-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             ← Oversikt
           </Link>
-          <h1 style={{ fontSize: '2.75rem' }}>Boligbanken</h1>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)' }}>Boligbanken</h1>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+        <div className="db-view-btns" style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <button onClick={() => setViewMode('table')} style={{ 
             padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'table' ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
             border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'white'
@@ -372,15 +436,15 @@ Utleier skriver ut dette skjemaet i to eksemplarer og fyller det ut sammen med l
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-1)', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+      <div className="db-tabs-row" style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-1)', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', rowGap: 'var(--space-4)' }}>
+        <div className="tabs-scroll" style={{ display: 'flex', gap: 'var(--space-4)', flex: '1 1 auto', minWidth: 0, overflowX: 'auto', paddingBottom: '4px' }}>
           {viewMode !== 'timeline' ? (
             (['Tilgjengelig', 'Utilgjengelig', 'Formidlet', 'Utløpte'] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
-                padding: 'var(--space-3) var(--space-6)', fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
+                padding: 'var(--space-3) var(--space-4)', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer',
                 background: 'none', border: 'none', color: activeTab === tab ? 'var(--color-sky-blue)' : 'var(--text-muted)',
                 borderBottom: activeTab === tab ? '2px solid var(--color-sky-blue)' : '2px solid transparent',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s', whiteSpace: 'nowrap', flexShrink: 0
               }}>
                 {tab === 'Tilgjengelig' && <CheckCircle2 size={16} style={{ display: 'inline', marginRight: '8px' }} />}
                 {tab === 'Utilgjengelig' && <XCircle size={16} style={{ display: 'inline', marginRight: '8px' }} />}
@@ -395,7 +459,7 @@ Utleier skriver ut dette skjemaet i to eksemplarer og fyller det ut sammen med l
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+        <div className="db-action-btns" style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
           <button 
             onClick={() => {
               setShowColumnSettings(!showColumnSettings)
@@ -407,7 +471,7 @@ Utleier skriver ut dette skjemaet i to eksemplarer og fyller det ut sammen med l
               border: '1px solid var(--border-subtle)', color: 'white', cursor: 'pointer', fontWeight: 600
             }}
           >
-            <Settings size={18} /> Tilpass kolonner
+            <Settings size={18} /> <span className="btn-label">Tilpass kolonner</span>
           </button>
           <button 
             onClick={() => {
@@ -420,7 +484,7 @@ Utleier skriver ut dette skjemaet i to eksemplarer og fyller det ut sammen med l
               border: '1px solid var(--border-subtle)', color: 'white', cursor: 'pointer', fontWeight: 600
             }}
           >
-            <Filter size={18} /> {showFilters ? 'Lukk filter' : 'Filtrer resultater'}
+            <Filter size={18} /> <span className="btn-label">{showFilters ? 'Lukk filter' : 'Filtrer'}</span>
           </button>
         </div>
       </div>
@@ -578,12 +642,72 @@ Utleier skriver ut dette skjemaet i to eksemplarer og fyller det ut sammen med l
         </div>
       )}
 
+      {/* Modal: Legg inn formidlet periode */}
+      {formidletModalListing && (
+        <div 
+          style={{ 
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 
+          }}
+          onClick={() => !formidletSending && setFormidletModalListing(null)}
+        >
+          <div 
+            className="card" 
+            style={{ padding: 'var(--space-8)', maxWidth: '420px', width: '90%' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
+              <h3 style={{ margin: 0 }}>Legg inn formidlet periode</h3>
+              <button onClick={() => !formidletSending && setFormidletModalListing(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
+                <X size={20} />
+              </button>
+            </div>
+            <p style={{ marginBottom: 'var(--space-4)', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+              {formidletModalListing.address}
+            </p>
+            <div style={{ marginBottom: 'var(--space-6)' }}>
+              <label className="label">Periode (datoområde)</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }} className="formidlet-date-range">
+                <div>
+                  <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}>Fra</span>
+                  <input 
+                    type="date" 
+                    className="input" 
+                    style={{ marginBottom: 0 }} 
+                    value={formidletStart} 
+                    onChange={e => setFormidletStart(e.target.value)}
+                    max={formidletEnd || undefined}
+                  />
+                </div>
+                <div>
+                  <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}>Til</span>
+                  <input 
+                    type="date" 
+                    className="input" 
+                    style={{ marginBottom: 0 }} 
+                    value={formidletEnd} 
+                    onChange={e => setFormidletEnd(e.target.value)}
+                    min={formidletStart || undefined}
+                  />
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+              <button onClick={() => !formidletSending && setFormidletModalListing(null)} style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', padding: 'var(--space-3) var(--space-5)', borderRadius: '10px', cursor: 'pointer' }}>
+                Avbryt
+              </button>
+              <button onClick={handleMarkAsFormidlet} disabled={formidletSending} className="button button-accent">
+                {formidletSending ? <ShieldCheck size={18} style={{ opacity: 0.5 }} /> : <ShieldCheck size={18} />}
+                {formidletSending ? ' Lagrer...' : ' Bekreft formidling'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         {loading ? (
-          <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-            <Loader2 className="animate-spin" size={48} style={{ margin: '0 auto', color: 'var(--color-royal-blue)' }} />
-            <p style={{ marginTop: 'var(--space-4)' }}>Henter data...</p>
-          </div>
+          <div className="card" style={{ padding: 'var(--space-10)', minHeight: '300px' }} />
         ) : listings.length > 0 ? (
           viewMode === 'table' ? (
             <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -625,12 +749,17 @@ Utleier skriver ut dette skjemaet i to eksemplarer og fyller det ut sammen med l
                       ))}
                       <td style={{ padding: 'var(--space-4)' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                          <Link href={`/listings/${l.id}?view=nav`} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)' }}>
+                          <Link href={`/listings/${l.id}?view=nav`} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)' }} title="Se detaljer">
                             <Eye size={16} />
                           </Link>
                           {activeTab === 'Tilgjengelig' && (
-                            <button onClick={() => handleMarkAsFormidlet(l.id, l.address)} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)', border: 'none', cursor: 'pointer' }} title="Marker som formidla">
+                            <button onClick={() => openFormidletModal(l)} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)', border: 'none', cursor: 'pointer' }} title="Legg inn formidlet periode">
                               <ShieldCheck size={16} />
+                            </button>
+                          )}
+                          {activeTab === 'Formidlet' && (
+                            <button onClick={() => handleRemoveFormidlet(l.id, l.address)} style={{ padding: '6px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', color: '#ef4444', border: 'none', cursor: 'pointer' }} title="Fjern formidling">
+                              <RotateCcw size={16} />
                             </button>
                           )}
                         </div>
@@ -861,6 +990,18 @@ Utleier skriver ut dette skjemaet i to eksemplarer og fyller det ut sammen med l
           .timeline-date-optional {
             display: none;
           }
+        }
+        @media (max-width: 768px) {
+          .db-header-row { flex-direction: column; align-items: flex-start; }
+          .db-view-btns { width: 100%; }
+          .db-tabs-row { flex-direction: column; align-items: stretch; }
+          .db-action-btns { justify-content: flex-start; }
+        }
+        @media (max-width: 480px) {
+          .btn-label { display: none; }
+        }
+        @media (max-width: 400px) {
+          .formidlet-date-range { grid-template-columns: 1fr; }
         }
       `}</style>
     </main>

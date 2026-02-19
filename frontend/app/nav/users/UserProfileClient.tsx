@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { 
   User, ArrowLeft, Phone, Mail, Clock, MessageSquare, 
-  ShieldCheck, Home, Loader2, Send
+  ShieldCheck, Home, Send
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { formatAuditLogDescription } from '../../lib/auditLogFormat'
 
 interface UserProfileClientProps {
   overrideId?: string | null
@@ -24,59 +25,44 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
 
   useEffect(() => {
     async function fetchData() {
+      if (!id) return
       setLoading(true)
       try {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle()
-        
-        if (profileError) throw profileError
+        let profileRow: { full_name?: string; email?: string; role?: string; updated_at?: string } | null = null
 
-        if (profileData) {
-          const { data: agreements } = await supabase
-            .from('user_agreements')
-            .select('*')
-            .eq('user_id', id)
-            .eq('is_terminated', false)
-          
-          const activeAgreement = agreements?.find((a: any) => !a.is_terminated)
-          
-          setUser({
-            owner_id: id,
-            owner_name: profileData.full_name || profileData.email?.split('@')[0] || 'Ukjent bruker',
-            email: profileData.email,
-            role: profileData.role,
-            updated_at: profileData.updated_at,
-            hasSigned: !!activeAgreement,
-            signedAt: activeAgreement?.signed_at
-          })
+        const { data: rpcData } = await supabase.rpc('get_single_user_for_kommune', { p_user_id: id })
+        if (Array.isArray(rpcData) && rpcData.length > 0) {
+          profileRow = rpcData[0]
+        } else {
+          const { data: p } = await supabase.from('profiles').select('full_name, email, role, updated_at').eq('id', id).maybeSingle()
+          profileRow = p
         }
 
-        const { data: listingsData } = await supabase
-          .from('listings')
-          .select('*')
-          .eq('owner_id', id)
-        
+        if (!profileRow) {
+          setLoading(false)
+          return
+        }
+
+        const [{ data: agreements }, { data: listingsData }, { data: logsData }] = await Promise.all([
+          supabase.from('user_agreements').select('*').eq('user_id', id).eq('is_terminated', false),
+          supabase.from('listings').select('*').eq('owner_id', id),
+          supabase.from('audit_logs').select('*').eq('user_id', id).order('created_at', { ascending: false })
+        ])
+
+        const activeAgreement = agreements?.find((a: any) => !a.is_terminated)
+        const firstListing = listingsData?.[0]
+
+        setUser({
+          owner_id: id,
+          owner_name: profileRow.full_name || profileRow.email?.split('@')[0] || firstListing?.owner_name || 'Ukjent bruker',
+          email: profileRow.email ?? null,
+          role: profileRow.role ?? 'homeowner',
+          updated_at: profileRow.updated_at ?? null,
+          hasSigned: !!activeAgreement,
+          signedAt: activeAgreement?.signed_at ?? null,
+          contact_phone: firstListing?.contact_phone ?? null
+        })
         setListings(listingsData || [])
-        
-        if (profileData && !profileData.full_name && listingsData && listingsData.length > 0) {
-          setUser((prev: any) => ({
-            ...prev,
-            owner_name: listingsData[0].owner_name || prev?.owner_name,
-            contact_phone: listingsData[0].contact_phone
-          }))
-        } else if (listingsData && listingsData.length > 0) {
-          setUser((prev: any) => prev ? { ...prev, contact_phone: listingsData[0].contact_phone } : prev)
-        }
-
-        const { data: logsData } = await supabase
-          .from('audit_logs')
-          .select('*')
-          .eq('user_id', id)
-          .order('created_at', { ascending: false })
-        
         setHistory(logsData || [])
       } catch (err) {
         console.error('Error fetching user profile:', err)
@@ -85,10 +71,10 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
       }
     }
 
-    if (id) fetchData()
+    fetchData()
   }, [id])
 
-  if (loading) return <div className="container" style={{ textAlign: 'center', padding: '100px' }}><Loader2 className="animate-spin" size={48} /></div>
+  if (loading) return <div className="container" style={{ minHeight: '80vh' }} />
 
   if (!user) return <div className="container">Bruker ikke funnet.</div>
 
@@ -148,8 +134,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
             <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
               {history.map(log => (
                 <div key={log.id} style={{ padding: 'var(--space-3)', borderBottom: '1px solid var(--border-subtle)', fontSize: '0.9rem' }}>
-                  <div style={{ fontWeight: 600 }}>{log.action_type}</div>
-                  <div style={{ opacity: 0.7 }}>{log.listing_address || 'System'}</div>
+                  <div style={{ fontWeight: 600 }}>{formatAuditLogDescription(log)}</div>
                   <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>{new Date(log.created_at).toLocaleString('no-NO')}</div>
                 </div>
               ))}
@@ -162,13 +147,16 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
             <h3 style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <MessageSquare size={20} style={{ color: 'var(--color-sky-blue)' }} /> Chat med utleier
             </h3>
-            <div style={{ height: '300px', background: 'rgba(0,0,0,0.2)', borderRadius: '12px', padding: 'var(--space-4)', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
-              <p className="text-sm italic">Chat-modulen er under utvikling...</p>
-            </div>
-            <div style={{ position: 'relative' }}>
-              <input className="input" placeholder="Skriv en melding..." disabled style={{ background: 'rgba(255,255,255,0.05)', color: 'white' }} />
-              <button disabled style={{ position: 'absolute', right: '10px', top: '10px', background: 'none', border: 'none', color: 'var(--color-sky-blue)' }}><Send size={18} /></button>
-            </div>
+            <p className="text-sm" style={{ marginBottom: 'var(--space-4)', opacity: 0.9 }}>
+              Send og motta meldinger med denne brukeren.
+            </p>
+            <Link
+              href={`/nav/messages?with=${id}`}
+              className="button"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 'var(--space-3) var(--space-5)' }}
+            >
+              <MessageSquare size={18} /> Åpne chat
+            </Link>
           </section>
         </aside>
       </div>

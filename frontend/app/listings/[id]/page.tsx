@@ -19,7 +19,7 @@ export async function generateStaticParams() {
 
 export default function ListingDetailsPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Laster...</div>}>
+    <Suspense fallback={<div style={{ minHeight: '80vh' }} />}>
       <ListingDetailsClient />
     </Suspense>
   )

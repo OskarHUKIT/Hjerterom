@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   User, Search, Mail, Phone, Calendar, ChevronRight, 
-  MessageSquare, FileText, Clock, ShieldCheck, Loader2, Info
+  MessageSquare, FileText, Clock, ShieldCheck, Info
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import UserProfileClient from './UserProfileClient'
@@ -37,26 +37,41 @@ function NavUsersContent() {
         return
       }
 
-      // 1. Hent profilene separat
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role, updated_at')
-        .order('full_name', { ascending: true })
+      // 1. Hent alle brukere via RPC (inkl. nye BankID-brukere fra auth.users)
+      const { data: profiles, error: profileError } = await supabase.rpc('get_all_users_for_kommune')
       
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('RPC get_all_users_for_kommune feilet, prøver profiles direkte:', profileError)
+        const fallback = await supabase.from('profiles').select('id, full_name, email, role, updated_at').order('full_name', { ascending: true })
+        if (fallback.error) throw fallback.error
+        const { data: agreements } = await supabase.from('user_agreements').select('user_id, signed_at, is_terminated')
+        setUsers((fallback.data || []).map((p: any) => {
+          const activeAgreement = agreements?.find((a: any) => a.user_id === p.id && !a.is_terminated)
+          return {
+            owner_id: p.id,
+            owner_name: p.full_name || p.email?.split('@')[0] || 'Ukjent bruker',
+            contact_phone: '',
+            role: p.role,
+            hasSigned: !!activeAgreement,
+            signedAt: activeAgreement?.signed_at
+          }
+        }))
+        setLoading(false)
+        return
+      }
 
       // 2. Hent alle avtaler separat
       const { data: agreements } = await supabase
         .from('user_agreements')
         .select('user_id, signed_at, is_terminated')
       
-      // 3. Koble sammen i koden (mye mer stabilt enn join i PostgREST)
-      const mappedUsers = (profiles || []).map(p => {
+      // 3. Koble sammen
+      const mappedUsers = (profiles || []).map((p: any) => {
         const activeAgreement = agreements?.find(a => a.user_id === p.id && !a.is_terminated)
         return {
           owner_id: p.id,
           owner_name: p.full_name || p.email?.split('@')[0] || 'Ukjent bruker',
-          contact_phone: '', // Kan hentes fra listings hvis nødvendig senere
+          contact_phone: '',
           role: p.role,
           hasSigned: !!activeAgreement,
           signedAt: activeAgreement?.signed_at
@@ -110,10 +125,7 @@ function NavUsersContent() {
       </div>
 
       {loading ? (
-        <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-          <Loader2 className="animate-spin" size={48} style={{ margin: '0 auto', color: 'var(--color-royal-blue)' }} />
-          <p style={{ marginTop: 'var(--space-4)' }}>Henter brukere...</p>
-        </div>
+        <div className="card" style={{ padding: 'var(--space-10)', minHeight: '200px' }} />
       ) : filteredUsers.length > 0 ? (
         <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
           {filteredUsers.map(user => (
@@ -123,8 +135,8 @@ function NavUsersContent() {
               onClick={() => router.push(`/nav/users?id=${user.owner_id}`)}
               style={{ padding: 'var(--space-6)', cursor: 'pointer', transition: 'all 0.2s' }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 'var(--space-6)', alignItems: 'center' }}>
+              <div className="user-card-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center', flex: '1 1 200px', minWidth: 0 }}>
                   <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-sky-blue)' }}>
                     <User size={28} />
                   </div>
@@ -136,7 +148,7 @@ function NavUsersContent() {
                     >
                       <h3 style={{ margin: 0, color: 'var(--color-sky-blue)' }}>{user.owner_name || 'Ukjent bruker'}</h3>
                     </Link>
-                    <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '4px', fontSize: '0.9rem', opacity: 0.7 }}>
+                    <div className="user-card-meta" style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '4px', fontSize: '0.9rem', opacity: 0.7, flexWrap: 'wrap' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={14} /> {user.contact_phone || 'Ingen telefon'}</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <ShieldCheck size={14} style={{ color: user.hasSigned ? 'var(--color-teal)' : '#ef4444' }} /> 
@@ -149,10 +161,15 @@ function NavUsersContent() {
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-                  <button className="button" style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: 'white' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                  <Link
+                    href={`/nav/messages?with=${user.owner_id}`}
+                    className="button"
+                    style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: 'white', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <MessageSquare size={16} style={{ marginRight: '8px' }} /> Chat
-                  </button>
+                  </Link>
                   <button className="button" style={{ padding: '8px 16px' }}>
                     Se profil <ChevronRight size={16} style={{ marginLeft: '4px' }} />
                   </button>
@@ -181,7 +198,7 @@ function NavUsersContent() {
 
 export default function NavUsers() {
   return (
-    <Suspense fallback={<div className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 className="animate-spin" size={48} /></div>}>
+    <Suspense fallback={<div className="container" style={{ minHeight: '80vh' }} />}>
       <NavUsersContent />
     </Suspense>
   )

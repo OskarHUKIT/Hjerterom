@@ -11,7 +11,7 @@ export default function Footer() {
           {/* Logo Section */}
           <div className="footer-section">
             <h3 style={{ fontSize: '1rem', color: 'white', marginBottom: 'var(--space-4)' }}>Utviklet av</h3>
-            <div style={{ display: 'flex', gap: 'var(--space-8)', alignItems: 'center' }}>
+            <div className="footer-logos-row" style={{ display: 'flex', gap: 'var(--space-8)', alignItems: 'center' }}>
               <div className="footer-logo-container">
                 <img 
                   src="/logo-kunnskapstrening.png" 

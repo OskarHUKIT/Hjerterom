@@ -6,10 +6,10 @@ import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { 
   MapPin, Bed, Users, ShieldCheck, ArrowLeft, Calendar, Info, 
-  Phone, User, Home as HomeIcon, Loader2, CheckCircle2, 
+  Phone, User, Home as HomeIcon, CheckCircle2, 
   Ruler, Building, Tag, Wifi, Zap, Tv, Share2, Clipboard, 
   MessageSquare, Send, Trash2, Clock, ChevronLeft, ChevronRight,
-  Maximize2, X, Plus, Camera, Edit3, FileText
+  Maximize2, X, Plus, Camera, Edit3, FileText, RotateCcw
 } from 'lucide-react'
 
 import HandoverReport from '../../components/HandoverReport'
@@ -37,6 +37,10 @@ export default function ListingDetailsClient() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [isSaving, setIsSaving] = useState<string | null>(null)
+
+  // Formidling state (kommune)
+  const [formidletStart, setFormidletStart] = useState('')
+  const [formidletEnd, setFormidletEnd] = useState('')
 
   const isOwner = currentUser?.id === listing?.owner_id
 
@@ -86,6 +90,62 @@ export default function ListingDetailsClient() {
       alert('Feil ved lagring: ' + err.message)
     } finally {
       setIsSaving(null)
+    }
+  }
+
+  const handleAddFormidletPeriod = async () => {
+    if (!listing || !isNavView || !formidletStart || !formidletEnd) return
+    if (new Date(formidletEnd) < new Date(formidletStart)) {
+      alert('Sluttdato må være etter eller lik startdato.')
+      return
+    }
+    const start = formidletStart
+    const end = formidletEnd
+    const newPeriod = { id: crypto.randomUUID(), listing_id: id, start_date: start, end_date: end, status: 'Formidla' }
+    setListing({ ...listing, status: 'Formidla', is_available: false })
+    setAvailability(prev => [...prev.filter(p => p.status !== 'Formidla'), newPeriod].sort((a, b) => (a.start_date > b.start_date ? 1 : -1)))
+    setFormidletStart('')
+    setFormidletEnd('')
+    try {
+      const { error: availError } = await supabase
+        .from('listing_availability')
+        .insert([{ listing_id: id, start_date: start, end_date: end, status: 'Formidla' }])
+      if (availError) throw availError
+      const { error } = await supabase.from('listings').update({ status: 'Formidla', is_available: false }).eq('id', id)
+      if (error) throw error
+      const { data: availData } = await supabase.from('listing_availability').select('*').eq('listing_id', id).order('start_date')
+      if (availData) setAvailability(availData)
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase.from('audit_logs').insert([{ user_id: user?.id, action_type: 'KOMMUNE_MARK_FORMIDLA', listing_address: listing.address, details: { start_date: start, end_date: end } }])
+      if (listing?.owner_id) {
+        await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Bolig formidlet', message: `Boligen din i ${listing.address} er markert som formidlet for perioden ${start}–${end}. Husk å levere overtakelsesrapport ved overtakelse.`, listing_id: id }])
+      }
+    } catch (err: any) {
+      setListing({ ...listing, status: listing.status, is_available: listing.is_available })
+      setAvailability(availability)
+      setFormidletStart(start)
+      setFormidletEnd(end)
+      alert('Feil: ' + err.message)
+    }
+  }
+
+  const handleRemoveFormidlet = async () => {
+    if (!listing || !isNavView || !confirm(`Vil du fjerne formidlingen for "${listing.address}"?`)) return
+    const prevListing = listing
+    const prevAvailability = availability
+    setListing({ ...listing, status: 'Tilgjengelig', is_available: true })
+    setAvailability(availability.filter(p => p.status !== 'Formidla'))
+    try {
+      const { error: delError } = await supabase.from('listing_availability').delete().eq('listing_id', id).eq('status', 'Formidla')
+      if (delError) throw delError
+      const { error } = await supabase.from('listings').update({ status: 'Tilgjengelig', is_available: true }).eq('id', id)
+      if (error) throw error
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase.from('audit_logs').insert([{ user_id: user?.id, action_type: 'KOMMUNE_REMOVE_FORMIDLA', listing_address: listing.address }])
+    } catch (err: any) {
+      setListing(prevListing)
+      setAvailability(prevAvailability)
+      alert('Feil: ' + err.message)
     }
   }
 
@@ -248,11 +308,7 @@ export default function ListingDetailsClient() {
   }
 
   if (loading) {
-    return (
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 className="animate-spin" size={48} color="var(--color-royal-blue)" />
-      </div>
-    )
+    return <div className="container" style={{ minHeight: '80vh' }} />
   }
 
   if (!listing) {
@@ -268,7 +324,7 @@ export default function ListingDetailsClient() {
 
   return (
     <main className="container">
-      <div style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="listing-details-header" style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <Link href={isNavView ? "/nav/database" : "/homeowner/manage"} className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: '-1rem' }}>
           <ArrowLeft size={18} /> Tilbake til {isNavView ? "boligbanken" : "mine boliger"}
         </Link>
@@ -277,7 +333,7 @@ export default function ListingDetailsClient() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isNavView ? '1.5fr 1fr' : '1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+      <div className="listing-details-grid" style={{ display: 'grid', gridTemplateColumns: isNavView ? '1.5fr 1fr' : '1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
         {/* Left Column */}
         <div style={{ display: 'grid', gap: 'var(--space-6)' }}>
           <div style={{ 
@@ -338,7 +394,7 @@ export default function ListingDetailsClient() {
                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)', zIndex: 6
               }}>
                 <input type="file" multiple accept="image/*" onChange={handleUploadMore} style={{ display: 'none' }} />
-                {uploading ? <Loader2 className="animate-spin" size={18} /> : <Camera size={18} />}
+                {uploading ? <Camera size={18} style={{ opacity: 0.5 }} /> : <Camera size={18} />}
                 {uploading ? 'Laster opp...' : 'Legg til bilder'}
               </label>
             )}
@@ -745,18 +801,63 @@ export default function ListingDetailsClient() {
                 <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
                   {availability.map(p => (
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                      <Calendar size={16} style={{ color: 'var(--color-teal)' }} />
+                      <Calendar size={16} style={{ color: p.status === 'Formidla' ? 'var(--color-royal-blue)' : p.status === 'Utilgjengelig' ? '#ef4444' : 'var(--color-teal)' }} />
                       <span style={{ fontWeight: 600, color: '#0f172a' }}>
                         {new Date(p.start_date).toLocaleDateString('no-NO')} - {new Date(p.end_date).toLocaleDateString('no-NO')}
                       </span>
-                      <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--color-teal)', background: 'rgba(32, 187, 175, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-                        Tilgjengelig
+                      <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: p.status === 'Formidla' ? 'var(--color-royal-blue)' : p.status === 'Utilgjengelig' ? '#ef4444' : 'var(--color-teal)', background: p.status === 'Formidla' ? 'rgba(59, 130, 246, 0.1)' : p.status === 'Utilgjengelig' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(32, 187, 175, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                        {p.status === 'Formidla' ? 'Formidlet' : p.status === 'Utilgjengelig' ? 'Utilgjengelig' : 'Tilgjengelig'}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
                 <p style={{ color: '#64748b', fontStyle: 'italic' }}>Ingen spesifikke ledige perioder er lagt til for denne boligen.</p>
+              )}
+
+              {isNavView && (
+                <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                  <h4 style={{ marginBottom: 'var(--space-3)', fontSize: '0.95rem', color: '#0f172a' }}>Formidling</h4>
+                  {listing?.status === 'Formidla' ? (
+                    <div>
+                      <p className="text-sm" style={{ color: '#64748b', marginBottom: 'var(--space-3)' }}>Denne boligen er markert som formidlet.</p>
+                      <button onClick={handleRemoveFormidlet} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', background: 'rgba(239, 68, 68, 0.9)' }}>
+                        <RotateCcw size={14} /> Fjern formidling
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                      <label className="label" style={{ fontSize: '0.7rem' }}>Periode (datoområde)</label>
+                      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '120px' }}>
+                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8, fontSize: '0.75rem' }}>Fra</span>
+                          <input 
+                            type="date" 
+                            className="input" 
+                            style={{ marginBottom: 0, fontSize: '0.9rem' }} 
+                            value={formidletStart} 
+                            onChange={e => setFormidletStart(e.target.value)}
+                            max={formidletEnd || undefined}
+                          />
+                        </div>
+                        <div style={{ flex: 1, minWidth: '120px' }}>
+                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8, fontSize: '0.75rem' }}>Til</span>
+                          <input 
+                            type="date" 
+                            className="input" 
+                            style={{ marginBottom: 0, fontSize: '0.9rem' }} 
+                            value={formidletEnd} 
+                            onChange={e => setFormidletEnd(e.target.value)}
+                            min={formidletStart || undefined}
+                          />
+                        </div>
+                        <button onClick={handleAddFormidletPeriod} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}>
+                          <ShieldCheck size={14} /> Legg inn
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 

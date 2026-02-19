@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
-  ArrowLeft, Save, MapPin, Bed, Tag, FileText, Camera, Loader2, 
+  ArrowLeft, Save, MapPin, Bed, Tag, FileText, Camera, 
   Home as HomeIcon, Info, Users, Ruler, Building, CheckCircle2, 
   Wifi, Zap, Tv, ShieldCheck, Phone, User
 } from 'lucide-react'
@@ -212,7 +212,7 @@ export default function HomeownerRegister() {
     }
   }
 
-  if (hasSignedTerms === null) return <div className="container"><Loader2 className="animate-spin" /></div>
+  if (hasSignedTerms === null) return <div className="container" style={{ minHeight: '80vh' }} />
 
   return (
     <main className="container">
@@ -521,7 +521,7 @@ export default function HomeownerRegister() {
           </label>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button type="submit" className="button" disabled={loading || !formData.has_insurance} style={{ padding: 'var(--space-4) var(--space-10)', fontSize: '1.125rem', borderRadius: '14px' }}>
-              {loading ? <Loader2 className="animate-spin" size={22} /> : <Save size={22} />} 
+              {loading ? <Save size={22} style={{ opacity: 0.6 }} /> : <Save size={22} />} 
               {loading ? 'Lagrer...' : 'Publiser bolig'}
             </button>
           </div>

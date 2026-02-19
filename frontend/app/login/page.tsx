@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
-import { Mail, Lock, Loader2, ArrowRight, ShieldCheck, UserPlus, LogIn } from 'lucide-react'
+import { Mail, Lock, ArrowRight, ShieldCheck, UserPlus, LogIn } from 'lucide-react'
 import Logo from '../components/Logo'
 
 export default function LoginPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
@@ -35,7 +37,7 @@ export default function LoginPage() {
           password,
         })
         if (error) throw error
-        window.location.href = '/'
+        router.push('/')
       }
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
@@ -44,19 +46,21 @@ export default function LoginPage() {
     }
   }
 
-  const handleBankIDLogin = async () => {
-    setLoading(true)
-    // Vi sender nå brukeren direkte til vår nye Edge Function "bro"
-    window.location.href = 'https://ayddwbmkclujefnhsaqv.supabase.co/functions/v1/auth-signicat'
+  const handleBankIDLogin = () => {
+    // Don't set loading - immediate redirect; avoids button staying disabled on return (bfcache)
+    const returnTo = encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')
+    window.location.href = `https://ayddwbmkclujefnhsaqv.supabase.co/functions/v1/auth-signicat?return_to=${returnTo}`
   }
 
   return (
-    <main style={{ 
+    <main className="login-page" style={{ 
       minHeight: '100vh', 
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
-      padding: 'var(--space-4)'
+      padding: 'var(--space-4)',
+      paddingLeft: 'max(var(--space-4), env(safe-area-inset-left))',
+      paddingRight: 'max(var(--space-4), env(safe-area-inset-right))'
     }}>
       <div className="card" style={{ 
         width: '100%', 
@@ -138,7 +142,7 @@ export default function LoginPage() {
               fontSize: '1.1rem'
             }}
           >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : (isSignUp ? <UserPlus size={20} /> : <LogIn size={20} />)}
+            {loading ? (isSignUp ? <UserPlus size={20} style={{ opacity: 0.6 }} /> : <LogIn size={20} style={{ opacity: 0.6 }} />) : (isSignUp ? <UserPlus size={20} /> : <LogIn size={20} />)}
             {loading ? 'Vennligst vent...' : (isSignUp ? 'Opprett konto' : 'Logg inn')}
           </button>
         </form>
@@ -161,6 +165,7 @@ export default function LoginPage() {
           <button 
             onClick={handleBankIDLogin}
             disabled={loading}
+            type="button"
             className="button"
             style={{ 
               width: '100%', 

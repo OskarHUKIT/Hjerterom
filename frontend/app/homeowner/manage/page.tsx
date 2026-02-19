@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
   Plus, LayoutDashboard, Home as HomeIcon, CheckCircle2, Circle, 
-  ArrowRight, Loader2, Info, Trash2, Edit3, Camera, Clock, FileText, 
-  ChevronRight, AlertTriangle, ToggleLeft as ToggleIcon, ShieldCheck
+  ArrowRight, Info, Trash2, Edit3, Camera, Clock, FileText, 
+  ChevronRight, AlertTriangle, ToggleLeft as ToggleIcon, ShieldCheck, MessageSquare
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { formatAuditLogDescription } from '../../lib/auditLogFormat'
 
 export default function HomeownerManage() {
   const router = useRouter()
@@ -26,7 +27,7 @@ export default function HomeownerManage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        window.location.href = '/login'
+        router.push('/login')
         return
       }
 
@@ -145,6 +146,9 @@ export default function HomeownerManage() {
   const deleteListing = async (id: string, address: string) => {
     if (!confirm(`Dersom du sletter boligen "${address}", vil den ikke lengre være synlig i boligbanken. Ønsker du å fortsette?`)) return
 
+    const prevListings = myListings
+    setMyListings(prev => prev.filter(item => item.id !== id))
+
     try {
       const { error } = await supabase
         .from('listings')
@@ -153,9 +157,6 @@ export default function HomeownerManage() {
 
       if (error) throw error
 
-      setMyListings(myListings.filter(item => item.id !== id))
-
-      // Log action
       const { data: { user } } = await supabase.auth.getUser()
       await supabase.from('audit_logs').insert([{
         user_id: user?.id,
@@ -163,9 +164,11 @@ export default function HomeownerManage() {
         listing_address: address,
         details: { address }
       }])
-      
-      fetchData()
+
+      const { data: historyData } = await supabase.from('audit_logs').select('*').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(20)
+      if (historyData) setHistory(historyData)
     } catch (err: any) {
+      setMyListings(prevListings)
       alert('Feil ved sletting: ' + err.message)
     }
   }
@@ -229,20 +232,20 @@ export default function HomeownerManage() {
 
   return (
     <main className="container">
-      <div style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div className="hm-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             ← Tilbake til forsiden
           </Link>
-          <h1 style={{ fontSize: '2.75rem' }}>Velkommen tilbake</h1>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)' }}>Velkommen tilbake</h1>
           <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>Administrer dine utleieboliger og se historikk.</p>
         </div>
-        <Link href="/homeowner/register" className="button" style={{ padding: 'var(--space-4) var(--space-8)', borderRadius: '14px', fontSize: '1.1rem' }}>
-          <Plus size={22} /> Registrer ny bolig
+        <Link href="/homeowner/register" className="button" style={{ padding: 'var(--space-4) var(--space-8)', borderRadius: '14px', fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
+          <Plus size={22} /> <span className="hm-btn-label">Registrer ny bolig</span>
         </Link>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+      <div className="hm-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
         <aside style={{ display: 'grid', gap: 'var(--space-4)' }}>
           <div className="card" style={{ padding: 'var(--space-2)' }}>
             <button onClick={() => setActiveTab('boliger')} style={{ 
@@ -267,14 +270,20 @@ export default function HomeownerManage() {
             }}>
               <FileText size={18} /> Signert avtale
             </Link>
+            <Link href="/nav/messages" style={{ 
+              width: '100%', padding: 'var(--space-3) var(--space-4)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+              color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 600
+            }}>
+              <MessageSquare size={18} /> Meldinger til Kommune
+            </Link>
           </div>
         </aside>
 
         <div>
           {activeTab === 'boliger' ? (
             <>
-              <div style={{ marginBottom: 'var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <div className="hm-filters-row" style={{ marginBottom: 'var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                   {['Alle', 'Tilgjengelig', 'Utilgjengelig', 'Formidla'].map(f => (
                     <button key={f} onClick={() => setFilter(f as any)} style={{
                       padding: 'var(--space-2) var(--space-4)', borderRadius: '20px', fontSize: '0.85rem', cursor: 'pointer',
@@ -288,9 +297,7 @@ export default function HomeownerManage() {
 
               <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
                 {loading ? (
-                  <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-                    <Loader2 size={40} className="animate-spin" style={{ margin: '0 auto' }} />
-                  </div>
+                  <div className="card" style={{ padding: 'var(--space-10)', minHeight: '120px' }} />
                 ) : filteredListings.length > 0 ? (
                   filteredListings.map((listing) => (
                     <div 
@@ -305,8 +312,8 @@ export default function HomeownerManage() {
                         cursor: 'pointer'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', gap: 'var(--space-6)', alignItems: 'center' }}>
+                      <div className="hm-listing-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                        <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center', flex: '1 1 200px', minWidth: 0 }}>
                           <div style={{ 
                             width: '100px', height: '70px', borderRadius: '10px', overflow: 'hidden', background: 'var(--bg-app)',
                             border: '1px solid var(--border-subtle)'
@@ -423,7 +430,7 @@ export default function HomeownerManage() {
                             )}
                           </div>
 
-                          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+                          <div className="hm-add-period-row" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                             <div style={{ flex: 1 }}>
                               <label className="label" style={{ fontSize: '0.7rem' }}>Status</label>
                               <select className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.status} onChange={e => setNewPeriod({...newPeriod, status: e.target.value})}>
@@ -474,15 +481,12 @@ export default function HomeownerManage() {
                     {log.action_type === 'STATUS_CHANGE' && <ToggleIcon size={18} />}
                     {log.action_type === 'CREATE_LISTING' && <Plus size={18} />}
                     {log.action_type === 'DELETE_LISTING' && <Trash2 size={18} />}
-                    {log.action_type === 'SIGN_TERMS' && <ShieldCheck size={18} />}
+                    {(log.action_type === 'SIGN_TERMS' || log.action_type === 'SIGN_TERMS_BANKID' || log.action_type === 'SIGN_INITIATED' || log.action_type === 'TERMINATE_AGREEMENT') && <ShieldCheck size={18} />}
+                    {(log.action_type === 'KOMMUNE_MARK_FORMIDLA' || log.action_type === 'KOMMUNE_REMOVE_FORMIDLA') && <HomeIcon size={18} />}
+                    {log.action_type === 'UPDATE_FIELD' && <Edit3 size={18} />}
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>
-                      {log.action_type === 'STATUS_CHANGE' && `Merket ${log.listing_address} som ${log.details?.to}`}
-                      {log.action_type === 'CREATE_LISTING' && `Registrerte ny bolig: ${log.listing_address}`}
-                      {log.action_type === 'DELETE_LISTING' && `Slettet bolig: ${log.listing_address}`}
-                      {log.action_type === 'SIGN_TERMS' && `Signerte vilkårsavtale v${log.details?.version}`}
-                    </div>
+                    <div style={{ fontWeight: 600 }}>{formatAuditLogDescription(log)}</div>
                     <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>{new Date(log.created_at).toLocaleString('no-NO')}</div>
                   </div>
                 </div>
