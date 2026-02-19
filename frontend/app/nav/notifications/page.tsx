@@ -95,10 +95,27 @@ export default function NavNotifications() {
             const messageLink = role === 'kommune_ansatt' && notif.type === 'NEW_MESSAGE' && notif.related_user_id
               ? `/nav/messages?with=${notif.related_user_id}`
               : null
-            const CardWrapper = messageLink ? Link : 'div'
-            const cardProps = messageLink
-              ? { href: messageLink, style: { textDecoration: 'none', color: 'inherit', display: 'block' } }
-              : {}
+            const cardContent = (
+              <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+                <div style={{ 
+                  width: '40px', height: '40px', borderRadius: '50%', 
+                  background: notif.status === 'unread' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(32, 187, 175, 0.1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: notif.status === 'unread' ? 'var(--color-sky-blue)' : 'var(--color-teal)'
+                }}>
+                  {getIcon(notif.type)}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{notif.title}</h3>
+                  <p style={{ margin: '4px 0 0', opacity: 0.8 }}>{notif.message}</p>
+                  <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '8px', fontSize: '0.8rem', opacity: 0.5 }}>
+                    <span><Clock size={12} style={{ display: 'inline', marginRight: '4px' }} /> {new Date(notif.created_at).toLocaleString('no-NO')}</span>
+                    {notif.resolved_by && <span><CheckCircle2 size={12} style={{ display: 'inline', marginRight: '4px' }} /> Løst av kollega</span>}
+                    {messageLink && <span style={{ color: 'var(--color-sky-blue)' }}>→ Gå til melding</span>}
+                  </div>
+                </div>
+              </div>
+            )
             return (
               <div 
                 key={notif.id} 
@@ -111,27 +128,13 @@ export default function NavNotifications() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <CardWrapper {...cardProps} style={{ ...(cardProps.style || {}), flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
-                      <div style={{ 
-                        width: '40px', height: '40px', borderRadius: '50%', 
-                        background: notif.status === 'unread' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(32, 187, 175, 0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: notif.status === 'unread' ? 'var(--color-sky-blue)' : 'var(--color-teal)'
-                      }}>
-                        {getIcon(notif.type)}
-                      </div>
-                      <div>
-                        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{notif.title}</h3>
-                        <p style={{ margin: '4px 0 0', opacity: 0.8 }}>{notif.message}</p>
-                        <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '8px', fontSize: '0.8rem', opacity: 0.5 }}>
-                          <span><Clock size={12} style={{ display: 'inline', marginRight: '4px' }} /> {new Date(notif.created_at).toLocaleString('no-NO')}</span>
-                          {notif.resolved_by && <span><CheckCircle2 size={12} style={{ display: 'inline', marginRight: '4px' }} /> Løst av kollega</span>}
-                          {messageLink && <span style={{ color: 'var(--color-sky-blue)' }}>→ Gå til melding</span>}
-                        </div>
-                      </div>
-                    </div>
-                  </CardWrapper>
+                  {messageLink ? (
+                    <Link href={messageLink} style={{ flex: 1, minWidth: 0, textDecoration: 'none', color: 'inherit' }}>
+                      {cardContent}
+                    </Link>
+                  ) : (
+                    <div style={{ flex: 1, minWidth: 0 }}>{cardContent}</div>
+                  )}
                   <div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     {notif.status === 'unread' ? (
                       <button 
