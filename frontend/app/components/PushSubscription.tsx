@@ -40,7 +40,7 @@ export default function PushSubscription() {
 
         const newSub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC) as unknown as BufferSource
         })
         if (!cancelled) await saveSubscription(user.id, newSub)
       } catch (err) {
