@@ -34,40 +34,14 @@ serve(async (req) => {
     if (!userId) throw new Error("Mangler userId i forespørselen")
     if (!CLIENT_SECRET) throw new Error("SIGNICAT_SECRET_SIGN mangler i Supabase Secrets. Sjekk at du har lagt den til i Edge Functions -> Secrets.")
 
-    // --- RATE LIMITING ---
-    currentStep = "Sjekk av dagsgrense for signering"
+    // Logg initieringen (rate limit deaktivert for nå)
+    currentStep = "Logging"
     const supabaseAdmin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))
-    
-    // 1. Hent brukerens rolle
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle()
-    
-    const role = profile?.role || 'homeowner'
-    const dailyLimit = role === 'kommune_ansatt' ? 5 : 2
-    
-    // 2. Sjekk antall initieringer i dag (UTC)
-    const today = new Date().toISOString().split('T')[0]
-    const { count } = await supabaseAdmin
-      .from('audit_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('action_type', 'SIGN_INITIATED')
-      .gte('created_at', today)
-    
-    if (count !== null && count >= dailyLimit) {
-      throw new Error(`Du har nådd grensen for antall signeringer per dag (${dailyLimit}). Vennligst prøv igjen i morgen.`)
-    }
-
-    // 3. Logg initieringen umiddelbart
     await supabaseAdmin.from('audit_logs').insert([{
       user_id: userId,
       action_type: 'SIGN_INITIATED',
-      details: { role, limit: dailyLimit, count: (count || 0) + 1 }
+      details: { note: 'Rate limit deaktivert' }
     }])
-    // --- END RATE LIMITING ---
 
     // 1. Token
     currentStep = "Henting av Access Token"
