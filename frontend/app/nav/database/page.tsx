@@ -11,6 +11,7 @@ import {
   Ruler, Eye, Calendar, Settings, RotateCcw, X, CalendarPlus
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useLanguage } from '../../../context/LanguageContext'
 
 // Dynamically import Map component to avoid SSR issues
 const MapView = dynamic(() => import('../../components/MapView'), { 
@@ -19,6 +20,7 @@ const MapView = dynamic(() => import('../../components/MapView'), {
 })
 
 export default function NavDatabase() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [userRole, setUserRole] = useState<string | null>(null)
   const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
@@ -68,16 +70,16 @@ export default function NavDatabase() {
   const [visibleColumns, setVisibleColumns] = useState(['address', 'city', 'owner_name', 'price_daily'])
 
   const ALL_COLUMNS = [
-    { id: 'address', label: 'Adresse' },
-    { id: 'city', label: 'By' },
-    { id: 'owner_name', label: 'Eier' },
-    { id: 'price_daily', label: 'Pris' },
-    { id: 'type', label: 'Type' },
-    { id: 'bedrooms', label: 'Soverom' },
-    { id: 'size_sqm', label: 'Areal' },
-    { id: 'max_occupants', label: 'Maks personer' },
-    { id: 'floor_number', label: 'Etasje' },
-    { id: 'status', label: 'Status' },
+    { id: 'address', label: t('address') },
+    { id: 'city', label: t('city') },
+    { id: 'owner_name', label: t('owner') },
+    { id: 'price_daily', label: t('price') },
+    { id: 'type', label: t('type') },
+    { id: 'bedrooms', label: t('bedrooms') },
+    { id: 'size_sqm', label: t('area') },
+    { id: 'max_occupants', label: t('maxOccupants') },
+    { id: 'floor_number', label: t('floor') },
+    { id: 'status', label: t('status') },
   ]
 
   const toggleColumn = (id: string) => {
@@ -109,11 +111,11 @@ export default function NavDatabase() {
     }
     if (id === 'type') {
       const mapping: Record<string, string> = {
-        'Short-term': 'Korttid',
-        'Long-term': 'Langtid',
-        'Apartment': 'Leilighet',
-        'House': 'Enebolig',
-        'Shared': 'Bofelleskap'
+        'Short-term': t('shortTerm'),
+        'Long-term': t('longTerm'),
+        'Apartment': t('apartment'),
+        'House': t('house'),
+        'Shared': t('shared')
       }
       return mapping[val] || val
     }
@@ -280,13 +282,12 @@ export default function NavDatabase() {
       <main className="container" style={{ textAlign: 'center', padding: '100px 20px' }}>
         <div className="card" style={{ maxWidth: '500px', margin: '0 auto', padding: 'var(--space-10)' }}>
           <ShieldCheck size={64} style={{ color: '#ef4444', margin: '0 auto var(--space-6)' }} />
-          <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-4)' }}>Ingen tilgang</h1>
+          <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-4)' }}>{t('noAccess')}</h1>
           <p style={{ marginBottom: 'var(--space-8)', opacity: 0.8 }}>
-            Du har ikke de nødvendige rettighetene for å se boligbanken. 
-            Denne delen er forbeholdt kommune-ansatte.
+            {t('noAccessDatabaseDesc')}
           </p>
           <Link href="/" className="button" style={{ width: '100%' }}>
-            Tilbake til forsiden
+            {t('goHome')}
           </Link>
         </div>
       </main>
@@ -387,11 +388,12 @@ export default function NavDatabase() {
       }])
 
       if (listing?.owner_id) {
+        await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
         await supabase.from('notifications').insert([{
           owner_id: listing.owner_id,
           type: 'HOUSE_FORMIDLET',
           title: 'Bolig formidlet',
-          message: `Kommunen har markert boligen din i ${address} som formidlet for perioden ${formidletStart}–${formidletEnd}. Husk å levere overtakelsesrapport ved overtakelse.`,
+          message: `Kommunen har markert boligen din i ${address} som formidlet for perioden ${formidletStart}–${formidletEnd}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`,
           listing_id: id
         }])
       }
@@ -448,22 +450,22 @@ export default function NavDatabase() {
       <div className="db-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            ← Oversikt
+            ← {t('overview')}
           </Link>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)' }}>Boligbanken</h1>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)' }}>{t('housingBank')}</h1>
         </div>
         <div className="db-view-btns" style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <button onClick={() => setViewMode('table')} style={{ 
-            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'table' ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'white'
+            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'table' ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'table' ? 'white' : 'var(--text-main)'
           }} title="Tabellvisning"><LayoutList size={20} /></button>
           <button onClick={() => setViewMode('map')} style={{ 
-            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'map' ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'white'
+            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'map' ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'map' ? 'white' : 'var(--text-main)'
           }} title="Kartvisning"><MapPin size={20} /></button>
           <button onClick={() => setViewMode('timeline')} style={{ 
-            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'timeline' ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'white'
+            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'timeline' ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'timeline' ? 'white' : 'var(--text-main)'
           }} title="Tidslinje"><Calendar size={20} /></button>
         </div>
       </div>
@@ -499,8 +501,8 @@ export default function NavDatabase() {
             }}
             style={{ 
               display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px',
-              background: showColumnSettings ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--border-subtle)', color: 'white', cursor: 'pointer', fontWeight: 600
+              background: showColumnSettings ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+              border: '1px solid var(--border-subtle)', color: showColumnSettings ? 'white' : 'var(--text-main)', cursor: 'pointer', fontWeight: 600
             }}
           >
             <Settings size={18} /> <span className="btn-label">Tilpass kolonner</span>
@@ -512,8 +514,8 @@ export default function NavDatabase() {
             }}
             style={{ 
               display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px',
-              background: showFilters ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
-              border: '1px solid var(--border-subtle)', color: 'white', cursor: 'pointer', fontWeight: 600
+              background: showFilters ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+              border: '1px solid var(--border-subtle)', color: showFilters ? 'white' : 'var(--text-main)', cursor: 'pointer', fontWeight: 600
             }}
           >
             <Filter size={18} /> <span className="btn-label">{showFilters ? 'Lukk filter' : 'Filtrer'}</span>
@@ -639,9 +641,9 @@ export default function NavDatabase() {
                         }}
                         style={{
                           padding: '6px 12px', borderRadius: '20px', fontSize: '0.75rem', cursor: 'pointer',
-                          background: filters.accessibility.includes(acc) ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
+                          background: filters.accessibility.includes(acc) ? 'var(--color-royal-blue)' : 'var(--bg-app)',
                           border: `1px solid ${filters.accessibility.includes(acc) ? 'var(--color-royal-blue)' : 'var(--border-subtle)'}`,
-                          color: 'white'
+                          color: filters.accessibility.includes(acc) ? 'white' : 'var(--text-main)'
                         }}
                       >
                         {acc}
@@ -948,7 +950,7 @@ export default function NavDatabase() {
                             if (isFormidlet) {
                               bgColor = 'var(--color-sky-blue)';
                               opacity = 0.9;
-                              title += ' - FORMIDLA';
+                              title += ' - Formidlet';
                               if (isUnavailable) {
                                 bgColor = '#991b1b'; // Mørkerød konflikt
                                 title += ' !!! KONFLIKT MED UTILGJENGELIG !!!';
@@ -1042,7 +1044,7 @@ export default function NavDatabase() {
         ) : (
           <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
             <Info size={40} style={{ margin: '0 auto var(--space-3)', opacity: 0.3 }} />
-            <p>Ingen boliger matcher dine søkekriterier.</p>
+            <p>{t('noResults')}</p>
           </div>
         )}
       </div>

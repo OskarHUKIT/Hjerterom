@@ -30,6 +30,7 @@ export default function ListingDetailsClient() {
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [handoverReports, setHandoverReports] = useState<any[]>([])
   const [showHandoverForm, setShowHandoverForm] = useState(false)
+  const [tenantReportToken, setTenantReportToken] = useState<string | null>(null)
   const [hasActiveAgreement, setHasActiveAgreement] = useState(false)
   
   // Gallery state
@@ -118,7 +119,8 @@ export default function ListingDetailsClient() {
       const { data: { user } } = await supabase.auth.getUser()
       await supabase.from('audit_logs').insert([{ user_id: user?.id, action_type: 'KOMMUNE_MARK_FORMIDLA', listing_address: listing.address, details: { start_date: start, end_date: end } }])
       if (listing?.owner_id) {
-        await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Bolig formidlet', message: `Boligen din i ${listing.address} er markert som formidlet for perioden ${start}–${end}. Husk å levere overtakelsesrapport ved overtakelse.`, listing_id: id }])
+        await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
+        await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Bolig formidlet', message: `Boligen din i ${listing.address} er markert som formidlet for perioden ${start}–${end}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`, listing_id: id }])
       }
     } catch (err: any) {
       setListing({ ...listing, status: listing.status, is_available: listing.is_available })
@@ -209,6 +211,16 @@ export default function ListingDetailsClient() {
           .eq('listing_id', id)
           .order('created_at', { ascending: false })
         setHandoverReports(reportsData || [])
+
+        // Fetch or create tenant report token (for kommune to share link with renters)
+        if (user && isNavView) {
+          let tokenData = await supabase.from('listing_tenant_tokens').select('token').eq('listing_id', id).maybeSingle()
+          if (!tokenData.data && data?.status === 'Formidla') {
+            await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
+            tokenData = await supabase.from('listing_tenant_tokens').select('token').eq('listing_id', id).maybeSingle()
+          }
+          setTenantReportToken(tokenData.data?.token || null)
+        }
       } catch (err) {
         console.error('Error fetching listing:', err)
       } finally {
@@ -381,7 +393,7 @@ export default function ListingDetailsClient() {
               <label style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-sky-blue)', opacity: 0.2, cursor: isOwner ? 'pointer' : 'default' }}>
                 {isOwner && <input type="file" multiple accept="image/*" onChange={handleUploadMore} style={{ display: 'none' }} />}
                 <HomeIcon size={100} />
-                <p style={{ marginTop: '10px', fontSize: '1.1rem' }}>{isOwner ? 'Klikk for ├Ñ legge til bilder' : 'Ingen bilder lagt til'}</p>
+                <p style={{ marginTop: '10px', fontSize: '1.1rem' }}>{isOwner ? 'Klikk for å legge til bilder' : 'Ingen bilder lagt til'}</p>
               </label>
             )}
 
@@ -400,8 +412,8 @@ export default function ListingDetailsClient() {
             )}
 
             <div style={{ position: 'absolute', top: 20, left: 20, padding: '6px 16px', borderRadius: '20px', background: listing.status === 'Tilgjengelig' ? 'var(--color-teal)' : 
-                          listing.status === 'Formidla' ? 'var(--color-sky-blue)' : '#ef4444', color: 'white', fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase', zIndex: 5 }}>
-              {listing.status}
+                          listing.status === 'Formidla' ? 'var(--color-sky-blue)' : '#ef4444', color: 'white', fontWeight: 800, fontSize: '0.8rem', textTransform: listing.status === 'Formidla' ? 'none' : 'uppercase', zIndex: 5 }}>
+              {listing.status === 'Formidla' ? 'Formidlet' : listing.status}
             </div>
           </div>
 
@@ -528,12 +540,12 @@ export default function ListingDetailsClient() {
                         textAlign: 'right', width: '40px', padding: 0, outline: 'none'
                       }}
                     />
-                    <span style={{ fontWeight: 700, color: '#0f172a' }}>m┬▓</span>
+                    <span style={{ fontWeight: 700, color: '#0f172a' }}>m²</span>
                   </div>
                 ) : (
-                  <div style={{ fontWeight: 700, color: '#0f172a' }}>{listing.size_sqm} m┬▓</div>
+                  <div style={{ fontWeight: 700, color: '#0f172a' }}>{listing.size_sqm} m²</div>
                 )}
-                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: '#64748b' }}>ST├ÿRRELSE</div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: '#64748b' }}>STØRRELSE</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <Bed size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
@@ -588,7 +600,7 @@ export default function ListingDetailsClient() {
                     ) : listing.floor_number}
                   </div>
                   <div className="text-sm" style={{ color: '#334155' }}>
-                    <strong>M├╕blering:</strong> {isOwner && !isNavView ? (
+                    <strong>Møblering:</strong> {isOwner && !isNavView ? (
                       <select 
                         value={listing.furnishing} 
                         onChange={e => {
@@ -597,11 +609,11 @@ export default function ListingDetailsClient() {
                         }}
                         style={{ border: 'none', background: 'rgba(0,0,0,0.03)', borderRadius: '4px', padding: '2px 6px', outline: 'none' }}
                       >
-                        <option>Um├╕blert</option>
+                        <option>Umøblert</option>
                         <option>Kun hvitevarer</option>
-                        <option>Delvis m├╕blert</option>
-                        <option>Fullt m├╕blert</option>
-                        <option>M├╕blert m/utstyr</option>
+                        <option>Delvis møblert</option>
+                        <option>Fullt møblert</option>
+                        <option>Møblert m/utstyr</option>
                       </select>
                     ) : listing.furnishing}
                   </div>
@@ -619,7 +631,7 @@ export default function ListingDetailsClient() {
                     <strong>Fysisk tilrettelegging:</strong> {isOwner && !isNavView ? (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
                         {[
-                          'Alt p├Ñ ett plan', 
+                          'Alt på ett plan', 
                           'Heis i bygget', 
                           'Terskelfritt', 
                           'Universell utforming', 
@@ -658,7 +670,7 @@ export default function ListingDetailsClient() {
                   {isOwner && !isNavView ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                       {[
-                        'Str├╕m', 'Internett', 'Kommunale avgifter', 'Vaktmestertjenester', 'Parkering'
+                        'Strøm', 'Internett', 'Kommunale avgifter', 'Vaktmestertjenester', 'Parkering'
                       ].map(inc => {
                         const isActive = listing.includes?.includes(inc);
                         return (
@@ -724,7 +736,7 @@ export default function ListingDetailsClient() {
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)' }}>
                   <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>D├ÿGNPRIS</label>
+                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>DØGNPRIS</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input 
                         type="number"
@@ -750,7 +762,7 @@ export default function ListingDetailsClient() {
                     </div>
                   </div>
                   <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>M├àNEDSLEIE (KORTTID)</label>
+                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>MÅNEDSLEIE (KORTTID)</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input 
                         type="number"
@@ -816,36 +828,36 @@ export default function ListingDetailsClient() {
               )}
 
               {isNavView && (
-                <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.4)' }}>
                   <h4 style={{ marginBottom: 'var(--space-3)', fontSize: '0.95rem', color: '#0f172a' }}>Formidling</h4>
                   {listing?.status === 'Formidla' ? (
                     <div>
-                      <p className="text-sm" style={{ color: '#64748b', marginBottom: 'var(--space-3)' }}>Denne boligen er markert som formidlet.</p>
+                      <p className="text-sm" style={{ color: '#475569', marginBottom: 'var(--space-3)' }}>Denne boligen er markert som formidlet.</p>
                       <button onClick={handleRemoveFormidlet} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', background: 'rgba(239, 68, 68, 0.9)' }}>
                         <RotateCcw size={14} /> Fjern formidling
                       </button>
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                      <label className="label" style={{ fontSize: '0.7rem' }}>Periode (datoområde)</label>
+                      <label className="label" style={{ fontSize: '0.7rem', color: '#0369a1' }}>Periode (datoområde)</label>
                       <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: '120px' }}>
-                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8, fontSize: '0.75rem' }}>Fra</span>
+                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: '#475569', fontSize: '0.75rem' }}>Fra</span>
                           <input 
                             type="date" 
                             className="input" 
-                            style={{ marginBottom: 0, fontSize: '0.9rem' }} 
+                            style={{ marginBottom: 0, fontSize: '0.9rem', background: '#f1f5f9', color: '#0f172a', borderColor: 'rgba(59, 130, 246, 0.5)' }} 
                             value={formidletStart} 
                             onChange={e => setFormidletStart(e.target.value)}
                             max={formidletEnd || undefined}
                           />
                         </div>
                         <div style={{ flex: 1, minWidth: '120px' }}>
-                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8, fontSize: '0.75rem' }}>Til</span>
+                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: '#475569', fontSize: '0.75rem' }}>Til</span>
                           <input 
                             type="date" 
                             className="input" 
-                            style={{ marginBottom: 0, fontSize: '0.9rem' }} 
+                            style={{ marginBottom: 0, fontSize: '0.9rem', background: '#f1f5f9', color: '#0f172a', borderColor: 'rgba(59, 130, 246, 0.5)' }} 
                             value={formidletEnd} 
                             onChange={e => setFormidletEnd(e.target.value)}
                             min={formidletStart || undefined}
@@ -862,10 +874,10 @@ export default function ListingDetailsClient() {
             </div>
 
             {/* Overtakelsesrapport Section */}
-            <section className="card" style={{ padding: 'var(--space-8)', marginTop: 'var(--space-8)' }}>
+            <section id="overtakelsesrapport" className="card no-hover" style={{ padding: 'var(--space-8)', marginTop: 'var(--space-8)', background: '#ffffff', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
-                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <FileText size={20} className="text-sky-blue" /> Overtakelsesrapporter
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: '#0f172a' }}>
+                  <FileText size={20} style={{ color: '#0369a1' }} /> Overtakelsesrapporter
                 </h3>
                 {!isNavView && !showHandoverForm && (
                   <button 
@@ -892,7 +904,7 @@ export default function ListingDetailsClient() {
                   />
                   <button 
                     onClick={() => setShowHandoverForm(false)}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginTop: 'var(--space-2)' }}
+                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', marginTop: 'var(--space-2)' }}
                   >
                     Avbryt
                   </button>
@@ -901,39 +913,65 @@ export default function ListingDetailsClient() {
 
               <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
                 {handoverReports.length > 0 ? handoverReports.map(report => (
-                  <div key={report.id} style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontWeight: 600 }}>
-                        {report.reporter_type === 'homeowner' ? 'Utleier' : 'Leietaker'} - {report.content?.condition_description || report.content?.general_condition || 'Rapport'}
+                  <div key={report.id} style={{ padding: 'var(--space-4)', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                      <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                        {report.reporter_type === 'homeowner' ? 'Utleier' : 'Leietaker'}
+                        {report.content?.pdf_url ? ' – PDF lastet opp' : ` – ${report.content?.condition_description || report.content?.general_condition || 'Rapport'}`}
                       </div>
-                      <div style={{ fontSize: '0.8rem', opacity: 0.5 }}>
-                        {new Date(report.created_at).toLocaleDateString()}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        {report.content?.pdf_url && (
+                          <a href={report.content.pdf_url} target="_blank" rel="noopener noreferrer" className="button" style={{ padding: '4px 12px', fontSize: '0.75rem' }}>
+                            Se PDF
+                          </a>
+                        )}
+                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                          {new Date(report.created_at).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
-                    <div style={{ marginTop: 'var(--space-2)', fontSize: '0.9rem', opacity: 0.8 }}>
-                      {report.content?.notes || report.content?.condition_description || 'Ingen kommentarer.'}
+                    <div style={{ marginTop: 'var(--space-2)', fontSize: '0.9rem', color: '#475569' }}>
+                      {report.content?.pdf_url ? null : (report.content?.notes || report.content?.condition_description || 'Ingen kommentarer.')}
                     </div>
                     {isNavView && (
                       <div style={{ marginTop: 'var(--space-4)', display: 'flex', gap: 'var(--space-2)' }}>
-                        <button className="button" style={{ padding: '4px 12px', fontSize: '0.75rem', background: 'var(--color-teal)' }}>Godkjenn</button>
-                        <button className="button" style={{ padding: '4px 12px', fontSize: '0.75rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)' }}>Be om endring</button>
+                        <button className="button" style={{ padding: '4px 12px', fontSize: '0.75rem' }}>Godkjenn</button>
+                        <button className="button" style={{ padding: '4px 12px', fontSize: '0.75rem', background: '#f1f5f9', color: '#0f172a', border: '1px solid #e2e8f0' }}>Be om endring</button>
                       </div>
                     )}
                   </div>
                 )) : (
-                  <p className="text-sm opacity-50 italic">Ingen overtakelsesrapporter er registrert ennå.</p>
+                  <p className="text-sm italic" style={{ color: '#64748b' }}>Ingen overtakelsesrapporter er registrert ennå.</p>
                 )}
               </div>
               
               {isNavView && (
-                <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '12px', border: '1px dashed rgba(59, 130, 246, 0.3)' }}>
-                  <p style={{ margin: 0, fontSize: '0.85rem' }}>
-                    <strong>Tips:</strong> Send denne lenken til leietaker for anonym utfylling av rapport:
-                    <br />
-                    <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginTop: '4px' }}>
-                      {typeof window !== 'undefined' ? `${window.location.origin}/leier/rapport/${id}` : ''}
-                    </code>
+                <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '2px dashed rgba(59, 130, 246, 0.5)' }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569' }}>
+                    <strong style={{ color: '#0f172a' }}>Lenke til leietaker:</strong> Send denne lenken til leietaker for nedlasting og opplasting av overtakelsesrapport (PDF) – de trenger ikke logge inn:
                   </p>
+                  {tenantReportToken ? (
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
+                      <code style={{ background: '#f1f5f9', color: '#0369a1', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', wordBreak: 'break-all', flex: 1, minWidth: 0, border: '1px solid #e2e8f0' }}>
+                        {typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantReportToken}` : ''}
+                      </code>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const url = typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantReportToken}` : ''
+                          navigator.clipboard?.writeText(url).then(() => setCopyFeedback(true))
+                          setTimeout(() => setCopyFeedback(false), 2000)
+                        }}
+                        className="button"
+                        style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                      >
+                        {copyFeedback ? <CheckCircle2 size={14} /> : <Clipboard size={14} />}
+                        {copyFeedback ? ' Kopiert!' : ' Kopier'}
+                      </button>
+                    </div>
+                  ) : (
+                    <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.8rem', color: '#64748b' }}>Lenken genereres når boligen markeres som formidlet.</p>
+                  )}
                 </div>
               )}
             </section>
@@ -1002,7 +1040,7 @@ export default function ListingDetailsClient() {
                     </div>
                   </div>
                 )) : (
-                  <p className="text-sm opacity-50 italic">Ingen interne notater enn├Ñ.</p>
+                  <p className="text-sm opacity-50 italic">Ingen interne notater ennå.</p>
                 )}
               </div>
             </section>
@@ -1014,7 +1052,7 @@ export default function ListingDetailsClient() {
           <div style={{ position: 'sticky', top: '20px' }}>
             <div className="card" style={{ padding: 'var(--space-8)', border: '1px solid var(--color-royal-blue)', background: 'var(--color-dark-navy)' }}>
               <div style={{ marginBottom: 'var(--space-6)' }}>
-                <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.6, marginBottom: '4px', color: 'white' }}>D├╕gnpris</div>
+                <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.6, marginBottom: '4px', color: 'white' }}>Døgnpris</div>
                 <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'white' }}>{listing.price_daily},-</span>
               </div>
 
@@ -1024,7 +1062,7 @@ export default function ListingDetailsClient() {
                   <span className="text-sm font-bold" style={{ color: 'white' }}>{listing.price_weekly},-</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="text-sm opacity-70" style={{ color: 'white' }}>M├Ñnedsleie (korttid):</span>
+                  <span className="text-sm opacity-70" style={{ color: 'white' }}>Månedsleie (korttid):</span>
                   <span className="text-sm font-bold" style={{ color: 'white' }}>{listing.price_monthly_short},-</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
@@ -1056,7 +1094,7 @@ export default function ListingDetailsClient() {
                 </div>
                 <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-3)', background: '#f0fdfa', borderRadius: '8px', fontSize: '0.75rem', color: '#0d9488', border: '1px solid #ccfbf1' }}>
                   <ShieldCheck size={14} style={{ display: 'inline', marginRight: '6px' }} /> 
-                  Vilk├Ñr signert: {new Date(listing.last_verified).toLocaleDateString()}
+                  Vilkår signert: {new Date(listing.last_verified).toLocaleDateString()}
                 </div>
               </div>
             </div>

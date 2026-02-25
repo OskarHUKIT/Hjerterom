@@ -8,8 +8,10 @@ import {
   Info, Clock, ChevronRight, ShieldCheck
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useLanguage } from '../../../context/LanguageContext'
 
 export default function NavExpired() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [expiredListings, setExpiredListings] = useState<any[]>([])
@@ -94,12 +96,12 @@ export default function NavExpired() {
       <main className="container" style={{ textAlign: 'center', padding: '100px 20px' }}>
         <div className="card" style={{ maxWidth: '500px', margin: '0 auto', padding: 'var(--space-10)' }}>
           <ShieldCheck size={64} style={{ color: '#ef4444', margin: '0 auto var(--space-6)' }} />
-          <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-4)' }}>Ingen tilgang</h1>
+          <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-4)' }}>{t('noAccess')}</h1>
           <p style={{ marginBottom: 'var(--space-8)', opacity: 0.8 }}>
-            Denne siden er forbeholdt kommune-ansatte.
+            {t('noAccessExpiredDesc')}
           </p>
           <Link href="/" className="button" style={{ width: '100%' }}>
-            Tilbake til forsiden
+            {t('goHome')}
           </Link>
         </div>
       </main>
@@ -114,10 +116,10 @@ export default function NavExpired() {
     <main className="container">
       <div style={{ marginBottom: 'var(--space-8)' }}>
         <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          ← Oversikt
+          ← {t('overview')}
         </Link>
-        <h1 style={{ fontSize: '2.75rem' }}>Utløpte & Inaktive</h1>
-        <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>Historisk oversikt over brukere og boliger som ikke lenger er aktive i Boligbanken.</p>
+        <h1 style={{ fontSize: '2.75rem' }}>{t('expiredAndInactive')}</h1>
+        <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>{t('expiredDesc')}</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}>
@@ -129,17 +131,17 @@ export default function NavExpired() {
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
               {terminatedUsers.map(user => (
                 <div key={user.id} className="card" style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.02)', opacity: 0.7 }}>
-                  <div style={{ fontWeight: 600 }}>{user.profiles?.full_name || 'Navn ikke lagret'}</div>
-                  <div style={{ fontSize: '0.85rem', opacity: 0.5 }}>Utløpt: {new Date(user.terminated_at).toLocaleDateString()}</div>
+                  <div style={{ fontWeight: 600 }}>{user.profiles?.full_name || t('nameNotStored')}</div>
+                  <div style={{ fontSize: '0.85rem', opacity: 0.5 }}>{t('expiredDate')}: {new Date(user.terminated_at).toLocaleDateString()}</div>
                 </div>
               ))}
             </div>
-          ) : <p className="opacity-50 italic">Ingen inaktive brukere funnet.</p>}
+          ) : <p className="opacity-50 italic">{t('noInactiveUsers')}</p>}
         </section>
 
         <section>
           <h2 style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Home size={24} className="text-muted" /> Utløpte Boliger
+            <Home size={24} className="text-muted" /> {t('expiredProperties')}
           </h2>
           {loading ? <div className="card" style={{ padding: 'var(--space-4)', minHeight: '80px' }} /> : expiredListings.length > 0 ? (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
@@ -150,7 +152,7 @@ export default function NavExpired() {
                 </div>
               ))}
             </div>
-          ) : <p className="opacity-50 italic">Ingen utløpte boliger funnet.</p>}
+          ) : <p className="opacity-50 italic">{t('noExpiredProperties')}</p>}
         </section>
       </div>
     </main>

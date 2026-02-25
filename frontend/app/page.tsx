@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { Search, Home as HomeIcon, ShieldCheck, HelpCircle, ArrowRight } from 'lucide-react'
+import { useLanguage } from '../context/LanguageContext'
 
 export default function Home() {
+  const { t } = useLanguage()
   return (
     <main className="container">
       <div style={{ 
@@ -18,7 +20,7 @@ export default function Home() {
           marginBottom: 'var(--space-4)',
           textShadow: '0 4px 12px rgba(0,0,0,0.3)'
         }}>
-          Forenklet boligformidling for offentlig sektor.
+          {t('heroTitle')}
         </h1>
         <p className="animate-delay-2" style={{ 
           fontSize: '1.25rem', 
@@ -26,7 +28,7 @@ export default function Home() {
           maxWidth: '640px', 
           color: 'var(--text-body)'
         }}>
-          Boly er det profesjonelle bindeleddet mellom kommune og private boligeiere. Vi gjør det trygt og effektivt å løse akutte boligbehov.
+          {t('heroDesc')}
         </p>
       </div>
 
@@ -47,12 +49,12 @@ export default function Home() {
             <Search size={28} />
           </div>
           <div>
-            <h2>For kommuneansatte</h2>
+            <h2>{t('forMunicipality')}</h2>
             <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-              Søk i vår sanntidsoversikt over tilgjengelige boliger. Finn riktig løsning for dine klienter med avansert filtrering.
+              {t('searchDesc')}
             </p>
             <Link href="/nav/database" className="button button-accent" style={{ width: '100%', padding: 'var(--space-4)' }}>
-              Åpne boligbanken <ArrowRight size={18} />
+              {t('openHousingBank')} <ArrowRight size={18} />
             </Link>
           </div>
         </div>
@@ -73,12 +75,12 @@ export default function Home() {
             <HomeIcon size={28} />
           </div>
           <div>
-            <h2>For boligeiere</h2>
+            <h2>{t('forHomeowners')}</h2>
             <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-              Registrer og administrer dine utleieboliger. Du beholder full kontroll over tilgjengelighet og vilkår.
+              {t('manageDesc')}
             </p>
             <Link href="/homeowner/manage" className="button" style={{ width: '100%', padding: 'var(--space-4)' }}>
-              Administrer utleie <ArrowRight size={18} />
+              {t('manageRental')} <ArrowRight size={18} />
             </Link>
           </div>
         </div>
@@ -90,7 +92,7 @@ export default function Home() {
         padding: 'var(--space-8)', 
         background: 'rgba(15, 23, 42, 0.4)', 
         borderRadius: '24px',
-        color: 'var(--text-on-dark)',
+        color: 'var(--text-main)',
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
         gap: 'var(--space-8)',
@@ -100,18 +102,18 @@ export default function Home() {
           <div style={{ color: 'var(--color-sky-blue)', marginBottom: 'var(--space-3)' }}>
             <ShieldCheck size={36} />
           </div>
-          <h3 style={{ color: 'white', fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>Sikkerhet i fokus</h3>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem' }}>
-            Alle leieforhold er dekket av juridisk kvalitetssikrede avtaler som følger gjeldende norske standarder for offentlig boligformidling.
+          <h3 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>{t('securityTitle')}</h3>
+          <p style={{ color: 'var(--text-body)', fontSize: '1rem' }}>
+            {t('securityDesc')}
           </p>
         </div>
         <div>
           <div style={{ color: 'var(--color-sky-blue)', marginBottom: 'var(--space-3)' }}>
             <HelpCircle size={36} />
           </div>
-          <h3 style={{ color: 'white', fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>Kontinuerlig forbedring</h3>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem' }}>
-            Vi ønsker de absolutt beste funksjonene for denne appen og den vil bli kontinuerlig oppdatert. Hvis du finner problemer, vennligst send en e-post til boly@gamechanging.no
+          <h3 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>{t('improvementTitle')}</h3>
+          <p style={{ color: 'var(--text-body)', fontSize: '1rem' }}>
+            {t('improvementDesc')}
           </p>
         </div>
       </div>

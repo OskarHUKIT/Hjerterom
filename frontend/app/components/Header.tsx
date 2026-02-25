@@ -5,10 +5,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import Logo from './Logo'
-import { User, LogOut, LogIn, ChevronDown, LayoutDashboard, ShieldCheck, Bell, Menu, X, MessageSquare } from 'lucide-react'
+import { User, LogOut, LogIn, ChevronDown, LayoutDashboard, ShieldCheck, Bell, Menu, X, MessageSquare, Sun, Moon, Globe } from 'lucide-react'
+import { useLanguage } from '../../context/LanguageContext'
+import { useTheme } from '../../context/ThemeContext'
 
 export default function Header() {
   const router = useRouter()
+  const { t, locale, setLocale } = useLanguage()
+  const { theme, toggleTheme } = useTheme()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [hasSignedTerms, setHasSignedTerms] = useState(false)
@@ -119,17 +123,17 @@ export default function Header() {
     <>
           {role === 'kommune_ansatt' && (
             <>
-              <Link href="/nav/database" className="nav-link" onClick={closeMobileNav}>Boligbanken</Link>
-              <Link href="/nav/users" className="nav-link" onClick={closeMobileNav}>Brukere</Link>
-              <Link href="/nav/messages" className="nav-link" onClick={closeMobileNav}>Meldinger</Link>
-              <Link href="/nav/expired" className="nav-link" onClick={closeMobileNav}>Utløpte</Link>
+              <Link href="/nav/database" className="nav-link" onClick={closeMobileNav}>{t('housingBank')}</Link>
+              <Link href="/nav/users" className="nav-link" onClick={closeMobileNav}>{t('users')}</Link>
+              <Link href="/nav/messages" className="nav-link" onClick={closeMobileNav}>{t('messages')}</Link>
+              <Link href="/nav/expired" className="nav-link" onClick={closeMobileNav}>{t('expired')}</Link>
             </>
           )}
           
           {user && (
             <Link href="/nav/notifications" className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }} onClick={closeMobileNav}>
               <Bell size={18} />
-              <span className="nav-text">Varsler</span>
+              <span className="nav-text">{t('notifications')}</span>
               {unreadCount > 0 && (
                 <span style={{ 
                   background: '#ef4444', color: 'white', fontSize: '0.7rem', 
@@ -145,11 +149,11 @@ export default function Header() {
           {user && role !== 'kommune_ansatt' && (
             <Link href="/nav/messages" className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={closeMobileNav}>
               <MessageSquare size={18} />
-              <span className="nav-text">Meldinger</span>
+              <span className="nav-text">{t('messages')}</span>
             </Link>
           )}
 
-          <Link href="/homeowner/manage" className="nav-link" onClick={closeMobileNav}>For utleiere</Link>
+          <Link href="/homeowner/manage" className="nav-link" onClick={closeMobileNav}>{t('forLandlords')}</Link>
           
           {loading ? (
             <div style={{ width: '100px' }}></div>
@@ -162,7 +166,7 @@ export default function Header() {
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: 'var(--space-2)',
-                  background: isMenuOpen ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)',
+                  background: isMenuOpen ? 'var(--bg-app)' : 'var(--bg-app)',
                   border: '1px solid var(--border-subtle)',
                   padding: 'var(--space-2) var(--space-4)',
                   borderRadius: '10px',
@@ -173,7 +177,7 @@ export default function Header() {
                 <User size={18} />
                 <span style={{ fontSize: '0.9rem', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                  {role && <span style={{ opacity: 0.5, marginLeft: '6px', fontSize: '0.75rem' }}>({role === 'kommune_ansatt' ? 'Kommune' : 'Utleier'})</span>}
+                  {role && <span style={{ opacity: 0.5, marginLeft: '6px', fontSize: '0.75rem' }}>({role === 'kommune_ansatt' ? t('kommune') : t('landlord')})</span>}
                 </span>
                 <ChevronDown size={14} style={{ transform: isMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               </button>
@@ -194,16 +198,41 @@ export default function Header() {
                   backdropFilter: 'blur(16px)'
                 }}>
                   <div style={{ padding: 'var(--space-2) var(--space-4)', borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--space-2)' }}>
-                    <p className="text-sm" style={{ fontWeight: 600, color: 'var(--color-sky-blue)' }}>Brukerpanel</p>
+                    <p className="text-sm" style={{ fontWeight: 600, color: 'var(--color-accent)' }}>{t('userPanel')}</p>
                   </div>
                   
                   <Link href="/homeowner/manage" className="menu-item" onClick={() => { setIsMenuOpen(false); closeMobileNav(); }}>
-                    <LayoutDashboard size={16} /> Mine boliger
+                    <LayoutDashboard size={16} /> {t('myProperties')}
                   </Link>
                   
                   <Link href="/homeowner/sign-terms" className="menu-item" onClick={() => { setIsMenuOpen(false); closeMobileNav(); }}>
-                    <ShieldCheck size={16} /> {hasSignedTerms ? 'Signert avtale' : 'Signer vilkår'}
+                    <ShieldCheck size={16} /> {hasSignedTerms ? t('signedAgreement') : t('signTerms')}
                   </Link>
+
+                  <div style={{ padding: 'var(--space-2) var(--space-4)' }}>
+                    <p className="text-sm" style={{ fontWeight: 600, color: 'var(--color-accent)', marginBottom: 'var(--space-2)' }}>{t('settings')}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <Globe size={14} style={{ opacity: 0.7 }} />
+                        <select
+                          value={locale}
+                          onChange={e => setLocale(e.target.value as 'no' | 'se' | 'en')}
+                          style={{ flex: 1, padding: '6px 10px', borderRadius: 6, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', fontSize: '0.85rem' }}
+                        >
+                          <option value="no">{t('norwegian')}</option>
+                          <option value="se">{t('sami')}</option>
+                          <option value="en">{t('english')}</option>
+                        </select>
+                      </div>
+                      <button
+                        onClick={toggleTheme}
+                        style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', cursor: 'pointer', fontSize: '0.85rem' }}
+                      >
+                        {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                        {theme === 'dark' ? t('lightMode') : t('darkMode')}
+                      </button>
+                    </div>
+                  </div>
 
                   <div style={{ height: '1px', background: 'var(--border-subtle)', margin: 'var(--space-2) 0' }}></div>
 
@@ -225,7 +254,7 @@ export default function Header() {
                     }}
                     className="menu-item-logout"
                   >
-                    <LogOut size={16} /> Logg ut
+                    <LogOut size={16} /> {t('logOut')}
                   </button>
                 </div>
               )}
@@ -242,7 +271,7 @@ export default function Header() {
               }}
               onClick={closeMobileNav}
             >
-              <LogIn size={16} style={{ marginRight: '6px' }} /> Logg inn
+              <LogIn size={16} style={{ marginRight: '6px' }} /> {t('logIn')}
             </Link>
           )}
     </>
@@ -264,7 +293,7 @@ export default function Header() {
         <button
           className="header-hamburger"
           onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
-          aria-label={isMobileNavOpen ? 'Lukk meny' : 'Åpne meny'}
+          aria-label={isMobileNavOpen ? t('closeMenu') : t('openMenu')}
           style={{
             display: 'none',
             alignItems: 'center',
@@ -291,7 +320,7 @@ export default function Header() {
           gap: 'var(--space-2)',
           padding: 'var(--space-4)',
           borderTop: '1px solid var(--border-subtle)',
-          background: 'rgba(15, 23, 42, 0.98)',
+          background: 'var(--bg-card)',
           backdropFilter: 'blur(16px)'
         }}
       >

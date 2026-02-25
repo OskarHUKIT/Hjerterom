@@ -9,8 +9,10 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import UserProfileClient from './UserProfileClient'
+import { useLanguage } from '../../../context/LanguageContext'
 
 function NavUsersContent() {
+  const { t } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const userId = searchParams.get('id')
@@ -108,10 +110,10 @@ function NavUsersContent() {
     <main className="container">
       <div style={{ marginBottom: 'var(--space-8)' }}>
         <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          ← Oversikt
+          ← {t('overview')}
         </Link>
-        <h1 style={{ fontSize: '2.75rem' }}>Brukere</h1>
-        <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>Oversikt over alle registrerte utleiere i Boligbanken.</p>
+        <h1 style={{ fontSize: '2.75rem' }}>{t('users')}</h1>
+        <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>{t('usersDesc')}</p>
       </div>
 
       <div className="card" style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-4)' }}>
@@ -119,7 +121,7 @@ function NavUsersContent() {
           <input 
             type="text" 
             className="input" 
-            placeholder="Søk etter navn..." 
+            placeholder={t('searchByNamePlaceholder')} 
             value={searchTerm} 
             onChange={e => setSearchTerm(e.target.value)} 
             style={{ paddingLeft: '2.5rem', marginBottom: 0 }} 
@@ -153,14 +155,14 @@ function NavUsersContent() {
                       <h3 style={{ margin: 0, color: 'var(--color-sky-blue)' }}>{user.owner_name || 'Ukjent bruker'}</h3>
                     </Link>
                     <div className="user-card-meta" style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '4px', fontSize: '0.9rem', opacity: 0.7, flexWrap: 'wrap' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={14} /> {user.contact_phone || 'Ingen telefon'}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={14} /> {user.contact_phone || t('noPhone')}</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <ShieldCheck size={14} style={{ color: user.hasSigned ? 'var(--color-teal)' : '#ef4444' }} /> 
-                        {user.hasSigned ? `Signert (${new Date(user.signedAt).toLocaleDateString()})` : 'Ikke signert'}
+                        {user.hasSigned ? `${t('signedOn')} (${new Date(user.signedAt).toLocaleDateString()})` : t('notSigned')}
                       </span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <User size={14} style={{ color: user.role === 'kommune_ansatt' ? 'var(--color-sky-blue)' : 'inherit' }} /> 
-                        {user.role === 'kommune_ansatt' ? 'Kommuneansatt' : 'Utleier'}
+                        {user.role === 'kommune_ansatt' ? t('kommuneStaff') : t('landlord')}
                       </span>
                     </div>
                   </div>
@@ -172,10 +174,10 @@ function NavUsersContent() {
                     style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: 'white', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <MessageSquare size={16} style={{ marginRight: '8px' }} /> Chat
+                    <MessageSquare size={16} style={{ marginRight: '8px' }} /> {t('chat')}
                   </Link>
                   <button className="button" style={{ padding: '8px 16px' }}>
-                    Se profil <ChevronRight size={16} style={{ marginLeft: '4px' }} />
+                    {t('seeProfile')} <ChevronRight size={16} style={{ marginLeft: '4px' }} />
                   </button>
                 </div>
               </div>
@@ -185,7 +187,7 @@ function NavUsersContent() {
       ) : (
         <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
           <Info size={40} style={{ margin: '0 auto var(--space-3)', opacity: 0.3 }} />
-          <p>Ingen brukere matcher søket.</p>
+          <p>{t('noUsersMatch')}</p>
         </div>
       )}
 

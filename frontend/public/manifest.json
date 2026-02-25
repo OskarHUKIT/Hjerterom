@@ -1,6 +1,6 @@
 {
-  "name": "Boligbanken",
-  "short_name": "Boligbanken",
+  "name": "boly",
+  "short_name": "boly",
   "description": "Boligformidling mellom Kommune og utleiere",
   "start_url": "/",
   "display": "standalone",

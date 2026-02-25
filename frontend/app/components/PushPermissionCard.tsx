@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { savePushSubscription, urlBase64ToUint8Array, VAPID_PUBLIC } from '../lib/push-utils'
 import { Bell, CheckCircle2 } from 'lucide-react'
+import { useLanguage } from '../../context/LanguageContext'
 
 type Status = 'loading' | 'show-button' | 'granted' | 'unsupported'
 
 export default function PushPermissionCard() {
+  const { t } = useLanguage()
   const [status, setStatus] = useState<Status>('loading')
   const [loading, setLoading] = useState(false)
 
@@ -107,21 +109,21 @@ export default function PushPermissionCard() {
           {status === 'granted' ? <CheckCircle2 size={20} /> : <Bell size={20} />}
         </div>
         <div style={{ flex: 1 }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Push-varsler på mobil</h3>
+          <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{t('pushNotificationsMobile')}</h3>
           {status === 'granted' && (
             <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '0.95rem' }}>
-              Du får varsler på telefonen når du er logget inn.
+              {t('pushGrantedDesc')}
             </p>
           )}
           {status === 'unsupported' && (
             <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '0.95rem' }}>
-              Lukk Safari-fanen og åpne appen fra hjemskjerm-ikonet. Push støttes kun når du starter appen direkte fra ikonet.
+              {t('pushUnsupportedDesc')}
             </p>
           )}
           {status === 'show-button' && (
             <>
               <p style={{ margin: '4px 0 12px', opacity: 0.9, fontSize: '0.95rem' }}>
-                Trykk nedenfor for å aktivere varsler på telefonen.
+                {t('pushActivateDesc')}
               </p>
               <button
                 type="button"
@@ -136,7 +138,7 @@ export default function PushPermissionCard() {
                   borderRadius: 'var(--radius-2)'
                 }}
               >
-                {loading ? 'Aktiverer...' : 'Aktiver varsler'}
+                {loading ? t('activating') : t('activateNotifications')}
               </button>
             </>
           )}

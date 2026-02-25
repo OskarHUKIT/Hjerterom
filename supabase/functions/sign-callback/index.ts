@@ -58,7 +58,7 @@ serve(async (req) => {
         details: { signingSessionId }
       }])
 
-      // 3. Opprett varsel med navn
+      // 3. Opprett varsel kun for kommune-ansatte (ikke for utleieren selv)
       const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('full_name')
@@ -68,13 +68,22 @@ serve(async (req) => {
       const { data: userObject } = await supabaseAdmin.auth.admin.getUserById(userId)
       const userName = profile?.full_name || userObject?.user?.user_metadata?.full_name || userObject?.user?.email?.split('@')[0] || `Bruker ${userId.substring(0, 8)}`
 
-      await supabaseAdmin.from('notifications').insert([{
-        owner_id: userId,
-        type: 'TERMS_SIGNED',
-        title: 'Vilkårsavtale signert',
-        message: `${userName} har signert vilkårsavtalen.`,
-        status: 'unread'
-      }])
+      const { data: kommuneProfiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('role', 'kommune_ansatt')
+
+      if (kommuneProfiles?.length) {
+        await supabaseAdmin.from('notifications').insert(
+          kommuneProfiles.map((p) => ({
+            owner_id: p.id,
+            type: 'TERMS_SIGNED',
+            title: 'Vilkårsavtale signert',
+            message: `${userName} har signert vilkårsavtalen.`,
+            status: 'unread'
+          }))
+        )
+      }
 
       redirectUrl += "?signed=true"
     } else {

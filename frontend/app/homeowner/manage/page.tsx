@@ -6,12 +6,14 @@ import { useRouter } from 'next/navigation'
 import { 
   Plus, LayoutDashboard, Home as HomeIcon, CheckCircle2, Circle, 
   ArrowRight, Info, Trash2, Edit3, Camera, Clock, FileText, 
-  ChevronRight, AlertTriangle, ToggleLeft as ToggleIcon, ShieldCheck, MessageSquare
+  ChevronRight, AlertTriangle, ToggleLeft as ToggleIcon, ShieldCheck, MessageSquare, Search
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatAuditLogDescription } from '../../lib/auditLogFormat'
+import { useLanguage } from '../../../context/LanguageContext'
 
 export default function HomeownerManage() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [myListings, setMyListings] = useState<any[]>([])
   const [availability, setAvailability] = useState<Record<string, any[]>>({})
@@ -19,6 +21,9 @@ export default function HomeownerManage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'boliger' | 'historikk'>('boliger')
   const [filter, setFilter] = useState<'Alle' | 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'>('Alle')
+  const [historySearch, setHistorySearch] = useState('')
+  const [historyDateFrom, setHistoryDateFrom] = useState('')
+  const [historyDateTo, setHistoryDateTo] = useState('')
   const [editingAvailability, setEditingAvailability] = useState<string | null>(null)
   const [newPeriod, setNewPeriod] = useState({ start: '', end: '', status: 'Tilgjengelig' })
 
@@ -95,7 +100,7 @@ export default function HomeownerManage() {
 
   const toggleStatus = async (id: string, currentStatus: string) => {
     if (currentStatus === 'Formidla') {
-      alert('Denne boligen er markert som formidlet av kommunen og status kan ikke endres av utleier.')
+      alert(t('formidletByKommune'))
       return
     }
     const newStatus = currentStatus === 'Tilgjengelig' ? 'Utilgjengelig' : 'Tilgjengelig'
@@ -221,11 +226,11 @@ export default function HomeownerManage() {
   const translateType = (type: string) => {
     if (!type) return ''
     const mapping: Record<string, string> = {
-      'Short-term': 'Korttid',
-      'Long-term': 'Langtid',
-      'Apartment': 'Leilighet',
-      'House': 'Enebolig',
-      'Shared': 'Bofelleskap'
+      'Short-term': t('shortTerm'),
+      'Long-term': t('longTerm'),
+      'Apartment': t('apartment'),
+      'House': t('house'),
+      'Shared': t('shared')
     }
     return mapping[type] || type
   }
@@ -235,13 +240,13 @@ export default function HomeownerManage() {
       <div className="hm-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            ← Tilbake til forsiden
+            ← {t('backToFrontPage')}
           </Link>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)' }}>Velkommen tilbake</h1>
-          <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>Administrer dine utleieboliger og se historikk.</p>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)' }}>{t('welcomeBackManage')}</h1>
+          <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>{t('manageDescHomeowner')}</p>
         </div>
         <Link href="/homeowner/register" className="button" style={{ padding: 'var(--space-4) var(--space-8)', borderRadius: '14px', fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
-          <Plus size={22} /> <span className="hm-btn-label">Registrer ny bolig</span>
+          <Plus size={22} /> <span className="hm-btn-label">{t('registerNewProperty')}</span>
         </Link>
       </div>
 
@@ -254,7 +259,7 @@ export default function HomeownerManage() {
               color: activeTab === 'boliger' ? 'var(--color-sky-blue)' : 'var(--text-main)',
               border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: 600
             }}>
-              <HomeIcon size={18} /> Mine boliger
+              <HomeIcon size={18} /> {t('myPropertiesTab')}
             </button>
             <button onClick={() => setActiveTab('historikk')} style={{ 
               width: '100%', padding: 'var(--space-3) var(--space-4)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
@@ -262,19 +267,19 @@ export default function HomeownerManage() {
               color: activeTab === 'historikk' ? 'var(--color-sky-blue)' : 'var(--text-main)',
               border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: 600
             }}>
-              <Clock size={18} /> Historikk
+              <Clock size={18} /> {t('historyTab')}
             </button>
             <Link href="/homeowner/sign-terms" style={{ 
               width: '100%', padding: 'var(--space-3) var(--space-4)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
               color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 600
             }}>
-              <FileText size={18} /> Signert avtale
+              <FileText size={18} /> {t('signTermsNav')}
             </Link>
             <Link href="/nav/messages" style={{ 
               width: '100%', padding: 'var(--space-3) var(--space-4)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
               color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 600
             }}>
-              <MessageSquare size={18} /> Meldinger til Kommune
+              <MessageSquare size={18} /> {t('messagesToKommune')}
             </Link>
           </div>
         </aside>
@@ -284,15 +289,15 @@ export default function HomeownerManage() {
             <>
               <div className="hm-filters-row" style={{ marginBottom: 'var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
                 <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-                  {['Alle', 'Tilgjengelig', 'Utilgjengelig', 'Formidla'].map(f => (
-                    <button key={f} onClick={() => setFilter(f as any)} style={{
+                  {(['Alle', 'Tilgjengelig', 'Utilgjengelig', 'Formidla'] as const).map(f => (
+                    <button key={f} onClick={() => setFilter(f)} style={{
                       padding: 'var(--space-2) var(--space-4)', borderRadius: '20px', fontSize: '0.85rem', cursor: 'pointer',
-                      background: filter === f ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.05)',
-                      border: '1px solid var(--border-subtle)', color: 'white'
-                    }}>{f}</button>
+                      background: filter === f ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+                      border: '1px solid var(--border-subtle)', color: filter === f ? 'white' : 'var(--text-main)'
+                    }}>{f === 'Alle' ? t('all') : f === 'Formidla' ? t('formidlet') : f === 'Tilgjengelig' ? t('available') : t('unavailable')}</button>
                   ))}
                 </div>
-                <div style={{ fontSize: '0.85rem', opacity: 0.6 }}>Viser {filteredListings.length} boliger</div>
+                <div style={{ fontSize: '0.85rem', opacity: 0.6 }}>{t('showing')} {filteredListings.length} {t('propertiesPlural')}</div>
               </div>
 
               <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
@@ -340,7 +345,7 @@ export default function HomeownerManage() {
                                 {listing.status}
                               </span>
                             </div>
-                            <p className="text-sm" style={{ marginTop: '4px' }}>{translateType(listing.type)} • {listing.bedrooms} soverom • {listing.size_sqm} m²</p>
+                            <p className="text-sm" style={{ marginTop: '4px' }}>{translateType(listing.type)} • {listing.bedrooms} {t('bedroomsUnit')} • {listing.size_sqm} m²</p>
                           </div>
                         </div>
 
@@ -360,8 +365,8 @@ export default function HomeownerManage() {
                               cursor: listing.status === 'Formidla' ? 'not-allowed' : 'pointer'
                             }}
                           >
-                            {listing.status === 'Tilgjengelig' ? 'Merk som utilgjengelig' : 
-                             listing.status === 'Formidla' ? 'Formidlet' : 'Merk som tilgjengelig'}
+                            {listing.status === 'Tilgjengelig' ? t('manageRentalNav') : 
+                             listing.status === 'Formidla' ? t('formidlet') : t('markAvailable')}
                           </button>
                           
                           <div style={{ width: '1px', height: '30px', background: 'var(--border-subtle)' }}></div>
@@ -372,12 +377,12 @@ export default function HomeownerManage() {
                                 setEditingAvailability(editingAvailability === listing.id ? null : listing.id)
                                 setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
                               }}
-                              style={{ padding: '8px', borderRadius: '8px', background: editingAvailability === listing.id ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', color: editingAvailability === listing.id ? 'var(--color-sky-blue)' : 'white' }}
-                              title="Administrer ledige perioder"
+                              style={{ padding: '8px', borderRadius: '8px', background: editingAvailability === listing.id ? 'rgba(59, 130, 246, 0.2)' : 'var(--bg-app)', border: 'none', cursor: 'pointer', color: editingAvailability === listing.id ? 'var(--color-accent)' : 'var(--text-main)' }}
+                              title={t('managePeriods')}
                             >
                               <Clock size={18} />
                             </button>
-                            <button style={{ padding: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: 'none', cursor: 'pointer', color: 'white' }}>
+                            <button style={{ padding: '8px', borderRadius: '8px', background: 'var(--bg-app)', border: 'none', cursor: 'pointer', color: 'var(--text-main)' }}>
                               <Edit3 size={18} />
                             </button>
                             <button 
@@ -402,13 +407,13 @@ export default function HomeownerManage() {
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
                             <h4 style={{ margin: 0, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <Clock size={16} /> Tilgjengelige perioder
+                              <Clock size={16} /> {t('availablePeriods')}
                             </h4>
                             <button 
                               onClick={() => setEditingAvailability(null)}
                               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                             >
-                              Lukk
+                              {t('close')}
                             </button>
                           </div>
 
@@ -426,24 +431,24 @@ export default function HomeownerManage() {
                                 </div>
                               ))
                             ) : (
-                              <p style={{ fontSize: '0.85rem', opacity: 0.5, margin: 'var(--space-2) 0' }}>Ingen perioder lagt til ennå.</p>
+                              <p style={{ fontSize: '0.85rem', opacity: 0.5, margin: 'var(--space-2) 0' }}>{t('noPeriods')}</p>
                             )}
                           </div>
 
                           <div className="hm-add-period-row" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                             <div style={{ flex: 1 }}>
-                              <label className="label" style={{ fontSize: '0.7rem' }}>Status</label>
-                              <select className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.status} onChange={e => setNewPeriod({...newPeriod, status: e.target.value})}>
-                                <option value="Tilgjengelig">Tilgjengelig</option>
-                                <option value="Utilgjengelig">Utilgjengelig</option>
-                              </select>
+                                <label className="label" style={{ fontSize: '0.7rem' }}>{t('status')}</label>
+                                <select className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.status} onChange={e => setNewPeriod({...newPeriod, status: e.target.value})}>
+                                  <option value="Tilgjengelig">{t('available')}</option>
+                                  <option value="Utilgjengelig">{t('unavailable')}</option>
+                                </select>
                             </div>
                             <div style={{ flex: 1 }}>
-                              <label className="label" style={{ fontSize: '0.7rem' }}>Fra dato</label>
+                                <label className="label" style={{ fontSize: '0.7rem' }}>{t('fromDate')}</label>
                               <input type="date" className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.start} onChange={e => setNewPeriod({...newPeriod, start: e.target.value})} />
                             </div>
                             <div style={{ flex: 1 }}>
-                              <label className="label" style={{ fontSize: '0.7rem' }}>Til dato</label>
+                                <label className="label" style={{ fontSize: '0.7rem' }}>{t('toDate')}</label>
                               <input type="date" className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.end} onChange={e => setNewPeriod({...newPeriod, end: e.target.value})} />
                             </div>
                             <button 
@@ -454,7 +459,7 @@ export default function HomeownerManage() {
                               className="button" 
                               style={{ padding: '10px 16px', borderRadius: '8px' }}
                             >
-                              Legg til
+                              {t('add')}
                             </button>
                           </div>
                         </div>
@@ -464,15 +469,60 @@ export default function HomeownerManage() {
                 ) : (
                   <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
                     <Info size={40} style={{ margin: '0 auto var(--space-3)', opacity: 0.3 }} />
-                    <p>Ingen boliger funnet.</p>
+                    <p>{t('noProperties')}</p>
                   </div>
                 )}
               </div>
             </>
           ) : (
             <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-              <h3 style={{ marginBottom: 'var(--space-2)' }}>Siste hendelser</h3>
-              {history.length > 0 ? history.map(log => (
+              <h3 style={{ marginBottom: 'var(--space-2)' }}>{t('lastEvents')}</h3>
+              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
+                <div style={{ flex: 1, minWidth: 140, position: 'relative' }}>
+                  <Search size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
+                  <input
+                    type="text"
+                    placeholder={t('searchHistory')}
+                    value={historySearch}
+                    onChange={e => setHistorySearch(e.target.value)}
+                    className="input"
+                    style={{ width: '100%', paddingLeft: 36 }}
+                  />
+                </div>
+                <input
+                  type="date"
+                  value={historyDateFrom}
+                  onChange={e => setHistoryDateFrom(e.target.value)}
+                  className="input"
+                  style={{ minWidth: 140 }}
+                />
+                <input
+                  type="date"
+                  value={historyDateTo}
+                  onChange={e => setHistoryDateTo(e.target.value)}
+                  className="input"
+                  style={{ minWidth: 140 }}
+                />
+              </div>
+              {history.length > 0 ? (() => {
+                const q = historySearch.trim().toLowerCase()
+                const from = historyDateFrom ? new Date(historyDateFrom) : null
+                const to = historyDateTo ? new Date(historyDateTo + 'T23:59:59') : null
+                const filtered = history.filter(log => {
+                  if (q) {
+                    const desc = formatAuditLogDescription(log).toLowerCase()
+                    const addr = (log.listing_address || '').toLowerCase()
+                    const action = (log.action_type || '').toLowerCase()
+                    if (!desc.includes(q) && !addr.includes(q) && !action.includes(q)) return false
+                  }
+                  if (from || to) {
+                    const d = new Date(log.created_at)
+                    if (from && d < from) return false
+                    if (to && d > to) return false
+                  }
+                  return true
+                })
+                return filtered.length > 0 ? filtered.map(log => (
                 <div key={log.id} className="card" style={{ padding: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)', fontSize: '0.9rem' }}>
                   <div style={{ 
                     width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', 
@@ -491,8 +541,11 @@ export default function HomeownerManage() {
                   </div>
                 </div>
               )) : (
+                <p style={{ fontSize: '0.9rem', opacity: 0.6 }}>{t('noResults')}</p>
+              )
+              })() : (
                 <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-                  <p>Ingen historikk funnet.</p>
+                  <p>{t('noHistory')}</p>
                 </div>
               )}
             </div>

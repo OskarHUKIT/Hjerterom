@@ -275,3 +275,20 @@ Hvis `supabase db push` feiler pga. migrasjonskonflikt, kjør SQL-en i `20250219
 ## Nye brukere vises ikke i Brukere-listen
 
 Kjør `20250220000000_kommune_list_all_users.sql` for å lage RPC-funksjonen `get_all_users_for_kommune()`. Den henter brukere fra `auth.users` (inkl. nye BankID-brukere) og slår sammen med `profiles`, og omgår RLS slik at Kommune får med alle.
+
+## Overtakelsesrapport-påminnelse (cron)
+
+Når en bolig er markert som formidlet og overtakelsen starter om 1 dag, sendes et hastende varsel til utleier hvis overtakelsesrapport mangler. Dette krever:
+
+1. **Extensions**: Aktiver `pg_cron` og `pg_net` i Database → Extensions (hvis ikke allerede)
+2. **Edge Function**: `remind-handover-report` – deploy med `supabase functions deploy remind-handover-report`
+3. **Cron**: Migrasjonen `20250228000000_handover_reminder_cron.sql` setter opp daglig kjøring kl. 07:00 UTC (08:00 norsk tid vinter)
+
+**Før migrasjonen kjører**, legg inn Vault-hemmeligheter i SQL Editor:
+
+```sql
+select vault.create_secret('https://DITT_PROJECT_REF.supabase.co', 'project_url');
+select vault.create_secret('DIN_ANON_ELLER_SERVICE_KEY', 'anon_key');
+```
+
+Erstatt med verdier fra Project Settings → API. For å teste manuelt: `curl -X POST "https://DITT_PROJECT_REF.supabase.co/functions/v1/remind-handover-report" -H "Authorization: Bearer DIN_KEY"`.

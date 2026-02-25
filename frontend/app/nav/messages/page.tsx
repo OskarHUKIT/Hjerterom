@@ -7,8 +7,10 @@ import {
   MessageSquare, Send, ArrowLeft, User, ChevronRight
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useLanguage } from '../../../context/LanguageContext'
 
 function MessagesContent() {
+  const { t } = useLanguage()
   const searchParams = useSearchParams()
   const withUserId = searchParams.get('with')
   
@@ -174,17 +176,17 @@ function MessagesContent() {
     <main className="container">
       <div style={{ marginBottom: 'var(--space-6)' }}>
         <Link href={isKommune ? '/nav/users' : '/homeowner/manage'} className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: '-1rem' }}>
-          <ArrowLeft size={18} /> Tilbake
+          <ArrowLeft size={18} /> {t('back')}
         </Link>
-        <h1 style={{ fontSize: '2rem', marginTop: 'var(--space-2)' }}>Meldinger</h1>
+        <h1 style={{ fontSize: '2rem', marginTop: 'var(--space-2)' }}>{t('messages')}</h1>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isKommune && !withUserId ? '280px 1fr' : '1fr', gap: 'var(--space-6)', minHeight: '400px' }}>
         {isKommune && (
           <aside className="card" style={{ padding: 'var(--space-4)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1rem', flexShrink: 0 }}>Samtaler</h3>
+            <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1rem', flexShrink: 0 }}>{t('conversations')}</h3>
             {conversations.length === 0 ? (
-              <p className="text-sm" style={{ opacity: 0.6 }}>Ingen meldinger ennå. Velg en bruker for å starte.</p>
+              <p className="text-sm" style={{ opacity: 0.6 }}>{t('noMessagesYet')}</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', minWidth: 0, overflow: 'auto' }}>
                 {conversations.map(c => (

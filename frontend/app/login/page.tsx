@@ -1,18 +1,24 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
-import { Mail, Lock, ArrowRight, ShieldCheck, UserPlus, LogIn } from 'lucide-react'
+import { Mail, Lock, ShieldCheck, UserPlus, LogIn, User, Phone } from 'lucide-react'
 import Logo from '../components/Logo'
+import { useLanguage } from '../../context/LanguageContext'
 
 export default function LoginPage() {
+  const { t } = useLanguage()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/'
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [bankIdRedirecting, setBankIdRedirecting] = useState(false)
 
@@ -28,17 +34,22 @@ export default function LoginPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback`,
+            data: {
+              full_name: fullName.trim() || undefined,
+              contact_phone: contactPhone.trim() || undefined,
+              provider: 'email',
+            },
           },
         })
         if (error) throw error
-        setMessage({ type: 'success', text: 'Sjekk e-posten din for bekreftelseslenke!' })
+        setMessage({ type: 'success', text: t('checkEmail') })
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (error) throw error
-        router.push('/')
+        router.push(redirectTo)
       }
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
@@ -79,12 +90,12 @@ export default function LoginPage() {
             <Logo />
           </div>
           <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-2)' }}>
-            {isSignUp ? 'Opprett konto' : 'Velkommen tilbake'}
+            {isSignUp ? t('createAccount') : t('welcomeBack')}
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>
             {isSignUp 
-              ? 'Bli en del av bo.ly og bidra til boligformidling.' 
-              : 'Logg inn for å administrere dine boliger.'}
+              ? t('createAccountDesc') 
+              : t('loginDesc')}
           </p>
         </div>
 
@@ -103,8 +114,41 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleAuth} style={{ display: 'grid', gap: 'var(--space-4)' }}>
+          {isSignUp && (
+            <>
+              <div>
+                <label className="label">{t('fullName')}</label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="text" 
+                    className="input" 
+                    placeholder="F.eks. Ola Nordmann"
+                    required={isSignUp}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
+                  />
+                  <User size={18} style={{ position: 'absolute', left: '1rem', top: '14px', color: 'var(--text-muted)' }} />
+                </div>
+              </div>
+              <div>
+                <label className="label">{t('phone')}</label>
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="tel" 
+                    className="input" 
+                    placeholder="F.eks. 123 45 678"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
+                  />
+                  <Phone size={18} style={{ position: 'absolute', left: '1rem', top: '14px', color: 'var(--text-muted)' }} />
+                </div>
+              </div>
+            </>
+          )}
           <div>
-            <label className="label">E-post</label>
+            <label className="label">{t('email')}</label>
             <div style={{ position: 'relative' }}>
               <input 
                 type="email" 
@@ -120,7 +164,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="label">Passord</label>
+            <label className="label">{t('password')}</label>
             <div style={{ position: 'relative' }}>
               <input 
                 type="password" 
@@ -147,7 +191,7 @@ export default function LoginPage() {
             }}
           >
             {loading ? (isSignUp ? <UserPlus size={20} style={{ opacity: 0.6 }} /> : <LogIn size={20} style={{ opacity: 0.6 }} />) : (isSignUp ? <UserPlus size={20} /> : <LogIn size={20} />)}
-            {loading ? 'Vennligst vent...' : (isSignUp ? 'Opprett konto' : 'Logg inn')}
+            {loading ? t('loadingPleaseWait') : (isSignUp ? t('createAccount') : t('logIn'))}
           </button>
         </form>
 
@@ -163,7 +207,7 @@ export default function LoginPage() {
               padding: '0 10px',
               fontSize: '0.8rem',
               color: 'var(--text-muted)'
-            }}>eller</span>
+            }}>{t('orDivider')}</span>
           </div>
 
           <button 
@@ -185,13 +229,13 @@ export default function LoginPage() {
               gap: '8px'
             }}
           >
-            <ShieldCheck size={18} /> {bankIdRedirecting ? 'Omdirigerer til BankID...' : 'Logg inn med BankID'}
+            <ShieldCheck size={18} /> {bankIdRedirecting ? t('redirectingToBankID') : (isSignUp ? t('signUpWithBankID') : t('loginWithBankID'))}
           </button>
         </div>
 
         <div style={{ marginTop: 'var(--space-6)', textAlign: 'center', fontSize: '0.95rem' }}>
           <p style={{ color: 'var(--text-muted)' }}>
-            {isSignUp ? 'Har du allerede en konto?' : 'Har du ikke konto?'}
+            {isSignUp ? t('alreadyHaveAccount') : t('noAccount')}
             {' '}
             <button 
               onClick={() => setIsSignUp(!isSignUp)}
@@ -204,7 +248,7 @@ export default function LoginPage() {
                 padding: 0
               }}
             >
-              {isSignUp ? 'Logg inn her' : 'Registrer deg her'}
+              {isSignUp ? t('loginHere') : t('signUpHere')}
             </button>
           </p>
         </div>
@@ -212,7 +256,7 @@ export default function LoginPage() {
         {!isSignUp && (
           <div style={{ marginTop: 'var(--space-4)', textAlign: 'center' }}>
             <Link href="/" style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Glemt passordet ditt?
+              {t('forgotPassword')}
             </Link>
           </div>
         )}
