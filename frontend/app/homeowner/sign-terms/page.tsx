@@ -52,7 +52,7 @@ function SignTermsContent() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user?.id || !session.access_token) throw new Error('Logg inn på nytt og prøv igjen')
 
-      const response = await fetch('https://ayddwbmkclujefnhsaqv.functions.supabase.co/sign-agreement', {
+      const response = await fetch('https://ayddwbmkclujefnhsaqv.supabase.co/functions/v1/sign-agreement', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,18 +61,23 @@ function SignTermsContent() {
         body: JSON.stringify({
           userId: session.user.id,
           agreementVersion: '1.0',
-          origin: window.location.origin // Legg til origin her
+          origin: window.location.origin
         })
       })
 
-      const data = await response.json()
-      if (data.url) {
-        // Send brukeren til Signicat for signering
-        window.location.href = data.url
-      } else {
-        const detailMsg = data.message || (data.details ? JSON.stringify(data.details) : '')
-        throw new Error(`${data.error || 'Kunne ikke starte signering'}: ${detailMsg}`)
+      let data: { url?: string; error?: string; message?: string; details?: unknown } = {}
+      try {
+        data = await response.json()
+      } catch {
+        throw new Error(response.status === 401 ? 'Du må logge inn på nytt.' : `Tjenesten svarer ikke (${response.status})`)
       }
+
+      if (data.url) {
+        window.location.href = data.url
+        return
+      }
+      const detailMsg = data.message || (data.details ? JSON.stringify(data.details) : '')
+      throw new Error(`${data.error || 'Kunne ikke starte signering'}${detailMsg ? ': ' + detailMsg : ''}`)
     } catch (err: any) {
       alert('Feil ved start av signering: ' + err.message)
       setLoading(false)
