@@ -45,41 +45,35 @@ function SignTermsContent() {
   }
 
   const handleSign = async () => {
-    if (!hasScrolledToBottom) return
-    
+    if (!hasScrolledToBottom) {
+      alert('Scroll ned i avtalen først for å aktivere signering.')
+      return
+    }
+
     setLoading(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.id || !session.access_token) throw new Error('Logg inn på nytt og prøv igjen')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Logg inn på nytt og prøv igjen.')
 
-      const response = await fetch('https://ayddwbmkclujefnhsaqv.supabase.co/functions/v1/sign-agreement', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          userId: session.user.id,
+      const { data, error } = await supabase.functions.invoke('sign-agreement', {
+        body: {
+          userId: user.id,
           agreementVersion: '1.0',
-          origin: window.location.origin
-        })
+          origin: typeof window !== 'undefined' ? window.location.origin : '',
+        },
       })
 
-      let data: { url?: string; error?: string; message?: string; details?: unknown } = {}
-      try {
-        data = await response.json()
-      } catch {
-        throw new Error(response.status === 401 ? 'Du må logge inn på nytt.' : `Tjenesten svarer ikke (${response.status})`)
-      }
+      if (error) throw new Error(error.message || 'Kunne ikke starte signering.')
 
-      if (data.url) {
+      if (data?.url) {
         window.location.href = data.url
         return
       }
-      const detailMsg = data.message || (data.details ? JSON.stringify(data.details) : '')
-      throw new Error(`${data.error || 'Kunne ikke starte signering'}${detailMsg ? ': ' + detailMsg : ''}`)
+
+      const errMsg = data?.error || data?.message || 'Kunne ikke starte signering.'
+      throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg))
     } catch (err: any) {
-      alert('Feil ved start av signering: ' + err.message)
+      alert('Feil ved start av signering: ' + (err?.message || String(err)))
       setLoading(false)
     }
   }

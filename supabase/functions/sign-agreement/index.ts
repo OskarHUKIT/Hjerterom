@@ -10,10 +10,7 @@ const CLIENT_ID = "sandbox-misty-angle-164"
 const CLIENT_SECRET = Deno.env.get("SIGNICAT_SECRET_SIGN")?.trim()
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
 
-const PDF_URLS = [
-  "https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf.pdf",
-  "https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf"
-]
+const PDF_URL = "https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf"
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -84,17 +81,9 @@ serve(async (req) => {
 
     // 2. PDF
     currentStep = "Henting av PDF fra Storage"
-    let pdfBuffer;
-    for (const url of PDF_URLS) {
-      try {
-        const res = await fetch(url)
-        if (res.ok) {
-          pdfBuffer = await res.arrayBuffer()
-          break
-        }
-      } catch (e) { /* ignore and try next */ }
-    }
-    if (!pdfBuffer) throw new Error("Kunne ikke laste ned PDF fra noen av de angitte URL-ene")
+    const pdfRes = await fetch(PDF_URL)
+    if (!pdfRes.ok) throw new Error("Kunne ikke laste ned PDF fra Storage")
+    const pdfBuffer = await pdfRes.arrayBuffer()
 
     // 3. Dokument
     currentStep = "Opplasting av dokument til Signicat"

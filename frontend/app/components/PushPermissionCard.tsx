@@ -17,7 +17,7 @@ export default function PushPermissionCard() {
     async function check() {
       if (typeof window === 'undefined') return
 
-      const hasPush = 'serviceWorker' in navigator && 'PushManager' in window
+      const hasSW = 'serviceWorker' in navigator
 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || cancelled) {
@@ -25,7 +25,7 @@ export default function PushPermissionCard() {
         return
       }
 
-      if (!hasPush) {
+      if (!hasSW) {
         if (!cancelled) setStatus('unsupported')
         return
       }
@@ -33,6 +33,11 @@ export default function PushPermissionCard() {
       try {
         const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
         await reg.update()
+        // iOS Safari: pushManager exists on registration only when opened from home screen
+        if (!reg.pushManager) {
+          if (!cancelled) setStatus('unsupported')
+          return
+        }
         const existing = await reg.pushManager.getSubscription()
         if (existing || Notification.permission === 'granted') {
           if (!cancelled) setStatus('granted')
@@ -56,7 +61,7 @@ export default function PushPermissionCard() {
   }, [])
 
   async function requestPermission() {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
     setLoading(true)
     try {
       const permission = await Notification.requestPermission()
@@ -110,7 +115,7 @@ export default function PushPermissionCard() {
           )}
           {status === 'unsupported' && (
             <p style={{ margin: '4px 0 0', opacity: 0.9, fontSize: '0.95rem' }}>
-              Push-varsler krever HTTPS og en mobil-nettleser, eller at du legger appen til hjemskjermen.
+              Lukk Safari-fanen og åpne appen fra hjemskjerm-ikonet. Push støttes kun når du starter appen direkte fra ikonet.
             </p>
           )}
           {status === 'show-button' && (

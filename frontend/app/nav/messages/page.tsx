@@ -141,14 +141,15 @@ function MessagesContent() {
         is_read: false
       }])
 
-      const senderName = currentUser.user_metadata?.full_name || 'En utleier'
+      const senderName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || (isKommune ? 'Kommune' : 'En utleier')
       if (effectiveReceiver) {
         await supabase.from('notifications').insert({
           owner_id: effectiveReceiver,
           type: 'NEW_MESSAGE',
-          title: 'Ny melding',
+          title: `Ny melding fra ${senderName}`,
           message: `${senderName} har sendt deg en melding.`,
-          status: 'unread'
+          status: 'unread',
+          related_user_id: currentUser.id
         })
       }
     } catch (err: any) {
@@ -180,12 +181,12 @@ function MessagesContent() {
 
       <div style={{ display: 'grid', gridTemplateColumns: isKommune && !withUserId ? '280px 1fr' : '1fr', gap: 'var(--space-6)', minHeight: '400px' }}>
         {isKommune && (
-          <aside className="card" style={{ padding: 'var(--space-4)' }}>
-            <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1rem' }}>Samtaler</h3>
+          <aside className="card" style={{ padding: 'var(--space-4)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1rem', flexShrink: 0 }}>Samtaler</h3>
             {conversations.length === 0 ? (
               <p className="text-sm" style={{ opacity: 0.6 }}>Ingen meldinger ennå. Velg en bruker for å starte.</p>
             ) : (
-              <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', minWidth: 0, overflow: 'auto' }}>
                 {conversations.map(c => (
                   <Link
                     key={c.userId}
@@ -193,17 +194,17 @@ function MessagesContent() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)',
                       borderRadius: '10px', background: withUserId === c.userId ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255,255,255,0.03)',
-                      textDecoration: 'none', color: 'inherit'
+                      textDecoration: 'none', color: 'inherit', minWidth: 0
                     }}
                   >
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <User size={18} />
+                    <div style={{ width: '36px', height: '36px', flexShrink: 0, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <User size={16} />
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>{c.name}</div>
+                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
                       <div className="text-sm" style={{ opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.lastMessage}</div>
                     </div>
-                    <ChevronRight size={16} style={{ opacity: 0.5 }} />
+                    <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
                   </Link>
                 ))}
               </div>

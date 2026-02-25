@@ -45,6 +45,7 @@ function NavUsersContent() {
         const fallback = await supabase.from('profiles').select('id, full_name, email, role, updated_at').order('full_name', { ascending: true })
         if (fallback.error) throw fallback.error
         const { data: agreements } = await supabase.from('user_agreements').select('user_id, signed_at, is_terminated')
+        const terminatedIds = new Set((agreements || []).filter((a: any) => a.is_terminated).map((a: any) => a.user_id))
         setUsers((fallback.data || []).map((p: any) => {
           const activeAgreement = agreements?.find((a: any) => a.user_id === p.id && !a.is_terminated)
           return {
@@ -53,9 +54,10 @@ function NavUsersContent() {
             contact_phone: '',
             role: p.role,
             hasSigned: !!activeAgreement,
-            signedAt: activeAgreement?.signed_at
+            signedAt: activeAgreement?.signed_at,
+            isTerminated: terminatedIds.has(p.id)
           }
-        }))
+        }).filter((u: any) => !u.isTerminated))
         setLoading(false)
         return
       }
@@ -65,7 +67,9 @@ function NavUsersContent() {
         .from('user_agreements')
         .select('user_id, signed_at, is_terminated')
       
-      // 3. Koble sammen
+      const terminatedIds = new Set((agreements || []).filter(a => a.is_terminated).map(a => a.user_id))
+
+      // 3. Koble sammen – ekskluder inaktive (terminerte) brukere fra Brukere-listen
       const mappedUsers = (profiles || []).map((p: any) => {
         const activeAgreement = agreements?.find(a => a.user_id === p.id && !a.is_terminated)
         return {
@@ -74,11 +78,11 @@ function NavUsersContent() {
           contact_phone: '',
           role: p.role,
           hasSigned: !!activeAgreement,
-          signedAt: activeAgreement?.signed_at
+          signedAt: activeAgreement?.signed_at,
+          isTerminated: terminatedIds.has(p.id)
         }
-      })
+      }).filter((u: { isTerminated?: boolean }) => !u.isTerminated)
 
-      console.log("Hentet brukere:", mappedUsers.length)
       setUsers(mappedUsers)
     } catch (err: any) {
       console.error('Error fetching users:', err)

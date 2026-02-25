@@ -8,7 +8,7 @@ import {
   Search, Filter, MapPin, Users, Info, ChevronRight, Home as HomeIcon, 
   ShieldCheck, ArrowUpDown, LayoutList, Map as MapIcon,
   CheckCircle2, XCircle, AlertCircle, Phone, User, Building, Tag,
-  Ruler, Eye, Calendar, Settings, RotateCcw, X
+  Ruler, Eye, Calendar, Settings, RotateCcw, X, CalendarPlus
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
@@ -21,6 +21,7 @@ const MapView = dynamic(() => import('../../components/MapView'), {
 export default function NavDatabase() {
   const router = useRouter()
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   // ... rest of state ...
@@ -34,18 +35,13 @@ export default function NavDatabase() {
       }
 
       const role = user.user_metadata?.role
-      if (role === 'kommune_ansatt') {
+      const { data: profile } = await supabase.from('profiles').select('role, kommune_can_edit').eq('id', user.id).maybeSingle()
+      if (role === 'kommune_ansatt' || profile?.role === 'kommune_ansatt') {
         setIsAuthorized(true)
-        setUserRole(role)
+        setUserRole(profile?.role || role || 'kommune_ansatt')
+        setKommuneCanEdit(profile?.kommune_can_edit !== false)
       } else {
-        // Dobbeltsjekk i profiles hvis ikke i metadata
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
-        if (profile?.role === 'kommune_ansatt') {
-          setIsAuthorized(true)
-          setUserRole(profile.role)
-        } else {
-          setIsAuthorized(false)
-        }
+        setIsAuthorized(false)
       }
     }
     checkAccess()
@@ -66,6 +62,8 @@ export default function NavDatabase() {
   const [formidletStart, setFormidletStart] = useState('')
   const [formidletEnd, setFormidletEnd] = useState('')
   const [formidletSending, setFormidletSending] = useState(false)
+  const [formidletExtendModal, setFormidletExtendModal] = useState<{ listing: any; period: any } | null>(null)
+  const [formidletExtendEnd, setFormidletExtendEnd] = useState('')
   
   const [visibleColumns, setVisibleColumns] = useState(['address', 'city', 'owner_name', 'price_daily'])
 
@@ -313,6 +311,40 @@ export default function NavDatabase() {
     setFormidletModalListing(listing)
     setFormidletStart(today)
     setFormidletEnd(today)
+  }
+
+  const openFormidletExtendModal = (listing: any) => {
+    const periods = (availability[listing.id] || []).filter((p: any) => p.status === 'Formidla').sort((a: any, b: any) => (b.end_date > a.end_date ? 1 : -1))
+    const latest = periods[0]
+    if (!latest) return
+    setFormidletExtendModal({ listing, period: latest })
+    setFormidletExtendEnd(latest.end_date)
+  }
+
+  const handleExtendFormidlet = async () => {
+    if (!formidletExtendModal || !formidletExtendEnd) return
+    const { listing, period } = formidletExtendModal
+    if (new Date(formidletExtendEnd) < new Date(period.end_date)) {
+      alert('Ny sluttdato må være etter nåværende sluttdato.')
+      return
+    }
+    if (!confirm(`Forleng formidlingsperioden for "${listing.address}" til ${formidletExtendEnd}?`)) return
+    setFormidletSending(true)
+    try {
+      const { error } = await supabase.from('listing_availability').update({ end_date: formidletExtendEnd }).eq('id', period.id)
+      if (error) throw error
+      const { data: { user } } = await supabase.auth.getUser()
+      await supabase.from('audit_logs').insert([{ user_id: user?.id, action_type: 'KOMMUNE_EXTEND_FORMIDLA', listing_address: listing.address, details: { period_id: period.id, new_end: formidletExtendEnd } }])
+      if (listing?.owner_id) {
+        await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Formidlingsperiode forlenget', message: `Kommunen har forlenget formidlingsperioden for ${listing.address} til ${formidletExtendEnd}.`, listing_id: listing.id }])
+      }
+      setFormidletExtendModal(null)
+      fetchListings(false)
+    } catch (err: any) {
+      alert('Feil: ' + err.message)
+    } finally {
+      setFormidletSending(false)
+    }
   }
 
   const handleMarkAsFormidlet = async () => {
@@ -705,6 +737,31 @@ export default function NavDatabase() {
         </div>
       )}
 
+      {/* Modal: Forleng formidlet periode */}
+      {formidletExtendModal && (
+        <div 
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
+          onClick={() => !formidletSending && setFormidletExtendModal(null)}
+        >
+          <div className="card" style={{ padding: 'var(--space-8)', maxWidth: '420px', width: '90%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
+              <h3 style={{ margin: 0 }}>Forleng formidlingsperiode</h3>
+              <button onClick={() => !formidletSending && setFormidletExtendModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}><X size={20} /></button>
+            </div>
+            <p style={{ marginBottom: 'var(--space-4)', fontSize: '0.95rem', color: 'var(--text-muted)' }}>{formidletExtendModal.listing.address}</p>
+            <p style={{ marginBottom: 'var(--space-3)', fontSize: '0.9rem' }}>Nåværende periode: {formidletExtendModal.period.start_date} – {formidletExtendModal.period.end_date}</p>
+            <div style={{ marginBottom: 'var(--space-6)' }}>
+              <label className="label">Ny sluttdato</label>
+              <input type="date" className="input" style={{ marginTop: 'var(--space-2)' }} value={formidletExtendEnd} onChange={e => setFormidletExtendEnd(e.target.value)} min={formidletExtendModal.period.end_date} />
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+              <button onClick={() => !formidletSending && setFormidletExtendModal(null)} style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', padding: 'var(--space-3) var(--space-5)', borderRadius: '10px', cursor: 'pointer' }}>Avbryt</button>
+              <button onClick={handleExtendFormidlet} disabled={formidletSending} className="button button-accent">{formidletSending ? ' Lagrer...' : 'Forleng'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         {loading ? (
           <div className="card" style={{ padding: 'var(--space-10)', minHeight: '300px' }} />
@@ -752,15 +809,20 @@ export default function NavDatabase() {
                           <Link href={`/listings/${l.id}?view=nav`} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)' }} title="Se detaljer">
                             <Eye size={16} />
                           </Link>
-                          {activeTab === 'Tilgjengelig' && (
+                          {activeTab === 'Tilgjengelig' && kommuneCanEdit && (
                             <button onClick={() => openFormidletModal(l)} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)', border: 'none', cursor: 'pointer' }} title="Legg inn formidlet periode">
                               <ShieldCheck size={16} />
                             </button>
                           )}
-                          {activeTab === 'Formidlet' && (
-                            <button onClick={() => handleRemoveFormidlet(l.id, l.address)} style={{ padding: '6px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', color: '#ef4444', border: 'none', cursor: 'pointer' }} title="Fjern formidling">
-                              <RotateCcw size={16} />
-                            </button>
+                          {activeTab === 'Formidlet' && kommuneCanEdit && (
+                            <>
+                              <button onClick={() => openFormidletExtendModal(l)} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)', border: 'none', cursor: 'pointer' }} title="Forleng periode">
+                                <CalendarPlus size={16} />
+                              </button>
+                              <button onClick={() => handleRemoveFormidlet(l.id, l.address)} style={{ padding: '6px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', color: '#ef4444', border: 'none', cursor: 'pointer' }} title="Fjern formidling">
+                                <RotateCcw size={16} />
+                              </button>
+                            </>
                           )}
                         </div>
                       </td>

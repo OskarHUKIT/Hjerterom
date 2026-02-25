@@ -10,9 +10,15 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
 serve(async (req) => {
   const url = new URL(req.url)
   const code = url.searchParams.get("code")
+  const state = url.searchParams.get("state") // OAuth state = return_to from callback
+  const returnTo = url.searchParams.get("return_to") // From initial request
   
   const redirectUri = `https://ayddwbmkclujefnhsaqv.supabase.co/functions/v1/auth-signicat`
   
+  if (!CLIENT_SECRET) {
+    return errorPage("SIGNICAT_SECRET_LOGIN er ikke satt i Supabase. Legg til hemmeligheten under Project Settings → Edge Functions → Secrets.", state, url)
+  }
+
   if (!code) {
     try {
       const response = await fetch(SIGNICAT_DISCOVERY_URL)
@@ -23,6 +29,7 @@ serve(async (req) => {
       authorizeUrl.searchParams.set("response_type", "code")
       authorizeUrl.searchParams.set("scope", "openid profile email")
       authorizeUrl.searchParams.set("redirect_uri", redirectUri)
+      if (returnTo) authorizeUrl.searchParams.set("state", returnTo)
       
       return Response.redirect(authorizeUrl.toString(), 302)
     } catch (e) {
@@ -101,25 +108,45 @@ serve(async (req) => {
         .catch(err => console.error("Profil-oppdatering feilet:", err.message))
     }
 
-    // 3. Generer innloggingslenke
-    const isLocal = url.host.includes('localhost') || url.host.includes('127.0.0.1')
-    const finalRedirect = isLocal ? 'http://localhost:3000' : `https://${url.host.replace('.functions', '')}`
+    // 3. Generer innloggingslenke - bruk state (return_to) fra OAuth callback
+    const finalRedirect = (state && decodeURIComponent(state).startsWith('http')) 
+      ? decodeURIComponent(state) 
+      : (url.host.includes('localhost') ? 'http://localhost:3000' : 'https://boly.vercel.app')
 
+    const redirectWithBankId = finalRedirect + (finalRedirect.includes('?') ? '&' : '?') + 'bankid=1'
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: email,
-      options: { redirectTo: finalRedirect }
+      options: { redirectTo: redirectWithBankId }
     })
 
     if (linkError) throw linkError
 
     return Response.redirect(linkData.properties.action_link, 302)
 
-  } catch (err) {
-    console.error("BankID Login Error:", err.message)
-    return new Response(JSON.stringify({ error: err.message }), { 
-      status: 400, 
-      headers: { "Content-Type": "application/json" } 
-    })
+  } catch (err: any) {
+    const msg = err?.message || String(err)
+    console.error("BankID Login Error:", msg)
+    return errorPage(msg, state, url)
   }
 })
+
+function escapeHtml(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function errorPage(msg: string, state?: string | null, url?: URL): Response {
+  try {
+    const fallbackOrigin = url?.host?.includes('localhost') ? 'http://localhost:3000' : 'https://boly.vercel.app'
+    const loginUrl = (state && decodeURIComponent(state).startsWith('http')) ? decodeURIComponent(state) + '/login' : fallbackOrigin + '/login'
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>BankID-feil</title></head><body style="font-family:system-ui;max-width:480px;margin:80px auto;padding:24px;background:#0f172a;color:#e2e8f0;">
+      <h1 style="color:#ef4444;">BankID-innlogging feilet</h1>
+      <p style="opacity:0.9;">${escapeHtml(msg)}</p>
+      <p style="font-size:0.9rem;opacity:0.7;">Vanlige årsaker: Manglende SIGNICAT_SECRET_LOGIN, feil redirect_uri i Signicat-dashboard, eller utløpt BankID-kode.</p>
+      <a href="${escapeHtml(loginUrl)}" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#3b82f6;color:white;text-decoration:none;border-radius:8px;">Prøv igjen</a>
+    </body></html>`
+    return new Response(html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } })
+  } catch {
+    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { "Content-Type": "application/json" } })
+  }
+}

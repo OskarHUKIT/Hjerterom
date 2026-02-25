@@ -7,8 +7,8 @@ self.addEventListener('push', function (event) {
   event.waitUntil(
     self.registration.showNotification(data.title || 'Boligbanken', {
       body: data.body || data.message || '',
-      icon: '/logo.png',
-      badge: '/logo.png',
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
       data: { url: data.url || '/' }
     })
   )

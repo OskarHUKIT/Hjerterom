@@ -120,6 +120,7 @@ create policy "Anyone can view availability" on listing_availability for select 
 create policy "Owners can manage availability" on listing_availability for all using (
   exists (select 1 from listings where id = listing_id and owner_id = auth.uid())
 );
+-- Kommune can add/remove Formidla periods - run supabase/migrations/20250213_kommune_listing_availability.sql if needed
 
 -- 8. EXTENDED SCHEMA FOR KOMMUNE UPDATE
 -- Run this to support new features: Handover reports, Notifications, Internal Notes, and Chats
@@ -260,3 +261,17 @@ insert into storage.buckets (id, name, public) values ('listings', 'listings', t
 create policy "Public Access" on storage.objects for select using ( bucket_id = 'listings' );
 create policy "Authenticated Upload" on storage.objects for insert with check ( bucket_id = 'listings' and auth.role() = 'authenticated' );
 ```
+
+## Ekstra: Brukere og varsler (migration 20250219)
+
+Kjør migrasjonen `supabase/migrations/20250219_profiles_kommune_notifications.sql` og `20250219200000_notification_sender_and_link.sql` for å:
+
+1. **Brukere-listen** – Kommune kan se alle profiler (inkl. nye BankID-brukere)
+2. **Varsler ved melding fra utleier** – Når en utleier sender melding til Kommune, får alle kommune-ansatte et varsel med avsendernavn i tittelen
+3. **Gå til melding** – Kommune-ansatte kan klikke på meldingsvarslet for å åpne chatten med utleieren
+
+Hvis `supabase db push` feiler pga. migrasjonskonflikt, kjør SQL-en i `20250219200000_notification_sender_and_link.sql` manuelt i Supabase Dashboard → SQL Editor.
+
+## Nye brukere vises ikke i Brukere-listen
+
+Kjør `20250220000000_kommune_list_all_users.sql` for å lage RPC-funksjonen `get_all_users_for_kommune()`. Den henter brukere fra `auth.users` (inkl. nye BankID-brukere) og slår sammen med `profiles`, og omgår RLS slik at Kommune får med alle.

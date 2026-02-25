@@ -14,18 +14,6 @@ export default function Footer() {
             <div className="footer-logos-row" style={{ display: 'flex', gap: 'var(--space-8)', alignItems: 'center' }}>
               <div className="footer-logo-container">
                 <img 
-                  src="/logo-kunnskapstrening.png" 
-                  alt="Kunnskapstrening.no" 
-                  style={{ height: '120px', width: 'auto', objectFit: 'contain' }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    target.parentElement!.innerText = 'Kunnskapstrening.no';
-                  }}
-                />
-              </div>
-              <div className="footer-logo-container">
-                <img 
                   src="/logo-gamechanging.png" 
                   alt="Game Changing" 
                   style={{ height: '120px', width: 'auto', objectFit: 'contain' }}
@@ -77,7 +65,7 @@ export default function Footer() {
           color: 'var(--text-muted)',
           fontSize: '0.85rem'
         }}>
-          © 2026 Utviklet i samarbeid mellom Kunnskapstrening IT og Game Changing AS. Alle rettigheter reservert.
+          © 2026 Utviklet av Game Changing AS. Alle rettigheter reservert.
         </div>
       </div>
     </footer>

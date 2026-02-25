@@ -26,7 +26,7 @@ export default function Home() {
           maxWidth: '640px', 
           color: 'var(--text-body)'
         }}>
-          Boly er den profesjonelle bindeleddet mellom Kommune og private boligeiere. Vi gjør det trygt og effektivt å løse akutte boligbehov.
+          Boly er det profesjonelle bindeleddet mellom kommune og private boligeiere. Vi gjør det trygt og effektivt å løse akutte boligbehov.
         </p>
       </div>
 

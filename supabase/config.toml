@@ -350,6 +350,14 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# Edge Functions – auth-signicat mottar BankID OAuth callback uten JWT
+[functions.auth-signicat]
+verify_jwt = false
+
+# sign-agreement kan kalles uten JWT – userId valideres i body
+[functions.sign-agreement]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

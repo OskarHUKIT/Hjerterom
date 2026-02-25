@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [bankIdRedirecting, setBankIdRedirecting] = useState(false)
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,10 +47,13 @@ export default function LoginPage() {
     }
   }
 
-  const handleBankIDLogin = () => {
-    // Don't set loading - immediate redirect; avoids button staying disabled on return (bfcache)
+  const handleBankIDLogin = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (bankIdRedirecting) return
+    setBankIdRedirecting(true)
     const returnTo = encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')
-    window.location.href = `https://ayddwbmkclujefnhsaqv.supabase.co/functions/v1/auth-signicat?return_to=${returnTo}`
+    const url = `https://ayddwbmkclujefnhsaqv.supabase.co/functions/v1/auth-signicat?return_to=${returnTo}`
+    window.location.assign(url)
   }
 
   return (
@@ -79,7 +83,7 @@ export default function LoginPage() {
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>
             {isSignUp 
-              ? 'Bli en del av Bo.ly og bidra til boligformidling.' 
+              ? 'Bli en del av bo.ly og bidra til boligformidling.' 
               : 'Logg inn for å administrere dine boliger.'}
           </p>
         </div>
@@ -164,7 +168,7 @@ export default function LoginPage() {
 
           <button 
             onClick={handleBankIDLogin}
-            disabled={loading}
+            disabled={bankIdRedirecting}
             type="button"
             className="button"
             style={{ 
@@ -173,7 +177,7 @@ export default function LoginPage() {
               background: 'var(--color-royal-blue)',
               border: '1px solid var(--border-subtle)',
               color: 'white',
-              cursor: 'pointer',
+              cursor: bankIdRedirecting ? 'wait' : 'pointer',
               fontSize: '0.9rem',
               display: 'flex',
               alignItems: 'center',
@@ -181,7 +185,7 @@ export default function LoginPage() {
               gap: '8px'
             }}
           >
-            <ShieldCheck size={18} /> Logg inn med BankID
+            <ShieldCheck size={18} /> {bankIdRedirecting ? 'Omdirigerer til BankID...' : 'Logg inn med BankID'}
           </button>
         </div>
 

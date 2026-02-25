@@ -95,8 +95,10 @@ export default function NavNotifications() {
       ) : notifications.length > 0 ? (
         <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
           {notifications.map(notif => {
-            const messageLink = role === 'kommune_ansatt' && notif.type === 'NEW_MESSAGE' && notif.related_user_id
-              ? `/nav/messages?with=${notif.related_user_id}`
+            const messageLink = notif.type === 'NEW_MESSAGE'
+              ? (role === 'kommune_ansatt' && notif.related_user_id
+                ? `/nav/messages?with=${notif.related_user_id}`
+                : '/nav/messages')
               : null
             const cardContent = (
               <div style={{ display: 'flex', gap: 'var(--space-4)' }}>

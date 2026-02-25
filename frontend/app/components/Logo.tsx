@@ -31,7 +31,7 @@ export default function Logo() {
         </div>
       ) : (
         <Image
-          src="/logo.png"
+          src="/icon-192x192.png"
           alt="Bo.ly Logo"
           width={140}
           height={60}

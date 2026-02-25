@@ -44,67 +44,48 @@ export default function Documents() {
       <div className="card">
         <h2 style={{ marginBottom: '1.5rem' }}>Eksisterende dokumenter</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div style={{ 
-            padding: '1.25rem', 
-            background: 'linear-gradient(135deg, rgba(170, 223, 240, 0.2) 0%, rgba(107, 137, 197, 0.1) 100%)',
-            borderRadius: '10px', 
-            border: '1px solid rgba(107, 137, 197, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-            transition: 'all 0.2s',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateX(4px)'
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(33, 51, 102, 0.15)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateX(0)'
-            e.currentTarget.style.boxShadow = 'none'
-          }}
-          >
-            <div style={{ fontSize: '2rem' }}>📄</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, color: 'var(--color-dark-navy)', marginBottom: '0.25rem' }}>
-                251001 Behov boligbanken - oversendes Kunnskapstrening IT.docx (2).pdf
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--color-dark-navy)', opacity: 0.6 }}>
-                PDF dokument
-              </div>
-            </div>
-          </div>
-          
-          <div style={{ 
-            padding: '1.25rem', 
-            background: 'linear-gradient(135deg, rgba(170, 223, 240, 0.2) 0%, rgba(107, 137, 197, 0.1) 100%)',
-            borderRadius: '10px', 
-            border: '1px solid rgba(107, 137, 197, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-            transition: 'all 0.2s',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateX(4px)'
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(33, 51, 102, 0.15)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateX(0)'
-            e.currentTarget.style.boxShadow = 'none'
-          }}
-          >
-            <div style={{ fontSize: '2rem' }}>📄</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, color: 'var(--color-dark-navy)', marginBottom: '0.25rem' }}>
-                Vilkårsavtale Boligbanken.docx
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--color-dark-navy)', opacity: 0.6 }}>
-                Word dokument
-              </div>
-            </div>
-          </div>
+          {[
+            { name: 'Vilkårsavtale Boligbanken', file: 'VilkarsavtaleBoligbanken.pdf', desc: 'Vilkårsavtale for Boligbanken' },
+            { name: 'Overtakelsesrapport', file: 'Overtakelsesrapport.pdf', desc: 'Mal for overtakelsesrapport' },
+            { name: 'Kontaktinfoskjema', file: 'Kontaktinfoschema.pdf', desc: 'Skjema for kontaktinfo' }
+          ].map(doc => {
+            const url = `https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/${doc.file}`
+            return (
+              <a
+                key={doc.file}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: '1.25rem',
+                  background: 'linear-gradient(135deg, rgba(170, 223, 240, 0.2) 0%, rgba(107, 137, 197, 0.1) 100%)',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(107, 137, 197, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  transition: 'all 0.2s',
+                  cursor: 'pointer',
+                  textDecoration: 'none',
+                  color: 'inherit'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateX(4px)'
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(33, 51, 102, 0.15)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateX(0)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                <div style={{ fontSize: '2rem' }}>📄</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--color-dark-navy)', marginBottom: '0.25rem' }}>{doc.name}</div>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--color-dark-navy)', opacity: 0.6 }}>{doc.desc} · PDF</div>
+                </div>
+              </a>
+            )
+          })}
         </div>
       </div>
     </main>

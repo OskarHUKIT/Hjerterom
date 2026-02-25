@@ -10,6 +10,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: '#3b82f6',
+  viewportFit: 'cover',
+  userScalable: true,
 }
 
 export const metadata: Metadata = {
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
   description: 'Bo.ly Housing Bank Application',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, title: 'Boligbanken' },
-  icons: { apple: '/logo.png' },
+  icons: { apple: '/icon-512x512.png' },
 }
 
 export default function RootLayout({
