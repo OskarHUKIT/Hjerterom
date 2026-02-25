@@ -64,7 +64,6 @@ function SignTermsContent() {
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
         },
       })
 

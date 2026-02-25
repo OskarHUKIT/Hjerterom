@@ -19,7 +19,14 @@ serve(async (req) => {
 
   let currentStep = "Initialisering"
   try {
-    const body = await req.json()
+    const raw = await req.text()
+    let body: { userId?: string; origin?: string }
+    try {
+      body = raw ? JSON.parse(raw) : {}
+    } catch {
+      console.error('Body parse failed. Raw (first 200):', raw.slice(0, 200))
+      throw new Error('Ugyldig forespørsel: kunne ikke parse JSON.')
+    }
     const { userId, origin } = body
     
     console.log(`DEBUG: Starter signering for ${userId}. Origin: ${origin}. Secret konfigurert: ${!!CLIENT_SECRET}`)
