@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ShieldCheck, FileText, ChevronDown, CheckCircle2, Lock, AlertCircle, ArrowLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { FunctionsHttpError } from '@supabase/supabase-js'
 
 function SignTermsContent() {
   const router = useRouter()
@@ -56,39 +55,31 @@ function SignTermsContent() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) throw new Error('Logg inn på nytt og prøv igjen.')
 
-      const { data, error } = await supabase.functions.invoke('sign-agreement', {
-        body: {
-          userId: session.user.id,
-          agreementVersion: '1.0',
-          origin: typeof window !== 'undefined' ? window.location.origin : '',
-        },
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+      const body = {
+        userId: session.user.id,
+        agreementVersion: '1.0',
+        origin: typeof window !== 'undefined' ? window.location.origin : '',
+      }
+      const res = await fetch(`${supabaseUrl}/functions/v1/sign-agreement`, {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
+        body: JSON.stringify(body),
       })
 
-      if (error) {
-        let msg: string = error.message || 'Kunne ikke starte signering.'
-        if (error instanceof FunctionsHttpError && error.context?.json) {
-          try {
-            const body = await error.context.json()
-            const extracted = body?.message ?? body?.error
-            if (extracted != null) {
-              msg = typeof extracted === 'string' ? extracted : JSON.stringify(extracted)
-            }
-          } catch {
-            // ignore – keep default msg
-          }
-        }
-        throw new Error(msg)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        const msg = (data?.message ?? data?.error ?? res.statusText) || 'Kunne ikke starte signering.'
+        throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
       }
-
       if (data?.url) {
         window.location.href = data.url
         return
       }
-
-      const errMsg = data?.error || data?.message || 'Kunne ikke starte signering.'
+      const errMsg = data?.error ?? data?.message ?? 'Kunne ikke starte signering.'
       throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg))
     } catch (err: any) {
       alert('Feil ved start av signering: ' + (err?.message || String(err)))
