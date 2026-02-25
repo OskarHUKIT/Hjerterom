@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
@@ -8,7 +8,7 @@ import { Mail, Lock, ShieldCheck, UserPlus, LogIn, User, Phone } from 'lucide-re
 import Logo from '../components/Logo'
 import { useLanguage } from '../../context/LanguageContext'
 
-export default function LoginPage() {
+function LoginPageContent() {
   const { t } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -262,6 +262,14 @@ export default function LoginPage() {
         )}
       </div>
     </main>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="login-page" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="card" style={{ padding: 'var(--space-10)', minWidth: '360px' }} /></div>}>
+      <LoginPageContent />
+    </Suspense>
   )
 }
 
