@@ -49,15 +49,17 @@ function SignTermsContent() {
     
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.id || !session.access_token) throw new Error('Logg inn på nytt og prøv igjen')
 
-      // Kall vår nye Edge Function for å starte ekte signering
       const response = await fetch('https://ayddwbmkclujefnhsaqv.functions.supabase.co/sign-agreement', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
-          userId: user.id,
+          userId: session.user.id,
           agreementVersion: '1.0',
           origin: window.location.origin // Legg til origin her
         })
