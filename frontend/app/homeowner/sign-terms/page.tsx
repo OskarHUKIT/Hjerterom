@@ -69,13 +69,16 @@ function SignTermsContent() {
       })
 
       if (error) {
-        let msg = error.message || 'Kunne ikke starte signering.'
-        if (error instanceof FunctionsHttpError && error.context) {
+        let msg: string = error.message || 'Kunne ikke starte signering.'
+        if (error instanceof FunctionsHttpError && error.context?.json) {
           try {
             const body = await error.context.json()
-            msg = body?.message || body?.error || msg
+            const extracted = body?.message ?? body?.error
+            if (extracted != null) {
+              msg = typeof extracted === 'string' ? extracted : JSON.stringify(extracted)
+            }
           } catch {
-            // ignore parse errors
+            // ignore – keep default msg
           }
         }
         throw new Error(msg)
