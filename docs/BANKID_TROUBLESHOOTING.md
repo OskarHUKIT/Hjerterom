@@ -31,10 +31,11 @@ Det er to BankID-fløyer i Bo.ly:
 
 **Sjekkliste:**
 
-1. **Deploy sign-agreement:**
+1. **Deploy sign-agreement** (uten JWT-sjekk, siden userId valideres i funksjonen):
    ```powershell
-   npx supabase functions deploy sign-agreement
+   npx supabase functions deploy sign-agreement --no-verify-jwt
    ```
+   Alternativt brukes `verify_jwt = false` i `supabase/config.toml` under `[functions.sign-agreement]` hvis prosjektet er linket.
 
 2. **Supabase Secrets:**
    - `SIGNICAT_SECRET_SIGN` må være satt (forskjellig fra SIGNICAT_SECRET_LOGIN!)
@@ -65,6 +66,8 @@ Det er to BankID-fløyer i Bo.ly:
 | Feil | Løsning |
 |------|---------|
 | "Missing authorization header" | Deploy frontend med Authorization Bearer-token i sign-terms |
+| "Invalid JWT" | Re-deploy med JWT av: `npx supabase functions deploy sign-agreement --no-verify-jwt` |
+| "Edge Function returned non-2xx" | Sjekk Supabase Functions-logg for detaljert feil; ofte JWT eller secret |
 | "Kunne ikke laste ned PDF" | Sjekk at VilkarsavtaleBoligbanken.pdf finnes i storage, bucket public |
 | "SIGNICAT_SECRET_SIGN mangler" | Legg til secret i Supabase |
 | Ingenting skjer ved klikk | Sjekk at auth-signicat/sign-agreement er deployet; prøv annen nettleser |

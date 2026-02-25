@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ShieldCheck, FileText, ChevronDown, CheckCircle2, Lock, AlertCircle, ArrowLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { FunctionsHttpError } from '@supabase/supabase-js'
 
 function SignTermsContent() {
   const router = useRouter()
@@ -52,18 +53,33 @@ function SignTermsContent() {
 
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Logg inn på nytt og prøv igjen.')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) throw new Error('Logg inn på nytt og prøv igjen.')
 
       const { data, error } = await supabase.functions.invoke('sign-agreement', {
         body: {
-          userId: user.id,
+          userId: session.user.id,
           agreementVersion: '1.0',
           origin: typeof window !== 'undefined' ? window.location.origin : '',
         },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
       })
 
-      if (error) throw new Error(error.message || 'Kunne ikke starte signering.')
+      if (error) {
+        let msg = error.message || 'Kunne ikke starte signering.'
+        if (error instanceof FunctionsHttpError && error.context) {
+          try {
+            const body = await error.context.json()
+            msg = body?.message || body?.error || msg
+          } catch {
+            // ignore parse errors
+          }
+        }
+        throw new Error(msg)
+      }
 
       if (data?.url) {
         window.location.href = data.url
