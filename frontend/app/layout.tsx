@@ -13,6 +13,8 @@ export const viewport: Viewport = {
   themeColor: '#3b82f6',
   viewportFit: 'cover',
   userScalable: true,
+  // Prevent unwanted zoom on input focus (iOS)
+  interactiveWidget: 'resizes-content',
 }
 
 export const metadata: Metadata = {

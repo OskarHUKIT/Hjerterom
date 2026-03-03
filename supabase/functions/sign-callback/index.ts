@@ -73,16 +73,22 @@ serve(async (req) => {
         .select('id')
         .eq('role', 'kommune_ansatt')
 
-      if (kommuneProfiles?.length) {
-        await supabaseAdmin.from('notifications').insert(
-          kommuneProfiles.map((p) => ({
+      // Kun kommune-ansatte, ALDRI brukeren som signerte selv (utleier)
+      const recipients = (kommuneProfiles || []).filter((p) => p.id !== userId)
+
+      if (recipients.length > 0) {
+        const notifications = recipients
+          .filter((p) => p.id !== userId) // Ekstra sikkerhet: aldri signerer
+          .map((p) => ({
             owner_id: p.id,
             type: 'TERMS_SIGNED',
             title: 'Vilkårsavtale signert',
             message: `${userName} har signert vilkårsavtalen.`,
             status: 'unread'
           }))
-        )
+        if (notifications.length > 0) {
+          await supabaseAdmin.from('notifications').insert(notifications)
+        }
       }
 
       redirectUrl += "?signed=true"

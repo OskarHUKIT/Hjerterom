@@ -90,21 +90,23 @@ serve(async (req) => {
       userId = newUser.user.id
     }
 
-    // 2. Oppdater profil med navn og rolle (uansett om brukeren er ny eller gammel)
+    // 2. Oppdater profil med navn (rolle settes av handle_new_user/whitelist for nye, behold eksisterende for andre)
     if (userId) {
-      // Hent eksisterende rolle fra metadata hvis den finnes
-      const { data: userObject } = await supabaseAdmin.auth.admin.getUserById(userId)
-      const currentRole = userObject?.user?.user_metadata?.role || 'homeowner'
+      const { data: whitelistRegion } = await supabaseAdmin.rpc('get_whitelist_region_for_email', { p_email: email })
 
+      const profileUpdate: Record<string, unknown> = {
+        id: userId,
+        full_name: bankIdName,
+        email: email,
+        updated_at: new Date().toISOString()
+      }
+      if (whitelistRegion) {
+        profileUpdate.role = 'kommune_ansatt'
+        profileUpdate.kommune_region = whitelistRegion
+      }
       await supabaseAdmin
         .from('profiles')
-        .upsert({ 
-          id: userId,
-          full_name: bankIdName,
-          email: email,
-          role: currentRole,
-          updated_at: new Date().toISOString()
-        })
+        .upsert(profileUpdate)
         .catch(err => console.error("Profil-oppdatering feilet:", err.message))
     }
 

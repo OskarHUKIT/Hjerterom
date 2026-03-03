@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import Logo from './Logo'
-import { User, LogOut, LogIn, ChevronDown, LayoutDashboard, ShieldCheck, Bell, Menu, X, MessageSquare, Sun, Moon, Globe } from 'lucide-react'
+import { User, LogOut, LogIn, ChevronDown, ShieldCheck, Bell, Menu, X, MessageSquare, Sun, Moon, Globe } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
 
@@ -153,7 +153,9 @@ export default function Header() {
             </Link>
           )}
 
-          <Link href="/homeowner/manage" className="nav-link" onClick={closeMobileNav}>{t('forLandlords')}</Link>
+          {role !== 'kommune_ansatt' && (
+            <Link href="/homeowner/manage" className="nav-link" onClick={closeMobileNav}>{t('myProperties')}</Link>
+          )}
           
           {loading ? (
             <div style={{ width: '100px' }}></div>
@@ -200,10 +202,6 @@ export default function Header() {
                   <div style={{ padding: 'var(--space-2) var(--space-4)', borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--space-2)' }}>
                     <p className="text-sm" style={{ fontWeight: 600, color: 'var(--color-accent)' }}>{t('userPanel')}</p>
                   </div>
-                  
-                  <Link href="/homeowner/manage" className="menu-item" onClick={() => { setIsMenuOpen(false); closeMobileNav(); }}>
-                    <LayoutDashboard size={16} /> {t('myProperties')}
-                  </Link>
                   
                   <Link href="/homeowner/sign-terms" className="menu-item" onClick={() => { setIsMenuOpen(false); closeMobileNav(); }}>
                     <ShieldCheck size={16} /> {hasSignedTerms ? t('signedAgreement') : t('signTerms')}
@@ -279,7 +277,14 @@ export default function Header() {
 
   return (
     <header className="header">
-      <div className="header-inner container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 var(--space-4)' }}>
+      <div className="header-inner container" style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        padding: '0 var(--space-4)',
+        paddingLeft: 'max(var(--space-4), env(safe-area-inset-left))',
+        paddingRight: 'max(var(--space-4), env(safe-area-inset-right))'
+      }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }} onClick={closeMobileNav}>
           <Logo />
         </Link>

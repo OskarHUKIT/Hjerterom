@@ -224,8 +224,8 @@ export default function HomeownerRegister() {
         <p style={{ maxWidth: '700px', opacity: 0.8 }}>Fyll ut alle detaljer om boligen. Denne informasjonen er grunnlaget for kommunens vurdering av boligen.</p>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 'var(--space-6)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+      <form onSubmit={handleSubmit} className="register-form" style={{ display: 'grid', gap: 'var(--space-6)' }}>
+        <div className="register-form-columns" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
           
           <div style={{ display: 'grid', gap: 'var(--space-6)' }}>
             {/* Section 1: Basic Info & Kontakt */}
@@ -319,7 +319,7 @@ export default function HomeownerRegister() {
 
               <div style={{ marginTop: 'var(--space-4)' }}>
                 <label className="label">Etasje (velg alle som passer)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)' }}>
+                <div className="floor-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)' }}>
                   {['Underetasje', '1', '2', '3', '4', 'Annet'].map(f => (
                     <button type="button" key={f} 
                       onClick={() => toggleMultiSelect('floor_detail', f)}
@@ -389,7 +389,7 @@ export default function HomeownerRegister() {
             </section>
           </div>
 
-          <div style={{ display: 'grid', gap: 'var(--space-6)', position: 'sticky', top: '20px' }}>
+          <div className="register-form-sidebar" style={{ display: 'grid', gap: 'var(--space-6)', position: 'sticky', top: '20px' }}>
             {/* Section 3: Pris og Vilkår */}
             <section className="form-section">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-5)', color: 'var(--color-sky-blue)' }}>
@@ -478,7 +478,7 @@ export default function HomeownerRegister() {
                 <Camera size={20} /> Bilder og info
               </h3>
               <div style={{ border: '2px dashed var(--border-medium)', padding: 'var(--space-6)', textAlign: 'center', borderRadius: '16px', background: 'var(--bg-app)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+                <div className="image-previews-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
                   {imagePreviews.map((p, i) => (
                     <div key={i} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: '8px', overflow: 'hidden' }}>
                       <img src={p} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -500,7 +500,7 @@ export default function HomeownerRegister() {
           </div>
         </div>
 
-        <div style={{ 
+        <div className="register-form-footer" style={{ 
           marginTop: 'var(--space-4)', padding: 'var(--space-5) var(--space-6)', 
           background: 'rgba(15, 23, 42, 0.9)', borderRadius: '20px', 
           display: 'flex', flexDirection: 'column', gap: 'var(--space-4)',

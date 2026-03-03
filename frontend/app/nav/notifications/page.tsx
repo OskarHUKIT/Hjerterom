@@ -15,6 +15,7 @@ export default function NavNotifications() {
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [role, setRole] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   const fetchNotifications = async (showLoader = true) => {
     if (showLoader) setLoading(true)
@@ -22,6 +23,7 @@ export default function NavNotifications() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      setCurrentUserId(user.id)
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
       setRole(profile?.role || 'homeowner')
 
@@ -46,8 +48,10 @@ export default function NavNotifications() {
 
   const handleStatusChange = async (id: string, newStatus: 'unread' | 'completed') => {
     const previous = notifications
+    const { data: { user } } = await supabase.auth.getUser()
+    const resolverId = newStatus === 'completed' ? user?.id ?? 'me' : null
     setNotifications(notifs =>
-      notifs.map(n => n.id === id ? { ...n, status: newStatus, resolved_by: newStatus === 'completed' ? 'me' : null, resolved_at: newStatus === 'completed' ? new Date().toISOString() : null } : n)
+      notifs.map(n => n.id === id ? { ...n, status: newStatus, resolved_by: resolverId, resolved_at: newStatus === 'completed' ? new Date().toISOString() : null } : n)
     )
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -122,7 +126,12 @@ export default function NavNotifications() {
                   <p style={{ margin: '4px 0 0', opacity: 0.8 }}>{notif.message}</p>
                   <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '8px', fontSize: '0.8rem', opacity: 0.5 }}>
                     <span><Clock size={12} style={{ display: 'inline', marginRight: '4px' }} /> {new Date(notif.created_at).toLocaleString('no-NO')}</span>
-                    {notif.resolved_by && <span><CheckCircle2 size={12} style={{ display: 'inline', marginRight: '4px' }} /> {t('resolvedByColleague')}</span>}
+                    {notif.resolved_by && (
+                      <span>
+                        <CheckCircle2 size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                        {(role === 'kommune_ansatt' && notif.resolved_by !== currentUserId) ? t('resolvedByColleague') : t('resolvedByYou')}
+                      </span>
+                    )}
                     {messageLink && (
                       <span style={{ color: 'var(--color-accent)' }}>
                         → {(notif.type === 'HOUSE_FORMIDLET' || notif.type === 'HANDOVER_REMINDER') ? t('fillHandoverReport') : notif.type === 'NEW_REPORT' ? t('viewReport') : t('goToMessage')}

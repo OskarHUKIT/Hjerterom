@@ -24,6 +24,7 @@ export default function NavDatabase() {
   const router = useRouter()
   const [userRole, setUserRole] = useState<string | null>(null)
   const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
+  const [kommuneRegion, setKommuneRegion] = useState<string | null>(null)
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   // ... rest of state ...
@@ -37,11 +38,12 @@ export default function NavDatabase() {
       }
 
       const role = user.user_metadata?.role
-      const { data: profile } = await supabase.from('profiles').select('role, kommune_can_edit').eq('id', user.id).maybeSingle()
+      const { data: profile } = await supabase.from('profiles').select('role, kommune_can_edit, kommune_region').eq('id', user.id).maybeSingle()
       if (role === 'kommune_ansatt' || profile?.role === 'kommune_ansatt') {
         setIsAuthorized(true)
         setUserRole(profile?.role || role || 'kommune_ansatt')
         setKommuneCanEdit(profile?.kommune_can_edit !== false)
+        setKommuneRegion(profile?.kommune_region || null)
       } else {
         setIsAuthorized(false)
       }
@@ -203,6 +205,13 @@ export default function NavDatabase() {
           item.owner_name?.toLowerCase().includes(searchTerm.toLowerCase())
         )
       }
+      // Region filter: kommune users with kommune_region only see listings in their region(s)
+      if (kommuneRegion) {
+        const regions = kommuneRegion.split(',').map((r: string) => r.trim()).filter(Boolean)
+        if (regions.length > 0) {
+          filtered = filtered.filter(item => regions.some((r: string) => r === item.city))
+        }
+      }
       if (filters.city !== 'Alle') {
         filtered = filtered.filter(item => item.city === filters.city)
       }
@@ -275,7 +284,7 @@ export default function NavDatabase() {
     if (isAuthorized) {
       fetchListings()
     }
-  }, [activeTab, searchTerm, filters, sortField, sortOrder, viewMode, isAuthorized])
+  }, [activeTab, searchTerm, filters, sortField, sortOrder, viewMode, isAuthorized, kommuneRegion])
 
   if (isAuthorized === false) {
     return (
@@ -769,8 +778,9 @@ export default function NavDatabase() {
           <div className="card" style={{ padding: 'var(--space-10)', minHeight: '300px' }} />
         ) : listings.length > 0 ? (
           viewMode === 'table' ? (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+            <div className="card db-table-wrapper" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', minHeight: '200px' }}>
+              <table className="db-table" style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(59, 130, 246, 0.1)', textAlign: 'left' }}>
                     {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => (
@@ -832,6 +842,7 @@ export default function NavDatabase() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ) : viewMode === 'map' ? (
             <MapView listings={listings} />
@@ -1057,12 +1068,17 @@ export default function NavDatabase() {
         }
         @media (max-width: 768px) {
           .db-header-row { flex-direction: column; align-items: flex-start; }
-          .db-view-btns { width: 100%; }
+          .db-view-btns { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
           .db-tabs-row { flex-direction: column; align-items: stretch; }
           .db-action-btns { justify-content: flex-start; }
+          .db-table-wrapper { padding: 0 !important; }
+          .db-table { font-size: 0.8rem; }
+          .db-table th, .db-table td { padding: var(--space-2) var(--space-3) !important; }
         }
         @media (max-width: 480px) {
           .btn-label { display: none; }
+          .db-table { min-width: 500px; font-size: 0.75rem; }
+          .db-table th, .db-table td { padding: 8px 10px !important; }
         }
         @media (max-width: 400px) {
           .formidlet-date-range { grid-template-columns: 1fr; }

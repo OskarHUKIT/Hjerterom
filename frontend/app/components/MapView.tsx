@@ -79,9 +79,11 @@ export default function MapView({ listings }: MapViewProps) {
   return (
     <div 
       ref={containerRef} 
+      className="map-view-container"
       style={{ 
-        height: '600px', 
+        height: 'min(600px, 70vh)', 
         width: '100%', 
+        minHeight: '300px',
         borderRadius: '16px', 
         border: '1px solid var(--border-subtle)',
         background: '#f8fafc', // Vises mens kartet laster

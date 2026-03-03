@@ -1,21 +1,43 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, Home as HomeIcon, ShieldCheck, HelpCircle, ArrowRight } from 'lucide-react'
+import { Search, Home as HomeIcon, ShieldCheck, HelpCircle, ArrowRight, LogOut } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
+import { supabase } from './lib/supabase'
 
 export default function Home() {
   const { t } = useLanguage()
+  const [isKommune, setIsKommune] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    const check = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setIsKommune(false)
+        return
+      }
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      setIsKommune(profile?.role === 'kommune_ansatt')
+    }
+    check()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.reload()
+  }
+
   return (
     <main className="container">
-      <div style={{ 
+      <div className="hero-section" style={{ 
         padding: 'var(--space-10) 0', 
         maxWidth: '800px',
         textAlign: 'left',
         paddingLeft: 'max(0px, env(safe-area-inset-left))',
         paddingRight: 'max(0px, env(safe-area-inset-right))'
       }}>
-        <h1 className="animate-delay-1" style={{ 
+        <h1 className="animate-delay-1 hero-title" style={{ 
           fontSize: 'clamp(2.5rem, 6vw, 3.75rem)', 
           marginBottom: 'var(--space-4)',
           textShadow: '0 4px 12px rgba(0,0,0,0.3)'
@@ -79,9 +101,33 @@ export default function Home() {
             <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
               {t('manageDesc')}
             </p>
-            <Link href="/homeowner/manage" className="button" style={{ width: '100%', padding: 'var(--space-4)' }}>
-              {t('manageRental')} <ArrowRight size={18} />
-            </Link>
+            {isKommune ? (
+              <div style={{ 
+                padding: 'var(--space-4)', 
+                background: 'rgba(251, 191, 36, 0.1)', 
+                borderRadius: '12px', 
+                border: '1px solid rgba(251, 191, 36, 0.3)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-3)'
+              }}>
+                <p style={{ fontSize: '0.95rem', color: 'var(--text-body)', margin: 0 }}>
+                  {t('loginWithOtherAccount')}
+                </p>
+                <button 
+                  type="button"
+                  onClick={handleLogout}
+                  className="button"
+                  style={{ width: '100%', padding: 'var(--space-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}
+                >
+                  <LogOut size={18} /> {t('logOut')}
+                </button>
+              </div>
+            ) : (
+              <Link href="/homeowner/manage" className="button" style={{ width: '100%', padding: 'var(--space-4)' }}>
+                {t('manageRental')} <ArrowRight size={18} />
+              </Link>
+            )}
           </div>
         </div>
       </div>
