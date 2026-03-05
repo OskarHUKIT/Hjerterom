@@ -1,3 +1,5 @@
+import { formatDateNo } from './dateFormat'
+
 /**
  * Formaterer audit log-oppføringer til lesbare norske beskrivelser.
  */
@@ -27,8 +29,8 @@ export function formatAuditLogDescription(log: AuditLog): string {
     case 'TERMINATE_AGREEMENT':
       return 'Avsluttet vilkårsavtale'
     case 'KOMMUNE_MARK_FORMIDLA': {
-      const start = (d as any).start_date ? new Date((d as any).start_date).toLocaleDateString('no-NO') : ''
-      const end = (d as any).end_date ? new Date((d as any).end_date).toLocaleDateString('no-NO') : ''
+      const start = (d as any).start_date ? formatDateNo((d as any).start_date) : ''
+      const end = (d as any).end_date ? formatDateNo((d as any).end_date) : ''
       return start && end
         ? `Markerte ${addr} som formidlet for perioden ${start}–${end}`
         : `Markerte ${addr} som formidlet`

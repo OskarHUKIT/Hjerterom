@@ -4,6 +4,24 @@ Dokument for å vedlikeholde kommune-whitelist og vanlige Supabase-endringer.
 
 ---
 
+## Hvor setter jeg tilgang for regioner?
+
+Du setter **regiontilgang** på to steder, avhengig av om brukeren er ny eller finnes fra før:
+
+| Situasjon | Hvor | Hva du setter |
+|-----------|------|----------------|
+| **Ny kommune-bruker** (skal få tilgang når de registrerer seg) | **kommune_access_list** (via appen eller Supabase) | `email` + `region` (f.eks. `Narvik` eller `Narvik,Gratangen`) |
+| **Eksisterende bruker** (allerede opprettet) | **profiles** i Supabase Table Editor | `kommune_region` (f.eks. `Narvik` eller `Narvik,Gratangen`) |
+
+- **I appen:** Logg inn som kommune-ansatt → **Kommune-tilgang** i menyen → legg til e-post og region. Nyregistrerte med den e-posten får automatisk `kommune_region` satt.
+- **I Supabase:** Table Editor → **kommune_access_list** (nye brukere) eller **profiles** (eksisterende) → feltet `region` / `kommune_region`. Region må matche `listings.city` (kommunenavn, f.eks. Salangen, Narvik).
+
+Kommune-brukeren ser da kun boliger i de kommunene som står i deres region, og under **Brukere** kun brukere som har eller har hatt en bolig i samme region.
+
+**Fallback:** Hvis `profiles.kommune_region` er tom for en kommune-bruker, henter appen region fra **kommune_access_list** (whitelist) ut fra brukerens e-post. Sørg for at enten profilen har `kommune_region` satt, eller at whitelist har riktig `region` for den e-posten.
+
+---
+
 ## 1. Whitelist (kommune_access_list)
 
 E-poster som får kommune-tilgang automatisk ved registrering.
@@ -12,8 +30,7 @@ E-poster som får kommune-tilgang automatisk ved registrering.
 
 | E-post | Region | Notater |
 |--------|--------|---------|
-| ansatt1@narvik.kommune.no | Narvik | |
-| ansatt2@narvik.kommune.no | Narvik | |
+| testkommune@boly.no | Narvik | Evenes | Gratangen |
 | | | |
 
 **Region** må matche `listings.city` (f.eks. Narvik, Gratangen, Evenes). For flere kommuner: `Narvik,Gratangen`.

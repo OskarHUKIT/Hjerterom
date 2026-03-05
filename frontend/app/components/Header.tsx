@@ -153,7 +153,7 @@ export default function Header() {
             </Link>
           )}
 
-          {role !== 'kommune_ansatt' && (
+          {user && role !== 'kommune_ansatt' && (
             <Link href="/homeowner/manage" className="nav-link" onClick={closeMobileNav}>{t('myProperties')}</Link>
           )}
           
@@ -294,26 +294,59 @@ export default function Header() {
           {navContent}
         </nav>
 
-        {/* Mobile hamburger */}
-        <button
-          className="header-hamburger"
-          onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
-          aria-label={isMobileNavOpen ? t('closeMenu') : t('openMenu')}
-          style={{
-            display: 'none',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '44px',
-            height: '44px',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '10px',
-            color: 'white',
-            cursor: 'pointer'
-          }}
-        >
-          {isMobileNavOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {/* Mobile: varsel-ikon + hamburger */}
+        <div className="header-mobile-actions" style={{ display: 'none', alignItems: 'center', gap: 'var(--space-2)' }}>
+          {user && (
+            <Link 
+              href="/nav/notifications" 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                width: 44, 
+                height: 44, 
+                background: 'rgba(255,255,255,0.05)', 
+                border: '1px solid var(--border-subtle)', 
+                borderRadius: 10, 
+                color: 'white',
+                position: 'relative',
+                textDecoration: 'none'
+              }}
+              aria-label={t('notifications')}
+            >
+              <Bell size={22} />
+              {unreadCount > 0 && (
+                <span style={{ 
+                  position: 'absolute', top: 4, right: 4, 
+                  background: '#ef4444', color: 'white', fontSize: '0.65rem', 
+                  minWidth: 16, height: 16, borderRadius: 8, 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 4px', fontWeight: 800
+                }}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
+          <button
+            className="header-hamburger"
+            onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+            aria-label={isMobileNavOpen ? t('closeMenu') : t('openMenu')}
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 44,
+              height: 44,
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 10,
+              color: 'white',
+              cursor: 'pointer'
+            }}
+          >
+            {isMobileNavOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile nav overlay */}
@@ -335,7 +368,7 @@ export default function Header() {
       <style jsx>{`
         @media (max-width: 768px) {
           .header-nav-desktop { display: none !important; }
-          .header-hamburger { display: flex !important; }
+          .header-mobile-actions { display: flex !important; }
         }
         @media (min-width: 769px) {
           .header-nav-mobile { display: none !important; }

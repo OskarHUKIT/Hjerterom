@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { use, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
@@ -265,7 +265,11 @@ function LoginPageContent() {
   )
 }
 
-export default function LoginPage() {
+type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
+
+export default function LoginPage(props: PageProps) {
+  // Next.js 16: searchParams is a Promise; unwrap to avoid sync-dynamic-apis error
+  use(props.searchParams ?? Promise.resolve({}))
   return (
     <Suspense fallback={<div className="login-page" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="card" style={{ padding: 'var(--space-10)', minWidth: '360px' }} /></div>}>
       <LoginPageContent />

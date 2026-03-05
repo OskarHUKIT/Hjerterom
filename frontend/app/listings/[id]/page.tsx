@@ -17,7 +17,10 @@ export async function generateStaticParams() {
   }
 }
 
-export default function ListingDetailsPage() {
+type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
+
+export default async function ListingDetailsPage(props: PageProps) {
+  if (props.searchParams) await props.searchParams
   return (
     <Suspense fallback={<div style={{ minHeight: '80vh' }} />}>
       <ListingDetailsClient />

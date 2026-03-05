@@ -1,31 +1,38 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { use, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
-  Plus, LayoutDashboard, Home as HomeIcon, CheckCircle2, Circle, 
-  ArrowRight, Info, Trash2, Edit3, Camera, Clock, FileText, 
-  ChevronRight, AlertTriangle, ToggleLeft as ToggleIcon, ShieldCheck, MessageSquare, Search
+  Plus, Home as HomeIcon, Info, Trash2, Edit3, Clock, FileText, 
+  ShieldCheck, MessageSquare, Clipboard, CheckCircle2
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { formatAuditLogDescription } from '../../lib/auditLogFormat'
 import { useLanguage } from '../../../context/LanguageContext'
+import { formatDateNo } from '../../lib/dateFormat'
+import { DateInput } from '../../components/DateInput'
 
-export default function HomeownerManage() {
+type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
+
+export default function HomeownerManage(props: PageProps) {
+  use(props.searchParams ?? Promise.resolve({}))
   const { t } = useLanguage()
   const router = useRouter()
   const [myListings, setMyListings] = useState<any[]>([])
   const [availability, setAvailability] = useState<Record<string, any[]>>({})
-  const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'boliger' | 'historikk'>('boliger')
   const [filter, setFilter] = useState<'Alle' | 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'>('Alle')
-  const [historySearch, setHistorySearch] = useState('')
-  const [historyDateFrom, setHistoryDateFrom] = useState('')
-  const [historyDateTo, setHistoryDateTo] = useState('')
   const [editingAvailability, setEditingAvailability] = useState<string | null>(null)
   const [newPeriod, setNewPeriod] = useState({ start: '', end: '', status: 'Tilgjengelig' })
+  const [tenantTokens, setTenantTokens] = useState<Record<string, string>>({})
+  const [copyFeedbackListingId, setCopyFeedbackListingId] = useState<string | null>(null)
+
+  const todayStr = () => new Date().toISOString().slice(0, 10)
+  const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
+    const t = todayStr()
+    setEditingAvailability(listingId)
+    setNewPeriod({ start: t, end: t, status })
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -74,18 +81,12 @@ export default function HomeownerManage() {
           availMap[item.listing_id].push(item)
         })
         setAvailability(availMap)
+
+        const { data: tokenRows } = await supabase.from('listing_tenant_tokens').select('listing_id, token').in('listing_id', listingIds)
+        const tokenMap: Record<string, string> = {}
+        tokenRows?.forEach((row: any) => { tokenMap[row.listing_id] = row.token })
+        setTenantTokens(tokenMap)
       }
-
-      // Fetch history
-      const { data: historyData, error: historyError } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20)
-
-      if (historyError) throw historyError
-      setHistory(historyData || [])
 
     } catch (err: any) {
       console.error('Unexpected error:', err)
@@ -98,29 +99,23 @@ export default function HomeownerManage() {
     fetchData()
   }, [])
 
-  const toggleStatus = async (id: string, currentStatus: string) => {
+  const setStatus = async (id: string, newStatus: 'Tilgjengelig' | 'Utilgjengelig') => {
+    const listing = myListings.find(l => l.id === id)
+    const currentStatus = getEffectiveStatus(listing) ?? listing?.status ?? ''
     if (currentStatus === 'Formidla') {
       alert(t('formidletByKommune'))
       return
     }
-    const newStatus = currentStatus === 'Tilgjengelig' ? 'Utilgjengelig' : 'Tilgjengelig'
-    
-    // 1. Oppdater lokal tilstand umiddelbart (Optimistisk oppdatering)
-    setMyListings(prev => prev.map(item => 
+    setMyListings(prev => prev.map(item =>
       item.id === id ? { ...item, status: newStatus, is_available: newStatus === 'Tilgjengelig' } : item
     ))
-
     try {
       const { error } = await supabase
         .from('listings')
         .update({ status: newStatus, is_available: newStatus === 'Tilgjengelig' })
         .eq('id', id)
-
       if (error) throw error
-
-      // 2. Logg handlingen i bakgrunnen uten å trigge full reload
       const { data: { user } } = await supabase.auth.getUser()
-      const listing = myListings.find(l => l.id === id)
       await supabase.from('audit_logs').insert([{
         user_id: user?.id,
         action_type: 'STATUS_CHANGE',
@@ -128,20 +123,8 @@ export default function HomeownerManage() {
         listing_address: listing?.address,
         details: { from: currentStatus, to: newStatus }
       }])
-      
-      // 3. Oppdater kun historikken i bakgrunnen (valgfritt, men her gjør vi det uten loading-skjerm)
-      const { data: historyData } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(20)
-      
-      if (historyData) setHistory(historyData)
-
     } catch (err: any) {
-      // Rull tilbake hvis det feiler
-      setMyListings(prev => prev.map(item => 
+      setMyListings(prev => prev.map(item =>
         item.id === id ? { ...item, status: currentStatus, is_available: currentStatus === 'Tilgjengelig' } : item
       ))
       alert('Feil ved oppdatering: ' + err.message)
@@ -170,8 +153,6 @@ export default function HomeownerManage() {
         details: { address }
       }])
 
-      const { data: historyData } = await supabase.from('audit_logs').select('*').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(20)
-      if (historyData) setHistory(historyData)
     } catch (err: any) {
       setMyListings(prevListings)
       alert('Feil ved sletting: ' + err.message)
@@ -189,11 +170,14 @@ export default function HomeownerManage() {
       
       if (error) throw error
       
-      // Oppdater lokalt uten full reload
       setAvailability(prev => ({
         ...prev,
         [listingId]: [...(prev[listingId] || []), data]
       }))
+      if (status === 'Tilgjengelig' || status === 'Utilgjengelig') {
+        await supabase.from('listings').update({ status, is_available: status === 'Tilgjengelig' }).eq('id', listingId)
+        setMyListings(prev => prev.map(l => l.id === listingId ? { ...l, status, is_available: status === 'Tilgjengelig' } : l))
+      }
     } catch (err: any) {
       alert('Feil ved lagring av periode: ' + err.message)
     }
@@ -218,9 +202,18 @@ export default function HomeownerManage() {
     }
   }
 
+  // Formidla and Tilgjengelig are mutually exclusive: use availability periods as source of truth. Null = umarkert (ingen status).
+  const getEffectiveStatus = (listing: any): 'Formidla' | 'Tilgjengelig' | 'Utilgjengelig' | null => {
+    const periods = availability[listing.id] || []
+    if (periods.some((p: any) => p.status === 'Formidla')) return 'Formidla'
+    const s = listing.status
+    if (s === 'Tilgjengelig' || s === 'Utilgjengelig') return s
+    return null
+  }
+
   const filteredListings = myListings.filter(l => {
     if (filter === 'Alle') return true
-    return l.status === filter
+    return getEffectiveStatus(l) === filter
   })
 
   const translateType = (type: string) => {
@@ -251,42 +244,38 @@ export default function HomeownerManage() {
       </div>
 
       <div className="hm-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
-        <aside style={{ display: 'grid', gap: 'var(--space-4)' }}>
-          <div className="card" style={{ padding: 'var(--space-2)' }}>
-            <button onClick={() => setActiveTab('boliger')} style={{ 
+        <aside className="hm-sidebar" style={{ display: 'grid', gap: 'var(--space-4)' }}>
+          <div className="card hm-nav-card" style={{ padding: 'var(--space-2)' }}>
+            <div style={{ 
               width: '100%', padding: 'var(--space-3) var(--space-4)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
-              background: activeTab === 'boliger' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-              color: activeTab === 'boliger' ? 'var(--color-sky-blue)' : 'var(--text-main)',
-              border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: 600
+              background: 'rgba(59, 130, 246, 0.1)',
+              color: 'var(--color-sky-blue)',
+              fontSize: '0.9rem', fontWeight: 600
             }}>
-              <HomeIcon size={18} /> {t('myPropertiesTab')}
-            </button>
-            <button onClick={() => setActiveTab('historikk')} style={{ 
-              width: '100%', padding: 'var(--space-3) var(--space-4)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
-              background: activeTab === 'historikk' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-              color: activeTab === 'historikk' ? 'var(--color-sky-blue)' : 'var(--text-main)',
-              border: 'none', cursor: 'pointer', textAlign: 'left', fontWeight: 600
-            }}>
-              <Clock size={18} /> {t('historyTab')}
-            </button>
+              <HomeIcon size={18} />
+              <span className="hm-nav-label-long">{t('myPropertiesTab')}</span>
+              <span className="hm-nav-label-short">{t('myPropertiesTabShort')}</span>
+            </div>
             <Link href="/homeowner/sign-terms" style={{ 
               width: '100%', padding: 'var(--space-3) var(--space-4)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
               color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 600
             }}>
-              <FileText size={18} /> {t('signTermsNav')}
+              <FileText size={18} />
+              <span className="hm-nav-label-long">{t('signTermsNav')}</span>
+              <span className="hm-nav-label-short">{t('signTermsNavShort')}</span>
             </Link>
             <Link href="/nav/messages" style={{ 
               width: '100%', padding: 'var(--space-3) var(--space-4)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
               color: 'var(--text-main)', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 600
             }}>
-              <MessageSquare size={18} /> {t('messagesToKommune')}
+              <MessageSquare size={18} />
+              <span className="hm-nav-label-long">{t('messagesToKommune')}</span>
+              <span className="hm-nav-label-short">{t('messagesToKommuneShort')}</span>
             </Link>
           </div>
         </aside>
 
         <div>
-          {activeTab === 'boliger' ? (
-            <>
               <div className="hm-filters-row" style={{ marginBottom: 'var(--space-4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
                 <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                   {(['Alle', 'Tilgjengelig', 'Utilgjengelig', 'Formidla'] as const).map(f => (
@@ -307,7 +296,7 @@ export default function HomeownerManage() {
                   filteredListings.map((listing) => (
                     <div 
                       key={listing.id} 
-                      className="card" 
+                      className="card hm-listing-card" 
                       onClick={() => router.push(`/listings/${listing.id}?view=owner`)}
                       style={{ 
                         padding: 'var(--space-4) var(--space-6)', 
@@ -334,43 +323,42 @@ export default function HomeownerManage() {
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                               <h3 style={{ margin: 0 }}>{listing.address}</h3>
-                              <span style={{ 
-                                fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '4px',
-                                background: listing.status === 'Tilgjengelig' ? 'rgba(32, 187, 175, 0.1)' : 
-                                            listing.status === 'Formidla' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                color: listing.status === 'Tilgjengelig' ? 'var(--color-teal)' : 
-                                       listing.status === 'Formidla' ? 'var(--color-sky-blue)' : '#ef4444',
-                                textTransform: 'uppercase'
-                              }}>
-                                {listing.status}
-                              </span>
+                              {getEffectiveStatus(listing) === 'Formidla' && (
+                                <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--color-sky-blue)', textTransform: 'uppercase' }}>
+                                  {getEffectiveStatus(listing)}
+                                </span>
+                              )}
                             </div>
                             <p className="text-sm" style={{ marginTop: '4px' }}>{translateType(listing.type)} • {listing.bedrooms} {t('bedroomsUnit')} • {listing.size_sqm} m²</p>
                           </div>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }} onClick={(e) => e.stopPropagation()}>
-                          <button 
-                            onClick={() => toggleStatus(listing.id, listing.status)}
-                            className="button" 
-                            disabled={listing.status === 'Formidla'}
-                            style={{ 
-                              padding: 'var(--space-2) var(--space-4)', fontSize: '0.85rem', borderRadius: '8px',
-                              background: listing.status === 'Tilgjengelig' ? 'rgba(239, 68, 68, 0.1)' : 
-                                          listing.status === 'Formidla' ? 'rgba(255,255,255,0.05)' : 'rgba(32, 187, 175, 0.1)',
-                              color: listing.status === 'Tilgjengelig' ? '#ef4444' : 
-                                     listing.status === 'Formidla' ? 'var(--text-muted)' : 'var(--color-teal)',
-                              border: `1px solid ${listing.status === 'Tilgjengelig' ? 'rgba(239, 68, 68, 0.2)' : 
-                                                  listing.status === 'Formidla' ? 'transparent' : 'rgba(32, 187, 175, 0.2)'}`,
-                              cursor: listing.status === 'Formidla' ? 'not-allowed' : 'pointer'
-                            }}
-                          >
-                            {listing.status === 'Tilgjengelig' ? t('manageRentalNav') : 
-                             listing.status === 'Formidla' ? t('formidlet') : t('markAvailable')}
-                          </button>
-                          
-                          <div style={{ width: '1px', height: '30px', background: 'var(--border-subtle)' }}></div>
-                          
+                          {getEffectiveStatus(listing) !== 'Formidla' && (
+                            <>
+                              <div className="hm-status-actions" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', minWidth: '200px' }}>
+                                {getEffectiveStatus(listing) === 'Tilgjengelig' ? (
+                                  <button type="button" onClick={() => openPeriodCalendar(listing.id, 'Utilgjengelig')} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.85rem', borderRadius: '8px', width: '100%', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', cursor: 'pointer' }}>
+                                    {t('manageRentalNav')}
+                                  </button>
+                                ) : getEffectiveStatus(listing) === 'Utilgjengelig' ? (
+                                  <button type="button" onClick={() => openPeriodCalendar(listing.id, 'Tilgjengelig')} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.85rem', borderRadius: '8px', width: '100%', background: 'rgba(32, 187, 175, 0.12)', color: 'var(--color-teal)', border: '1px solid rgba(32, 187, 175, 0.25)', cursor: 'pointer' }}>
+                                    {t('markAvailable')}
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button type="button" onClick={() => openPeriodCalendar(listing.id, 'Utilgjengelig')} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.85rem', borderRadius: '8px', width: '100%', background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', cursor: 'pointer' }}>
+                                      {t('manageRentalNav')}
+                                    </button>
+                                    <button type="button" onClick={() => openPeriodCalendar(listing.id, 'Tilgjengelig')} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.85rem', borderRadius: '8px', width: '100%', background: 'rgba(32, 187, 175, 0.12)', color: 'var(--color-teal)', border: '1px solid rgba(32, 187, 175, 0.25)', cursor: 'pointer' }}>
+                                      {t('markAvailable')}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                              <div style={{ width: '1px', height: '32px', background: 'var(--border-subtle)', alignSelf: 'stretch' }} />
+                            </>
+                          )}
                           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                             <button 
                               onClick={() => {
@@ -394,6 +382,31 @@ export default function HomeownerManage() {
                           </div>
                         </div>
                       </div>
+
+                      {getEffectiveStatus(listing) === 'Formidla' && (
+                        <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                          <div style={{ padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+                            <p style={{ margin: '0 0 var(--space-3)', fontSize: '0.85rem', opacity: 0.9 }}>{t('formidletActionsDesc')}</p>
+                            <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                              <Link href={`/listings/${listing.id}?view=owner#kontaktinfo`} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}>
+                                <FileText size={16} /> {t('contactInfoForm')}
+                              </Link>
+                              <Link href={`/report/utleier/${listing.id}`} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none', background: 'var(--color-teal)', color: 'white', border: 'none' }}>
+                                <FileText size={16} /> {t('fillHandoverReport')}
+                              </Link>
+                            </div>
+                          </div>
+                          <div style={{ padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '2px dashed rgba(59, 130, 246, 0.5)' }}>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}><strong style={{ color: 'var(--text-main)' }}>Lenke til leietaker:</strong> Send denne lenken til leietaker for nedlasting og opplasting av overtakelsesrapport (PDF) – de trenger ikke logge inn.</p>
+                            {tenantTokens[listing.id] ? (
+                              <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
+                                <code style={{ padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', wordBreak: 'break-all', flex: 1, minWidth: 0, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}>{typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantTokens[listing.id]}` : ''}</code>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); const url = typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantTokens[listing.id]}` : ''; navigator.clipboard?.writeText(url).then(() => { setCopyFeedbackListingId(listing.id); setTimeout(() => setCopyFeedbackListingId(null), 2000) }) }} className="button" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{copyFeedbackListingId === listing.id ? <CheckCircle2 size={14} /> : <Clipboard size={14} />}{copyFeedbackListingId === listing.id ? ' Kopiert!' : ' Kopier'}</button>
+                              </div>
+                            ) : <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lenken genereres når boligen markeres som formidlet.</p>}
+                          </div>
+                        </div>
+                      )}
 
                       {editingAvailability === listing.id && (
                         <div 
@@ -419,17 +432,29 @@ export default function HomeownerManage() {
 
                           <div style={{ display: 'grid', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
                             {(availability[listing.id] || []).length > 0 ? (
-                              availability[listing.id].map(p => (
-                                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem' }}>
-                                  <span>{new Date(p.start_date).toLocaleDateString('no-NO')} - {new Date(p.end_date).toLocaleDateString('no-NO')}</span>
-                                  <button 
-                                    onClick={() => deleteAvailability(p.id, listing.id)}
-                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              ))
+                              availability[listing.id].map(p => {
+                                const statusLabel = p.status === 'Formidla' ? t('formidlet') : p.status === 'Utilgjengelig' ? t('unavailable') : t('available')
+                                const statusStyle = p.status === 'Formidla'
+                                  ? { background: 'rgba(59, 130, 246, 0.2)', color: 'var(--color-royal-blue)', border: '1px solid rgba(59, 130, 246, 0.4)' }
+                                  : p.status === 'Utilgjengelig'
+                                  ? { background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }
+                                  : { background: 'rgba(45, 212, 191, 0.15)', color: 'var(--color-teal)', border: '1px solid rgba(45, 212, 191, 0.3)' }
+                                return (
+                                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-2)', background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem', flexWrap: 'wrap' }}>
+                                    <span style={{ color: 'var(--text-main)' }}>{formatDateNo(p.start_date)} – {formatDateNo(p.end_date)}</span>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', ...statusStyle }}>
+                                      {statusLabel}
+                                    </span>
+                                    <button 
+                                      onClick={() => deleteAvailability(p.id, listing.id)}
+                                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto' }}
+                                      title="Slett periode"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                )
+                              })
                             ) : (
                               <p style={{ fontSize: '0.85rem', opacity: 0.5, margin: 'var(--space-2) 0' }}>{t('noPeriods')}</p>
                             )}
@@ -445,11 +470,11 @@ export default function HomeownerManage() {
                             </div>
                             <div style={{ flex: 1 }}>
                                 <label className="label" style={{ fontSize: '0.7rem' }}>{t('fromDate')}</label>
-                              <input type="date" className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.start} onChange={e => setNewPeriod({...newPeriod, start: e.target.value})} />
+                              <DateInput className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.start} onChange={v => setNewPeriod({...newPeriod, start: v})} placeholder="DD.MM.ÅÅÅÅ" />
                             </div>
                             <div style={{ flex: 1 }}>
                                 <label className="label" style={{ fontSize: '0.7rem' }}>{t('toDate')}</label>
-                              <input type="date" className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.end} onChange={e => setNewPeriod({...newPeriod, end: e.target.value})} />
+                              <DateInput className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.end} onChange={v => setNewPeriod({...newPeriod, end: v})} placeholder="DD.MM.ÅÅÅÅ" />
                             </div>
                             <button 
                               onClick={() => {
@@ -473,83 +498,6 @@ export default function HomeownerManage() {
                   </div>
                 )}
               </div>
-            </>
-          ) : (
-            <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-              <h3 style={{ marginBottom: 'var(--space-2)' }}>{t('lastEvents')}</h3>
-              <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
-                <div style={{ flex: 1, minWidth: 140, position: 'relative' }}>
-                  <Search size={16} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
-                  <input
-                    type="text"
-                    placeholder={t('searchHistory')}
-                    value={historySearch}
-                    onChange={e => setHistorySearch(e.target.value)}
-                    className="input"
-                    style={{ width: '100%', paddingLeft: 36 }}
-                  />
-                </div>
-                <input
-                  type="date"
-                  value={historyDateFrom}
-                  onChange={e => setHistoryDateFrom(e.target.value)}
-                  className="input"
-                  style={{ minWidth: 140 }}
-                />
-                <input
-                  type="date"
-                  value={historyDateTo}
-                  onChange={e => setHistoryDateTo(e.target.value)}
-                  className="input"
-                  style={{ minWidth: 140 }}
-                />
-              </div>
-              {history.length > 0 ? (() => {
-                const q = historySearch.trim().toLowerCase()
-                const from = historyDateFrom ? new Date(historyDateFrom) : null
-                const to = historyDateTo ? new Date(historyDateTo + 'T23:59:59') : null
-                const filtered = history.filter(log => {
-                  if (q) {
-                    const desc = formatAuditLogDescription(log).toLowerCase()
-                    const addr = (log.listing_address || '').toLowerCase()
-                    const action = (log.action_type || '').toLowerCase()
-                    if (!desc.includes(q) && !addr.includes(q) && !action.includes(q)) return false
-                  }
-                  if (from || to) {
-                    const d = new Date(log.created_at)
-                    if (from && d < from) return false
-                    if (to && d > to) return false
-                  }
-                  return true
-                })
-                return filtered.length > 0 ? filtered.map(log => (
-                <div key={log.id} className="card" style={{ padding: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)', fontSize: '0.9rem' }}>
-                  <div style={{ 
-                    width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-sky-blue)' 
-                  }}>
-                    {log.action_type === 'STATUS_CHANGE' && <ToggleIcon size={18} />}
-                    {log.action_type === 'CREATE_LISTING' && <Plus size={18} />}
-                    {log.action_type === 'DELETE_LISTING' && <Trash2 size={18} />}
-                    {(log.action_type === 'SIGN_TERMS' || log.action_type === 'SIGN_TERMS_BANKID' || log.action_type === 'SIGN_INITIATED' || log.action_type === 'TERMINATE_AGREEMENT') && <ShieldCheck size={18} />}
-                    {(log.action_type === 'KOMMUNE_MARK_FORMIDLA' || log.action_type === 'KOMMUNE_REMOVE_FORMIDLA') && <HomeIcon size={18} />}
-                    {log.action_type === 'UPDATE_FIELD' && <Edit3 size={18} />}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>{formatAuditLogDescription(log)}</div>
-                    <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>{new Date(log.created_at).toLocaleString('no-NO')}</div>
-                  </div>
-                </div>
-              )) : (
-                <p style={{ fontSize: '0.9rem', opacity: 0.6 }}>{t('noResults')}</p>
-              )
-              })() : (
-                <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-                  <p>{t('noHistory')}</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </main>

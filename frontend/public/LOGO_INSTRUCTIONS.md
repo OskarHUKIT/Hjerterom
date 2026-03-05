@@ -32,6 +32,10 @@ frontend/
 
 The app is set up to use `/logo.png`. If the file doesn't exist, a fallback placeholder will be shown.
 
+## NAV logo (footer)
+
+Footer shows "Samarbeid med" with NAV. Place the official NAV logo as `logo-nav.svg` (or `logo-nav.png`) in `frontend/public/`. The app uses `logo-nav.svg` by default; replace it with the official logo from nav.no if desired.
+
 ## Testing
 
 After adding the logo:

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { use, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
+import { formatDateNo } from '../../lib/dateFormat'
+import { DateInput } from '../../components/DateInput'
 
 // Dynamically import Map component to avoid SSR issues
 const MapView = dynamic(() => import('../../components/MapView'), { 
@@ -19,12 +21,18 @@ const MapView = dynamic(() => import('../../components/MapView'), {
   loading: () => <div className="card" style={{ height: '500px' }} />
 })
 
-export default function NavDatabase() {
+/** Sett til true for å vise feilsøkingspanel for kommune (region/boliger). */
+const SHOW_KOMMUNE_DEBUG = false
+
+type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
+
+export default function NavDatabase(props: PageProps) {
+  use(props.searchParams ?? Promise.resolve({}))
   const { t } = useLanguage()
   const router = useRouter()
   const [userRole, setUserRole] = useState<string | null>(null)
   const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
-  const [kommuneRegion, setKommuneRegion] = useState<string | null>(null)
+  const [kommuneRegion, setKommuneRegion] = useState<string | string[] | null>(null)
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   // ... rest of state ...
@@ -43,7 +51,19 @@ export default function NavDatabase() {
         setIsAuthorized(true)
         setUserRole(profile?.role || role || 'kommune_ansatt')
         setKommuneCanEdit(profile?.kommune_can_edit !== false)
-        setKommuneRegion(profile?.kommune_region || null)
+        let region = profile?.kommune_region ?? null
+        if ((region == null || String(region).trim() === '') && user.email) {
+          const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', { p_email: user.email })
+          const fromRpc = typeof rpcRegion === 'string' ? rpcRegion : (Array.isArray(rpcRegion) && rpcRegion?.length ? rpcRegion[0] : null)
+          if (fromRpc && String(fromRpc).trim()) {
+            region = fromRpc
+          } else {
+            const { data: whitelistRows } = await supabase.from('kommune_access_list').select('region').ilike('email', user.email).eq('is_active', true).limit(1)
+            const fromTable = whitelistRows?.[0]?.region
+            if (fromTable && String(fromTable).trim()) region = fromTable
+          }
+        }
+        setKommuneRegion(region || null)
       } else {
         setIsAuthorized(false)
       }
@@ -68,7 +88,9 @@ export default function NavDatabase() {
   const [formidletSending, setFormidletSending] = useState(false)
   const [formidletExtendModal, setFormidletExtendModal] = useState<{ listing: any; period: any } | null>(null)
   const [formidletExtendEnd, setFormidletExtendEnd] = useState('')
-  
+  const [kommuneFetchError, setKommuneFetchError] = useState<string | null>(null)
+  const [kommuneDebug, setKommuneDebug] = useState<{ rawRegion: unknown; parsed: string[]; fromRpc: number; afterTerminated: number; afterRegion: number; cities: string[] } | null>(null)
+
   const [visibleColumns, setVisibleColumns] = useState(['address', 'city', 'owner_name', 'price_daily'])
 
   const ALL_COLUMNS = [
@@ -94,7 +116,13 @@ export default function NavDatabase() {
     }
   }
 
-  const translateValue = (id: string, val: any, listing?: any) => {
+  const translateValue = (id: string, val: any, listing?: any, statusForToday?: 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null) => {
+    if (id === 'status') {
+      const s = statusForToday !== undefined ? (statusForToday ?? 'Tilgjengelig') : val
+      if (s === 'Formidla') return t('formidlet')
+      if (s === 'Utilgjengelig') return t('unavailable')
+      return t('available')
+    }
     if (!val) return '-'
     if (id === 'price_daily') return `${val},-`
     if (id === 'address' && listing) {
@@ -139,7 +167,48 @@ export default function NavDatabase() {
   })
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
-  const getTabCacheKey = () => `${activeTab}_${viewMode}`
+  /** Parser kommune_region uansett format: JSON-array ["Narvik","Gratangen"], kommaseparert streng, eller faktisk array fra DB. Fjerner også ekstra anførselstegn (f.eks. "Gratangen,Narvik"). */
+  const parseKommuneRegions = (val: string | string[] | null | undefined): string[] => {
+    if (val == null) return []
+    if (Array.isArray(val)) return val.map(r => String(r).trim().toLowerCase()).filter(Boolean)
+    let s = String(val).trim()
+    if (!s) return []
+    // Fjern omkringliggende anførselstegn (DB kan lagre "Gratangen,Narvik" med bokstavelige ")
+    s = s.replace(/^["\\]+|["\\]+$/g, '').trim()
+    if (s.startsWith('[')) {
+      try {
+        const arr = JSON.parse(s)
+        return Array.isArray(arr) ? arr.map((r: any) => String(r).trim().toLowerCase()).filter(Boolean) : []
+      } catch {
+        return []
+      }
+    }
+    const regionStr = s.replace(/\s+og\s+/gi, ',').replace(/[,;\n]+/g, ',')
+    return regionStr.split(',').map((r: string) => r.replace(/^["'\s\\]+|["'\s\\]+$/g, '').trim().toLowerCase()).filter(Boolean)
+  }
+
+  /** Cache-nøkkel inkluderer region slik at vi ikke gjenbruker tom cache fra før kommune_region er lastet. */
+  const getTabCacheKey = () => {
+    const base = `${activeTab}_${viewMode}`
+    if (userRole === 'kommune_ansatt') {
+      const regions = parseKommuneRegions(kommuneRegion)
+      const regionKey = regions.length ? regions.sort().join(',') : 'none'
+      return `${base}_${regionKey}`
+    }
+    return base
+  }
+
+  /** Status for dagens dato ut fra listing_availability-perioder. Null = ingen periode dekker i dag → vises som tilgjengelig. */
+  const getStatusForToday = (listingId: string, availMap: Record<string, any[]>): 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null => {
+    const today = new Date().toISOString().slice(0, 10)
+    const periods = (availMap[listingId] || []).filter(
+      (p: any) => p.start_date <= today && p.end_date >= today
+    )
+    if (periods.length === 0) return null
+    if (periods.some((p: any) => p.status === 'Formidla')) return 'Formidla'
+    if (periods.some((p: any) => p.status === 'Utilgjengelig')) return 'Utilgjengelig'
+    return 'Tilgjengelig'
+  }
 
   const fetchListings = async (showLoader = true) => {
     const cacheKey = getTabCacheKey()
@@ -154,50 +223,51 @@ export default function NavDatabase() {
     const useLoader = showLoader && !tabCache[cacheKey] && initialLoad
     if (useLoader) setLoading(true)
     try {
-      let query = supabase.from('listings').select('*')
+      const { data: terminatedUsers } = await supabase
+        .from('user_agreements')
+        .select('user_id')
+        .eq('is_terminated', true)
+      const terminatedIds = new Set(terminatedUsers?.map(u => u.user_id) || [])
 
-      if (viewMode === 'timeline') {
-        // I tidslinjevisning henter vi alle aktive boliger uavhengig av status,
-        // fordi en utleid bolig kan ha ledige perioder i fremtiden.
-        const { data: activeUsers } = await supabase
-          .from('user_agreements')
-          .select('user_id')
-          .eq('is_terminated', false)
-        
-        const userIds = activeUsers?.map(u => u.user_id) || []
-        query = query.in('owner_id', userIds)
-      } else if (activeTab === 'Utløpte') {
-        const { data: terminatedUsers } = await supabase
-          .from('user_agreements')
-          .select('user_id')
-          .eq('is_terminated', true)
-        
-        const userIds = terminatedUsers?.map(u => u.user_id) || []
-        query = query.in('owner_id', userIds)
-      } else if (activeTab === 'Formidlet') {
-        query = query.eq('status', 'Formidla')
-        const { data: activeUsers } = await supabase
-          .from('user_agreements')
-          .select('user_id')
-          .eq('is_terminated', false)
-        
-        const userIds = activeUsers?.map(u => u.user_id) || []
-        query = query.in('owner_id', userIds)
+      let data: any[] = []
+      let error: any = null
+
+      setKommuneFetchError(null)
+      if (isAuthorized && userRole === 'kommune_ansatt') {
+        const res = await supabase.rpc('get_listings_for_kommune')
+        const raw = res.data
+        data = Array.isArray(raw) ? raw : (raw != null ? [raw] : [])
+        if (res.error) {
+          setKommuneFetchError(res.error.message || 'Kunne ikke hente boliger. Kjør migrasjonen 20250308000000_listings_kommune_select.sql i Supabase (SQL Editor).')
+          error = null
+        } else {
+          error = res.error
+        }
       } else {
-        query = query.eq('status', activeTab)
-        const { data: activeUsers } = await supabase
-          .from('user_agreements')
-          .select('user_id')
-          .eq('is_terminated', false)
-        
-        const userIds = activeUsers?.map(u => u.user_id) || []
-        query = query.in('owner_id', userIds)
+        let query = supabase.from('listings').select('*')
+        if (activeTab === 'Utløpte') {
+          query = terminatedIds.size > 0 ? query.in('owner_id', [...terminatedIds]) : query.eq('owner_id', '00000000-0000-0000-0000-000000000000')
+        }
+        const result = await query
+        data = result.data || []
+        error = result.error
       }
 
-      const { data, error } = await query
+      if (activeTab === 'Utløpte' && !(isAuthorized && userRole === 'kommune_ansatt')) {
+        // ikke-kommune: allerede filtrert i query
+      } else if (activeTab === 'Utløpte' && isAuthorized && userRole === 'kommune_ansatt') {
+        data = data.filter((item: any) => terminatedIds.has(item.owner_id))
+      }
 
       if (error) throw error
       let filtered = data || []
+
+      const afterTerminatedCount = (() => {
+        if (activeTab !== 'Utløpte' && terminatedIds.size > 0) {
+          filtered = filtered.filter(item => !terminatedIds.has(item.owner_id))
+        }
+        return filtered.length
+      })()
 
       if (searchTerm) {
         filtered = filtered.filter(item => 
@@ -205,12 +275,28 @@ export default function NavDatabase() {
           item.owner_name?.toLowerCase().includes(searchTerm.toLowerCase())
         )
       }
-      // Region filter: kommune users with kommune_region only see listings in their region(s)
-      if (kommuneRegion) {
-        const regions = kommuneRegion.split(',').map((r: string) => r.trim()).filter(Boolean)
+      // Tillatelsesområder: kommune ser bare boliger i kommuner de har eksplisitt tilgang til
+      const regions = isAuthorized && userRole === 'kommune_ansatt' ? parseKommuneRegions(kommuneRegion) : []
+      if (isAuthorized && userRole === 'kommune_ansatt') {
+        const citiesFromDb = [...new Set((data || []).map((item: any) => (item.city || '').trim()).filter(Boolean))]
         if (regions.length > 0) {
-          filtered = filtered.filter(item => regions.some((r: string) => r === item.city))
+          filtered = filtered.filter(item => {
+            const city = (item.city || '').trim().toLowerCase()
+            return city && regions.some((r: string) => r === city)
+          })
+        } else {
+          filtered = [] // Ingen tillatelsesområder satt = ingen boliger (kun eksplisitt tilgang)
         }
+        setKommuneDebug({
+          rawRegion: kommuneRegion,
+          parsed: regions,
+          fromRpc: (data || []).length,
+          afterTerminated: afterTerminatedCount,
+          afterRegion: filtered.length,
+          cities: citiesFromDb
+        })
+      } else {
+        setKommuneDebug(null)
       }
       if (filters.city !== 'Alle') {
         filtered = filtered.filter(item => item.city === filters.city)
@@ -245,16 +331,6 @@ export default function NavDatabase() {
         )
       }
 
-      filtered.sort((a, b) => {
-        const valA = a[sortField]
-        const valB = b[sortField]
-        if (valA < valB) return sortOrder === 'asc' ? -1 : 1
-        if (valA > valB) return sortOrder === 'asc' ? 1 : -1
-        return 0
-      })
-
-      setListings(filtered)
-
       let availMap: Record<string, any[]> = {}
       if (filtered.length > 0) {
         const listingIds = filtered.map(l => l.id)
@@ -268,8 +344,33 @@ export default function NavDatabase() {
           if (!availMap[item.listing_id]) availMap[item.listing_id] = []
           availMap[item.listing_id].push(item)
         })
-        setAvailability(availMap)
+
+        // Tabell/kart: filtrer på status for DAGENS dato. Ingen periode som dekker i dag = vis som tilgjengelig.
+        if (activeTab !== 'Utløpte' && viewMode !== 'timeline') {
+          const todayStatus = (lid: string) => getStatusForToday(lid, availMap)
+          if (activeTab === 'Tilgjengelig') {
+            filtered = filtered.filter(l => {
+              const s = todayStatus(l.id)
+              return s === null || s === 'Tilgjengelig'
+            })
+          } else if (activeTab === 'Formidlet') {
+            filtered = filtered.filter(l => todayStatus(l.id) === 'Formidla')
+          } else if (activeTab === 'Utilgjengelig') {
+            filtered = filtered.filter(l => todayStatus(l.id) === 'Utilgjengelig')
+          }
+        }
       }
+
+      filtered.sort((a, b) => {
+        const valA = a[sortField]
+        const valB = b[sortField]
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1
+        return 0
+      })
+
+      setListings(filtered)
+      setAvailability(availMap)
 
       setTabCache(prev => ({ ...prev, [getTabCacheKey()]: { listings: filtered, availability: availMap } }))
       setInitialLoad(false)
@@ -281,10 +382,16 @@ export default function NavDatabase() {
   }
 
   useEffect(() => {
-    if (isAuthorized) {
-      fetchListings()
+    if (!isAuthorized) return
+    // For kommune uten region ennå: vis tom liste (ikke blank skjerm), så vi henter på nytt når region er satt
+    if (userRole === 'kommune_ansatt' && kommuneRegion == null) {
+      setLoading(false)
+      setListings([])
+      setAvailability({})
+      return
     }
-  }, [activeTab, searchTerm, filters, sortField, sortOrder, viewMode, isAuthorized, kommuneRegion])
+    fetchListings()
+  }, [activeTab, searchTerm, filters, sortField, sortOrder, viewMode, isAuthorized, userRole, kommuneRegion])
 
   if (isAuthorized === false) {
     return (
@@ -338,7 +445,7 @@ export default function NavDatabase() {
       alert('Ny sluttdato må være etter nåværende sluttdato.')
       return
     }
-    if (!confirm(`Forleng formidlingsperioden for "${listing.address}" til ${formidletExtendEnd}?`)) return
+    if (!confirm(`Forleng formidlingsperioden for "${listing.address}" til ${formatDateNo(formidletExtendEnd)}?`)) return
     setFormidletSending(true)
     try {
       const { error } = await supabase.from('listing_availability').update({ end_date: formidletExtendEnd }).eq('id', period.id)
@@ -346,7 +453,7 @@ export default function NavDatabase() {
       const { data: { user } } = await supabase.auth.getUser()
       await supabase.from('audit_logs').insert([{ user_id: user?.id, action_type: 'KOMMUNE_EXTEND_FORMIDLA', listing_address: listing.address, details: { period_id: period.id, new_end: formidletExtendEnd } }])
       if (listing?.owner_id) {
-        await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Formidlingsperiode forlenget', message: `Kommunen har forlenget formidlingsperioden for ${listing.address} til ${formidletExtendEnd}.`, listing_id: listing.id }])
+        await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Formidlingsperiode forlenget', message: `Kommunen har forlenget formidlingsperioden for ${listing.address} til ${formatDateNo(formidletExtendEnd)}.`, listing_id: listing.id }])
       }
       setFormidletExtendModal(null)
       fetchListings(false)
@@ -369,7 +476,7 @@ export default function NavDatabase() {
     const id = formidletModalListing.id
     const address = formidletModalListing.address
     const listing = formidletModalListing
-    const attachSchema = confirm(`Vil du markere "${address}" som formidlet for perioden ${formidletStart}–${formidletEnd}?`)
+    const attachSchema = confirm(`Vil du markere "${address}" som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}?`)
     
     setFormidletSending(true)
     try {
@@ -402,7 +509,7 @@ export default function NavDatabase() {
           owner_id: listing.owner_id,
           type: 'HOUSE_FORMIDLET',
           title: 'Bolig formidlet',
-          message: `Kommunen har markert boligen din i ${address} som formidlet for perioden ${formidletStart}–${formidletEnd}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`,
+          message: `Kommunen har markert boligen din i ${address} som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`,
           listing_id: id
         }])
       }
@@ -456,6 +563,30 @@ export default function NavDatabase() {
 
   return (
     <main className="container">
+      {kommuneFetchError && (
+        <div className="card" style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-4)', background: 'var(--color-error-bg, #fef2f2)', color: 'var(--color-error-text, #b91c1c)', border: '1px solid var(--color-error-border, #fecaca)' }}>
+          <strong>Feil ved henting av boliger:</strong> {kommuneFetchError}
+        </div>
+      )}
+      {SHOW_KOMMUNE_DEBUG && userRole === 'kommune_ansatt' && (
+        <details className="card" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-3)', fontSize: '0.9rem', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)' }} open>
+          <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Feilsøking: region og boliger (kommune)</summary>
+          <pre style={{ marginTop: 'var(--space-2)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {JSON.stringify(kommuneDebug ? {
+              din_region_rå: kommuneDebug.rawRegion,
+              region_parset: kommuneDebug.parsed,
+              boliger_fra_db_rpc: kommuneDebug.fromRpc,
+              etter_terminert_filter: kommuneDebug.afterTerminated,
+              etter_region_filter: kommuneDebug.afterRegion,
+              byer_i_db: kommuneDebug.cities
+            } : {
+              din_region_rå: kommuneRegion,
+              region_parset: parseKommuneRegions(kommuneRegion),
+              melding: 'Ingen region funnet. Gjør ett av: (1) I Supabase: Table Editor → profiles → finn din bruker → sett kommune_region til f.eks. "Gratangen" eller "Gratangen,Narvik". (2) I appen: Kommune-tilgang → legg til din e-post med region. Deretter last siden på nytt.'
+            }, null, 2)}
+          </pre>
+        </details>
+      )}
       <div className="db-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -713,24 +844,24 @@ export default function NavDatabase() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }} className="formidlet-date-range">
                 <div>
                   <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}>Fra</span>
-                  <input 
-                    type="date" 
-                    className="input" 
-                    style={{ marginBottom: 0 }} 
-                    value={formidletStart} 
-                    onChange={e => setFormidletStart(e.target.value)}
+                  <DateInput
+                    className="input"
+                    style={{ marginBottom: 0 }}
+                    value={formidletStart}
+                    onChange={setFormidletStart}
                     max={formidletEnd || undefined}
+                    placeholder="DD.MM.ÅÅÅÅ"
                   />
                 </div>
                 <div>
                   <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}>Til</span>
-                  <input 
-                    type="date" 
-                    className="input" 
-                    style={{ marginBottom: 0 }} 
-                    value={formidletEnd} 
-                    onChange={e => setFormidletEnd(e.target.value)}
+                  <DateInput
+                    className="input"
+                    style={{ marginBottom: 0 }}
+                    value={formidletEnd}
+                    onChange={setFormidletEnd}
                     min={formidletStart || undefined}
+                    placeholder="DD.MM.ÅÅÅÅ"
                   />
                 </div>
               </div>
@@ -760,10 +891,10 @@ export default function NavDatabase() {
               <button onClick={() => !formidletSending && setFormidletExtendModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}><X size={20} /></button>
             </div>
             <p style={{ marginBottom: 'var(--space-4)', fontSize: '0.95rem', color: 'var(--text-muted)' }}>{formidletExtendModal.listing.address}</p>
-            <p style={{ marginBottom: 'var(--space-3)', fontSize: '0.9rem' }}>Nåværende periode: {formidletExtendModal.period.start_date} – {formidletExtendModal.period.end_date}</p>
+            <p style={{ marginBottom: 'var(--space-3)', fontSize: '0.9rem' }}>Nåværende periode: {formatDateNo(formidletExtendModal.period.start_date)} – {formatDateNo(formidletExtendModal.period.end_date)}</p>
             <div style={{ marginBottom: 'var(--space-6)' }}>
               <label className="label">Ny sluttdato</label>
-              <input type="date" className="input" style={{ marginTop: 'var(--space-2)' }} value={formidletExtendEnd} onChange={e => setFormidletExtendEnd(e.target.value)} min={formidletExtendModal.period.end_date} />
+              <DateInput className="input" style={{ marginTop: 'var(--space-2)' }} value={formidletExtendEnd} onChange={setFormidletExtendEnd} min={formidletExtendModal.period.end_date} placeholder="DD.MM.ÅÅÅÅ" />
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
               <button onClick={() => !formidletSending && setFormidletExtendModal(null)} style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', padding: 'var(--space-3) var(--space-5)', borderRadius: '10px', cursor: 'pointer' }}>Avbryt</button>
@@ -813,7 +944,9 @@ export default function NavDatabase() {
                     >
                       {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => (
                         <td key={col.id} style={{ padding: 'var(--space-4)' }}>
-                          {translateValue(col.id, l[col.id], l)}
+                          {col.id === 'status' && viewMode !== 'timeline'
+                            ? translateValue(col.id, l[col.id], l, getStatusForToday(l.id, availability))
+                            : translateValue(col.id, l[col.id], l)}
                         </td>
                       ))}
                       <td style={{ padding: 'var(--space-4)' }} onClick={(e) => e.stopPropagation()}>
@@ -845,7 +978,7 @@ export default function NavDatabase() {
               </div>
             </div>
           ) : viewMode === 'map' ? (
-            <MapView listings={listings} />
+            <MapView listings={listings} availability={availability} />
           ) : (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
               <div className="card" style={{ padding: 'var(--space-6)', overflowX: 'auto' }}>
@@ -956,7 +1089,7 @@ export default function NavDatabase() {
 
                             let bgColor = 'rgba(255,255,255,0.06)';
                             let opacity = 1;
-                            let title = `${l.address}: ${date.toLocaleDateString()}`;
+                            let title = `${l.address}: ${formatDateNo(date)}`;
 
                             if (isFormidlet) {
                               bgColor = 'var(--color-sky-blue)';

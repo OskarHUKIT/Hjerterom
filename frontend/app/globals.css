@@ -148,7 +148,7 @@ a {
 .header {
   background: rgba(15, 23, 42, 0.8);
   border-bottom: 1px solid var(--border-subtle);
-  padding: var(--space-3) 0;
+  padding: var(--space-4) 0;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -215,8 +215,172 @@ a {
   box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
 }
 
+/* Portal-kort: mørk bakgrunn i dark mode */
+.portal-card {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+/* Portal cards: align buttons at bottom when side-by-side */
+.portal-card-align-buttons {
+  min-height: 0;
+}
+.portal-card-align-buttons .portal-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.portal-card-align-buttons .portal-card-cta {
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+
+/* Lys modus: portal-kort og trust-section – bedre lesbarhet */
+[data-theme="light"] .portal-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .portal-card:hover {
+  background: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .portal-card-desc {
+  color: var(--text-body) !important;
+}
+
+[data-theme="light"] .portal-card h2 {
+  color: var(--text-main);
+}
+
+[data-theme="light"] .trust-section {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
 .no-hover {
   cursor: default;
+}
+
+/* Dokumentopplasting – skjult filvelger, egen knapp og lesbar sone */
+.doc-upload-zone {
+  padding: var(--space-5);
+  border: 1px dashed var(--border-medium);
+  border-radius: 12px;
+  background: var(--bg-card);
+  text-align: center;
+  position: relative;
+}
+
+[data-theme="light"] .doc-upload-zone {
+  background: rgba(248, 250, 252, 0.9);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.doc-upload-input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.doc-upload-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  min-height: 120px;
+}
+
+.doc-upload-submit {
+  background: var(--color-teal) !important;
+  color: white !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-upload-submit:hover {
+  background: var(--color-dark-teal) !important;
+}
+
+.doc-list-link {
+  padding: 1.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(59, 130, 246, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+[data-theme="light"] .doc-list-link {
+  background: rgba(59, 130, 246, 0.04);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.doc-list-link:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+}
+
+/* PWA-installasjonspopup – overlay og kort */
+.pwa-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--space-4);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  animation: pwa-overlay-in 0.2s ease-out;
+}
+
+.pwa-prompt-card {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-6);
+  margin: 0;
+  border-radius: 16px;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  animation: pwa-card-in 0.25s ease-out;
+}
+
+[data-theme="light"] .pwa-prompt-card {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
+}
+
+@keyframes pwa-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pwa-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .button {
@@ -381,11 +545,6 @@ p {
   color: var(--text-main);
 }
 
-[data-theme="light"] .trust-section {
-  background: rgba(255, 255, 255, 0.6);
-  border-color: rgba(15, 23, 42, 0.1);
-}
-
 /* Light mode: fix contrast for elements that use light bg + light text */
 [data-theme="light"] .menu-item,
 [data-theme="light"] .menu-item:hover {
@@ -405,6 +564,21 @@ p {
 }
 
 [data-theme="light"] .footer-link:hover {
+  color: var(--color-accent);
+}
+
+/* Fysisk tilrettelegging – infoboks lesbar i begge temaer */
+.physical-access-info-title {
+  color: var(--color-sky-blue);
+}
+
+[data-theme="light"] .physical-access-info {
+  background: rgba(3, 105, 161, 0.08);
+  border-color: rgba(3, 105, 161, 0.22);
+  color: var(--text-body);
+}
+
+[data-theme="light"] .physical-access-info-title {
   color: var(--color-accent);
 }
 
@@ -531,6 +705,19 @@ p {
   .button { min-height: var(--touch-target); padding: var(--space-3) var(--space-4); }
 }
 
+/* Map: ingen fokusramme (orange) på markører */
+.map-view-container .leaflet-marker-icon,
+.map-view-container .leaflet-marker-icon:focus,
+.map-view-container .leaflet-div-icon,
+.map-view-container .leaflet-div-icon:focus {
+  outline: none !important;
+  border: none !important;
+}
+.map-view-container .leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
 /* Map: responsive height on mobile */
 @media (max-width: 768px) {
   .map-view-container {
@@ -569,6 +756,137 @@ p {
     min-height: var(--touch-target) !important;
     min-width: var(--touch-target) !important;
     padding: var(--space-2) !important;
+  }
+}
+
+/* Utleier nav: korte labels på små skjermer */
+.hm-nav-label-short {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .hm-nav-label-long {
+    display: none !important;
+  }
+  .hm-nav-label-short {
+    display: inline !important;
+  }
+}
+
+/* Utleier Mine boliger: mobilvennlig layout */
+@media (max-width: 900px) {
+  .hm-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .hm-sidebar {
+    order: -1;
+  }
+  .hm-nav-card {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: var(--space-2) !important;
+    padding: var(--space-2) !important;
+  }
+  .hm-nav-card button,
+  .hm-nav-card a,
+  .hm-nav-card div {
+    flex: 1 1 auto !important;
+    min-width: fit-content !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .hm-header-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--space-4) !important;
+  }
+  .hm-header-row .nav-link {
+    margin-left: 0 !important;
+  }
+  .hm-header-row a.button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .hm-filters-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .hm-filters-row > div:first-child {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+  }
+  .hm-filters-row > div:first-child button {
+    flex-shrink: 0;
+  }
+  .hm-listing-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .hm-listing-row > div:first-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  .hm-listing-row > div:first-child > div:first-child {
+    width: 100% !important;
+    height: 120px !important;
+    max-width: 100%;
+  }
+  .hm-listing-row > div:last-child {
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+  }
+  .hm-listing-row .hm-divider {
+    display: none;
+  }
+  .hm-listing-card .button,
+  .hm-listing-card button {
+    min-height: var(--touch-target) !important;
+  }
+  .hm-add-period-row {
+    flex-direction: column !important;
+  }
+  .hm-add-period-row > div {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hm-layout {
+    gap: var(--space-4) !important;
+  }
+  .hm-nav-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+  }
+  .hm-nav-card button,
+  .hm-nav-card a,
+  .hm-nav-card > div {
+    white-space: nowrap !important;
+    padding: var(--space-2) var(--space-3) !important;
+  }
+  .hm-btn-label {
+    display: inline;
+  }
+  .hm-listing-row > div:last-child {
+    gap: var(--space-2) !important;
+  }
+  .hm-listing-card {
+    padding: var(--space-3) var(--space-4) !important;
+  }
+  .hm-history-filters {
+    flex-direction: column !important;
+  }
+  .hm-history-filters input {
+    width: 100% !important;
+    min-width: 0 !important;
   }
 }
 
@@ -710,3 +1028,33 @@ main > * {
 .animate-delay-1 { animation-delay: 0.1s; }
 .animate-delay-2 { animation-delay: 0.2s; }
 .animate-delay-3 { animation-delay: 0.3s; }
+
+/* Fullskjerm rapport-overlay */
+@keyframes reportOverlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes reportPanelSlideIn {
+  from { opacity: 0; transform: scale(0.97) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.report-fullscreen-overlay {
+  animation: reportOverlayFadeIn 0.2s ease-out;
+}
+.report-fullscreen-panel {
+  animation: reportPanelSlideIn 0.25s ease-out;
+}
+
+/* Tidsfilter for overtakelsesrapporter – lesbar dropdown */
+.report-filter-option:not([data-selected="true"]):hover {
+  background: rgba(51, 65, 85, 0.35) !important;
+}
+.report-filter-option[data-selected="true"]:hover {
+  background: rgba(59, 130, 246, 0.3) !important;
+}
+[data-theme="light"] .report-filter-option:not([data-selected="true"]):hover {
+  background: rgba(15, 23, 42, 0.08) !important;
+}
+[data-theme="light"] .report-filter-option[data-selected="true"]:hover {
+  background: rgba(59, 130, 246, 0.25) !important;
+}

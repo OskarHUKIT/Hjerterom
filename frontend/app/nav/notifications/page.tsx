@@ -1,16 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { use, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
   Bell, CheckCircle2, Clock, MessageSquare, ShieldCheck, 
   FileText, User, Trash2, Info, AlertTriangle, Send, Home
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { formatDateTimeNo } from '../../lib/dateFormat'
 import PushPermissionCard from '../../components/PushPermissionCard'
 import { useLanguage } from '../../../context/LanguageContext'
 
-export default function NavNotifications() {
+type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
+
+export default function NavNotifications(props: PageProps) {
+  use(props.searchParams ?? Promise.resolve({}))
   const { t } = useLanguage()
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -102,13 +106,12 @@ export default function NavNotifications() {
       ) : notifications.length > 0 ? (
         <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
           {notifications.map(notif => {
+            const isFormidletNotif = (notif.type === 'HOUSE_FORMIDLET' || notif.type === 'HANDOVER_REMINDER') && notif.listing_id
             const messageLink = notif.type === 'NEW_MESSAGE'
               ? (role === 'kommune_ansatt' && notif.related_user_id
                 ? `/nav/messages?with=${notif.related_user_id}`
                 : '/nav/messages')
-              : (notif.type === 'HOUSE_FORMIDLET' || notif.type === 'HANDOVER_REMINDER') && notif.listing_id
-                ? `/report/utleier/${notif.listing_id}`
-                : notif.type === 'NEW_REPORT' && notif.listing_id && role === 'kommune_ansatt'
+              : !isFormidletNotif && (notif.type === 'NEW_REPORT' && notif.listing_id && role === 'kommune_ansatt')
                   ? `/listings/${notif.listing_id}?view=nav#overtakelsesrapport`
                   : null
             const cardContent = (
@@ -121,23 +124,35 @@ export default function NavNotifications() {
                 }}>
                   {getIcon(notif.type)}
                 </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{notif.title}</h3>
-                  <p style={{ margin: '4px 0 0', opacity: 0.8 }}>{notif.message}</p>
-                  <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '8px', fontSize: '0.8rem', opacity: 0.5 }}>
-                    <span><Clock size={12} style={{ display: 'inline', marginRight: '4px' }} /> {new Date(notif.created_at).toLocaleString('no-NO')}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>{notif.title}</h3>
+                  <p style={{ margin: '4px 0 0', color: 'var(--text-body)' }}>{notif.message}</p>
+                  <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '10px', fontSize: '0.85rem', color: 'var(--text-muted)', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={12} /> {formatDateTimeNo(notif.created_at)}
+                    </span>
                     {notif.resolved_by && (
-                      <span>
-                        <CheckCircle2 size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckCircle2 size={12} />
                         {(role === 'kommune_ansatt' && notif.resolved_by !== currentUserId) ? t('resolvedByColleague') : t('resolvedByYou')}
                       </span>
                     )}
-                    {messageLink && (
-                      <span style={{ color: 'var(--color-accent)' }}>
-                        → {(notif.type === 'HOUSE_FORMIDLET' || notif.type === 'HANDOVER_REMINDER') ? t('fillHandoverReport') : notif.type === 'NEW_REPORT' ? t('viewReport') : t('goToMessage')}
+                    {messageLink && !isFormidletNotif && (
+                      <span style={{ color: 'var(--color-accent)', fontWeight: 600 }}>
+                        → {notif.type === 'NEW_REPORT' ? t('viewReport') : t('goToMessage')}
                       </span>
                     )}
                   </div>
+                  {isFormidletNotif && (
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
+                      <Link href={`/listings/${notif.listing_id}?view=owner#kontaktinfo`} className="button" style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
+                        <FileText size={14} /> {t('contactInfoForm')}
+                      </Link>
+                      <Link href={`/report/utleier/${notif.listing_id}`} className="button" style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none', background: 'var(--color-teal)', color: 'white', border: 'none' }}>
+                        <FileText size={14} /> {t('fillHandoverReport')}
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -147,13 +162,13 @@ export default function NavNotifications() {
                 className={`card notif-card ${notif.status}`} 
                 style={{ 
                   padding: 'var(--space-6)', 
-                  opacity: notif.status === 'completed' ? 0.6 : 1,
+                  opacity: notif.status === 'completed' ? 0.88 : 1,
                   borderLeft: `4px solid ${notif.status === 'unread' ? 'var(--color-accent)' : 'var(--color-teal)'}`,
                   transition: 'all 0.2s'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  {messageLink ? (
+                  {messageLink && !isFormidletNotif ? (
                     <Link href={messageLink} style={{ flex: 1, minWidth: 0, textDecoration: 'none', color: 'inherit' }}>
                       {cardContent}
                     </Link>
@@ -173,7 +188,7 @@ export default function NavNotifications() {
                       <button 
                         onClick={() => handleStatusChange(notif.id, 'unread')}
                         className="button" 
-                        style={{ padding: '8px 16px', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', color: 'var(--text-main)' }}
+                        style={{ padding: '8px 16px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', color: 'var(--text-main)', fontWeight: 500 }}
                       >
                         {t('markUnread')}
                       </button>

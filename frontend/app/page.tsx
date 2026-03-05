@@ -1,12 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { use, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Search, Home as HomeIcon, ShieldCheck, HelpCircle, ArrowRight, LogOut } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import { supabase } from './lib/supabase'
 
-export default function Home() {
+type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
+
+export default function Home(props: PageProps) {
+  use(props.searchParams ?? Promise.resolve({}))
   const { t } = useLanguage()
   const [isKommune, setIsKommune] = useState<boolean | null>(null)
 
@@ -39,8 +42,7 @@ export default function Home() {
       }}>
         <h1 className="animate-delay-1 hero-title" style={{ 
           fontSize: 'clamp(2.5rem, 6vw, 3.75rem)', 
-          marginBottom: 'var(--space-4)',
-          textShadow: '0 4px 12px rgba(0,0,0,0.3)'
+          marginBottom: 'var(--space-4)'
         }}>
           {t('heroTitle')}
         </h1>
@@ -56,7 +58,7 @@ export default function Home() {
 
       <div className="grid-portal animate-delay-3">
         {/* Kommune Worker Portal */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)' }}>
+        <div className="card portal-card portal-card-align-buttons" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', backdropFilter: 'blur(8px)' }}>
           <div style={{ 
             width: '56px', 
             height: '56px', 
@@ -70,19 +72,21 @@ export default function Home() {
           }}>
             <Search size={28} />
           </div>
-          <div>
+          <div className="portal-card-body">
             <h2>{t('forMunicipality')}</h2>
-            <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
+            <p className="portal-card-desc" style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
               {t('searchDesc')}
             </p>
-            <Link href="/nav/database" className="button button-accent" style={{ width: '100%', padding: 'var(--space-4)' }}>
-              {t('openHousingBank')} <ArrowRight size={18} />
-            </Link>
+            <div className="portal-card-cta">
+              <Link href="/nav/database" className="button button-accent" style={{ width: '100%', padding: 'var(--space-4)' }}>
+                {t('openHousingBank')} <ArrowRight size={18} />
+              </Link>
+            </div>
           </div>
         </div>
 
         {/* Homeowner Portal */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(8px)' }}>
+        <div className="card portal-card portal-card-align-buttons" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', backdropFilter: 'blur(8px)' }}>
           <div style={{ 
             width: '56px', 
             height: '56px', 
@@ -96,38 +100,51 @@ export default function Home() {
           }}>
             <HomeIcon size={28} />
           </div>
-          <div>
+          <div className="portal-card-body">
             <h2>{t('forHomeowners')}</h2>
-            <p style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
+            <p className="portal-card-desc" style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
               {t('manageDesc')}
             </p>
-            {isKommune ? (
-              <div style={{ 
-                padding: 'var(--space-4)', 
-                background: 'rgba(251, 191, 36, 0.1)', 
-                borderRadius: '12px', 
-                border: '1px solid rgba(251, 191, 36, 0.3)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-3)'
-              }}>
-                <p style={{ fontSize: '0.95rem', color: 'var(--text-body)', margin: 0 }}>
-                  {t('loginWithOtherAccount')}
-                </p>
-                <button 
-                  type="button"
-                  onClick={handleLogout}
-                  className="button"
-                  style={{ width: '100%', padding: 'var(--space-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}
-                >
-                  <LogOut size={18} /> {t('logOut')}
-                </button>
-              </div>
-            ) : (
-              <Link href="/homeowner/manage" className="button" style={{ width: '100%', padding: 'var(--space-4)' }}>
-                {t('manageRental')} <ArrowRight size={18} />
-              </Link>
-            )}
+            <div className="portal-card-cta">
+              {isKommune ? (
+                <div style={{ 
+                  padding: 'var(--space-4)', 
+                  background: 'rgba(251, 191, 36, 0.12)', 
+                  borderRadius: '12px', 
+                  border: '1px solid rgba(251, 191, 36, 0.4)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-3)'
+                }}>
+                  <p style={{ fontSize: '0.95rem', color: 'var(--text-main)', margin: 0 }}>
+                    {t('loginWithOtherAccount')}
+                  </p>
+                  <button 
+                    type="button"
+                    onClick={handleLogout}
+                    className="button"
+                    style={{ 
+                      width: '100%', 
+                      padding: 'var(--space-3)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: 'var(--space-2)', 
+                      background: 'var(--bg-card)', 
+                      color: 'var(--text-main)',
+                      border: '1px solid var(--border-medium)',
+                      fontWeight: 600
+                    }}
+                  >
+                    <LogOut size={18} /> {t('logOut')}
+                  </button>
+                </div>
+              ) : (
+                <Link href="/homeowner/manage" className="button" style={{ width: '100%', padding: 'var(--space-4)' }}>
+                  {t('manageRental')} <ArrowRight size={18} />
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -136,7 +153,7 @@ export default function Home() {
       <div className="animate-delay-3 trust-section" style={{ 
         marginTop: 'var(--space-10)', 
         padding: 'var(--space-8)', 
-        background: 'rgba(15, 23, 42, 0.4)', 
+        background: 'rgba(15, 23, 42, 0.4)',
         borderRadius: '24px',
         color: 'var(--text-main)',
         display: 'grid',

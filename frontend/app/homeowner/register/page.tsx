@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { use, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -10,7 +10,10 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
-export default function HomeownerRegister() {
+type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
+
+export default function HomeownerRegister(props: PageProps) {
+  use(props.searchParams ?? Promise.resolve({}))
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [imageFiles, setImageFiles] = useState<File[]>([])
@@ -21,7 +24,7 @@ export default function HomeownerRegister() {
     owner_name: '',
     contact_phone: '',
     address: '',
-    city: 'Oslo',
+    city: '',
     postal_code: '',
     type: 'Leilighet',
     size_sqm: '',
@@ -124,18 +127,34 @@ export default function HomeownerRegister() {
   }
 
   const geocodeAddress = async () => {
-    if (!formData.address || !formData.city) return
+    if (!formData.address || formData.address.trim().length < 3) return
 
     try {
-      const query = `${formData.address}, ${formData.city}, Norway`
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
+      const query = `${formData.address.trim()}, Norway`
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(query)}&limit=1`,
+        { headers: { 'Accept-Language': 'no' } }
+      )
       const data = await response.json()
 
       if (data && data.length > 0) {
+        const hit = data[0]
+        const addr = hit.address || {}
+        const postcode = (addr.postcode || '').toString().replace(/\s/g, '').slice(0, 4)
+        const rawCity =
+          addr.city ||
+          addr.town ||
+          addr.village ||
+          addr.municipality ||
+          ''
+        // Bruk kommunenavn fra geokoding (ingen "Annet") – tillatelsesområder for kommune er basert på kommune
+        const city = (rawCity || '').trim()
         setFormData(prev => ({
           ...prev,
-          latitude: parseFloat(data[0].lat),
-          longitude: parseFloat(data[0].lon)
+          latitude: parseFloat(hit.lat),
+          longitude: parseFloat(hit.lon),
+          ...(postcode && { postal_code: postcode }),
+          ...(city && { city })
         }))
       }
     } catch (err) {
@@ -156,57 +175,92 @@ export default function HomeownerRegister() {
         imageUrls = await uploadImages(imageFiles)
       }
 
+      const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
+      const sizeSqm = clamp(parseFloat(String(formData.size_sqm)) || 0, 1, 9999)
+      const bedroomsVal = clamp(parseInt(String(formData.bedrooms), 10) || 0, 0, 20)
+      const maxOcc = clamp(parseInt(String(formData.max_occupants), 10) || 1, 1, 50)
+      const priceMin = 0
+      const priceMax = 999999
+      const priceDaily = clamp(parseFloat(String(formData.price_daily)) || 0, priceMin, priceMax)
+      const priceWeekly = clamp(parseFloat(String(formData.price_weekly)) || 0, priceMin, priceMax)
+      const priceShort = clamp(parseFloat(String(formData.price_monthly_short)) || 0, priceMin, priceMax)
+      const priceLong = formData.price_monthly_long ? clamp(parseFloat(String(formData.price_monthly_long)), priceMin, priceMax) : null
+      const deposit = formData.deposit_amount ? clamp(parseFloat(String(formData.deposit_amount)), 0, 9999999) : null
+      const floorNumber = formData.floor_detail?.length ? formData.floor_detail.join(', ') : ''
+
+      const { has_insurance: _skip, ...listingFields } = formData
       const { data, error } = await supabase
         .from('listings')
         .insert([
           {
-            ...formData,
+            ...listingFields,
             owner_id: user.id,
-            image_url: imageUrls[0] || null, // Hovedbilde
+            floor_number: floorNumber,
+            image_url: imageUrls[0] ?? null, // Hovedbilde
             image_urls: imageUrls, // Hele galleriet
             is_available: true,
             status: 'Tilgjengelig',
-            size_sqm: parseFloat(formData.size_sqm),
-            bedrooms: parseInt(formData.bedrooms),
-            max_occupants: parseInt(formData.max_occupants),
-            price_daily: parseFloat(formData.price_daily),
-            price_per_night: parseFloat(formData.price_daily), // Add this for backward compatibility
-            price_weekly: parseFloat(formData.price_weekly),
-            price_monthly_short: parseFloat(formData.price_monthly_short),
-            price_monthly_long: parseFloat(formData.price_monthly_long),
-            deposit_amount: parseFloat(formData.deposit_amount),
+            size_sqm: sizeSqm,
+            bedrooms: bedroomsVal,
+            max_occupants: maxOcc,
+            price_daily: priceDaily,
+            price_per_night: priceDaily, // backward compatibility
+            price_weekly: priceWeekly,
+            price_monthly_short: priceShort,
+            price_monthly_long: priceLong,
+            deposit_amount: deposit,
             latitude: formData.latitude,
             longitude: formData.longitude
           }
         ])
+        .select('id')
 
-      if (error) throw error
+      if (error) {
+        const msg = [error.message, error.details, error.hint].filter(Boolean).join(' · ')
+        throw new Error(msg || JSON.stringify(error))
+      }
 
-      // Log action
+      const inserted = Array.isArray(data) && data.length > 0 ? data[0] : null
+      const listingId = inserted?.id
+      if (!listingId) {
+        throw new Error('Lagring fullført, men kunne ikke hente ID for den nye boligen. Sjekk at du har tilgang til å opprette boliger.')
+      }
+
+      // Logg handling inkl. viktige bekreftelser (forsikring akseptert ved publisering)
       await supabase.from('audit_logs').insert([{
         user_id: user.id,
         action_type: 'CREATE_LISTING',
+        listing_id: listingId,
         listing_address: formData.address,
-        details: { address: formData.address }
+        details: {
+          address: formData.address,
+          city: formData.city,
+          postal_code: formData.postal_code || null,
+          has_insurance_accepted: true,
+        }
       }])
 
-      // Create notification for Kommune
+      // Varsle kun kommune – ikke utleier som registrerte
       const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'En utleier'
-      
-      await supabase.from('notifications').insert([{
-        listing_id: (data as any)[0].id,
-        owner_id: user.id,
+      const { data: kommuneProfiles } = await supabase.from('profiles').select('id').eq('role', 'kommune_ansatt')
+      const rows = (kommuneProfiles || []).map((p: { id: string }) => ({
+        listing_id: listingId,
+        owner_id: p.id,
         type: 'NEW_LISTING',
         title: 'Ny bolig registrert',
         message: `${userName} har registrert en ny bolig i ${formData.city}: ${formData.address}`,
         municipality: formData.city
-      }])
+      }))
+      if (rows.length > 0) {
+        await supabase.from('notifications').insert(rows)
+      }
 
       alert('Bolig registrert!')
       router.push('/homeowner/manage')
     } catch (err: any) {
-      console.error('Error saving listing:', err)
-      alert('Feil ved lagring: ' + err.message)
+      const message = err?.message ?? err?.error_description ?? (typeof err === 'string' ? err : JSON.stringify(err))
+      console.error('Error saving listing:', message, err)
+      alert('Feil ved lagring: ' + (message || 'Ukjent feil'))
     } finally {
       setLoading(false)
     }
@@ -261,18 +315,15 @@ export default function HomeownerRegister() {
               </div>
               <div className="form-grid">
                 <div>
-                  <label className="label">By / Sted</label>
-                  <select className="input" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}>
-                    <option>Narvik</option>
-                    <option>Gratangen</option>
-                    <option>Evenes</option>
-                    <option>Oslo</option>
-                    <option>Bergen</option>
-                    <option>Trondheim</option>
-                    <option>Stavanger</option>
-                    <option>Kristiansand</option>
-                    <option value="Annet">Annet</option>
-                  </select>
+                  <label className="label">Kommune</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Fylles fra adresse eller skriv kommune"
+                    value={formData.city}
+                    onChange={e => setFormData({ ...formData, city: e.target.value })}
+                    required
+                  />
                 </div>
                 <div>
                   <label className="label">Postnummer</label>
@@ -300,27 +351,22 @@ export default function HomeownerRegister() {
                 </div>
                 <div>
                   <label className="label">Størrelse (kvm)</label>
-                  <input type="number" className="input" placeholder="F.eks. 45" required 
+                  <input type="number" className="input" placeholder="F.eks. 45" required min={1} max={9999}
                     value={formData.size_sqm} onChange={e => setFormData({...formData, size_sqm: e.target.value})} />
                 </div>
               </div>
               <div className="form-grid">
                 <div>
                   <label className="label">Antall soverom</label>
-                  <input type="number" className="input" placeholder="Antall" required 
+                  <input type="number" className="input" placeholder="Antall" required min={0} max={20}
                     value={formData.bedrooms} onChange={e => setFormData({...formData, bedrooms: e.target.value})} />
-                </div>
-                <div>
-                  <label className="label">Hvilken etasje?</label>
-                  <input type="text" className="input" placeholder="F.eks. 3. etasje" required 
-                    value={formData.floor_number} onChange={e => setFormData({...formData, floor_number: e.target.value})} />
                 </div>
               </div>
 
               <div style={{ marginTop: 'var(--space-4)' }}>
                 <label className="label">Etasje (velg alle som passer)</label>
                 <div className="floor-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)' }}>
-                  {['Underetasje', '1', '2', '3', '4', 'Annet'].map(f => (
+                  {['Underetasje', '1', '2', '3', '4'].map(f => (
                     <button type="button" key={f} 
                       onClick={() => toggleMultiSelect('floor_detail', f)}
                       style={{ 
@@ -340,17 +386,17 @@ export default function HomeownerRegister() {
               <div style={{ marginTop: 'var(--space-6)' }}>
                 <label className="label">Fysisk tilrettelegging</label>
                 
-                <div style={{ 
+                <div className="physical-access-info" style={{ 
                   padding: 'var(--space-4)', 
                   background: 'rgba(59, 130, 246, 0.1)', 
                   borderRadius: '12px', 
                   fontSize: '0.85rem', 
                   marginBottom: 'var(--space-4)',
                   border: '1px solid rgba(59, 130, 246, 0.2)',
-                  color: 'white'
+                  color: 'var(--text-body)'
                 }}>
-                  <h4 style={{ color: 'var(--color-sky-blue)', marginBottom: 'var(--space-2)', fontSize: '0.9rem' }}>Hva betyr valgene?</h4>
-                  <ul style={{ paddingLeft: '1.2rem', display: 'grid', gap: 'var(--space-1)', opacity: 0.9 }}>
+                  <h4 className="physical-access-info-title" style={{ marginBottom: 'var(--space-2)', fontSize: '0.9rem' }}>Hva betyr valgene?</h4>
+                  <ul style={{ paddingLeft: '1.2rem', display: 'grid', gap: 'var(--space-1)' }}>
                     <li><strong>Alt på ett plan:</strong> Ingen trapper eller høye dørstokker inne i boenheten.</li>
                     <li><strong>Heis i bygget:</strong> Bygget har heis som er stor nok for rullestol eller barnevogn.</li>
                     <li><strong>Terskelfritt:</strong> Ingen kanter høyere enn 2cm mellom rommene i boligen.</li>
@@ -398,24 +444,24 @@ export default function HomeownerRegister() {
               <div className="form-grid">
                 <div>
                   <label className="label">Døgnpris</label>
-                  <input type="number" className="input" placeholder="NOK" required 
+                  <input type="number" className="input" placeholder="NOK" required min={0} max={999999}
                     value={formData.price_daily} onChange={e => setFormData({...formData, price_daily: e.target.value})} />
                 </div>
                 <div>
                   <label className="label">Ukespris</label>
-                  <input type="number" className="input" placeholder="NOK" required 
+                  <input type="number" className="input" placeholder="NOK" required min={0} max={999999}
                     value={formData.price_weekly} onChange={e => setFormData({...formData, price_weekly: e.target.value})} />
                 </div>
               </div>
               <div className="form-grid">
                 <div>
                   <label className="label">Månedsleie (korttid)</label>
-                  <input type="number" className="input" placeholder="Inntil 3 mnd" required 
+                  <input type="number" className="input" placeholder="Inntil 3 mnd" required min={0} max={999999}
                     value={formData.price_monthly_short} onChange={e => setFormData({...formData, price_monthly_short: e.target.value})} />
                 </div>
                 <div>
                   <label className="label">Månedsleie (langtid)</label>
-                  <input type="number" className="input" placeholder="Valgfritt" 
+                  <input type="number" className="input" placeholder="Valgfritt" min={0} max={999999}
                     value={formData.price_monthly_long} onChange={e => setFormData({...formData, price_monthly_long: e.target.value})} />
                 </div>
               </div>
@@ -442,7 +488,7 @@ export default function HomeownerRegister() {
 
               <div style={{ marginTop: 'var(--space-6)' }}>
                 <label className="label">Langtidsleie: Depositum & Garanti</label>
-                <input type="number" className="input" placeholder="Depositumsbeløp" 
+                <input type="number" className="input" placeholder="Depositumsbeløp" min={0} max={9999999}
                   value={formData.deposit_amount} onChange={e => setFormData({...formData, deposit_amount: e.target.value})} />
                 <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
                   {[
@@ -466,7 +512,7 @@ export default function HomeownerRegister() {
                 </div>
                 <div>
                   <label className="label">Maks personer</label>
-                  <input type="number" className="input" placeholder="Antall" required min="1"
+                  <input type="number" className="input" placeholder="Antall" required min={1} max={50}
                     value={formData.max_occupants} onChange={e => setFormData({...formData, max_occupants: e.target.value})} />
                 </div>
               </div>

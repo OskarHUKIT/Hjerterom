@@ -1,23 +1,31 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { use, useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { 
-  MessageSquare, Send, ArrowLeft, User, ChevronRight
+  MessageSquare, Send, ArrowLeft, User, ChevronRight, ImagePlus, X
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { formatDateTimeNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
+
+const CHAT_IMAGES_BUCKET = 'chat-images'
+const MAX_IMAGES_PER_MESSAGE = 4
+const MAX_FILE_SIZE_MB = 5
 
 function MessagesContent() {
   const { t } = useLanguage()
   const searchParams = useSearchParams()
   const withUserId = searchParams.get('with')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [role, setRole] = useState<string | null>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
+  const [pendingImages, setPendingImages] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [conversations, setConversations] = useState<{ userId: string; name: string; lastMessage: string; lastAt: string }[]>([])
@@ -64,7 +72,7 @@ function MessagesContent() {
           return {
             userId: pid,
             name: name ?? 'Ukjent bruker',
-            lastMessage: last?.content?.slice(0, 40) + (last?.content?.length > 40 ? '...' : '') || '',
+            lastMessage: (last?.content?.trim()?.slice(0, 40) || (last?.image_urls?.length ? '[Bilde]' : '')) + (last?.content?.length > 40 ? '...' : '') || '',
             lastAt: last?.created_at || ''
           }
         })
@@ -121,16 +129,70 @@ function MessagesContent() {
     return () => { sub.unsubscribe() }
   }, [currentUser, withUserId, isKommune])
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : []
+    e.target.value = ''
+    const valid = files.filter(f => {
+      if (!f.type.startsWith('image/')) return false
+      if (f.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        alert(`«${f.name}» er for stor. Maks ${MAX_FILE_SIZE_MB} MB.`)
+        return false
+      }
+      return true
+    })
+    const total = pendingImages.length + valid.length
+    if (total > MAX_IMAGES_PER_MESSAGE) {
+      setPendingImages(prev => prev.concat(valid.slice(0, MAX_IMAGES_PER_MESSAGE - prev.length)))
+      setImagePreviews(prev => {
+        const next = [...prev]
+        valid.slice(0, MAX_IMAGES_PER_MESSAGE - pendingImages.length).forEach(f => {
+          const url = URL.createObjectURL(f)
+          next.push(url)
+        })
+        return next
+      })
+    } else {
+      setPendingImages(prev => prev.concat(valid))
+      setImagePreviews(prev => [...prev, ...valid.map(f => URL.createObjectURL(f))])
+    }
+  }
+
+  const removePendingImage = (index: number) => {
+    setPendingImages(prev => prev.filter((_, i) => i !== index))
+    setImagePreviews(prev => {
+      URL.revokeObjectURL(prev[index])
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
   const sendMessage = async () => {
     const content = newMessage.trim()
-    if (!content || !currentUser) return
+    const hasImages = pendingImages.length > 0
+    if ((!content && !hasImages) || !currentUser) return
     setSending(true)
     const effectiveReceiver = isKommune ? withUserId : null
     try {
+      let imageUrls: string[] = []
+      if (pendingImages.length > 0) {
+        for (const file of pendingImages) {
+          const ext = file.name.split('.').pop() || 'jpg'
+          const path = `${currentUser.id}/${crypto.randomUUID()}.${ext}`
+          const { error: uploadError } = await supabase.storage
+            .from(CHAT_IMAGES_BUCKET)
+            .upload(path, file, { contentType: file.type, upsert: false })
+          if (uploadError) throw uploadError
+          const { data: urlData } = supabase.storage.from(CHAT_IMAGES_BUCKET).getPublicUrl(path)
+          imageUrls.push(urlData.publicUrl)
+        }
+        setPendingImages([])
+        setImagePreviews(prev => { prev.forEach(URL.revokeObjectURL); return [] })
+      }
+
       const { data: inserted, error } = await supabase.from('chat_messages').insert({
         sender_id: currentUser.id,
         receiver_id: effectiveReceiver ?? null,
-        content
+        content: content || '',
+        image_urls: imageUrls
       }).select('id, created_at').maybeSingle()
       if (error) throw error
       setNewMessage('')
@@ -138,7 +200,8 @@ function MessagesContent() {
         id: inserted?.id ?? crypto.randomUUID(),
         sender_id: currentUser.id,
         receiver_id: effectiveReceiver ?? null,
-        content,
+        content: content || '',
+        image_urls: imageUrls.length > 0 ? imageUrls : [],
         created_at: inserted?.created_at ?? new Date().toISOString(),
         is_read: false
       }])
@@ -155,7 +218,7 @@ function MessagesContent() {
         })
       }
     } catch (err: any) {
-      alert('Feil ved sending: ' + err.message)
+      alert('Feil ved sending: ' + (err?.message || String(err)))
     } finally {
       setSending(false)
     }
@@ -226,28 +289,72 @@ function MessagesContent() {
               <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                 {messages.map(m => {
                   const isMe = m.sender_id === currentUser.id
+                  const urls = (m.image_urls || []).filter(Boolean)
                   return (
                     <div
                       key={m.id}
                       style={{
                         alignSelf: isMe ? 'flex-end' : 'flex-start',
-                        maxWidth: '80%',
+                        maxWidth: '85%',
                         padding: 'var(--space-3) var(--space-4)',
                         borderRadius: '12px',
                         background: isMe ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.06)',
                         border: isMe ? 'none' : '1px solid var(--border-subtle)'
                       }}
                     >
-                      <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.content}</p>
+                      {urls.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: m.content ? '8px' : 0 }}>
+                          {urls.map((url: string, i: number) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', borderRadius: '8px', overflow: 'hidden', maxWidth: '200px', maxHeight: '200px' }}>
+                              <img src={url} alt="" style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'cover', verticalAlign: 'middle' }} />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {m.content ? <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.content}</p> : null}
                       <div style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '4px' }}>
-                        {new Date(m.created_at).toLocaleString('no-NO')}
+                        {formatDateTimeNo(m.created_at)}
                       </div>
                     </div>
                   )
                 })}
               </div>
               <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)' }}>
-                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                {imagePreviews.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 'var(--space-3)' }}>
+                    {imagePreviews.map((url, i) => (
+                      <div key={i} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', width: '64px', height: '64px' }}>
+                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          type="button"
+                          onClick={() => removePendingImage(i)}
+                          aria-label="Fjern bilde"
+                          style={{ position: 'absolute', top: 2, right: 2, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    multiple
+                    onChange={handleImageSelect}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Legg til bilde(r)"
+                    disabled={pendingImages.length >= MAX_IMAGES_PER_MESSAGE}
+                    style={{ flexShrink: 0, width: 44, height: 44, borderRadius: '10px', border: '1px solid var(--border-subtle)', background: 'var(--bg-subtle)', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <ImagePlus size={22} />
+                  </button>
                   <input
                     className="input"
                     placeholder="Skriv en melding..."
@@ -258,7 +365,7 @@ function MessagesContent() {
                   />
                   <button
                     onClick={sendMessage}
-                    disabled={sending || !newMessage.trim()}
+                    disabled={sending || (!newMessage.trim() && pendingImages.length === 0)}
                     className="button"
                     style={{ padding: 'var(--space-3) var(--space-5)' }}
                   >
@@ -281,7 +388,10 @@ function MessagesContent() {
   )
 }
 
-export default function MessagesPage() {
+type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
+
+export default function MessagesPage(props: PageProps) {
+  use(props.searchParams ?? Promise.resolve({}))
   return (
     <Suspense fallback={<div className="container" style={{ minHeight: '80vh' }} />}>
       <MessagesContent />

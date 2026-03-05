@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, Suspense } from 'react'
+import { use, useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ShieldCheck, FileText, ChevronDown, CheckCircle2, Lock, AlertCircle, ArrowLeft } from 'lucide-react'
@@ -16,6 +16,22 @@ function SignTermsContent() {
 
   useEffect(() => {
     const checkAgreement = async () => {
+      const signedParam = searchParams.get('signed')
+      if (signedParam != null && typeof window !== 'undefined') {
+        try {
+          const bankIdStorage = window.sessionStorage.getItem('supabase-auth-bankid')
+          if (bankIdStorage) {
+            const parsed = JSON.parse(bankIdStorage)
+            const session = parsed?.currentSession ?? parsed
+            const access_token = session?.access_token
+            const refresh_token = session?.refresh_token
+            if (access_token && refresh_token) {
+              await supabase.auth.setSession({ access_token, refresh_token })
+            }
+          }
+        } catch (_) {}
+        await supabase.auth.refreshSession()
+      }
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
@@ -52,12 +68,18 @@ function SignTermsContent() {
 
     setLoading(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) throw new Error('Logg inn på nytt og prøv igjen.')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Logg inn på nytt og prøv igjen.')
 
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+      if (!anonKey?.trim()) {
+        throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY mangler i .env.local. Legg til anon-nøkkelen fra Supabase Dashboard → Settings → API.')
+      }
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || anonKey
       const body = {
-        userId: session.user.id,
+        userId: user.id,
         agreementVersion: '1.0',
         origin: typeof window !== 'undefined' ? window.location.origin : '',
       }
@@ -65,12 +87,19 @@ function SignTermsContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(body),
       })
 
       const data = await res.json().catch(() => ({}))
+      if (res.status === 401) {
+        throw new Error(
+          '401 ved signering: Edge Function godtar ikke forespørselen. ' +
+          'Sjekk at du er logget inn (prøv å logg ut og inn på nytt). ' +
+          'Hvis det fortsatt feiler: i Supabase Dashboard → Edge Functions → sign-agreement → sett «Enforce JWT» av, eller deploy med: supabase functions deploy sign-agreement --no-verify-jwt.'
+        )
+      }
       if (!res.ok) {
         const msg = (data?.message ?? data?.error ?? res.statusText) || 'Kunne ikke starte signering.'
         throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
@@ -88,14 +117,14 @@ function SignTermsContent() {
   }
 
   const handleTerminate = async () => {
-    if (!confirm('Er du sikker på at du vil si opp avtalen? Du vil miste tilgang til Boligbanken og dine registrerte boliger vil bli slettet.')) return
+    if (!confirm('Er du sikker på at du vil si opp avtalen? Du mister tilgang til Boligbanken med en gang. Informasjon om deg og boligene dine bevares for kommunens historikk.')) return
 
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      // 1. Mark agreement as terminated
+      // 1. Mark agreement as terminated (listings og brukerdata bevares for kommunens historikk)
       const { error: termError } = await supabase
         .from('user_agreements')
         .update({ is_terminated: true, terminated_at: new Date().toISOString() })
@@ -103,22 +132,14 @@ function SignTermsContent() {
 
       if (termError) throw termError
 
-      // 2. Delete all listings (as per requirements)
-      const { error: deleteError } = await supabase
-        .from('listings')
-        .delete()
-        .eq('owner_id', user.id)
-
-      if (deleteError) throw deleteError
-
-      // 3. Log the termination
+      // 2. Log the termination
       await supabase.from('audit_logs').insert([{
         user_id: user.id,
         action_type: 'TERMINATE_AGREEMENT',
         details: { version: '1.0' }
       }])
 
-      alert('Avtalen er nå sagt opp. Du logges ut.')
+      alert('Avtalen er nå sagt opp. Du logges ut. Kommunen beholder historikk over boliger og avtale.')
       await supabase.auth.signOut()
       router.push('/')
     } catch (err: any) {
@@ -200,7 +221,7 @@ function SignTermsContent() {
 
             <p className="text-sm" style={{ marginTop: 'var(--space-6)', color: '#ef4444' }}>
               <AlertCircle size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
-              Ved oppsigelse vil du miste tilgang umiddelbart og alle dine boliger vil bli slettet fra systemet.
+              Ved oppsigelse mister du tilgang umiddelbart. Informasjon om deg og boligene bevares for kommunens historikk.
             </p>
           </div>
         </div>
@@ -264,7 +285,7 @@ function SignTermsContent() {
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
               <h3 style={{ color: '#0f172a', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>4. Varighet og oppsigelse</h3>
-              <p style={{ color: '#334155' }}>Denne avtalen gjelder inntil den sies opp av en av partene. Utleier kan når som helst si opp avtalen via portalen. Ved oppsigelse slettes utleiers tilgang og alle registrerte boliger fjernes umiddelbart fra den aktive basen.</p>
+              <p style={{ color: '#334155' }}>Denne avtalen gjelder inntil den sies opp av en av partene. Utleier kan når som helst si opp avtalen via portalen. Ved oppsigelse slettes utleiers tilgang. Bolig- og brukerdata bevares for kommunens historikk.</p>
             </section>
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
@@ -322,7 +343,10 @@ function SignTermsContent() {
   )
 }
 
-export default function SignTerms() {
+type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
+
+export default function SignTerms(props: PageProps) {
+  use(props.searchParams ?? Promise.resolve({}))
   return (
     <Suspense fallback={<div className="container" style={{ minHeight: '80vh' }} />}>
       <SignTermsContent />

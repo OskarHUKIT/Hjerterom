@@ -34,5 +34,6 @@ Brukere som registrerer seg med disse e-postene får automatisk kommune-tilgang.
 
 - `region` brukes til å filtrere hvilke boliger brukeren ser.
 - Verdien må matche `city` på listingene (f.eks. `Narvik`, `Gratangen`).
-- For flere kommuner: bruk kommaseparert verdi, f.eks. `Narvik,Gratangen,Evenes`.
-- Brukere uten `kommune_region` (null) ser alle boliger.
+- For flere kommuner: kommaseparert, f.eks. `Narvik,Gratangen,Evenes`, eller med «og»: `Gratangen, Narvik og Evenes`. Stor/liten bokstav spiller ingen rolle.
+- Brukere uten `kommune_region` (null) ser ingen boliger eller brukere før de får eksplisitt tilgang.
+- Under **Brukere** ser kommune-ansatte bare brukere som har (eller har hatt) minst én bolig registrert i deres region.

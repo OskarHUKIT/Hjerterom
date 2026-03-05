@@ -8,6 +8,7 @@ import {
   Info, Clock, ChevronRight, ShieldCheck
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { formatDateNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
 
 export default function NavExpired() {
@@ -130,10 +131,30 @@ export default function NavExpired() {
           {loading ? <div className="card" style={{ padding: 'var(--space-4)', minHeight: '80px' }} /> : terminatedUsers.length > 0 ? (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
               {terminatedUsers.map(user => (
-                <div key={user.id} className="card" style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.02)', opacity: 0.7 }}>
-                  <div style={{ fontWeight: 600 }}>{user.profiles?.full_name || t('nameNotStored')}</div>
-                  <div style={{ fontSize: '0.85rem', opacity: 0.5 }}>{t('expiredDate')}: {new Date(user.terminated_at).toLocaleDateString()}</div>
-                </div>
+                <Link
+                  key={user.id}
+                  href={`/nav/users?id=${user.id}`}
+                  className="card"
+                  style={{
+                    padding: 'var(--space-4)',
+                    background: 'rgba(255,255,255,0.02)',
+                    opacity: 0.9,
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 'var(--space-3)',
+                    cursor: 'pointer',
+                    border: '1px solid var(--border-subtle)',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{user.profiles?.full_name || t('nameNotStored')}</div>
+                    <div style={{ fontSize: '0.85rem', opacity: 0.5 }}>{t('expiredDate')}: {formatDateNo(user.terminated_at)}</div>
+                  </div>
+                  <ChevronRight size={20} style={{ opacity: 0.6, flexShrink: 0 }} />
+                </Link>
               ))}
             </div>
           ) : <p className="opacity-50 italic">{t('noInactiveUsers')}</p>}

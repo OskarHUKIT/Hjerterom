@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { Send, ImagePlus, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { DateInput } from './DateInput'
 
 interface HandoverReportProps {
   listingId?: string
@@ -23,6 +24,9 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
   const [loading, setLoading] = useState(false)
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     address: listingAddress || '',
@@ -52,6 +56,7 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
         setPhotoUrls(prev => [...prev, publicUrl])
       }
     } catch (err: any) {
+      setUploadError(err?.message || 'Feil ved opplasting')
       alert('Feil ved opplasting: ' + err.message)
     } finally {
       setUploadingPhotos(false)
@@ -65,8 +70,10 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setUploadError(null)
+    setSubmitError(null)
     if (!formData.photos_confirmed) {
-      alert('Du må bekrefte at bildene er tatt.')
+      setSubmitError('Du må bekrefte at bildene er tatt (kryss av i boksen under bildene).')
       return
     }
 
@@ -80,27 +87,36 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
         })
         if (error) throw error
       } else if (listingId) {
-        const { error } = await supabase
-          .from('handover_reports')
-          .insert([{
-            listing_id: listingId,
-            reporter_type: reporterType,
-            content: content,
-            is_finalized: true,
-            signed_at: new Date().toISOString()
-          }])
-        if (error) throw error
         if (reporterType === 'homeowner') {
-          await supabase.rpc('notify_kommune_new_report', { p_listing_id: listingId, p_address: formData.address })
+          const { data: reportId, error } = await supabase.rpc('submit_homeowner_handover_report', {
+            p_listing_id: listingId,
+            p_content: content
+          })
+          if (error) throw error
+        } else {
+          const { error } = await supabase
+            .from('handover_reports')
+            .insert([{
+              listing_id: listingId,
+              reporter_type: reporterType,
+              content: content,
+              is_finalized: true,
+              signed_at: new Date().toISOString()
+            }])
+          if (error) throw error
         }
       } else {
         throw new Error('Manglende data')
       }
 
-      alert('Overtakelsesrapport er lagret og signert!')
-      if (onSaved) onSaved()
+      setSubmitSuccess(true)
+      setSubmitError(null)
+      setTimeout(() => {
+        if (onSaved) onSaved()
+      }, 1200)
     } catch (err: any) {
-      alert('Feil ved lagring: ' + err.message)
+      const msg = err?.message || 'Feil ved lagring'
+      setSubmitError(msg)
     } finally {
       setLoading(false)
     }
@@ -127,6 +143,19 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
       <p style={{ fontSize: '0.95rem', lineHeight: 1.6, marginBottom: 'var(--space-6)', color: '#0f172a' }}>
         Ved formidling av bolig gjennom bo.ly, plikter utleier å dokumentere boligens tilstand. Overtakelsesrapporten skal være utfylt og innsendt senest samme dag som utleie starter. Boligutleier må legge ved bilder som ikke er eldre enn tre måneder og må være tatt etter siste leietaker.
       </p>
+
+      {submitSuccess && (
+        <div style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-4)', background: '#d1fae5', border: '1px solid #10b981', borderRadius: 12, color: '#065f46', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Send size={24} />
+          <span style={{ fontWeight: 600 }}>Rapporten er sendt inn. Du kan lukke skjemaet.</span>
+        </div>
+      )}
+
+      {submitError && (
+        <div style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-4)', background: '#fef2f2', border: '1px solid #ef4444', borderRadius: 12, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontWeight: 600 }}>{submitError}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <table style={{ width: '100%', ...ROW_STYLE }}>
@@ -228,19 +257,27 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
                   onChange={handlePhotoUpload}
                   style={{ display: 'none' }}
                 />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingPhotos}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
-                    background: LABEL_BG, border: '1px solid #b8d4e0', borderRadius: 8, cursor: uploadingPhotos ? 'wait' : 'pointer',
-                    fontSize: '0.95rem', fontWeight: 600, color: '#0f172a'
-                  }}
-                >
-                  <ImagePlus size={20} />
-                  {uploadingPhotos ? 'Laster opp...' : 'Legg ved bilder'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => { fileInputRef.current?.click(); setUploadError(null) }}
+                    disabled={uploadingPhotos}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
+                      background: LABEL_BG, border: '1px solid #b8d4e0', borderRadius: 8, cursor: uploadingPhotos ? 'wait' : 'pointer',
+                      fontSize: '0.95rem', fontWeight: 600, color: '#0f172a'
+                    }}
+                  >
+                    <ImagePlus size={20} />
+                    {uploadingPhotos ? 'Laster opp...' : 'Legg ved bilder'}
+                  </button>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 600, color: photoUrls.length > 0 ? '#0d9488' : '#64748b' }}>
+                    {photoUrls.length === 0 ? 'Ingen bilder lagt ved ennå' : `${photoUrls.length} bilder lastet opp`}
+                  </span>
+                </div>
+                {uploadError && (
+                  <p style={{ margin: '8px 0 0', fontSize: '0.9rem', color: '#dc2626' }}>{uploadError}</p>
+                )}
                 {photoUrls.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
                     {photoUrls.map(url => (
@@ -265,10 +302,10 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
                     style={{ width: '18px', height: '18px' }}
                   />
                   <span>Det bekreftes at bildene er tatt dato:</span>
-                  <input
-                    type="date"
+                  <DateInput
                     value={formData.photos_date}
-                    onChange={e => setFormData({ ...formData, photos_date: e.target.value })}
+                    onChange={v => setFormData({ ...formData, photos_date: v })}
+                    placeholder="DD.MM.ÅÅÅÅ"
                     style={{ border: 'none', borderBottom: '1px solid #0f172a', background: 'transparent', padding: '2px 6px', fontWeight: 600, fontSize: '0.95rem' }}
                   />
                 </label>
@@ -292,12 +329,12 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
         <button
           type="submit"
           className="button"
-          disabled={loading || !formData.photos_confirmed}
+          disabled={loading || !formData.photos_confirmed || submitSuccess}
           style={{ marginTop: 'var(--space-8)', padding: 'var(--space-4)', width: '100%', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
         >
-          {loading ? 'Lagrer...' : (
+          {loading ? 'Sender inn...' : submitSuccess ? 'Sendt inn!' : (
             <>
-              <Send size={20} /> Send inn overtakelsesrapport
+              <Send size={20} /> Send inn overtakelsesrapport {photoUrls.length > 0 && `(${photoUrls.length} bilder)`}
             </>
           )}
         </button>

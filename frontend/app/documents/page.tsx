@@ -1,48 +1,59 @@
 'use client'
 
+import { useRef, useState } from 'react'
 import Link from 'next/link'
+import { Upload } from 'lucide-react'
 
 export default function Documents() {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
+
   return (
     <main className="container">
       <div style={{ marginBottom: '2rem' }}>
         <Link href="/" className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
           ← Tilbake til forsiden
         </Link>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--color-dark-navy)', marginBottom: '0.5rem' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
           Dokumentadministrasjon
         </h1>
-        <p style={{ fontSize: '1.1rem', color: 'var(--color-dark-navy)', opacity: 0.8 }}>
+        <p style={{ fontSize: '1.1rem', color: 'var(--text-body)' }}>
           Last opp og administrer dokumenter
         </p>
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ marginBottom: '1rem' }}>Last opp dokument</h2>
-        <div style={{ 
-          padding: '2rem', 
-          border: '2px dashed var(--color-muted-blue)', 
-          borderRadius: '12px',
-          background: 'linear-gradient(135deg, var(--color-sky-blue) 0%, rgba(170, 223, 240, 0.3) 100%)',
-          textAlign: 'center'
-        }}>
-          <input 
-            type="file" 
-            className="input" 
-            style={{ 
-              marginBottom: '1rem',
-              border: 'none',
-              background: '#ffffff',
-              padding: '1.5rem',
-              cursor: 'pointer'
-            }} 
+        <h2 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>Last opp dokument</h2>
+        <div className="doc-upload-zone">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx"
+            className="doc-upload-input"
+            onChange={e => setFileName(e.target.files?.[0]?.name ?? null)}
           />
-          <button className="button button-accent">Last opp dokument</button>
+          <div className="doc-upload-inner">
+            <Upload size={32} style={{ color: 'var(--color-royal-blue)', opacity: 0.8, marginBottom: 'var(--space-2)' }} />
+            <p style={{ margin: '0 0 var(--space-2)', fontSize: '0.95rem', color: 'var(--text-body)' }}>
+              {fileName ? <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{fileName}</span> : 'Ingen fil valgt'}
+            </p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="button"
+              style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem' }}
+            >
+              Velg fil
+            </button>
+          </div>
+          <button type="button" className="button doc-upload-submit" style={{ marginTop: 'var(--space-4)' }}>
+            <Upload size={18} style={{ marginRight: '8px' }} /> Last opp dokument
+          </button>
         </div>
       </div>
 
       <div className="card">
-        <h2 style={{ marginBottom: '1.5rem' }}>Eksisterende dokumenter</h2>
+        <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-main)' }}>Eksisterende dokumenter</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {[
             { name: 'Vilkårsavtale Boligbanken', file: 'VilkarsavtaleBoligbanken.pdf', desc: 'Vilkårsavtale for Boligbanken' },
@@ -56,32 +67,12 @@ export default function Documents() {
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  padding: '1.25rem',
-                  background: 'linear-gradient(135deg, rgba(170, 223, 240, 0.2) 0%, rgba(107, 137, 197, 0.1) 100%)',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(107, 137, 197, 0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  transition: 'all 0.2s',
-                  cursor: 'pointer',
-                  textDecoration: 'none',
-                  color: 'inherit'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateX(4px)'
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(33, 51, 102, 0.15)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateX(0)'
-                  e.currentTarget.style.boxShadow = 'none'
-                }}
+                className="doc-list-link"
               >
-                <div style={{ fontSize: '2rem' }}>📄</div>
+                <div style={{ fontSize: '1.5rem', opacity: 0.9 }}>📄</div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, color: 'var(--color-dark-navy)', marginBottom: '0.25rem' }}>{doc.name}</div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--color-dark-navy)', opacity: 0.6 }}>{doc.desc} · PDF</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.25rem' }}>{doc.name}</div>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-body)' }}>{doc.desc} · PDF</div>
                 </div>
               </a>
             )

@@ -104,10 +104,10 @@ serve(async (req) => {
         profileUpdate.role = 'kommune_ansatt'
         profileUpdate.kommune_region = whitelistRegion
       }
-      await supabaseAdmin
+      const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .upsert(profileUpdate)
-        .catch(err => console.error("Profil-oppdatering feilet:", err.message))
+      if (profileError) console.error("Profil-oppdatering feilet:", profileError.message)
     }
 
     // 3. Generer innloggingslenke - bruk state (return_to) fra OAuth callback

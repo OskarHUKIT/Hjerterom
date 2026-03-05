@@ -29,7 +29,24 @@ Det er to BankID-fløyer i Bo.ly:
 
 ## 2. Signer vilkårsavtale (fungerer ikke)
 
-**Sjekkliste:**
+### HTTP 401 ved signering (viktigst)
+
+Hvis du får **«This page isn't working» / HTTP ERROR 401** fra `*.functions.supabase.co` når du trykker på signering, betyr det at Edge Function-gatewayen avviser forespørselen. Løsning:
+
+1. **Deploy sign-agreement med JWT-sjekk av** (må gjøres i Supabase):
+   ```powershell
+   npx supabase login
+   npx supabase link --project-ref <ditt-prosjekt-ref>
+   npx supabase functions deploy sign-agreement --no-verify-jwt
+   ```
+   Hvis du deployer fra Supabase Dashboard i stedet, må du for den aktuelle funksjonen **slå av «Enforce JWT»** / «Verify JWT» (avhengig av UI).
+
+2. **Etter at du har byttet nøkkel:** Sjekk at `frontend/.env.local` har **anon-nøkkelen** (ikke service_role):
+   - Supabase Dashboard → **Settings** → **API** → **Project API keys** → **anon** (public).
+   - Variabel: `NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-nøkkel>`.
+   - Start dev-server på nytt etter endring av `.env.local`.
+
+**Sjekkliste øvrig:**
 
 1. **Deploy sign-agreement** (uten JWT-sjekk, siden userId valideres i funksjonen):
    ```powershell
@@ -40,14 +57,7 @@ Det er to BankID-fløyer i Bo.ly:
 2. **Supabase Secrets:**
    - `SIGNICAT_SECRET_SIGN` må være satt (forskjellig fra SIGNICAT_SECRET_LOGIN!)
 
-3. **Frontend må ha Authorization-header** – Sjekk at `sign-terms/page.tsx` sender:
-   ```javascript
-   headers: {
-     'Content-Type': 'application/json',
-     'Authorization': `Bearer ${session.access_token}`,
-   }
-   ```
-   Push til GitHub slik at Vercel deployer ny versjon.
+3. **Frontend** sender `Authorization: Bearer <anon key>` til sign-agreement. Sjekk at `NEXT_PUBLIC_SUPABASE_ANON_KEY` er satt i `.env.local`.
 
 4. **PDF i Supabase Storage:**
    - Bucket: `documents`
@@ -66,7 +76,8 @@ Det er to BankID-fløyer i Bo.ly:
 | Feil | Løsning |
 |------|---------|
 | "Missing authorization header" | Deploy frontend med Authorization Bearer-token i sign-terms |
-| "Invalid JWT" | Re-deploy med JWT av: `npx supabase functions deploy sign-agreement --no-verify-jwt` |
+| **HTTP 401** / "Invalid response" | Deploy med JWT av: `npx supabase functions deploy sign-agreement --no-verify-jwt`. Byttet du nøkkel, sjekk at det er **anon**-nøkkel i .env.local og restart dev-server. |
+| "Invalid JWT" | Samme som 401: deploy med `--no-verify-jwt` (se over). |
 | "Edge Function returned non-2xx" | Sjekk Supabase Functions-logg for detaljert feil; ofte JWT eller secret |
 | "Kunne ikke laste ned PDF" | Sjekk at VilkarsavtaleBoligbanken.pdf finnes i storage, bucket public |
 | "SIGNICAT_SECRET_SIGN mangler" | Legg til secret i Supabase |

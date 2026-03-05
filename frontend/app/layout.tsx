@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import PushSubscription from './components/PushSubscription'
+import PWAInstallPrompt from './components/PWAInstallPrompt'
 import { Providers } from './providers'
 
 export const viewport: Viewport = {
@@ -42,6 +43,7 @@ export default function RootLayout({
       <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Providers>
           <PushSubscription />
+          <PWAInstallPrompt />
           <Header />
           <div style={{ flex: 1 }}>
             {children}

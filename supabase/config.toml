@@ -358,6 +358,10 @@ verify_jwt = false
 [functions.sign-agreement]
 verify_jwt = false
 
+# sign-callback mottar redirect fra BankID/Signicat uten JWT
+[functions.sign-callback]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
