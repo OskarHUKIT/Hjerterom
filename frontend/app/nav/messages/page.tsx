@@ -49,7 +49,7 @@ function MessagesContent() {
     const fetchConversations = async () => {
       const { data: msgs } = await supabase
         .from('chat_messages')
-        .select('sender_id, receiver_id, content, created_at')
+        .select('sender_id, receiver_id, content, created_at, image_urls')
         .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
         .order('created_at', { ascending: false })
 
