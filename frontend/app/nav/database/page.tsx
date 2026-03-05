@@ -944,7 +944,7 @@ export default function NavDatabase(props: PageProps) {
                     >
                       {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => (
                         <td key={col.id} style={{ padding: 'var(--space-4)' }}>
-                          {col.id === 'status' && viewMode !== 'timeline'
+                          {col.id === 'status'
                             ? translateValue(col.id, l[col.id], l, getStatusForToday(l.id, availability))
                             : translateValue(col.id, l[col.id], l)}
                         </td>
