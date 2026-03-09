@@ -956,11 +956,11 @@ export default function ListingDetailsClient() {
                       <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: '120px' }}>
                           <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>{t('from')}</span>
-                          <DateInput className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)' }} value={formidletStart} onChange={setFormidletStart} max={formidletEnd || undefined} placeholder="DD.MM.ÅÅÅÅ" />
+                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)' }} value={formidletStart} onChange={setFormidletStart} max={formidletEnd || undefined} placeholder="DD.MM.ÅÅÅÅ" />
                         </div>
                         <div style={{ flex: 1, minWidth: '120px' }}>
                           <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>{t('to')}</span>
-                          <DateInput className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)' }} value={formidletEnd} onChange={setFormidletEnd} min={formidletStart || undefined} placeholder="DD.MM.ÅÅÅÅ" />
+                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)' }} value={formidletEnd} onChange={setFormidletEnd} min={formidletStart || undefined} placeholder="DD.MM.ÅÅÅÅ" />
                         </div>
                         <button onClick={handleAddFormidletPeriod} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}><ShieldCheck size={14} /> {t('addSubmit')}</button>
                       </div>
@@ -1243,14 +1243,14 @@ export default function ListingDetailsClient() {
             </div>
           )}
 
-          {/* 6. Administrer (eier) */}
-          <section className="card listing-detail-card" style={{ padding: 'var(--space-6)' }}>
-            {!isNavView && isOwner && (
+          {/* 6. Administrer (eier) – kun synlig for eier som ikke er i nav-visning */}
+          {!isNavView && isOwner && (
+            <section className="card listing-detail-card" style={{ padding: 'var(--space-6)' }}>
               <Link href={`/homeowner/manage`} className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}>
                 <Edit3 size={18} /> Administrer denne boligen
               </Link>
-            )}
-          </section>
+            </section>
+          )}
 
           <style jsx>{`
             .editable-h1:hover {
