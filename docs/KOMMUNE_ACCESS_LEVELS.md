@@ -3,7 +3,7 @@
 ## Oversikt
 
 To nivåer for kommune-ansatte:
-- **Visning** – kan se boligbanken, brukere, meldinger, varsler, men kan ikke endre data
+- **Visning** – kan se boligbank, brukere, meldinger, varsler, men kan ikke endre data
 - **Redigering** – full tilgang inkl. markere formidlet, forlenge perioder, fjerne formidling, etc.
 
 ## Implementasjon

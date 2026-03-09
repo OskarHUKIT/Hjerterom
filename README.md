@@ -1,6 +1,6 @@
-# Boligbanken Application
+# Boligbank Application
 
-A modern web application for Boligbanken (Housing Bank) management system.
+A modern web application for Boligbank (Housing Bank) management system.
 
 ## Project Structure
 

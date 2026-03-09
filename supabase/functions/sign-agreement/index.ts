@@ -108,7 +108,7 @@ serve(async (req) => {
         "Accept": "application/json"
       },
       body: JSON.stringify([{
-        title: "Vilkårsavtale Boligbanken",
+        title: "Vilkårsavtale Boligbank",
         externalReference: userId,
         documents: [{
           documentId,

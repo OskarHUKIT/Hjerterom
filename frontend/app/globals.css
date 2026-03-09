@@ -48,6 +48,12 @@
 
   /* Accent/link color – darker in light mode for contrast */
   --color-accent: var(--color-sky-blue);
+
+  /* Kalenderstatus (dark mode) */
+  --calendar-formidlet-bg: rgba(59, 130, 246, 0.35);
+  --calendar-formidlet-range-bg: rgba(59, 130, 246, 0.25);
+  --calendar-tilgjengelig-bg: rgba(32, 187, 175, 0.25);
+  --calendar-utilgjengelig-bg: rgba(239, 68, 68, 0.2);
 }
 
 /* Light mode – overrides when data-theme="light" */
@@ -60,7 +66,14 @@
   --text-body: #334155;
   --text-muted: #64748b;
   --text-on-dark: #ffffff;
-  --color-accent: #0369a1; /* Darker blue for better contrast on light bg */
+  --color-accent: #0369a1; /* Mørkere blå for god kontrast på lys bakgrunn */
+  --color-sky-blue: #0369a1; /* Samme mørkere blå – erstatter lyseblå i lys modus */
+  --color-royal-blue: #0369a1; /* Konsistent med accent i lys modus */
+  /* Kalenderstatus – klarere farger i lys modus */
+  --calendar-formidlet-bg: rgba(3, 105, 161, 0.4);
+  --calendar-formidlet-range-bg: rgba(3, 105, 161, 0.32);
+  --calendar-tilgjengelig-bg: rgba(13, 148, 136, 0.45);
+  --calendar-utilgjengelig-bg: rgba(239, 68, 68, 0.4);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -165,6 +178,12 @@ a {
   background: rgba(15, 23, 42, 0.06) !important;
 }
 
+[data-theme="light"] .header .header-mobile-actions a,
+[data-theme="light"] .header .header-mobile-actions button {
+  color: var(--text-main) !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
 
 @media (max-width: 480px) {
   .header .logo {
@@ -213,6 +232,18 @@ a {
   background: rgba(255, 255, 255, 1);
   border-color: rgba(59, 130, 246, 0.3);
   box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+}
+
+/* Innstillings-/filterpaneler: bruk temaets bakgrunn (ingen mørk override) */
+.card-settings-panel {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-subtle);
+}
+.card-settings-option {
+  background: rgba(255, 255, 255, 0.05);
+}
+[data-theme="light"] .card-settings-option {
+  background: rgba(0, 0, 0, 0.04);
 }
 
 /* Portal-kort: mørk bakgrunn i dark mode */
@@ -408,6 +439,13 @@ a {
   box-shadow: var(--shadow-md);
 }
 
+[data-theme="light"] .button {
+  background-color: var(--color-accent);
+}
+[data-theme="light"] .button:hover {
+  background-color: #025a8a;
+}
+
 .button:active {
   transform: translateY(0);
 }
@@ -418,6 +456,23 @@ a {
 
 .button-accent:hover {
   background-color: var(--color-dark-teal);
+}
+
+/* Sekundær/lys knapp – alltid lesbar tekst mot bakgrunn (lys modus og mørk modus) */
+.button-secondary,
+a.button-secondary,
+button.button-secondary {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-medium);
+}
+
+.button-secondary:hover,
+a.button-secondary:hover,
+button.button-secondary:hover {
+  background-color: var(--bg-app) !important;
+  border-color: var(--border-medium);
+  color: var(--text-main) !important;
 }
 
 .input, select, textarea {
@@ -973,6 +1028,28 @@ p {
 
 .login-page .card {
   margin: var(--space-2);
+}
+
+.login-page .login-card {
+  transform: none;
+}
+.login-page .login-card:hover {
+  transform: none;
+}
+
+.login-page .login-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.login-page .login-input {
+  background: var(--bg-app) !important;
+  border-color: var(--border-medium);
+}
+[data-theme="light"] .login-page .login-input {
+  background: #fff !important;
+  border-color: var(--border-subtle);
 }
 
 /* Listing details: stack columns on mobile */

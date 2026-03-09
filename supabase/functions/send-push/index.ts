@@ -43,7 +43,7 @@ serve(async (req) => {
 
     const record = payload.record as NotificationRecord
     const ownerId = record.owner_id
-    const title = record.title || "Boligbanken"
+    const title = record.title || "Boligbank"
     const message = record.message || ""
 
     const vapidPrivate = Deno.env.get("VAPID_KEY") ?? Deno.env.get("VAPID_PRIVATE_KEY") ?? Deno.env.get("VAPID-KEY")
@@ -75,7 +75,7 @@ serve(async (req) => {
     }
 
     webpush.setVapidDetails(
-      "mailto:post@boligbanken.no",
+      "mailto:post@boligbank.no",
       vapidPublic,
       vapidPrivate
     )

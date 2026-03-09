@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.boligbanken.app',
-  appName: 'Boligbanken',
+  appName: 'Boligbank',
   webDir: 'out',
   bundledWebRuntime: false,
   server: {

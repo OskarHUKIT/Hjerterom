@@ -1,4 +1,4 @@
--- Allow Kommune users to view audit history of all non-Kommune users
+drop policy if exists "Kommune can view non-kommune user history" on audit_logs;
 create policy "Kommune can view non-kommune user history" on audit_logs for select using (
   public.is_kommune_ansatt()
   and exists (

@@ -8,12 +8,67 @@ const isBankIdCallback =
   typeof window !== 'undefined' &&
   /[?&]bankid=1($|&|#|\s)/.test(window.location.search + '&' + (window.location.hash || ''))
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
+const client = createClient(supabaseUrl, supabaseKey, {
   auth: {
     storage: isBankIdCallback ? window.sessionStorage : undefined,
     storageKey: isBankIdCallback ? 'supabase-auth-bankid' : undefined,
   },
 })
+
+/** Sjekker om feilen er ugyldig/utløpt refresh token – da skal vi logge ut og sende bruker til forsiden. */
+function isInvalidRefreshTokenError(err: unknown): boolean {
+  const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message?: string }).message) : ''
+  return /refresh token not found|invalid refresh token|refresh_token/i.test(msg)
+}
+
+/** Ved ugyldig refresh token: sign out lokalt og redirect til forsiden (unngår AuthApiError i konsollen ved neste kall). */
+async function handleInvalidRefreshToken(): Promise<void> {
+  await client.auth.signOut({ scope: 'local' })
+  if (typeof window !== 'undefined' && !/^\/(login)?(\?|#|$)/.test(window.location.pathname)) {
+    window.location.href = '/'
+  }
+}
+
+// Wrapper getSession – fanger ugyldig refresh token og logger ut
+const originalGetSession = client.auth.getSession.bind(client.auth)
+client.auth.getSession = async () => {
+  try {
+    return await originalGetSession()
+  } catch (e) {
+    if (isInvalidRefreshTokenError(e)) {
+      await handleInvalidRefreshToken()
+    }
+    throw e
+  }
+}
+
+// Wrapper getUser – fanger ugyldig refresh token og logger ut (getUser trigrer ofte refresh)
+const originalGetUser = client.auth.getUser.bind(client.auth)
+client.auth.getUser = async () => {
+  try {
+    return await originalGetUser()
+  } catch (e) {
+    if (isInvalidRefreshTokenError(e)) {
+      await handleInvalidRefreshToken()
+    }
+    throw e
+  }
+}
+
+// Wrapper refreshSession – fanger ugyldig refresh token (f.eks. etter BankID-retur)
+const originalRefreshSession = client.auth.refreshSession.bind(client.auth)
+client.auth.refreshSession = async () => {
+  try {
+    return await originalRefreshSession()
+  } catch (e) {
+    if (isInvalidRefreshTokenError(e)) {
+      await handleInvalidRefreshToken()
+    }
+    throw e
+  }
+}
+
+export const supabase = client
 
 
 

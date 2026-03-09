@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
   Plus, Home as HomeIcon, Info, Trash2, Edit3, Clock, FileText, 
-  ShieldCheck, MessageSquare, Clipboard, CheckCircle2
+  ShieldCheck, MessageSquare
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
@@ -24,8 +24,6 @@ export default function HomeownerManage(props: PageProps) {
   const [filter, setFilter] = useState<'Alle' | 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'>('Alle')
   const [editingAvailability, setEditingAvailability] = useState<string | null>(null)
   const [newPeriod, setNewPeriod] = useState({ start: '', end: '', status: 'Tilgjengelig' })
-  const [tenantTokens, setTenantTokens] = useState<Record<string, string>>({})
-  const [copyFeedbackListingId, setCopyFeedbackListingId] = useState<string | null>(null)
 
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
@@ -81,11 +79,6 @@ export default function HomeownerManage(props: PageProps) {
           availMap[item.listing_id].push(item)
         })
         setAvailability(availMap)
-
-        const { data: tokenRows } = await supabase.from('listing_tenant_tokens').select('listing_id, token').in('listing_id', listingIds)
-        const tokenMap: Record<string, string> = {}
-        tokenRows?.forEach((row: any) => { tokenMap[row.listing_id] = row.token })
-        setTenantTokens(tokenMap)
       }
 
     } catch (err: any) {
@@ -132,7 +125,7 @@ export default function HomeownerManage(props: PageProps) {
   }
 
   const deleteListing = async (id: string, address: string) => {
-    if (!confirm(`Dersom du sletter boligen "${address}", vil den ikke lengre være synlig i boligbanken. Ønsker du å fortsette?`)) return
+    if (!confirm(`Dersom du sletter boligen "${address}", vil den ikke lengre være synlig i boligbank. Ønsker du å fortsette?`)) return
 
     const prevListings = myListings
     setMyListings(prev => prev.filter(item => item.id !== id))
@@ -178,6 +171,7 @@ export default function HomeownerManage(props: PageProps) {
         await supabase.from('listings').update({ status, is_available: status === 'Tilgjengelig' }).eq('id', listingId)
         setMyListings(prev => prev.map(l => l.id === listingId ? { ...l, status, is_available: status === 'Tilgjengelig' } : l))
       }
+      // Formidla-perioder kan kun legges inn av kommuneansatte (i boligbanken), ikke av utleier her.
     } catch (err: any) {
       alert('Feil ved lagring av periode: ' + err.message)
     }
@@ -232,11 +226,7 @@ export default function HomeownerManage(props: PageProps) {
     <main className="container">
       <div className="hm-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
-          <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            ← {t('backToFrontPage')}
-          </Link>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)' }}>{t('welcomeBackManage')}</h1>
-          <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>{t('manageDescHomeowner')}</p>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)', margin: 0 }}>Min Boly-oversikt</h1>
         </div>
         <Link href="/homeowner/register" className="button" style={{ padding: 'var(--space-4) var(--space-8)', borderRadius: '14px', fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
           <Plus size={22} /> <span className="hm-btn-label">{t('registerNewProperty')}</span>
@@ -384,26 +374,14 @@ export default function HomeownerManage(props: PageProps) {
                       </div>
 
                       {getEffectiveStatus(listing) === 'Formidla' && (
-                        <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                          <div style={{ padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
-                            <p style={{ margin: '0 0 var(--space-3)', fontSize: '0.85rem', opacity: 0.9 }}>{t('formidletActionsDesc')}</p>
-                            <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-                              <Link href={`/listings/${listing.id}?view=owner#kontaktinfo`} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}>
-                                <FileText size={16} /> {t('contactInfoForm')}
-                              </Link>
-                              <Link href={`/report/utleier/${listing.id}`} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none', background: 'var(--color-teal)', color: 'white', border: 'none' }}>
-                                <FileText size={16} /> {t('fillHandoverReport')}
-                              </Link>
-                            </div>
-                          </div>
-                          <div style={{ padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '2px dashed rgba(59, 130, 246, 0.5)' }}>
-                            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}><strong style={{ color: 'var(--text-main)' }}>Lenke til leietaker:</strong> Send denne lenken til leietaker for nedlasting og opplasting av overtakelsesrapport (PDF) – de trenger ikke logge inn.</p>
-                            {tenantTokens[listing.id] ? (
-                              <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
-                                <code style={{ padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', wordBreak: 'break-all', flex: 1, minWidth: 0, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}>{typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantTokens[listing.id]}` : ''}</code>
-                                <button type="button" onClick={(e) => { e.stopPropagation(); const url = typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantTokens[listing.id]}` : ''; navigator.clipboard?.writeText(url).then(() => { setCopyFeedbackListingId(listing.id); setTimeout(() => setCopyFeedbackListingId(null), 2000) }) }} className="button" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{copyFeedbackListingId === listing.id ? <CheckCircle2 size={14} /> : <Clipboard size={14} />}{copyFeedbackListingId === listing.id ? ' Kopiert!' : ' Kopier'}</button>
-                              </div>
-                            ) : <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lenken genereres når boligen markeres som formidlet.</p>}
+                        <div onClick={e => e.stopPropagation()} style={{ padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+                          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                            <a href="https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/Kontaktinfoschema.pdf" target="_blank" rel="noopener noreferrer" download className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}>
+                              <FileText size={16} /> {t('contactInfoForm')}
+                            </a>
+                            <Link href={`/report/utleier/${listing.id}`} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none', background: 'var(--color-teal)', color: 'white', border: 'none' }}>
+                              <FileText size={16} /> {t('fillHandoverReport')}
+                            </Link>
                           </div>
                         </div>
                       )}
@@ -445,13 +423,17 @@ export default function HomeownerManage(props: PageProps) {
                                     <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', ...statusStyle }}>
                                       {statusLabel}
                                     </span>
-                                    <button 
-                                      onClick={() => deleteAvailability(p.id, listing.id)}
-                                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto' }}
-                                      title="Slett periode"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
+                                    {p.status !== 'Formidla' ? (
+                                      <button 
+                                        onClick={() => deleteAvailability(p.id, listing.id)}
+                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto' }}
+                                        title="Slett periode"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    ) : (
+                                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>Kun kommune kan fjerne</span>
+                                    )}
                                   </div>
                                 )
                               })

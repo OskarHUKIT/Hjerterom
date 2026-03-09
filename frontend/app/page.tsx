@@ -4,20 +4,24 @@ import { use, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Search, Home as HomeIcon, ShieldCheck, HelpCircle, ArrowRight, LogOut } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
+import { useTheme } from '../context/ThemeContext'
 import { supabase } from './lib/supabase'
+
+const THEME_STORAGE_KEY = 'boly-theme'
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
 
 export default function Home(props: PageProps) {
   use(props.searchParams ?? Promise.resolve({}))
   const { t } = useLanguage()
+  const { setTheme } = useTheme()
   const [isKommune, setIsKommune] = useState<boolean | null>(null)
 
   useEffect(() => {
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        setIsKommune(false)
+        setIsKommune(null)
         return
       }
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
@@ -25,6 +29,12 @@ export default function Home(props: PageProps) {
     }
     check()
   }, [])
+
+  useEffect(() => {
+    if (isKommune === true && typeof window !== 'undefined' && !localStorage.getItem(THEME_STORAGE_KEY)) {
+      setTheme('light')
+    }
+  }, [isKommune, setTheme])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -122,7 +132,7 @@ export default function Home(props: PageProps) {
                   <button 
                     type="button"
                     onClick={handleLogout}
-                    className="button"
+                    className="button button-secondary"
                     style={{ 
                       width: '100%', 
                       padding: 'var(--space-3)', 
@@ -130,9 +140,6 @@ export default function Home(props: PageProps) {
                       alignItems: 'center', 
                       justifyContent: 'center', 
                       gap: 'var(--space-2)', 
-                      background: 'var(--bg-card)', 
-                      color: 'var(--text-main)',
-                      border: '1px solid var(--border-medium)',
                       fontWeight: 600
                     }}
                   >

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { 
   User, ArrowLeft, Phone, Mail, Clock, MessageSquare, 
-  ShieldCheck, Home, Search, ChevronDown
+  ShieldCheck, Home, Search, ChevronDown, CheckCircle2
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatAuditLogDescription } from '../../lib/auditLogFormat'
@@ -173,7 +173,11 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
                 <Phone size={16} /> {user.contact_phone || t('noPhone')}
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <ShieldCheck size={16} style={{ color: user.hasSigned ? 'var(--color-teal)' : (user as any).isTerminated ? 'var(--text-muted)' : '#ef4444' }} /> 
+                {(user as any).isTerminated ? (
+                  <CheckCircle2 size={16} style={{ color: '#94a3b8' }} />
+                ) : (
+                  <ShieldCheck size={16} style={{ color: user.hasSigned ? 'var(--color-teal)' : '#ef4444' }} />
+                )}
                 {user.hasSigned ? `${t('termsSigned')} (${formatDateNo(user.signedAt)})` : (user as any).isTerminated ? `${t('expired')}${(user as any).terminatedAt ? ` (${formatDateNo((user as any).terminatedAt)})` : ''}` : t('termsNotSigned')}
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

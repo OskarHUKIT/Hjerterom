@@ -56,7 +56,7 @@ export default function Documents() {
         <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-main)' }}>Eksisterende dokumenter</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {[
-            { name: 'Vilkårsavtale Boligbanken', file: 'VilkarsavtaleBoligbanken.pdf', desc: 'Vilkårsavtale for Boligbanken' },
+            { name: 'Vilkårsavtale Boligbank', file: 'VilkarsavtaleBoligbanken.pdf', desc: 'Vilkårsavtale for Boligbank' },
             { name: 'Overtakelsesrapport', file: 'Overtakelsesrapport.pdf', desc: 'Mal for overtakelsesrapport' },
             { name: 'Kontaktinfoskjema', file: 'Kontaktinfoschema.pdf', desc: 'Skjema for kontaktinfo' }
           ].map(doc => {

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Send, ImagePlus, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { DateInput } from './DateInput'
+import { formatDateNo } from '../lib/dateFormat'
 
 interface HandoverReportProps {
   listingId?: string
@@ -27,6 +28,8 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [submissionConfirmed, setSubmissionConfirmed] = useState(false)
+  const [reporterName, setReporterName] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     address: listingAddress || '',
@@ -68,12 +71,26 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
     setPhotoUrls(prev => prev.filter(u => u !== url))
   }
 
+  useEffect(() => {
+    if (reporterType !== 'homeowner') return
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      const name = user?.user_metadata?.full_name?.trim() || user?.email || 'Utleier'
+      setReporterName(name)
+    }
+    load()
+  }, [reporterType])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setUploadError(null)
     setSubmitError(null)
     if (!formData.photos_confirmed) {
       setSubmitError('Du må bekrefte at bildene er tatt (kryss av i boksen under bildene).')
+      return
+    }
+    if (reporterType === 'homeowner' && !submissionConfirmed) {
+      setSubmitError('Du må bekrefte at du sender inn rapporten (kryss av i bekreftelsesboksen).')
       return
     }
 
@@ -314,22 +331,43 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
           </tbody>
         </table>
 
-        {/* Signature lines */}
-        <div style={{ display: 'flex', gap: 'var(--space-8)', marginTop: 'var(--space-8)' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ borderBottom: '1px solid #0f172a', height: '28px', marginBottom: '4px' }} />
-            <span style={{ fontSize: '0.9rem' }}>Sted/dato</span>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ borderBottom: '1px solid #0f172a', height: '28px', marginBottom: '4px' }} />
-            <span style={{ fontSize: '0.9rem' }}>Signatur</span>
-          </div>
-        </div>
+        {/* Bekreftelse for utleier – knapp/avkryssing som bildebekreftelsen */}
+        {reporterType === 'homeowner' && (
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              marginTop: 'var(--space-8)',
+              padding: 'var(--space-3) var(--space-4)',
+              background: submissionConfirmed ? '#e0f2f7' : 'transparent',
+              border: '1px solid #b8d4e0',
+              borderRadius: 8,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={submissionConfirmed}
+              onChange={e => setSubmissionConfirmed(e.target.checked)}
+              style={{ width: '18px', height: '18px', flexShrink: 0 }}
+            />
+            <span style={{ fontWeight: 500, color: '#0f172a' }}>
+              Jeg ({reporterName || '…'}) bekrefter at jeg sender inn overtakelsesrapport ({formatDateNo(formData.photos_date || new Date().toISOString().split('T')[0])}).
+            </span>
+          </label>
+        )}
+        {reporterType === 'tenant' && (
+          <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: 'var(--space-6)' }}>
+            Du trenger ikke skrive navn eller signere. Rapporten sendes inn uten å lagre hvem som fylte den ut.
+          </p>
+        )}
 
         <button
           type="submit"
           className="button"
-          disabled={loading || !formData.photos_confirmed || submitSuccess}
+          disabled={loading || !formData.photos_confirmed || (reporterType === 'homeowner' && !submissionConfirmed) || submitSuccess}
           style={{ marginTop: 'var(--space-8)', padding: 'var(--space-4)', width: '100%', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
         >
           {loading ? 'Sender inn...' : submitSuccess ? 'Sendt inn!' : (

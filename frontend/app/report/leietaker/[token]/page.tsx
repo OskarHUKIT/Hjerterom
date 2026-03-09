@@ -12,7 +12,8 @@ type PageProps = { searchParams?: Promise<Record<string, string | string[] | und
 export default function ReportLeietakerPage(props: PageProps) {
   use(props.searchParams ?? Promise.resolve({}))
   const params = useParams()
-  const token = params.token as string
+  const tokenRaw = params.token
+  const token = Array.isArray(tokenRaw) ? tokenRaw[0] : tokenRaw
   const [listing, setListing] = useState<{ listing_id: string; address: string; owner_name: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -20,13 +21,26 @@ export default function ReportLeietakerPage(props: PageProps) {
 
   useEffect(() => {
     async function fetchListing() {
-      const { data, error: rpcError } = await supabase.rpc('get_listing_by_tenant_token', { p_token: token })
-      if (rpcError || !data || data.length === 0) {
+      const tokenNorm = (typeof token === 'string' ? token.trim() : '') || ''
+      const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tokenNorm)
+      if (!tokenNorm || !isValidUuid) {
         setError('Lenken er ugyldig eller har utløpt.')
         setLoading(false)
         return
       }
-      setListing(data[0])
+      const { data, error: rpcError } = await supabase.rpc('get_listing_by_tenant_token', { p_token: tokenNorm })
+      if (rpcError) {
+        setError('Lenken er ugyldig eller har utløpt.')
+        setLoading(false)
+        return
+      }
+      const row = Array.isArray(data) ? data[0] : data
+      if (!row?.listing_id) {
+        setError('Lenken er ugyldig eller har utløpt.')
+        setLoading(false)
+        return
+      }
+      setListing({ listing_id: row.listing_id, address: row.address ?? '', owner_name: row.owner_name ?? '' })
       setLoading(false)
     }
     if (token) fetchListing()
@@ -42,9 +56,13 @@ export default function ReportLeietakerPage(props: PageProps) {
 
   if (error || !listing) {
     return (
-      <main className="container" style={{ padding: 'var(--space-8)' }}>
-        <p>{error || 'Kunne ikke laste boliginformasjon.'}</p>
-        <Link href="/" className="nav-link" style={{ marginTop: 'var(--space-4)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+      <main className="container" style={{ padding: 'var(--space-8)', maxWidth: '520px' }}>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-3)' }}>Lenken er ugyldig eller har utløpt</h1>
+        <p style={{ marginBottom: 'var(--space-2)' }}>{error || 'Kunne ikke laste boliginformasjon.'}</p>
+        <p style={{ fontSize: '0.95rem', opacity: 0.85, marginBottom: 'var(--space-6)' }}>
+          Be utleier eller kommunen om en ny lenke til overtakelsesrapporten. Den kan genereres på nytt fra deres side.
+        </p>
+        <Link href="/" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
           <ArrowLeft size={18} /> Til forsiden
         </Link>
       </main>
@@ -68,8 +86,11 @@ export default function ReportLeietakerPage(props: PageProps) {
   return (
     <main className="container" style={{ padding: 'var(--space-8)', maxWidth: '800px' }}>
       <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-2)' }}>Overtakelsesrapport – Leietaker</h1>
-      <p style={{ opacity: 0.8, marginBottom: 'var(--space-6)' }}>
-        Fyll ut overtakelsesrapporten for {listing.address}. Du trenger ikke logge inn – denne lenken er kun for deg.
+      <p style={{ opacity: 0.8, marginBottom: 'var(--space-2)' }}>
+        Fyll ut overtakelsesrapporten for {listing.address}. Du trenger ikke logge inn.
+      </p>
+      <p style={{ fontSize: '0.9rem', opacity: 0.75, marginBottom: 'var(--space-6)', fontStyle: 'italic' }}>
+        Vi ber ikke om og lagrer ikke navn eller andre opplysninger om deg som leietaker – kun opplysninger om boligen og overtakelsen.
       </p>
       <HandoverReport
         listingId={listing.listing_id}

@@ -49,7 +49,14 @@ function LoginPageContent() {
           password,
         })
         if (error) throw error
-        router.push(redirectTo)
+        if (redirectTo === '/' || !redirectTo) {
+          const { data: { user } } = await supabase.auth.getUser()
+          const { data: profile } = user ? await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle() : { data: null }
+          const isKommune = profile?.role === 'kommune_ansatt'
+          router.push(isKommune ? '/nav/database' : '/homeowner/manage')
+        } else {
+          router.push(redirectTo)
+        }
       }
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message })
@@ -73,26 +80,27 @@ function LoginPageContent() {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
-      padding: 'var(--space-4)',
-      paddingLeft: 'max(var(--space-4), env(safe-area-inset-left))',
-      paddingRight: 'max(var(--space-4), env(safe-area-inset-right))'
+      padding: 'var(--space-6)',
+      paddingLeft: 'max(var(--space-6), env(safe-area-inset-left))',
+      paddingRight: 'max(var(--space-6), env(safe-area-inset-right))',
+      background: 'var(--bg-app)'
     }}>
-      <div className="card" style={{ 
+      <div className="card login-card" style={{ 
         width: '100%', 
-        maxWidth: '440px', 
+        maxWidth: '420px', 
         padding: 'var(--space-8)',
-        background: 'rgba(15, 23, 42, 0.8)',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid var(--border-medium)'
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-subtle)',
+        boxShadow: 'var(--shadow-lg)'
       }}>
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
-          <div style={{ display: 'inline-block', marginBottom: 'var(--space-4)' }}>
+          <div style={{ display: 'inline-block', marginBottom: 'var(--space-5)' }}>
             <Logo />
           </div>
-          <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-2)' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: 'var(--space-2)', color: 'var(--text-main)' }}>
             {isSignUp ? t('createAccount') : t('welcomeBack')}
           </h1>
-          <p style={{ color: 'var(--text-muted)' }}>
+          <p style={{ color: 'var(--text-body)', fontSize: '0.95rem', lineHeight: 1.5 }}>
             {isSignUp 
               ? t('createAccountDesc') 
               : t('loginDesc')}
@@ -113,69 +121,69 @@ function LoginPageContent() {
           </div>
         )}
 
-        <form onSubmit={handleAuth} style={{ display: 'grid', gap: 'var(--space-4)' }}>
+        <form onSubmit={handleAuth} style={{ display: 'grid', gap: 'var(--space-5)' }}>
           {isSignUp && (
             <>
               <div>
-                <label className="label">{t('fullName')}</label>
+                <label className="label login-label">{t('fullName')}</label>
                 <div style={{ position: 'relative' }}>
                   <input 
                     type="text" 
-                    className="input" 
+                    className="input login-input" 
                     placeholder="F.eks. Ola Nordmann"
                     required={isSignUp}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
                   />
-                  <User size={18} style={{ position: 'absolute', left: '1rem', top: '14px', color: 'var(--text-muted)' }} />
+                  <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 </div>
               </div>
               <div>
-                <label className="label">{t('phone')}</label>
+                <label className="label login-label">{t('phone')}</label>
                 <div style={{ position: 'relative' }}>
                   <input 
                     type="tel" 
-                    className="input" 
+                    className="input login-input" 
                     placeholder="F.eks. 123 45 678"
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
                     style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
                   />
-                  <Phone size={18} style={{ position: 'absolute', left: '1rem', top: '14px', color: 'var(--text-muted)' }} />
+                  <Phone size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 </div>
               </div>
             </>
           )}
           <div>
-            <label className="label">{t('email')}</label>
+            <label className="label login-label">{t('email')}</label>
             <div style={{ position: 'relative' }}>
               <input 
                 type="email" 
-                className="input" 
+                className="input login-input" 
                 placeholder="din@epost.no"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
               />
-              <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '14px', color: 'var(--text-muted)' }} />
+              <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             </div>
           </div>
 
           <div>
-            <label className="label">{t('password')}</label>
+            <label className="label login-label">{t('password')}</label>
             <div style={{ position: 'relative' }}>
               <input 
                 type="password" 
-                className="input" 
+                className="input login-input" 
                 placeholder="••••••••"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
               />
-              <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '14px', color: 'var(--text-muted)' }} />
+              <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             </div>
           </div>
 
@@ -187,15 +195,16 @@ function LoginPageContent() {
               width: '100%', 
               padding: 'var(--space-4)', 
               marginTop: 'var(--space-2)',
-              fontSize: '1.1rem'
+              fontSize: '1.05rem',
+              fontWeight: 600
             }}
           >
-            {loading ? (isSignUp ? <UserPlus size={20} style={{ opacity: 0.6 }} /> : <LogIn size={20} style={{ opacity: 0.6 }} />) : (isSignUp ? <UserPlus size={20} /> : <LogIn size={20} />)}
+            {loading ? (isSignUp ? <UserPlus size={20} style={{ opacity: 0.8 }} /> : <LogIn size={20} style={{ opacity: 0.8 }} />) : (isSignUp ? <UserPlus size={20} /> : <LogIn size={20} />)}
             {loading ? t('loadingPleaseWait') : (isSignUp ? t('createAccount') : t('logIn'))}
           </button>
         </form>
 
-        <div style={{ marginTop: 'var(--space-4)', textAlign: 'center' }}>
+        <div style={{ marginTop: 'var(--space-5)', textAlign: 'center' }}>
           <div style={{ position: 'relative', margin: 'var(--space-6) 0' }}>
             <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)' }} />
             <span style={{ 
@@ -203,8 +212,8 @@ function LoginPageContent() {
               top: '50%', 
               left: '50%', 
               transform: 'translate(-50%, -50%)',
-              background: '#161d2b',
-              padding: '0 10px',
+              background: 'var(--bg-card)',
+              padding: '0 12px',
               fontSize: '0.8rem',
               color: 'var(--text-muted)'
             }}>{t('orDivider')}</span>
@@ -218,11 +227,12 @@ function LoginPageContent() {
             style={{ 
               width: '100%', 
               padding: 'var(--space-3)', 
-              background: 'var(--color-royal-blue)',
-              border: '1px solid var(--border-subtle)',
-              color: 'white',
+              background: 'var(--color-accent)',
+              border: 'none',
+              color: 'var(--text-on-dark)',
               cursor: bankIdRedirecting ? 'wait' : 'pointer',
-              fontSize: '0.9rem',
+              fontSize: '0.95rem',
+              fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -234,18 +244,21 @@ function LoginPageContent() {
         </div>
 
         <div style={{ marginTop: 'var(--space-6)', textAlign: 'center', fontSize: '0.95rem' }}>
-          <p style={{ color: 'var(--text-muted)' }}>
+          <p style={{ color: 'var(--text-body)' }}>
             {isSignUp ? t('alreadyHaveAccount') : t('noAccount')}
             {' '}
             <button 
               onClick={() => setIsSignUp(!isSignUp)}
+              type="button"
               style={{ 
                 background: 'none', 
                 border: 'none', 
-                color: 'var(--color-sky-blue)', 
+                color: 'var(--color-accent)', 
                 fontWeight: 600, 
                 cursor: 'pointer',
-                padding: 0
+                padding: 0,
+                textDecoration: 'underline',
+                textUnderlineOffset: 2
               }}
             >
               {isSignUp ? t('loginHere') : t('signUpHere')}
@@ -255,7 +268,7 @@ function LoginPageContent() {
 
         {!isSignUp && (
           <div style={{ marginTop: 'var(--space-4)', textAlign: 'center' }}>
-            <Link href="/" style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            <Link href="/" style={{ fontSize: '0.9rem', color: 'var(--color-accent)' }}>
               {t('forgotPassword')}
             </Link>
           </div>

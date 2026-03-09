@@ -7,7 +7,7 @@ create table if not exists listing_tenant_tokens (
 
 alter table listing_tenant_tokens enable row level security;
 
--- Kommune can manage (select to show link, insert to create)
+drop policy if exists "Kommune can manage tenant tokens" on listing_tenant_tokens;
 create policy "Kommune can manage tenant tokens" on listing_tenant_tokens for all using (
   exists (select 1 from profiles where id = auth.uid() and role = 'kommune_ansatt')
 );

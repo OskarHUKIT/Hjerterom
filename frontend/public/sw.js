@@ -1,11 +1,11 @@
-// Service Worker for Boligbanken - Web Push
+// Service Worker for Boligbank - Web Push
 self.addEventListener('push', function (event) {
-  let data = { title: 'Boligbanken', body: '', url: '/' }
+  let data = { title: 'Boligbank', body: '', url: '/' }
   try {
     if (event.data) data = { ...data, ...event.data.json() }
   } catch (_) {}
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Boligbanken', {
+    self.registration.showNotification(data.title || 'Boligbank', {
       body: data.body || data.message || '',
       icon: '/icon-192x192.png',
       badge: '/icon-192x192.png',

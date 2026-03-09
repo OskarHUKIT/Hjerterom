@@ -7,9 +7,9 @@ import { supabase } from '../../lib/supabase'
 import { 
   MapPin, Bed, Users, ShieldCheck, ArrowLeft, Calendar, Info, 
   Phone, User, Home as HomeIcon, CheckCircle2, 
-  Ruler, Building, Tag, Wifi, Zap, Tv, Share2, Clipboard, 
+  Ruler, Building, Tag, Wifi, Zap, Tv, Clipboard, 
   MessageSquare, Send, Trash2, Clock, ChevronLeft, ChevronRight, ChevronDown,
-  Maximize2, X, Plus, Camera, Edit3, FileText, RotateCcw
+  Maximize2, X, Plus, Camera, Edit3, FileText, RotateCcw, RefreshCw
 } from 'lucide-react'
 
 import HandoverReport from '../../components/HandoverReport'
@@ -33,6 +33,7 @@ export default function ListingDetailsClient() {
   const [handoverReports, setHandoverReports] = useState<any[]>([])
   const [showHandoverForm, setShowHandoverForm] = useState(false)
   const [tenantReportToken, setTenantReportToken] = useState<string | null>(null)
+  const [tenantLinkRegenerating, setTenantLinkRegenerating] = useState(false)
   const [hasActiveAgreement, setHasActiveAgreement] = useState(false)
   const [reportTimeFilter, setReportTimeFilter] = useState<'all' | '7d' | '30d'>('all')
   const [reportTimeFilterOpen, setReportTimeFilterOpen] = useState(false)
@@ -41,6 +42,7 @@ export default function ListingDetailsClient() {
   const [requestChangeComment, setRequestChangeComment] = useState('')
   const [requestChangeSending, setRequestChangeSending] = useState(false)
   const [regionAccessDenied, setRegionAccessDenied] = useState(false)
+  const [showNavNotes, setShowNavNotes] = useState(false)
   
   // Gallery state
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -181,6 +183,22 @@ export default function ListingDetailsClient() {
     }
   }
 
+  const handleRegenerateTenantLink = async () => {
+    if (!id || tenantLinkRegenerating) return
+    if (!confirm('Generer ny lenke? Den gamle lenken vil slutte å fungere. Leietaker må få den nye lenken.')) return
+    setTenantLinkRegenerating(true)
+    try {
+      const newToken = crypto.randomUUID()
+      const { error } = await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id, token: newToken }], { onConflict: 'listing_id' })
+      if (error) throw error
+      setTenantReportToken(newToken)
+    } catch (err: any) {
+      alert('Kunne ikke generere ny lenke: ' + (err?.message || 'Ukjent feil'))
+    } finally {
+      setTenantLinkRegenerating(false)
+    }
+  }
+
   useEffect(() => {
     setRegionAccessDenied(false)
     async function fetchData() {
@@ -284,12 +302,12 @@ export default function ListingDetailsClient() {
           .order('created_at', { ascending: false })
         setHandoverReports(reportsData || [])
 
-        // Fetch or create tenant report token when listing is formidlet (kommune or owner can see link)
+        // Fetch or create tenant report token only for kommune (lenken vises bare for kommuneansatte)
         const today = new Date().toISOString().slice(0, 10)
         const isFormidlet = data?.status === 'Formidla' || (availData && availData.some((p: any) => p.status === 'Formidla' && p.start_date <= today && p.end_date >= today))
-        if (user && isFormidlet) {
+        if (user && isNavView && isFormidlet) {
           let tokenData = await supabase.from('listing_tenant_tokens').select('token').eq('listing_id', id).maybeSingle()
-          if (!tokenData.data && isNavView) {
+          if (!tokenData.data) {
             await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
             tokenData = await supabase.from('listing_tenant_tokens').select('token').eq('listing_id', id).maybeSingle()
           }
@@ -388,9 +406,10 @@ export default function ListingDetailsClient() {
     }
   }
 
+  /** Tidligere brukt av «Del med bruker»-knappen (fjernet). Beholder for kompatibilitet med cache. */
   const handleCopyLink = () => {
-    const url = window.location.href
-    navigator.clipboard.writeText(url)
+    if (typeof window === 'undefined') return
+    navigator.clipboard?.writeText(window.location.href)
     setCopyFeedback(true)
     setTimeout(() => setCopyFeedback(false), 2000)
   }
@@ -468,7 +487,7 @@ export default function ListingDetailsClient() {
       <div className="container" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
         <h2 style={{ color: 'var(--text-main)' }}>Boligen ble ikke funnet</h2>
         <Link href={isNavView ? '/nav/database' : '/homeowner/manage'} className="button" style={{ marginTop: 'var(--space-4)' }}>
-          Tilbake til {isNavView ? 'boligbanken' : 'mine boliger'}
+          Tilbake til {isNavView ? 'boligbank' : 'mine boliger'}
         </Link>
       </div>
     )
@@ -482,7 +501,7 @@ export default function ListingDetailsClient() {
           Boligen ligger i {listing.city}. Din konto har kun tilgang til boliger i de kommunene du har fått eksplisitt tillatelse til.
         </p>
         <Link href="/nav/database" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-          <ArrowLeft size={18} /> Tilbake til boligbanken
+          <ArrowLeft size={18} /> Tilbake til boligbank
         </Link>
       </div>
     )
@@ -492,18 +511,42 @@ export default function ListingDetailsClient() {
     <main className="container">
       <div className="listing-details-header" style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <Link href={isNavView ? "/nav/database" : "/homeowner/manage"} className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: '-1rem' }}>
-          <ArrowLeft size={18} /> Tilbake til {isNavView ? "boligbanken" : "mine boliger"}
+          <ArrowLeft size={18} /> Tilbake til {isNavView ? "boligbank" : "mine boliger"}
         </Link>
-        <button onClick={handleCopyLink} className="button" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--color-sky-blue)', border: '1px solid var(--border-subtle)', padding: 'var(--space-2) var(--space-4)', fontSize: '0.85rem' }}>
-          <Share2 size={16} /> {copyFeedback ? 'Lenke kopiert!' : 'Del med bruker'}
-        </button>
       </div>
 
       <div className="listing-details-grid" style={{ display: 'grid', gridTemplateColumns: isNavView ? '1.5fr 1fr' : '1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
-        {/* Left Column – rekkefølge: adresse, kalender/perioder, kontaktinfo, overtakelsesrapport, deretter bilder og øvrig info */}
+        {/* Left Column – rekkefølge: adresse, boliginfo, prisnivåer, ledige perioder, deretter kontaktinfo, overtakelsesrapport, bilder */}
         <div style={{ display: 'grid', gap: 'var(--space-6)' }}>
           {/* 1. Adresse øverst */}
-          <section className="card listing-detail-card" style={{ padding: 'var(--space-6)' }}>
+          <section className="card listing-detail-card" style={{ padding: 'var(--space-6)', position: 'relative' }}>
+            {isNavView && (
+              <button
+                type="button"
+                onClick={() => setShowNavNotes(prev => !prev)}
+                title={showNavNotes ? 'Skjul notat for saksbehandler' : 'Vis notat for saksbehandler'}
+                style={{
+                  position: 'absolute',
+                  top: 'var(--space-4)',
+                  right: 'var(--space-4)',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-subtle)',
+                  background: showNavNotes ? 'var(--color-accent)' : 'var(--bg-card)',
+                  color: showNavNotes ? 'var(--text-on-dark)' : 'var(--color-accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <MessageSquare size={18} />
+                {navNotes.length > 0 && (
+                  <span style={{ position: 'absolute', top: '-4px', right: '-4px', minWidth: '18px', height: '18px', borderRadius: '9px', background: 'var(--color-teal)', color: 'white', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{navNotes.length}</span>
+                )}
+              </button>
+            )}
             {isOwner && !isNavView ? (
               <input 
                 value={listing.address} 
@@ -513,7 +556,7 @@ export default function ListingDetailsClient() {
                 className="editable-h1"
               />
             ) : (
-              <h2 style={{ fontSize: '2rem', marginBottom: 'var(--space-2)', color: 'var(--text-main)' }}>{listing.address}</h2>
+              <h2 style={{ fontSize: '2rem', marginBottom: 'var(--space-2)', color: 'var(--text-main)', paddingRight: isNavView ? '48px' : 0 }}>{listing.address}</h2>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', color: 'var(--color-royal-blue)', fontSize: '1rem' }}>
               <MapPin size={18} />
@@ -528,7 +571,224 @@ export default function ListingDetailsClient() {
             </div>
           </section>
 
-          {/* 2. Ledige perioder og kalender */}
+          {/* Interne notater (kommune) – vises når man trykker på notat-ikonet */}
+          {isNavView && showNavNotes && (
+            <section className="card" style={{ padding: 'var(--space-6)', border: '1px solid var(--color-sky-blue)', background: 'rgba(59, 130, 246, 0.03)' }}>
+              <h3 style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
+                <MessageSquare size={20} style={{ color: 'var(--color-accent)' }} /> Notat for saksbehandler
+              </h3>
+              <form onSubmit={handleAddNote} style={{ marginBottom: 'var(--space-6)' }}>
+                <div style={{ position: 'relative' }}>
+                  <textarea 
+                    className="input" 
+                    placeholder="Legg til et internt notat om denne boligen eller utleier..."
+                    value={newNote}
+                    onChange={e => setNewNote(e.target.value)}
+                    style={{ minHeight: '100px', paddingRight: 'var(--space-10)', color: 'var(--text-main)' }}
+                  />
+                  <button type="submit" style={{ position: 'absolute', bottom: '15px', right: '15px', background: 'var(--color-accent)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-on-dark)', cursor: 'pointer' }}>
+                    <Send size={18} />
+                  </button>
+                </div>
+                <p className="text-sm" style={{ marginTop: 'var(--space-2)', color: 'var(--text-muted)' }}>Kun synlig for saksbehandler.</p>
+              </form>
+              <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+                {navNotes.length > 0 ? navNotes.map(note => (
+                  <div key={note.id} style={{ padding: 'var(--space-4)', background: 'var(--bg-card)', borderRadius: '12px', borderLeft: '4px solid var(--color-accent)' }}>
+                    <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-body)' }}>{note.note_text}</p>
+                    <div style={{ marginTop: 'var(--space-2)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {formatDateTimeNo(note.created_at)}
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-sm" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Ingen notater for saksbehandler ennå.</p>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* 2. Boliginformasjon (type, størrelse, boliginfo, inkludert, beskrivelse) */}
+          <section className="card listing-detail-card" style={{ padding: 'var(--space-8)' }}>
+            <div className="listing-metrics-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-4)', padding: 'var(--space-6) 0', borderTop: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--space-6)' }}>
+              <div style={{ textAlign: 'center' }}>
+                <Building size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
+                {isOwner && !isNavView ? (
+                  <select 
+                    value={listing.type} 
+                    onChange={e => { setListing({...listing, type: e.target.value}); handleUpdateField('type', e.target.value); }}
+                    style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'center', width: '100%', fontSize: '0.9rem', cursor: 'pointer' }}
+                  >
+                    <option value="Short-term">Korttid</option>
+                    <option value="Long-term">Langtid</option>
+                    <option value="Apartment">Leilighet</option>
+                    <option value="House">Enebolig</option>
+                    <option value="Shared">Bofelleskap</option>
+                  </select>
+                ) : (
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{translateType(listing.type)}</div>
+                )}
+                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>TYPE</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <Ruler size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
+                {isOwner && !isNavView ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                    <input type="number" value={listing.size_sqm} onChange={e => setListing({...listing, size_sqm: e.target.value})} onBlur={e => handleUpdateField('size_sqm', e.target.value)} style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'right', width: '40px', padding: 0, outline: 'none' }} />
+                    <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>m²</span>
+                  </div>
+                ) : (
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.size_sqm} m²</div>
+                )}
+                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>STØRRELSE</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <Bed size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
+                {isOwner && !isNavView ? (
+                  <input type="number" value={listing.bedrooms} onChange={e => setListing({...listing, bedrooms: e.target.value})} onBlur={e => handleUpdateField('bedrooms', e.target.value)} style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'center', width: '100%', padding: 0, outline: 'none' }} />
+                ) : (
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.bedrooms}</div>
+                )}
+                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>SOVEROM</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <Users size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
+                {isOwner && !isNavView ? (
+                  <input type="number" value={listing.max_occupants} onChange={e => setListing({...listing, max_occupants: e.target.value})} onBlur={e => handleUpdateField('max_occupants', e.target.value)} style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'center', width: '100%', padding: 0, outline: 'none' }} />
+                ) : (
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.max_occupants}</div>
+                )}
+                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>MAKS PERS</div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}>
+              <div>
+                <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Boliginformasjon</h3>
+                <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                  <div className="text-sm" style={{ color: 'var(--text-body)' }}>
+                    <strong>Etasje:</strong> {isOwner && !isNavView ? (
+                      <input value={listing.floor_number} onChange={e => setListing({...listing, floor_number: e.target.value})} onBlur={e => handleUpdateField('floor_number', e.target.value)} className="listing-inline-input" style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', width: '80px', outline: 'none', color: 'var(--text-main)' }} />
+                    ) : listing.floor_number}
+                  </div>
+                  <div className="text-sm" style={{ color: 'var(--text-body)' }}>
+                    <strong>Møblering:</strong> {isOwner && !isNavView ? (
+                      <select value={listing.furnishing} onChange={e => { setListing({...listing, furnishing: e.target.value}); handleUpdateField('furnishing', e.target.value); }} className="listing-inline-input" style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', outline: 'none', color: 'var(--text-main)' }}>
+                        <option>Umøblert</option>
+                        <option>Kun hvitevarer</option>
+                        <option>Delvis møblert</option>
+                        <option>Fullt møblert</option>
+                        <option>Møblert m/utstyr</option>
+                      </select>
+                    ) : listing.furnishing}
+                  </div>
+                  <div className="text-sm" style={{ color: 'var(--text-body)' }}>
+                    <strong>Parkering:</strong> {isOwner && !isNavView ? (
+                      <input value={listing.parking_info} onChange={e => setListing({...listing, parking_info: e.target.value})} onBlur={e => handleUpdateField('parking_info', e.target.value)} className="listing-inline-input" style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', width: '150px', outline: 'none', color: 'var(--text-main)' }} />
+                    ) : listing.parking_info}
+                  </div>
+                  <div className="text-sm" style={{ color: 'var(--text-body)' }}>
+                    <strong>Fysisk tilrettelegging:</strong> {isOwner && !isNavView ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                        {['Alt på ett plan', 'Heis i bygget', 'Terskelfritt', 'Universell utforming', 'Omsorgsboligstandard'].map(acc => {
+                          const isActive = listing.accessibility?.includes(acc);
+                          return (
+                            <button key={acc} onClick={() => { const newAcc = isActive ? listing.accessibility.filter((a: string) => a !== acc) : [...(listing.accessibility || []), acc]; setListing({...listing, accessibility: newAcc}); handleUpdateField('accessibility', newAcc); }} className="listing-tag listing-tag-accessibility" style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '0.75rem', cursor: 'pointer', background: isActive ? 'var(--color-royal-blue)' : 'var(--listing-tag-bg)', border: '1px solid ' + (isActive ? 'var(--color-royal-blue)' : 'var(--border-subtle)'), color: isActive ? 'white' : 'var(--text-muted)' }}>{acc}</button>
+                          );
+                        })}
+                      </div>
+                    ) : (listing.accessibility?.join(', ') || 'Ingen')}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Inkludert i leie</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                  {isOwner && !isNavView ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {['Strøm', 'Internett', 'Kommunale avgifter', 'Vaktmestertjenester', 'Parkering'].map(inc => {
+                        const isActive = listing.includes?.includes(inc);
+                        return (
+                          <button key={inc} onClick={() => { const newInc = isActive ? listing.includes.filter((i: string) => i !== inc) : [...(listing.includes || []), inc]; setListing({...listing, includes: newInc}); handleUpdateField('includes', newInc); }} className="listing-tag listing-tag-includes" style={{ padding: '4px 12px', borderRadius: '14px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', background: isActive ? 'var(--listing-tag-includes-active-bg)' : 'transparent', color: isActive ? 'var(--text-main)' : 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>{inc}</button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <>
+                      {listing.includes?.map((i: string) => (
+                        <span key={i} className="listing-tag listing-tag-includes-static" style={{ padding: '4px 12px', borderRadius: '14px', background: 'var(--listing-tag-includes-active-bg)', color: 'var(--text-main)', fontSize: '0.75rem', fontWeight: 600, border: '1px solid var(--border-subtle)' }}>{i}</span>
+                      ))}
+                      {(!listing.includes || listing.includes.length === 0) && <span className="text-sm" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Ingenting inkludert</span>}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 'var(--space-8)' }}>
+              <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Beskrivelse</h3>
+              {isOwner && !isNavView ? (
+                <textarea value={listing.additional_info} onChange={e => setListing({...listing, additional_info: e.target.value})} onBlur={e => handleUpdateField('additional_info', e.target.value)} className="listing-textarea" style={{ width: '100%', minHeight: '150px', fontSize: '1rem', lineHeight: '1.6', color: 'var(--text-body)', border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', borderRadius: '8px', padding: 'var(--space-4)', outline: 'none' }} />
+              ) : (
+                <p style={{ whiteSpace: 'pre-wrap', fontSize: '1rem', lineHeight: '1.6', color: 'var(--text-body)' }}>{listing.additional_info || 'Ingen ytterligere beskrivelse.'}</p>
+              )}
+            </div>
+          </section>
+
+          {/* 3. Prisnivåer */}
+          <section className="card listing-detail-card" style={{ padding: 'var(--space-6)' }}>
+            <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Tag size={20} style={{ color: 'var(--color-accent)' }} /> Prisnivåer
+            </h3>
+            {isOwner && !isNavView ? (
+              <div style={{ padding: 'var(--space-4)', background: 'var(--color-dark-navy)', borderRadius: '16px', color: 'white' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)' }}>
+                  <div>
+                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>DØGNPRIS</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input type="number" value={listing.price_daily} onChange={e => setListing({...listing, price_daily: e.target.value})} onBlur={e => handleUpdateField('price_daily', e.target.value)} style={{ fontSize: '1.5rem', fontWeight: 800, background: 'none', border: 'none', color: 'white', width: '100px', outline: 'none' }} />
+                      <span style={{ fontSize: '1.2rem', fontWeight: 700 }}>,-</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>UKESPRIS</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input type="number" value={listing.price_weekly} onChange={e => setListing({...listing, price_weekly: e.target.value})} onBlur={e => handleUpdateField('price_weekly', e.target.value)} style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }} />
+                      <span>,-</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>MÅNEDSLEIE (KORTTID)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input type="number" value={listing.price_monthly_short} onChange={e => setListing({...listing, price_monthly_short: e.target.value})} onBlur={e => handleUpdateField('price_monthly_short', e.target.value)} style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }} />
+                      <span>,-</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>LANGTIDSLEIE (PER MND)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input type="number" value={listing.price_monthly_long} onChange={e => setListing({...listing, price_monthly_long: e.target.value})} onBlur={e => handleUpdateField('price_monthly_long', e.target.value)} style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }} />
+                      <span>,-</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>DEPOSITUM</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input type="number" value={listing.deposit_amount} onChange={e => setListing({...listing, deposit_amount: e.target.value})} onBlur={e => handleUpdateField('deposit_amount', e.target.value)} style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }} />
+                      <span>,-</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-4)', color: 'var(--text-body)' }}>
+                <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Døgnpris</span><div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.price_daily != null ? `${listing.price_daily},-` : '–'}</div></div>
+                <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ukespris</span><div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.price_weekly != null ? `${listing.price_weekly},-` : '–'}</div></div>
+                <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mnd (korttid)</span><div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.price_monthly_short != null ? `${listing.price_monthly_short},-` : '–'}</div></div>
+                <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mnd (langtid)</span><div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.price_monthly_long != null ? `${listing.price_monthly_long},-` : '–'}</div></div>
+                <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Depositum</span><div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.deposit_amount != null ? `${listing.deposit_amount},-` : '–'}</div></div>
+              </div>
+            )}
+          </section>
+
+          {/* 4. Ledige perioder og kalender */}
           <div className="listing-availability-box" style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
               <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Clock size={20} style={{ color: 'var(--color-royal-blue)' }} /> Ledige perioder for utleie
@@ -573,19 +833,19 @@ export default function ListingDetailsClient() {
                           const date = new Date(year, month, d), status = getStatusForDate(date)
                           const isInFormidletRange = formidletStart && formidletEnd && (() => { const t = date.toISOString().slice(0, 10); return t >= formidletStart && t <= formidletEnd })()
                           let bg = 'var(--listing-calendar-cell-bg)'
-                          if (isInFormidletRange) bg = 'rgba(59, 130, 246, 0.25)'
-                          else if (status === 'Formidla') bg = 'rgba(59, 130, 246, 0.35)'
-                          else if (status === 'Tilgjengelig') bg = 'rgba(32, 187, 175, 0.25)'
-                          else if (status === 'Utilgjengelig') bg = 'rgba(239, 68, 68, 0.2)'
+                          if (isInFormidletRange) bg = 'var(--calendar-formidlet-range-bg)'
+                          else if (status === 'Formidla') bg = 'var(--calendar-formidlet-bg)'
+                          else if (status === 'Tilgjengelig') bg = 'var(--calendar-tilgjengelig-bg)'
+                          else if (status === 'Utilgjengelig') bg = 'var(--calendar-utilgjengelig-bg)'
                           cells.push(<div key={d} title={status ? `${d}. ${status}` : `${d}`} style={{ minHeight: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', background: bg, color: status || isInFormidletRange ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: 500 }}>{d}</div>)
                         }
                         return cells
                       })()}
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-3)', fontSize: '0.7rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'rgba(59, 130, 246, 0.35)' }} /> Formidlet</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'rgba(32, 187, 175, 0.25)' }} /> Tilgjengelig</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'rgba(239, 68, 68, 0.2)' }} /> Utilgjengelig</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-formidlet-bg)' }} /> Formidlet</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-tilgjengelig-bg)' }} /> Tilgjengelig</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-utilgjengelig-bg)' }} /> Utilgjengelig</span>
                     </div>
                   </div>
                 </div>
@@ -733,7 +993,7 @@ export default function ListingDetailsClient() {
                           </div>
                           <div style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                             {formatDateNo(report.created_at)}
-                            {status !== 'pending' && (
+                            {report.reporter_type !== 'tenant' && status !== 'pending' && (
                               <span style={{ marginLeft: '8px', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: status === 'approved' ? 'rgba(45, 212, 191, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: status === 'approved' ? 'var(--color-teal)' : '#ef4444' }}>
                                 {status === 'approved' ? 'Godkjent' : 'Ikke godkjent'}
                               </span>
@@ -750,7 +1010,7 @@ export default function ListingDetailsClient() {
                       {report.content?.condition_description && expandedReportId !== report.id && (
                         <div style={{ marginTop: 'var(--space-2)', fontSize: '0.85rem', color: 'var(--text-body)' }}>{(report.content.condition_description || '').toString().slice(0, 120)}{(report.content.condition_description?.toString().length > 120 ? '…' : '')}</div>
                       )}
-                      {isNavView && isPending && (
+                      {isNavView && isPending && report.reporter_type !== 'tenant' && (
                         <div style={{ marginTop: 'var(--space-4)', display: 'flex', gap: 'var(--space-2)' }}>
                           <button type="button" onClick={() => handleApproveReport(report.id)} className="button" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>Godkjenn</button>
                           <button type="button" onClick={() => { setRequestChangeReport(report); setRequestChangeComment('') }} className="button" style={{ padding: '6px 14px', fontSize: '0.8rem', background: 'transparent', border: '1px solid rgba(249, 115, 22, 0.6)', color: '#f97316' }}>Be om endring</button>
@@ -763,15 +1023,19 @@ export default function ListingDetailsClient() {
               {(() => {
                 const today = new Date().toISOString().slice(0, 10)
                 const isFormidlet = listing?.status === 'Formidla' || (Array.isArray(availability) && availability.some((p: any) => p.status === 'Formidla' && p.start_date <= today && p.end_date >= today))
-                const showTenantLink = (isNavView || isOwner) && isFormidlet
+                const showTenantLink = isNavView && isFormidlet
                 if (!showTenantLink) return null
                 return (
                   <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '2px dashed rgba(59, 130, 246, 0.5)' }}>
                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}><strong style={{ color: 'var(--text-main)' }}>Lenke til leietaker:</strong> Send denne lenken til leietaker for nedlasting og opplasting av overtakelsesrapport (PDF) – de trenger ikke logge inn:</p>
                     {tenantReportToken ? (
-                      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: 'var(--space-2)', flexWrap: 'wrap' }}>
-                        <code className="listing-code" style={{ padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', wordBreak: 'break-all', flex: 1, minWidth: 0 }}>{typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantReportToken}` : ''}</code>
-                        <button type="button" onClick={() => { const url = typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantReportToken}` : ''; navigator.clipboard?.writeText(url).then(() => setCopyFeedback(true)); setTimeout(() => setCopyFeedback(false), 2000) }} className="button" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{copyFeedback ? <CheckCircle2 size={14} /> : <Clipboard size={14} />}{copyFeedback ? ' Kopiert!' : ' Kopier'}</button>
+                      <div style={{ marginTop: 'var(--space-2)' }}>
+                        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <code className="listing-code" style={{ padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', wordBreak: 'break-all', flex: 1, minWidth: 0 }}>{typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantReportToken}` : ''}</code>
+                          <button type="button" onClick={() => { const url = typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantReportToken}` : ''; navigator.clipboard?.writeText(url).then(() => setCopyFeedback(true)); setTimeout(() => setCopyFeedback(false), 2000) }} className="button" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{copyFeedback ? <CheckCircle2 size={14} /> : <Clipboard size={14} />}{copyFeedback ? ' Kopiert!' : ' Kopier'}</button>
+                          <button type="button" onClick={handleRegenerateTenantLink} disabled={tenantLinkRegenerating} className="button button-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} title="Den gamle lenken vil slutte å fungere. Send den nye lenken til leietaker.">{tenantLinkRegenerating ? <RefreshCw size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> : <RefreshCw size={14} />}{tenantLinkRegenerating ? ' Lager...' : ' Ny lenke'}</button>
+                        </div>
+                        <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bruk «Ny lenke» hvis leietaker sier at lenken er ugyldig – send deretter den nye lenken.</p>
                       </div>
                     ) : <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lenken genereres når boligen markeres som formidlet.</p>}
                   </div>
@@ -887,324 +1151,12 @@ export default function ListingDetailsClient() {
             </div>
           )}
 
-          {/* 6. Bilder og øvrig boliginformasjon */}
-          <section className="card listing-detail-card" style={{ padding: 'var(--space-8)' }}>
-            <div className="listing-metrics-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-4)', padding: 'var(--space-6) 0', borderTop: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--space-6)' }}>
-              <div style={{ textAlign: 'center' }}>
-                <Building size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
-                {isOwner && !isNavView ? (
-                  <select 
-                    value={listing.type} 
-                    onChange={e => {
-                      setListing({...listing, type: e.target.value})
-                      handleUpdateField('type', e.target.value)
-                    }}
-                    style={{ 
-                      fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', 
-                      textAlign: 'center', width: '100%', fontSize: '0.9rem', cursor: 'pointer'
-                    }}
-                  >
-                    <option value="Short-term">Korttid</option>
-                    <option value="Long-term">Langtid</option>
-                    <option value="Apartment">Leilighet</option>
-                    <option value="House">Enebolig</option>
-                    <option value="Shared">Bofelleskap</option>
-                  </select>
-                ) : (
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{translateType(listing.type)}</div>
-                )}
-                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>TYPE</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <Ruler size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
-                {isOwner && !isNavView ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                    <input 
-                      type="number"
-                      value={listing.size_sqm} 
-                      onChange={e => setListing({...listing, size_sqm: e.target.value})}
-                      onBlur={e => handleUpdateField('size_sqm', e.target.value)}
-                      style={{ 
-                        fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', 
-                        textAlign: 'right', width: '40px', padding: 0, outline: 'none'
-                      }}
-                    />
-                    <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>m²</span>
-                  </div>
-                ) : (
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.size_sqm} m²</div>
-                )}
-                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>STØRRELSE</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <Bed size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
-                {isOwner && !isNavView ? (
-                  <input 
-                    type="number"
-                    value={listing.bedrooms} 
-                    onChange={e => setListing({...listing, bedrooms: e.target.value})}
-                    onBlur={e => handleUpdateField('bedrooms', e.target.value)}
-                    style={{ 
-                      fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', 
-                      textAlign: 'center', width: '100%', padding: 0, outline: 'none'
-                    }}
-                  />
-                ) : (
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.bedrooms}</div>
-                )}
-                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>SOVEROM</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <Users size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
-                {isOwner && !isNavView ? (
-                  <input 
-                    type="number"
-                    value={listing.max_occupants} 
-                    onChange={e => setListing({...listing, max_occupants: e.target.value})}
-                    onBlur={e => handleUpdateField('max_occupants', e.target.value)}
-                    style={{ 
-                      fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', 
-                      textAlign: 'center', width: '100%', padding: 0, outline: 'none'
-                    }}
-                  />
-                ) : (
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.max_occupants}</div>
-                )}
-                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>MAKS PERS</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}>
-              <div>
-                <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Boliginformasjon</h3>
-                <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                  <div className="text-sm" style={{ color: 'var(--text-body)' }}>
-                    <strong>Etasje:</strong> {isOwner && !isNavView ? (
-                      <input 
-                        value={listing.floor_number} 
-                        onChange={e => setListing({...listing, floor_number: e.target.value})}
-                        onBlur={e => handleUpdateField('floor_number', e.target.value)}
-                        className="listing-inline-input"
-                        style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', width: '80px', outline: 'none', color: 'var(--text-main)' }}
-                      />
-                    ) : listing.floor_number}
-                  </div>
-                  <div className="text-sm" style={{ color: 'var(--text-body)' }}>
-                    <strong>Møblering:</strong> {isOwner && !isNavView ? (
-                      <select 
-                        value={listing.furnishing} 
-                        onChange={e => {
-                          setListing({...listing, furnishing: e.target.value})
-                          handleUpdateField('furnishing', e.target.value)
-                        }}
-                        className="listing-inline-input"
-                        style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', outline: 'none', color: 'var(--text-main)' }}
-                      >
-                        <option>Umøblert</option>
-                        <option>Kun hvitevarer</option>
-                        <option>Delvis møblert</option>
-                        <option>Fullt møblert</option>
-                        <option>Møblert m/utstyr</option>
-                      </select>
-                    ) : listing.furnishing}
-                  </div>
-                  <div className="text-sm" style={{ color: 'var(--text-body)' }}>
-                    <strong>Parkering:</strong> {isOwner && !isNavView ? (
-                      <input 
-                        value={listing.parking_info} 
-                        onChange={e => setListing({...listing, parking_info: e.target.value})}
-                        onBlur={e => handleUpdateField('parking_info', e.target.value)}
-                        className="listing-inline-input"
-                        style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', width: '150px', outline: 'none', color: 'var(--text-main)' }}
-                      />
-                    ) : listing.parking_info}
-                  </div>
-                  <div className="text-sm" style={{ color: 'var(--text-body)' }}>
-                    <strong>Fysisk tilrettelegging:</strong> {isOwner && !isNavView ? (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
-                        {[
-                          'Alt på ett plan', 
-                          'Heis i bygget', 
-                          'Terskelfritt', 
-                          'Universell utforming', 
-                          'Omsorgsboligstandard'
-                        ].map(acc => {
-                          const isActive = listing.accessibility?.includes(acc);
-                          return (
-                            <button 
-                              key={acc}
-                              onClick={() => {
-                                const newAcc = isActive
-                                  ? listing.accessibility.filter((a: string) => a !== acc)
-                                  : [...(listing.accessibility || []), acc];
-                                setListing({...listing, accessibility: newAcc});
-                                handleUpdateField('accessibility', newAcc);
-                              }}
-                              className="listing-tag listing-tag-accessibility"
-                              style={{
-                                padding: '2px 8px', borderRadius: '10px', fontSize: '0.75rem', cursor: 'pointer',
-                                background: isActive ? 'var(--color-royal-blue)' : 'var(--listing-tag-bg)',
-                                border: '1px solid ' + (isActive ? 'var(--color-royal-blue)' : 'var(--border-subtle)'),
-                                color: isActive ? 'white' : 'var(--text-muted)'
-                              }}
-                            >
-                              {acc}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (listing.accessibility?.join(', ') || 'Ingen')}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Inkludert i leie</h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-                  {isOwner && !isNavView ? (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {[
-                        'Strøm', 'Internett', 'Kommunale avgifter', 'Vaktmestertjenester', 'Parkering'
-                      ].map(inc => {
-                        const isActive = listing.includes?.includes(inc);
-                        return (
-                          <button 
-                            key={inc}
-                            onClick={() => {
-                              const newInc = isActive
-                                ? listing.includes.filter((i: string) => i !== inc)
-                                : [...(listing.includes || []), inc];
-                              setListing({...listing, includes: newInc});
-                              handleUpdateField('includes', newInc);
-                            }}
-                            className="listing-tag listing-tag-includes"
-                            style={{
-                              padding: '4px 12px', borderRadius: '14px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                              background: isActive ? 'var(--listing-tag-includes-active-bg)' : 'transparent',
-                              color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
-                              border: '1px solid ' + (isActive ? 'var(--border-subtle)' : 'var(--border-subtle)')
-                            }}
-                          >
-                            {inc}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <>
-                      {listing.includes?.map((i: string) => (
-                        <span key={i} className="listing-tag listing-tag-includes-static" style={{ padding: '4px 12px', borderRadius: '14px', background: 'var(--listing-tag-includes-active-bg)', color: 'var(--text-main)', fontSize: '0.75rem', fontWeight: 600, border: '1px solid var(--border-subtle)' }}>
-                          {i}
-                        </span>
-                      ))}
-                      {(!listing.includes || listing.includes.length === 0) && <span className="text-sm" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Ingenting inkludert</span>}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: 'var(--space-8)' }}>
-              <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Beskrivelse</h3>
-              {isOwner && !isNavView ? (
-                <textarea 
-                  value={listing.additional_info} 
-                  onChange={e => setListing({...listing, additional_info: e.target.value})}
-                  onBlur={e => handleUpdateField('additional_info', e.target.value)}
-                  className="listing-textarea"
-                  style={{ 
-                    width: '100%', minHeight: '150px', fontSize: '1rem', lineHeight: '1.6', 
-                    color: 'var(--text-body)', border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', 
-                    borderRadius: '8px', padding: 'var(--space-4)', outline: 'none'
-                  }}
-                />
-              ) : (
-                <p style={{ whiteSpace: 'pre-wrap', fontSize: '1rem', lineHeight: '1.6', color: 'var(--text-body)' }}>
-                  {listing.additional_info || 'Ingen ytterligere beskrivelse.'}
-                </p>
-              )}
-            </div>
-
-            {isOwner && !isNavView && (
-              <div style={{ marginTop: 'var(--space-8)', padding: 'var(--space-6)', background: 'var(--color-dark-navy)', borderRadius: '16px', color: 'white' }}>
-                <h3 style={{ marginBottom: 'var(--space-6)', fontSize: '1.1rem', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Tag size={20} style={{ color: 'var(--color-sky-blue)' }} /> Leiepriser og depositum
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)' }}>
-                  <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>DØGNPRIS</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input 
-                        type="number"
-                        value={listing.price_daily} 
-                        onChange={e => setListing({...listing, price_daily: e.target.value})}
-                        onBlur={e => handleUpdateField('price_daily', e.target.value)}
-                        style={{ fontSize: '1.5rem', fontWeight: 800, background: 'none', border: 'none', color: 'white', width: '100px', outline: 'none' }}
-                      />
-                      <span style={{ fontSize: '1.2rem', fontWeight: 700 }}>,-</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>UKESPRIS</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input 
-                        type="number"
-                        value={listing.price_weekly} 
-                        onChange={e => setListing({...listing, price_weekly: e.target.value})}
-                        onBlur={e => handleUpdateField('price_weekly', e.target.value)}
-                        style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }}
-                      />
-                      <span>,-</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>MÅNEDSLEIE (KORTTID)</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input 
-                        type="number"
-                        value={listing.price_monthly_short} 
-                        onChange={e => setListing({...listing, price_monthly_short: e.target.value})}
-                        onBlur={e => handleUpdateField('price_monthly_short', e.target.value)}
-                        style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }}
-                      />
-                      <span>,-</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>LANGTIDSLEIE (PER MND)</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input 
-                        type="number"
-                        value={listing.price_monthly_long} 
-                        onChange={e => setListing({...listing, price_monthly_long: e.target.value})}
-                        onBlur={e => handleUpdateField('price_monthly_long', e.target.value)}
-                        style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }}
-                      />
-                      <span>,-</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>DEPOSITUM</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input 
-                        type="number"
-                        value={listing.deposit_amount} 
-                        onChange={e => setListing({...listing, deposit_amount: e.target.value})}
-                        onBlur={e => handleUpdateField('deposit_amount', e.target.value)}
-                        style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }}
-                      />
-                      <span>,-</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
+          {/* 6. Administrer (eier) */}
+          <section className="card listing-detail-card" style={{ padding: 'var(--space-6)' }}>
             {!isNavView && isOwner && (
-              <div style={{ marginTop: 'var(--space-8)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-6)' }}>
-                <Link href={`/homeowner/manage`} className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}>
-                  <Edit3 size={18} /> Administrer denne boligen
-                </Link>
-              </div>
+              <Link href={`/homeowner/manage`} className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}>
+                <Edit3 size={18} /> Administrer denne boligen
+              </Link>
             )}
           </section>
 
@@ -1230,44 +1182,6 @@ export default function ListingDetailsClient() {
               margin: 0;
             }
           `}</style>
-
-          {/* NAV Worker Notes Section */}
-          {isNavView && (
-            <section className="card" style={{ padding: 'var(--space-8)', border: '1px solid var(--color-sky-blue)', background: 'rgba(59, 130, 246, 0.03)' }}>
-              <h3 style={{ marginBottom: 'var(--space-5)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'white' }}>
-                <MessageSquare size={20} className="text-sky-blue" /> Interne NAV-notater
-              </h3>
-              
-              <form onSubmit={handleAddNote} style={{ marginBottom: 'var(--space-6)' }}>
-                <div style={{ position: 'relative' }}>
-                  <textarea 
-                    className="input" 
-                    placeholder="Legg til et internt notat om denne boligen eller utleier..."
-                    value={newNote}
-                    onChange={e => setNewNote(e.target.value)}
-                    style={{ minHeight: '100px', paddingRight: 'var(--space-10)', color: 'white' }}
-                  />
-                  <button type="submit" style={{ position: 'absolute', bottom: '15px', right: '15px', background: 'var(--color-royal-blue)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer' }}>
-                    <Send size={18} />
-                  </button>
-                </div>
-                <p className="text-sm" style={{ marginTop: 'var(--space-2)', opacity: 0.5 }}>Dette feltet er kun synlig for NAV-ansatte.</p>
-              </form>
-
-              <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-                {navNotes.length > 0 ? navNotes.map(note => (
-                  <div key={note.id} style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', borderLeft: '4px solid var(--color-sky-blue)' }}>
-                    <p style={{ margin: 0, fontSize: '0.95rem', color: 'white' }}>{note.note_text}</p>
-                    <div style={{ marginTop: 'var(--space-2)', fontSize: '0.75rem', opacity: 0.5, color: 'white' }}>
-                      {formatDateTimeNo(note.created_at)}
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-sm opacity-50 italic">Ingen interne notater ennå.</p>
-                )}
-              </div>
-            </section>
-          )}
         </div>
 
         {/* Right Column */}
@@ -1310,23 +1224,25 @@ export default function ListingDetailsClient() {
                       <div>
                         <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>Fra</span>
                         <DateInput
+                          showCalendar
                           className="input"
                           value={formidletStart}
                           onChange={setFormidletStart}
                           max={formidletEnd || undefined}
                           placeholder="DD.MM.ÅÅÅÅ"
-                          style={{ padding: 'var(--space-2)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', marginBottom: 0 }}
+                          style={{ padding: 'var(--space-2)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', marginBottom: 0, width: '100%' }}
                         />
                       </div>
                       <div>
                         <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>Til</span>
                         <DateInput
+                          showCalendar
                           className="input"
                           value={formidletEnd}
                           onChange={setFormidletEnd}
                           min={formidletStart || undefined}
                           placeholder="DD.MM.ÅÅÅÅ"
-                          style={{ padding: 'var(--space-2)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', marginBottom: 0 }}
+                          style={{ padding: 'var(--space-2)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', marginBottom: 0, width: '100%' }}
                         />
                       </div>
                     </div>
@@ -1363,6 +1279,15 @@ export default function ListingDetailsClient() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.9rem', color: 'var(--text-body)' }}>
                   <Phone size={14} style={{ color: 'var(--color-accent)' }} /> {listing.contact_phone}
                 </div>
+                {listing.owner_id && (
+                  <Link
+                    href={`/nav/messages?with=${listing.owner_id}`}
+                    className="button button-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', textDecoration: 'none', marginTop: 'var(--space-1)' }}
+                  >
+                    <MessageSquare size={18} /> Melding
+                  </Link>
+                )}
                 <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-3)', background: 'rgba(45, 212, 191, 0.12)', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--color-teal)', border: '1px solid rgba(45, 212, 191, 0.3)' }}>
                   <ShieldCheck size={14} style={{ display: 'inline', marginRight: '6px', color: 'var(--color-teal)' }} /> 
                   Vilkår signert: {formatDateNo(listing.last_verified)}
@@ -1429,7 +1354,7 @@ export default function ListingDetailsClient() {
               <div style={{ padding: 'var(--space-6)', fontSize: '1rem', color: 'var(--text-body)', lineHeight: 1.6, overflow: 'auto', flex: 1, minHeight: 0 }}>
                 <div style={{ marginBottom: 'var(--space-4)', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                   {formatDateNo(expandedReport.created_at)}
-                  {status !== 'pending' && (
+                  {expandedReport.reporter_type !== 'tenant' && status !== 'pending' && (
                     <span style={{ marginLeft: '12px', padding: '4px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, background: status === 'approved' ? 'rgba(45, 212, 191, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: status === 'approved' ? 'var(--color-teal)' : '#ef4444' }}>
                       {status === 'approved' ? 'Godkjent' : 'Ikke godkjent'}
                     </span>

@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic'
 import { 
   Search, Filter, MapPin, Users, Info, ChevronRight, Home as HomeIcon, 
   ShieldCheck, ArrowUpDown, LayoutList, Map as MapIcon,
-  CheckCircle2, XCircle, AlertCircle, Phone, User, Building, Tag,
+  CheckCircle2, XCircle, Phone, User, Building, Tag,
   Ruler, Eye, Calendar, Settings, RotateCcw, X, CalendarPlus
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -20,9 +20,6 @@ const MapView = dynamic(() => import('../../components/MapView'), {
   ssr: false,
   loading: () => <div className="card" style={{ height: '500px' }} />
 })
-
-/** Sett til true for å vise feilsøkingspanel for kommune (region/boliger). */
-const SHOW_KOMMUNE_DEBUG = false
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
 
@@ -53,13 +50,13 @@ export default function NavDatabase(props: PageProps) {
         setKommuneCanEdit(profile?.kommune_can_edit !== false)
         let region = profile?.kommune_region ?? null
         if ((region == null || String(region).trim() === '') && user.email) {
-          const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', { p_email: user.email })
-          const fromRpc = typeof rpcRegion === 'string' ? rpcRegion : (Array.isArray(rpcRegion) && rpcRegion?.length ? rpcRegion[0] : null)
+          const rpcRes = await supabase.rpc('get_whitelist_region_for_email', { p_email: user.email })
+          const fromRpc = typeof rpcRes.data === 'string' ? rpcRes.data : (Array.isArray(rpcRes.data) && rpcRes.data?.length ? rpcRes.data[0] : null)
           if (fromRpc && String(fromRpc).trim()) {
             region = fromRpc
           } else {
-            const { data: whitelistRows } = await supabase.from('kommune_access_list').select('region').ilike('email', user.email).eq('is_active', true).limit(1)
-            const fromTable = whitelistRows?.[0]?.region
+            const tableRes = await supabase.from('kommune_access_list').select('region').ilike('email', user.email).eq('is_active', true).limit(1)
+            const fromTable = tableRes.data?.[0]?.region
             if (fromTable && String(fromTable).trim()) region = fromTable
           }
         }
@@ -75,7 +72,7 @@ export default function NavDatabase(props: PageProps) {
   const [loading, setLoading] = useState(true)
   const [initialLoad, setInitialLoad] = useState(true)
   const [tabCache, setTabCache] = useState<Record<string, { listings: any[]; availability: Record<string, any[]> }>>({})
-  const [activeTab, setActiveTab] = useState<'Tilgjengelig' | 'Utilgjengelig' | 'Utløpte' | 'Formidlet'>('Tilgjengelig')
+  const [activeTab, setActiveTab] = useState<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'>('Tilgjengelig')
   const [viewMode, setViewMode] = useState<'table' | 'map' | 'timeline'>('timeline')
   const [sortField, setSortField] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -89,9 +86,10 @@ export default function NavDatabase(props: PageProps) {
   const [formidletExtendModal, setFormidletExtendModal] = useState<{ listing: any; period: any } | null>(null)
   const [formidletExtendEnd, setFormidletExtendEnd] = useState('')
   const [kommuneFetchError, setKommuneFetchError] = useState<string | null>(null)
-  const [kommuneDebug, setKommuneDebug] = useState<{ rawRegion: unknown; parsed: string[]; fromRpc: number; afterTerminated: number; afterRegion: number; cities: string[] } | null>(null)
 
   const [visibleColumns, setVisibleColumns] = useState(['address', 'city', 'owner_name', 'price_daily'])
+  /** I kartvisning: hvilke statuser skal vises (kan velges i filterdelen). */
+  const [mapStatusFilter, setMapStatusFilter] = useState<('Tilgjengelig' | 'Utilgjengelig' | 'Formidlet')[]>(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'])
 
   const ALL_COLUMNS = [
     { id: 'address', label: t('address') },
@@ -187,9 +185,9 @@ export default function NavDatabase(props: PageProps) {
     return regionStr.split(',').map((r: string) => r.replace(/^["'\s\\]+|["'\s\\]+$/g, '').trim().toLowerCase()).filter(Boolean)
   }
 
-  /** Cache-nøkkel inkluderer region slik at vi ikke gjenbruker tom cache fra før kommune_region er lastet. */
+  /** Cache-nøkkel inkluderer region slik at vi ikke gjenbruker tom cache fra før kommune_region er lastet. I kartvisning brukes én nøkkel (alle statuser vises samtidig). */
   const getTabCacheKey = () => {
-    const base = `${activeTab}_${viewMode}`
+    const base = viewMode === 'map' ? 'map' : `${activeTab}_${viewMode}`
     if (userRole === 'kommune_ansatt') {
       const regions = parseKommuneRegions(kommuneRegion)
       const regionKey = regions.length ? regions.sort().join(',') : 'none'
@@ -244,26 +242,16 @@ export default function NavDatabase(props: PageProps) {
           error = res.error
         }
       } else {
-        let query = supabase.from('listings').select('*')
-        if (activeTab === 'Utløpte') {
-          query = terminatedIds.size > 0 ? query.in('owner_id', [...terminatedIds]) : query.eq('owner_id', '00000000-0000-0000-0000-000000000000')
-        }
-        const result = await query
+        const result = await supabase.from('listings').select('*')
         data = result.data || []
         error = result.error
-      }
-
-      if (activeTab === 'Utløpte' && !(isAuthorized && userRole === 'kommune_ansatt')) {
-        // ikke-kommune: allerede filtrert i query
-      } else if (activeTab === 'Utløpte' && isAuthorized && userRole === 'kommune_ansatt') {
-        data = data.filter((item: any) => terminatedIds.has(item.owner_id))
       }
 
       if (error) throw error
       let filtered = data || []
 
       const afterTerminatedCount = (() => {
-        if (activeTab !== 'Utløpte' && terminatedIds.size > 0) {
+        if (terminatedIds.size > 0) {
           filtered = filtered.filter(item => !terminatedIds.has(item.owner_id))
         }
         return filtered.length
@@ -278,7 +266,6 @@ export default function NavDatabase(props: PageProps) {
       // Tillatelsesområder: kommune ser bare boliger i kommuner de har eksplisitt tilgang til
       const regions = isAuthorized && userRole === 'kommune_ansatt' ? parseKommuneRegions(kommuneRegion) : []
       if (isAuthorized && userRole === 'kommune_ansatt') {
-        const citiesFromDb = [...new Set((data || []).map((item: any) => (item.city || '').trim()).filter(Boolean))]
         if (regions.length > 0) {
           filtered = filtered.filter(item => {
             const city = (item.city || '').trim().toLowerCase()
@@ -287,16 +274,6 @@ export default function NavDatabase(props: PageProps) {
         } else {
           filtered = [] // Ingen tillatelsesområder satt = ingen boliger (kun eksplisitt tilgang)
         }
-        setKommuneDebug({
-          rawRegion: kommuneRegion,
-          parsed: regions,
-          fromRpc: (data || []).length,
-          afterTerminated: afterTerminatedCount,
-          afterRegion: filtered.length,
-          cities: citiesFromDb
-        })
-      } else {
-        setKommuneDebug(null)
       }
       if (filters.city !== 'Alle') {
         filtered = filtered.filter(item => item.city === filters.city)
@@ -345,8 +322,8 @@ export default function NavDatabase(props: PageProps) {
           availMap[item.listing_id].push(item)
         })
 
-        // Tabell/kart: filtrer på status for DAGENS dato. Ingen periode som dekker i dag = vis som tilgjengelig.
-        if (activeTab !== 'Utløpte' && viewMode !== 'timeline') {
+        // Tabell: filtrer på status for DAGENS dato. Kart: vis tilgjengelig, utilgjengelig og formidlet samtidig (farge per markør).
+        if (viewMode !== 'map' && viewMode !== 'timeline') {
           const todayStatus = (lid: string) => getStatusForToday(lid, availMap)
           if (activeTab === 'Tilgjengelig') {
             filtered = filtered.filter(l => {
@@ -568,25 +545,6 @@ export default function NavDatabase(props: PageProps) {
           <strong>Feil ved henting av boliger:</strong> {kommuneFetchError}
         </div>
       )}
-      {SHOW_KOMMUNE_DEBUG && userRole === 'kommune_ansatt' && (
-        <details className="card" style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-3)', fontSize: '0.9rem', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)' }} open>
-          <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Feilsøking: region og boliger (kommune)</summary>
-          <pre style={{ marginTop: 'var(--space-2)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-            {JSON.stringify(kommuneDebug ? {
-              din_region_rå: kommuneDebug.rawRegion,
-              region_parset: kommuneDebug.parsed,
-              boliger_fra_db_rpc: kommuneDebug.fromRpc,
-              etter_terminert_filter: kommuneDebug.afterTerminated,
-              etter_region_filter: kommuneDebug.afterRegion,
-              byer_i_db: kommuneDebug.cities
-            } : {
-              din_region_rå: kommuneRegion,
-              region_parset: parseKommuneRegions(kommuneRegion),
-              melding: 'Ingen region funnet. Gjør ett av: (1) I Supabase: Table Editor → profiles → finn din bruker → sett kommune_region til f.eks. "Gratangen" eller "Gratangen,Narvik". (2) I appen: Kommune-tilgang → legg til din e-post med region. Deretter last siden på nytt.'
-            }, null, 2)}
-          </pre>
-        </details>
-      )}
       <div className="db-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -596,15 +554,15 @@ export default function NavDatabase(props: PageProps) {
         </div>
         <div className="db-view-btns" style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <button onClick={() => setViewMode('table')} style={{ 
-            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'table' ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'table' ? 'var(--color-accent)' : 'var(--bg-app)',
             border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'table' ? 'white' : 'var(--text-main)'
           }} title="Tabellvisning"><LayoutList size={20} /></button>
           <button onClick={() => setViewMode('map')} style={{ 
-            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'map' ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'map' ? 'var(--color-accent)' : 'var(--bg-app)',
             border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'map' ? 'white' : 'var(--text-main)'
           }} title="Kartvisning"><MapPin size={20} /></button>
           <button onClick={() => setViewMode('timeline')} style={{ 
-            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'timeline' ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'timeline' ? 'var(--color-accent)' : 'var(--bg-app)',
             border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'timeline' ? 'white' : 'var(--text-main)'
           }} title="Tidslinje"><Calendar size={20} /></button>
         </div>
@@ -612,8 +570,8 @@ export default function NavDatabase(props: PageProps) {
 
       <div className="db-tabs-row" style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-1)', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', rowGap: 'var(--space-4)' }}>
         <div className="tabs-scroll" style={{ display: 'flex', gap: 'var(--space-4)', flex: '1 1 auto', minWidth: 0, overflowX: 'auto', paddingBottom: '4px' }}>
-          {viewMode !== 'timeline' ? (
-            (['Tilgjengelig', 'Utilgjengelig', 'Formidlet', 'Utløpte'] as const).map(tab => (
+          {viewMode === 'map' ? null : viewMode !== 'timeline' ? (
+            (['Tilgjengelig', 'Utilgjengelig', 'Formidlet'] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 padding: 'var(--space-3) var(--space-4)', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer',
                 background: 'none', border: 'none', color: activeTab === tab ? 'var(--color-sky-blue)' : 'var(--text-muted)',
@@ -623,7 +581,6 @@ export default function NavDatabase(props: PageProps) {
                 {tab === 'Tilgjengelig' && <CheckCircle2 size={16} style={{ display: 'inline', marginRight: '8px' }} />}
                 {tab === 'Utilgjengelig' && <XCircle size={16} style={{ display: 'inline', marginRight: '8px' }} />}
                 {tab === 'Formidlet' && <ShieldCheck size={16} style={{ display: 'inline', marginRight: '8px' }} />}
-                {tab === 'Utløpte' && <AlertCircle size={16} style={{ display: 'inline', marginRight: '8px' }} />}
                 {tab}
               </button>
             ))
@@ -634,6 +591,7 @@ export default function NavDatabase(props: PageProps) {
           )}
         </div>
         <div className="db-action-btns" style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          {viewMode !== 'map' && (
           <button 
             onClick={() => {
               setShowColumnSettings(!showColumnSettings)
@@ -641,12 +599,13 @@ export default function NavDatabase(props: PageProps) {
             }}
             style={{ 
               display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px',
-              background: showColumnSettings ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+              background: showColumnSettings ? 'var(--color-accent)' : 'var(--bg-app)',
               border: '1px solid var(--border-subtle)', color: showColumnSettings ? 'white' : 'var(--text-main)', cursor: 'pointer', fontWeight: 600
             }}
           >
             <Settings size={18} /> <span className="btn-label">Tilpass kolonner</span>
           </button>
+          )}
           <button 
             onClick={() => {
               setShowFilters(!showFilters)
@@ -654,7 +613,7 @@ export default function NavDatabase(props: PageProps) {
             }}
             style={{ 
               display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px',
-              background: showFilters ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+              background: showFilters ? 'var(--color-accent)' : 'var(--bg-app)',
               border: '1px solid var(--border-subtle)', color: showFilters ? 'white' : 'var(--text-main)', cursor: 'pointer', fontWeight: 600
             }}
           >
@@ -663,19 +622,19 @@ export default function NavDatabase(props: PageProps) {
         </div>
       </div>
 
-      {showColumnSettings && (
-        <div className="card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)' }}>
-          <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem' }}>Velg informasjon som skal vises i tabellen</h3>
+      {showColumnSettings && viewMode !== 'map' && (
+        <div className="card card-settings-panel" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)' }}>
+          <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Velg informasjon som skal vises i tabellen</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--space-3)' }}>
             {ALL_COLUMNS.map(col => (
-              <label key={col.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)' }}>
+              <label key={col.id} className="card-settings-option" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px', borderRadius: '8px' }}>
                 <input 
                   type="checkbox" 
                   checked={visibleColumns.includes(col.id)} 
                   onChange={() => toggleColumn(col.id)}
-                  style={{ width: '18px', height: '18px', accentColor: 'var(--color-royal-blue)' }}
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--color-accent)' }}
                 />
-                <span style={{ fontSize: '0.9rem' }}>{col.label}</span>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>{col.label}</span>
               </label>
             ))}
           </div>
@@ -686,7 +645,28 @@ export default function NavDatabase(props: PageProps) {
       )}
 
       {showFilters && (
-        <div className="card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)' }}>
+        <div className="card card-settings-panel" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)' }}>
+          {viewMode === 'map' && (
+            <div style={{ marginBottom: 'var(--space-6)', paddingBottom: 'var(--space-6)', borderBottom: '1px solid var(--border-subtle)' }}>
+              <label className="label" style={{ display: 'block', marginBottom: 'var(--space-3)' }}>Vis på kart</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                {(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'] as const).map(status => (
+                  <label key={status} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                    <input
+                      type="checkbox"
+                      checked={mapStatusFilter.includes(status)}
+                      onChange={() => setMapStatusFilter(prev => prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status].sort())}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--color-accent)' }}
+                    />
+                    {status === 'Tilgjengelig' && <CheckCircle2 size={16} style={{ color: 'var(--color-teal)' }} />}
+                    {status === 'Utilgjengelig' && <XCircle size={16} style={{ color: '#ef4444' }} />}
+                    {status === 'Formidlet' && <ShieldCheck size={16} style={{ color: 'var(--color-sky-blue)' }} />}
+                    {status}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)' }}>
             <div>
               <label className="label">Søk</label>
@@ -728,10 +708,10 @@ export default function NavDatabase(props: PageProps) {
             </div>
           </div>
 
-          <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-6)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-6)', borderTop: '1px solid var(--border-subtle)' }}>
             <button 
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              style={{ background: 'none', border: 'none', color: 'var(--color-sky-blue)', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+              style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
             >
               {showAdvancedFilters ? 'Skjul avanserte filter' : 'Vis flere filter (Soverom, Areal, Tilgjengelighet...)'}
               <ChevronRight size={16} style={{ transform: showAdvancedFilters ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
@@ -781,9 +761,9 @@ export default function NavDatabase(props: PageProps) {
                         }}
                         style={{
                           padding: '6px 12px', borderRadius: '20px', fontSize: '0.75rem', cursor: 'pointer',
-                          background: filters.accessibility.includes(acc) ? 'var(--color-royal-blue)' : 'var(--bg-app)',
-                          border: `1px solid ${filters.accessibility.includes(acc) ? 'var(--color-royal-blue)' : 'var(--border-subtle)'}`,
-                          color: filters.accessibility.includes(acc) ? 'white' : 'var(--text-main)'
+                          background: filters.accessibility.includes(acc) ? 'var(--color-accent)' : 'var(--bg-app)',
+                          border: `1px solid ${filters.accessibility.includes(acc) ? 'var(--color-accent)' : 'var(--border-subtle)'}`,
+                          color: filters.accessibility.includes(acc) ? 'var(--text-on-dark)' : 'var(--text-main)'
                         }}
                       >
                         {acc}
@@ -845,8 +825,9 @@ export default function NavDatabase(props: PageProps) {
                 <div>
                   <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}>Fra</span>
                   <DateInput
+                    showCalendar
                     className="input"
-                    style={{ marginBottom: 0 }}
+                    style={{ marginBottom: 0, width: '100%' }}
                     value={formidletStart}
                     onChange={setFormidletStart}
                     max={formidletEnd || undefined}
@@ -856,8 +837,9 @@ export default function NavDatabase(props: PageProps) {
                 <div>
                   <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}>Til</span>
                   <DateInput
+                    showCalendar
                     className="input"
-                    style={{ marginBottom: 0 }}
+                    style={{ marginBottom: 0, width: '100%' }}
                     value={formidletEnd}
                     onChange={setFormidletEnd}
                     min={formidletStart || undefined}
@@ -894,7 +876,7 @@ export default function NavDatabase(props: PageProps) {
             <p style={{ marginBottom: 'var(--space-3)', fontSize: '0.9rem' }}>Nåværende periode: {formatDateNo(formidletExtendModal.period.start_date)} – {formatDateNo(formidletExtendModal.period.end_date)}</p>
             <div style={{ marginBottom: 'var(--space-6)' }}>
               <label className="label">Ny sluttdato</label>
-              <DateInput className="input" style={{ marginTop: 'var(--space-2)' }} value={formidletExtendEnd} onChange={setFormidletExtendEnd} min={formidletExtendModal.period.end_date} placeholder="DD.MM.ÅÅÅÅ" />
+              <DateInput showCalendar className="input" style={{ marginTop: 'var(--space-2)', width: '100%' }} value={formidletExtendEnd} onChange={setFormidletExtendEnd} min={formidletExtendModal.period.end_date} placeholder="DD.MM.ÅÅÅÅ" />
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
               <button onClick={() => !formidletSending && setFormidletExtendModal(null)} style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', padding: 'var(--space-3) var(--space-5)', borderRadius: '10px', cursor: 'pointer' }}>Avbryt</button>
@@ -978,7 +960,14 @@ export default function NavDatabase(props: PageProps) {
               </div>
             </div>
           ) : viewMode === 'map' ? (
-            <MapView listings={listings} availability={availability} />
+            <MapView
+              listings={listings.filter(l => {
+                const s = getStatusForToday(l.id, availability)
+                const status: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' = s === 'Formidla' ? 'Formidlet' : s === 'Utilgjengelig' ? 'Utilgjengelig' : 'Tilgjengelig'
+                return mapStatusFilter.includes(status)
+              })}
+              availability={availability}
+            />
           ) : (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
               <div className="card" style={{ padding: 'var(--space-6)', overflowX: 'auto' }}>
@@ -1163,7 +1152,7 @@ export default function NavDatabase(props: PageProps) {
                     max="365" 
                     value={timelineOffset} 
                     onChange={(e) => setTimelineOffset(parseInt(e.target.value))}
-                    style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--color-royal-blue)', position: 'absolute', top: 0, left: 0, zIndex: 2 }}
+                    style={{ width: '100%', cursor: 'pointer', accentColor: 'var(--color-accent)', position: 'absolute', top: 0, left: 0, zIndex: 2 }}
                   />
                   {/* Markering for "I dag" på slideren */}
                   <div style={{ 

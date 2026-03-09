@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Bo.ly - Boligbanken',
+  title: 'Bo.ly - Boligbank',
   description: 'Bo.ly Housing Bank Application',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, title: 'boly' },

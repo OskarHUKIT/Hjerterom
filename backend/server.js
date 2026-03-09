@@ -19,7 +19,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Routes
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Boligbanken API is running' });
+  res.json({ status: 'ok', message: 'Boligbank API is running' });
 });
 
 // Applications routes
@@ -63,7 +63,7 @@ app.get('/api/training', (req, res) => {
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Boligbanken API server running on port ${PORT}`);
+  console.log(`🚀 Boligbank API server running on port ${PORT}`);
 }).on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error(`❌ Port ${PORT} is already in use. Please close the application using that port.`);

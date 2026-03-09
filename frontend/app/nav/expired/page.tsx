@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
-  AlertCircle, History, UserX, Home, Search, 
-  Info, Clock, ChevronRight, ShieldCheck
+  History, UserX, Home, ChevronRight, ShieldCheck
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDateNo } from '../../lib/dateFormat'

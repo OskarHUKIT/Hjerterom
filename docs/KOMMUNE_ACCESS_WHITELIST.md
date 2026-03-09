@@ -7,7 +7,7 @@ E-poster som skal få kommune-tilgang automatisk når de registrerer seg, legges
 1. **Legg til e-poster** i `kommune_access_list` (e-post + region).
 2. **Brukere registrerer seg** med en av disse e-postene (via e-post eller BankID).
 3. De får automatisk `role = kommune_ansatt` og `kommune_region` satt til sin region.
-4. De ser kun boliger i sin region i boligbanken.
+4. De ser kun boliger i sin region i boligbank.
 
 ## Administrere listen
 

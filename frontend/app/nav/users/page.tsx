@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
   User, Search, Mail, Phone, Calendar, ChevronRight, 
-  MessageSquare, FileText, Clock, ShieldCheck, Info
+  MessageSquare, FileText, ShieldCheck, Info, CheckCircle2
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDateNo } from '../../lib/dateFormat'
@@ -198,7 +198,7 @@ function NavUsersContent() {
                     <div className="user-card-meta" style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '4px', fontSize: '0.9rem', opacity: 0.7, flexWrap: 'wrap' }}>
                       {user.isTerminated && (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '6px', background: 'rgba(148, 163, 184, 0.2)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          <Clock size={14} /> {t('expired')}{user.terminatedAt ? ` (${formatDateNo(user.terminatedAt)})` : ''}
+                          <CheckCircle2 size={14} style={{ color: '#94a3b8' }} /> {t('expired')}{user.terminatedAt ? ` (${formatDateNo(user.terminatedAt)})` : ''}
                         </span>
                       )}
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={14} /> {user.contact_phone || t('noPhone')}</span>
@@ -216,8 +216,8 @@ function NavUsersContent() {
                 <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
                   <Link
                     href={`/nav/messages?with=${user.owner_id}`}
-                    className="button"
-                    style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-subtle)', color: 'white', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                    className="button button-secondary"
+                    style={{ padding: '8px 16px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <MessageSquare size={16} style={{ marginRight: '8px' }} /> {t('chat')}

@@ -13,7 +13,7 @@ export const translations = {
     signedAgreement: 'Signert avtale',
     logOut: 'Logg ut',
     logIn: 'Logg inn',
-    housingBank: 'Boligbanken',
+    housingBank: 'Boligbank',
     users: 'Brukere',
     messages: 'Meldinger',
     expired: 'Utløpte',
@@ -36,7 +36,7 @@ export const translations = {
     forMunicipality: 'For kommuneansatte',
     kommunebrukerLabel: 'Jeg er kommunebruker',
     searchDesc: 'Søk i oversikten over tilgjengelige boliger, som oppdateres kontinuerlig. Finn riktig løsning for dine brukere med avansert filtrering.',
-    openHousingBank: 'Åpne boligbanken',
+    openHousingBank: 'Åpne boligbank',
     forHomeowners: 'For boligeiere',
     utleierLabel: 'Jeg er utleier',
     manageDesc: 'Registrer og administrer dine utleieboliger. Du beholder full kontroll over tilgjengelighet og vilkår.',
@@ -56,6 +56,7 @@ export const translations = {
     termsOfUse: 'Vilkår for bruk',
     privacy: 'Personvern',
     aboutBoly: 'Om Boly',
+    comingSoon: 'Kommer snart',
     copyright: '© 2026 Utviklet av Game Changing AS. Alle rettigheter reservert.',
 
     // Settings
@@ -73,7 +74,7 @@ export const translations = {
     cancel: 'Avbryt',
     noAccess: 'Ingen tilgang',
     noAccessDesc: 'Du har ikke tilgang til denne siden. Logg inn med en kommune-konto.',
-    noAccessDatabaseDesc: 'Du har ikke de nødvendige rettighetene for å se boligbanken. Denne delen er forbeholdt kommune-ansatte.',
+    noAccessDatabaseDesc: 'Du har ikke de nødvendige rettighetene for å se boligbank. Denne delen er forbeholdt kommune-ansatte.',
     goHome: 'Til forsiden',
     address: 'Adresse',
     city: 'By',
@@ -166,7 +167,7 @@ export const translations = {
     loginHere: 'Logg inn her',
     signUpHere: 'Registrer deg her',
     forgotPassword: 'Glemt passordet ditt?',
-    usersDesc: 'Oversikt over alle registrerte utleiere i Boligbanken.',
+    usersDesc: 'Oversikt over alle registrerte utleiere i Boligbank.',
     searchByNamePlaceholder: 'Søk etter navn...',
     signedOn: 'Signert',
     notSigned: 'Ikke signert',
@@ -189,7 +190,7 @@ export const translations = {
     conversations: 'Samtaler',
     noMessagesYet: 'Ingen meldinger ennå. Velg en bruker for å starte.',
     expiredAndInactive: 'Utløpte & Inaktive',
-    expiredDesc: 'Historisk oversikt over brukere og boliger som ikke lenger er aktive i Boligbanken.',
+    expiredDesc: 'Historisk oversikt over brukere og boliger som ikke lenger er aktive i Boligbank.',
     inactiveUsers: 'Inaktive Brukere',
     expiredDate: 'Utløpt',
     nameNotStored: 'Navn ikke lagret',
@@ -255,6 +256,7 @@ export const translations = {
     termsOfUse: 'Geavahan ektui',
     privacy: 'Iešdovdus',
     aboutBoly: 'Boly birra',
+    comingSoon: 'Boatná beaivi',
     copyright: '© 2026 Game Changing AS. Buot vuoigatvuođat galgen.',
 
     // Settings
@@ -454,6 +456,7 @@ export const translations = {
     termsOfUse: 'Terms of use',
     privacy: 'Privacy',
     aboutBoly: 'About Boly',
+    comingSoon: 'Coming soon',
     copyright: '© 2026 Developed by Game Changing AS. All rights reserved.',
 
     // Settings

@@ -187,8 +187,8 @@ export default function NavNotifications(props: PageProps) {
                     ) : (
                       <button 
                         onClick={() => handleStatusChange(notif.id, 'unread')}
-                        className="button" 
-                        style={{ padding: '8px 16px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', color: 'var(--text-main)', fontWeight: 500 }}
+                        className="button button-secondary"
+                        style={{ padding: '8px 16px', fontWeight: 500 }}
                       >
                         {t('markUnread')}
                       </button>

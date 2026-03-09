@@ -12,16 +12,12 @@ const icon = L.icon({
   popupAnchor: [1, -34],
 })
 
-/** Pin-form som standardmarkøren, i grått for formidlede boliger. */
+/** Samme pin som tilgjengelig, men grå (for formidlede boliger). */
 const formidletIcon = L.divIcon({
   className: 'leaflet-div-icon map-marker-pin',
-  html: `<div class="map-pin map-pin-gray" style="
-    width:26px;height:38px;background:#64748b;border:2px solid #475569;
-    border-radius:50% 50% 50% 0;transform:rotate(-45deg);
-    box-shadow:0 2px 6px rgba(0,0,0,0.25);
-  "></div>`,
-  iconSize: [26, 38],
-  iconAnchor: [13, 38],
+  html: `<img src="https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png" alt="" style="width:25px;height:41px;filter:grayscale(1) brightness(0.55) contrast(1.15);display:block;" />`,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
   popupAnchor: [1, -34],
 })
 

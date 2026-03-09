@@ -39,9 +39,9 @@ export default function Terms() {
               📄
             </div>
             <div>
-              <h3 style={{ margin: 0, color: 'var(--color-dark-navy)' }}>Vilkårsavtale Boligbanken</h3>
+              <h3 style={{ margin: 0, color: 'var(--color-dark-navy)' }}>Vilkårsavtale Boligbank</h3>
               <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-dark-navy)', opacity: 0.7 }}>
-                Dokument: Vilkårsavtale Boligbanken.docx
+                Dokument: Vilkårsavtale Boligbank.docx
               </p>
             </div>
           </div>
@@ -56,7 +56,7 @@ export default function Terms() {
         }}>
           <p style={{ color: 'var(--color-dark-navy)', opacity: 0.8, lineHeight: '1.8', fontSize: '1.05rem' }}>
             Vilkårsavtale innhold vil vises her basert på dokumentet: 
-            <strong style={{ color: 'var(--color-dark-navy)' }}> Vilkårsavtale Boligbanken.docx</strong>
+            <strong style={{ color: 'var(--color-dark-navy)' }}> Vilkårsavtale Boligbank.docx</strong>
           </p>
           <div style={{ 
             marginTop: '2rem', 

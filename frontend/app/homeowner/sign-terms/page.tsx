@@ -3,7 +3,7 @@
 import { use, useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ShieldCheck, FileText, ChevronDown, CheckCircle2, Lock, AlertCircle, ArrowLeft } from 'lucide-react'
+import { ShieldCheck, FileText, ChevronDown, CheckCircle2, Lock, ArrowLeft } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 
 function SignTermsContent() {
@@ -117,7 +117,7 @@ function SignTermsContent() {
   }
 
   const handleTerminate = async () => {
-    if (!confirm('Er du sikker på at du vil si opp avtalen? Du mister tilgang til Boligbanken med en gang. Informasjon om deg og boligene dine bevares for kommunens historikk.')) return
+    if (!confirm('Er du sikker på at du vil si opp avtalen? Du mister tilgang til Boligbank med en gang. Informasjon om deg og boligene dine bevares for kommunens historikk.')) return
 
     setLoading(true)
     try {
@@ -168,7 +168,7 @@ function SignTermsContent() {
               ← Mine boliger
             </Link>
             <h1 style={{ fontSize: '2.5rem' }}>Din signerte avtale</h1>
-            <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>Her kan du se din aktive avtale med Kommune-boligbanken.</p>
+            <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>Her kan du se din aktive avtale med Kommune-boligbank.</p>
           </div>
 
           <div className="card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
@@ -176,7 +176,17 @@ function SignTermsContent() {
               <ShieldCheck size={64} style={{ margin: '0 auto' }} />
             </div>
             <h2 style={{ marginBottom: 'var(--space-2)' }}>Avtalen er aktiv</h2>
-            <p style={{ marginBottom: 'var(--space-8)', opacity: 0.7 }}>Signert med BankID v1.0</p>
+            <p style={{ marginBottom: 'var(--space-6)', opacity: 0.7 }}>Signert med BankID v1.0</p>
+
+            <a
+              href="https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button"
+              style={{ width: '100%', maxWidth: '400px', margin: '0 auto var(--space-4)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}
+            >
+              <FileText size={20} /> Les avtalen du signerte (PDF)
+            </a>
             
             <div style={{ display: 'grid', gap: 'var(--space-4)', maxWidth: '400px', margin: '0 auto' }}>
               <Link href="/homeowner/manage" className="button" style={{ width: '100%' }}>
@@ -220,7 +230,7 @@ function SignTermsContent() {
             </div>
 
             <p className="text-sm" style={{ marginTop: 'var(--space-6)', color: '#ef4444' }}>
-              <AlertCircle size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
+              <CheckCircle2 size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle', color: '#94a3b8' }} />
               Ved oppsigelse mister du tilgang umiddelbart. Informasjon om deg og boligene bevares for kommunens historikk.
             </p>
           </div>
@@ -237,14 +247,14 @@ function SignTermsContent() {
             <ArrowLeft size={18} /> Avbryt og gå tilbake
           </Link>
           <h1 style={{ fontSize: '2.5rem', marginBottom: 'var(--space-2)' }}>Signering av vilkår</h1>
-          <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>For å bruke Boligbanken må du lese og signere kommunens vilkårsavtale med BankID.</p>
+          <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>For å bruke Boligbank må du lese og signere kommunens vilkårsavtale med BankID.</p>
         </div>
 
         <div className="card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border-medium)', background: '#ffffff' }}>
           <div style={{ padding: 'var(--space-4) var(--space-6)', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
               <FileText size={18} style={{ color: '#0f172a' }} />
-              <span style={{ fontWeight: 700, color: '#0f172a' }}>Vilkårsavtale Boligbanken v1.0</span>
+              <span style={{ fontWeight: 700, color: '#0f172a' }}>Vilkårsavtale Boligbank v1.0</span>
             </div>
             {!hasScrolledToBottom && (
               <div style={{ fontSize: '0.85rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -266,21 +276,21 @@ function SignTermsContent() {
               fontSize: '1.1rem'
             }}
           >
-            <h2 style={{ color: '#0f172a', fontSize: '1.6rem', marginBottom: 'var(--space-6)', borderBottom: '2px solid #f1f5f9', paddingBottom: 'var(--space-2)' }}>Vilkår for bruk av Boligbanken</h2>
+            <h2 style={{ color: '#0f172a', fontSize: '1.6rem', marginBottom: 'var(--space-6)', borderBottom: '2px solid #f1f5f9', paddingBottom: 'var(--space-2)' }}>Vilkår for bruk av Boligbank</h2>
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
               <h3 style={{ color: '#0f172a', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>1. Formål</h3>
-              <p style={{ color: '#334155' }}>Boligbanken skal lette formidlingen av egnede boliger fra private utleiere til personer som har behov for bistand fra kommunen til å skaffe bolig. Systemet fungerer som en brobygger for å sikre trygge boforhold.</p>
+              <p style={{ color: '#334155' }}>Boligbank skal lette formidlingen av egnede boliger fra private utleiere til personer som har behov for bistand fra kommunen til å skaffe bolig. Systemet fungerer som en brobygger for å sikre trygge boforhold.</p>
             </section>
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
               <h3 style={{ color: '#0f172a', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>2. Utleiers forpliktelser</h3>
-              <p style={{ color: '#334155' }}>Utleier plikter å gi korrekt informasjon om boligen ved registrering. Dette inkluderer nøyaktige opplysninger om pris, størrelse, fasiliteter og tilgjengelighet. Utleier skal holde informasjonen i Boligbanken oppdatert til enhver tid.</p>
+              <p style={{ color: '#334155' }}>Utleier plikter å gi korrekt informasjon om boligen ved registrering. Dette inkluderer nøyaktige opplysninger om pris, størrelse, fasiliteter og tilgjengelighet. Utleier skal holde informasjonen i Boligbank oppdatert til enhver tid.</p>
             </section>
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
               <h3 style={{ color: '#0f172a', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>3. Personvern og Data</h3>
-              <p style={{ color: '#334155' }}>Behandling av personopplysninger i Boligbanken skjer i samsvar med gjeldende personvernregelverk (GDPR). Utleiers kontaktinformasjon gjøres kun tilgjengelig for autoriserte kommune-ansatte for formidlingsformål.</p>
+              <p style={{ color: '#334155' }}>Behandling av personopplysninger i Boligbank skjer i samsvar med gjeldende personvernregelverk (GDPR). Utleiers kontaktinformasjon gjøres kun tilgjengelig for autoriserte kommune-ansatte for formidlingsformål.</p>
             </section>
             
             <section style={{ marginBottom: 'var(--space-6)' }}>
