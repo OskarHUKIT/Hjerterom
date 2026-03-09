@@ -933,7 +933,7 @@ export default function NavDatabase(props: PageProps) {
                       ))}
                       <td style={{ padding: 'var(--space-4)' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                          <Link href={`/listings/${l.id}?view=nav`} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)' }} title="Se detaljer">
+                          <Link href={`/listings/${l.id}?view=nav`} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)' }} title={t('seeDetails')}>
                             <Eye size={16} />
                           </Link>
                           {activeTab === 'Tilgjengelig' && kommuneCanEdit && (

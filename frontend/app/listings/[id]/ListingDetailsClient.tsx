@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
+import { useLanguage } from '../../../context/LanguageContext'
 import { 
   MapPin, Bed, Users, ShieldCheck, ArrowLeft, Calendar, Info, 
   Phone, User, Home as HomeIcon, CheckCircle2, 
@@ -20,6 +21,7 @@ export default function ListingDetailsClient() {
   const { id } = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useLanguage()
   const viewMode = searchParams.get('view') // 'nav' eller 'owner'
   const isNavView = viewMode === 'nav'
   
@@ -43,6 +45,7 @@ export default function ListingDetailsClient() {
   const [requestChangeSending, setRequestChangeSending] = useState(false)
   const [regionAccessDenied, setRegionAccessDenied] = useState(false)
   const [showNavNotes, setShowNavNotes] = useState(false)
+  const [kommuneCanEdit, setKommuneCanEdit] = useState(false)
   
   // Gallery state
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -79,7 +82,7 @@ export default function ListingDetailsClient() {
     if (!listing || !isOwner || isNavView) return
     
     if (!hasActiveAgreement) {
-      alert('Du må ha en signert og aktiv avtale for å gjøre endringer.')
+      alert(t('signAgreementToEdit'))
       router.push('/homeowner/sign-terms')
       return
     }
@@ -104,7 +107,7 @@ export default function ListingDetailsClient() {
         details: { field, value }
       }])
     } catch (err: any) {
-      alert('Feil ved lagring: ' + err.message)
+      alert(t('errorSaving') + err.message)
     } finally {
       setIsSaving(null)
     }
@@ -112,11 +115,11 @@ export default function ListingDetailsClient() {
 
   const handleAddFormidletPeriod = async () => {
     if (!listing || !isNavView || !formidletStart || !formidletEnd) {
-      alert('Velg start- og sluttdato for formidlingsperioden.')
+      alert(t('selectStartEndFormidling'))
       return
     }
     if (new Date(formidletEnd) < new Date(formidletStart)) {
-      alert('Sluttdato må være etter eller lik startdato.')
+      alert(t('endDateAfterStart'))
       return
     }
     const start = formidletStart
@@ -147,7 +150,7 @@ export default function ListingDetailsClient() {
       setAvailability(availability)
       setFormidletStart(start)
       setFormidletEnd(end)
-      alert('Feil: ' + err.message)
+      alert(t('errorPrefix') + err.message)
     } finally {
       setFormidletSending(false)
     }
@@ -179,13 +182,13 @@ export default function ListingDetailsClient() {
     } catch (err: any) {
       setListing(prevListing)
       setAvailability(prevAvailability)
-      alert('Feil: ' + err.message)
+      alert(t('errorPrefix') + err.message)
     }
   }
 
   const handleRegenerateTenantLink = async () => {
     if (!id || tenantLinkRegenerating) return
-    if (!confirm('Generer ny lenke? Den gamle lenken vil slutte å fungere. Leietaker må få den nye lenken.')) return
+    if (!confirm(t('generateNewLinkConfirm'))) return
     setTenantLinkRegenerating(true)
     try {
       const newToken = crypto.randomUUID()
@@ -193,7 +196,7 @@ export default function ListingDetailsClient() {
       if (error) throw error
       setTenantReportToken(newToken)
     } catch (err: any) {
-      alert('Kunne ikke generere ny lenke: ' + (err?.message || 'Ukjent feil'))
+      alert(t('couldNotGenerateLink') + (err?.message || ''))
     } finally {
       setTenantLinkRegenerating(false)
     }
@@ -209,9 +212,10 @@ export default function ListingDetailsClient() {
         // Sjekk tilgang hvis NAV-visning (kommune må ha rolle og tillatelse til boligens kommune)
         let profileKommuneRegion: string | null = null
         if (isNavView && user) {
-          const { data: profile } = await supabase.from('profiles').select('role, kommune_region').eq('id', user.id).maybeSingle()
+          const { data: profile } = await supabase.from('profiles').select('role, kommune_region, kommune_can_edit').eq('id', user.id).maybeSingle()
           const role = user.user_metadata?.role || profile?.role
           profileKommuneRegion = profile?.kommune_region ?? null
+          setKommuneCanEdit(profile?.kommune_can_edit !== false)
           if ((profileKommuneRegion == null || String(profileKommuneRegion).trim() === '') && user.email) {
             const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', { p_email: user.email })
             const fromRpc = typeof rpcRegion === 'string' ? rpcRegion : (Array.isArray(rpcRegion) && rpcRegion?.length ? rpcRegion[0] : null)
@@ -329,7 +333,7 @@ export default function ListingDetailsClient() {
     if (!e.target.files || e.target.files.length === 0) return
     
     if (!hasActiveAgreement) {
-      alert('Du må ha en signert og aktiv avtale for å laste opp bilder.')
+      alert(t('signAgreementToUpload'))
       router.push('/homeowner/sign-terms')
       return
     }
@@ -371,9 +375,9 @@ export default function ListingDetailsClient() {
 
       setListing({ ...listing, image_urls: updatedImageUrls, image_url: updatedImageUrls[0] })
       setCurrentImageIndex(updatedImageUrls.length - 1)
-      alert('Bilder lagt til!')
+      alert(t('imagesAdded'))
     } catch (err: any) {
-      alert('Feil ved opplasting: ' + err.message)
+      alert(t('errorUploading') + err.message)
     } finally {
       setUploading(false)
     }
@@ -402,7 +406,7 @@ export default function ListingDetailsClient() {
       setNavNotes([data, ...navNotes])
       setNewNote('')
     } catch (err: any) {
-      alert('Feil ved lagring av notat: ' + err.message)
+      alert(t('errorSavingNote') + err.message)
     }
   }
 
@@ -456,7 +460,7 @@ export default function ListingDetailsClient() {
         owner_id: listing.owner_id,
         listing_id: listing.id,
         type: 'NEW_MESSAGE',
-        title: 'Melding fra kommune',
+        title: t('messageFromKommune'),
         message: 'Kommune har bedt om ny overtakelsesrapport. Se meldinger.',
         status: 'unread',
         related_user_id: currentUser.id
@@ -487,7 +491,7 @@ export default function ListingDetailsClient() {
       <div className="container" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
         <h2 style={{ color: 'var(--text-main)' }}>Boligen ble ikke funnet</h2>
         <Link href={isNavView ? '/nav/database' : '/homeowner/manage'} className="button" style={{ marginTop: 'var(--space-4)' }}>
-          Tilbake til {isNavView ? 'boligbank' : 'mine boliger'}
+          {isNavView ? t('backToHousingBank') : t('backToMyProperties')}
         </Link>
       </div>
     )
@@ -496,12 +500,12 @@ export default function ListingDetailsClient() {
   if (regionAccessDenied) {
     return (
       <div className="container" style={{ textAlign: 'center', padding: 'var(--space-10)', maxWidth: '480px', margin: '0 auto' }}>
-        <h2 style={{ color: 'var(--text-main)', marginBottom: 'var(--space-3)' }}>Du har ikke tilgang til denne boligen</h2>
+        <h2 style={{ color: 'var(--text-main)', marginBottom: 'var(--space-3)' }}>{t('noAccessThisListing')}</h2>
         <p style={{ color: 'var(--text-body)', marginBottom: 'var(--space-6)' }}>
-          Boligen ligger i {listing.city}. Din konto har kun tilgang til boliger i de kommunene du har fått eksplisitt tillatelse til.
+          {t('listingInRegionDesc').replace('{city}', listing?.city ?? '')}
         </p>
         <Link href="/nav/database" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-          <ArrowLeft size={18} /> Tilbake til boligbank
+          <ArrowLeft size={18} /> {t('backToHousingBank')}
         </Link>
       </div>
     )
@@ -511,7 +515,7 @@ export default function ListingDetailsClient() {
     <main className="container">
       <div className="listing-details-header" style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <Link href={isNavView ? "/nav/database" : "/homeowner/manage"} className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: '-1rem' }}>
-          <ArrowLeft size={18} /> Tilbake til {isNavView ? "boligbank" : "mine boliger"}
+          <ArrowLeft size={18} /> {isNavView ? t('backToHousingBank') : t('backToMyProperties')}
         </Link>
       </div>
 
@@ -524,7 +528,7 @@ export default function ListingDetailsClient() {
               <button
                 type="button"
                 onClick={() => setShowNavNotes(prev => !prev)}
-                title={showNavNotes ? 'Skjul notat for saksbehandler' : 'Vis notat for saksbehandler'}
+                title={showNavNotes ? t('hideNoteCaseworker') : t('showNoteCaseworker')}
                 style={{
                   position: 'absolute',
                   top: 'var(--space-4)',
@@ -575,13 +579,13 @@ export default function ListingDetailsClient() {
           {isNavView && showNavNotes && (
             <section className="card" style={{ padding: 'var(--space-6)', border: '1px solid var(--color-sky-blue)', background: 'rgba(59, 130, 246, 0.03)' }}>
               <h3 style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
-                <MessageSquare size={20} style={{ color: 'var(--color-accent)' }} /> Notat for saksbehandler
+                <MessageSquare size={20} style={{ color: 'var(--color-accent)' }} /> {t('noteForCaseworker')}
               </h3>
               <form onSubmit={handleAddNote} style={{ marginBottom: 'var(--space-6)' }}>
                 <div style={{ position: 'relative' }}>
                   <textarea 
                     className="input" 
-                    placeholder="Legg til et internt notat om denne boligen eller utleier..."
+                    placeholder={t('addInternalNotePlaceholder')}
                     value={newNote}
                     onChange={e => setNewNote(e.target.value)}
                     style={{ minHeight: '100px', paddingRight: 'var(--space-10)', color: 'var(--text-main)' }}
@@ -590,7 +594,7 @@ export default function ListingDetailsClient() {
                     <Send size={18} />
                   </button>
                 </div>
-                <p className="text-sm" style={{ marginTop: 'var(--space-2)', color: 'var(--text-muted)' }}>Kun synlig for saksbehandler.</p>
+                <p className="text-sm" style={{ marginTop: 'var(--space-2)', color: 'var(--text-muted)' }}>{t('onlyVisibleCaseworker')}</p>
               </form>
               <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
                 {navNotes.length > 0 ? navNotes.map(note => (
@@ -601,7 +605,7 @@ export default function ListingDetailsClient() {
                     </div>
                   </div>
                 )) : (
-                  <p className="text-sm" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Ingen notater for saksbehandler ennå.</p>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('noNotesYet')}</p>
                 )}
               </div>
             </section>
@@ -802,7 +806,7 @@ export default function ListingDetailsClient() {
                         {formatDateNo(p.start_date)} - {formatDateNo(p.end_date)}
                       </span>
                       <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: p.status === 'Formidla' ? 'var(--color-royal-blue)' : p.status === 'Utilgjengelig' ? '#ef4444' : 'var(--color-teal)', background: p.status === 'Formidla' ? 'rgba(59, 130, 246, 0.1)' : p.status === 'Utilgjengelig' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(32, 187, 175, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-                        {p.status === 'Formidla' ? 'Formidlet' : p.status === 'Utilgjengelig' ? 'Utilgjengelig' : 'Tilgjengelig'}
+                        {p.status === 'Formidla' ? t('formidlet') : p.status === 'Utilgjengelig' ? t('unavailable') : t('available')}
                       </span>
                     </div>
                   ))}
@@ -813,7 +817,7 @@ export default function ListingDetailsClient() {
               {(isNavView || availability.length > 0) && (
                 <div style={{ marginTop: 'var(--space-6)' }}>
                   <h4 style={{ marginBottom: 'var(--space-3)', fontSize: '0.95rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Calendar size={18} style={{ color: 'var(--color-royal-blue)' }} /> Kalender
+                    <Calendar size={18} style={{ color: 'var(--color-royal-blue)' }} /> {t('calendar')}
                   </h4>
                   <div style={{ background: 'var(--listing-availability-item-bg)', borderRadius: '12px', border: '1px solid var(--border-subtle)', padding: 'var(--space-4)', maxWidth: '340px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
@@ -843,34 +847,36 @@ export default function ListingDetailsClient() {
                       })()}
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-3)', fontSize: '0.7rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-formidlet-bg)' }} /> Formidlet</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-tilgjengelig-bg)' }} /> Tilgjengelig</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-utilgjengelig-bg)' }} /> Utilgjengelig</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-formidlet-bg)' }} /> {t('formidlet')}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-tilgjengelig-bg)' }} /> {t('available')}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-utilgjengelig-bg)' }} /> {t('unavailable')}</span>
                     </div>
                   </div>
                 </div>
               )}
               {isNavView && (
                 <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.4)' }}>
-                  <h4 style={{ marginBottom: 'var(--space-3)', fontSize: '0.95rem', color: 'var(--text-main)' }}>Formidling</h4>
-                  {listing?.status === 'Formidla' ? (
+                  <h4 style={{ marginBottom: 'var(--space-3)', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('formidling')}</h4>
+                  {!kommuneCanEdit ? (
+                    <p className="text-sm" style={{ color: 'var(--text-body)' }}>{t('formidlingManagedByCaseworker')}</p>
+                  ) : listing?.status === 'Formidla' ? (
                     <div>
-                      <p className="text-sm" style={{ color: 'var(--text-body)', marginBottom: 'var(--space-3)' }}>Denne boligen er markert som formidlet.</p>
-                      <button onClick={handleRemoveFormidlet} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', background: 'rgba(239, 68, 68, 0.9)' }}><RotateCcw size={14} /> Fjern formidling</button>
+                      <p className="text-sm" style={{ color: 'var(--text-body)', marginBottom: 'var(--space-3)' }}>{t('thisPropertyMarkedFormidlet')}</p>
+                      <button onClick={handleRemoveFormidlet} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', background: 'rgba(239, 68, 68, 0.9)' }}><RotateCcw size={14} /> {t('removeFormidling')}</button>
                     </div>
                   ) : (
                     <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                      <label className="label" style={{ fontSize: '0.7rem', color: 'var(--color-accent)' }}>Periode (datoområde)</label>
+                      <label className="label" style={{ fontSize: '0.7rem', color: 'var(--color-accent)' }}>{t('periodDateRange')}</label>
                       <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: '120px' }}>
-                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>Fra</span>
+                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>{t('from')}</span>
                           <DateInput className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)' }} value={formidletStart} onChange={setFormidletStart} max={formidletEnd || undefined} placeholder="DD.MM.ÅÅÅÅ" />
                         </div>
                         <div style={{ flex: 1, minWidth: '120px' }}>
-                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>Til</span>
+                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>{t('to')}</span>
                           <DateInput className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)' }} value={formidletEnd} onChange={setFormidletEnd} min={formidletStart || undefined} placeholder="DD.MM.ÅÅÅÅ" />
                         </div>
-                        <button onClick={handleAddFormidletPeriod} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}><ShieldCheck size={14} /> Legg inn</button>
+                        <button onClick={handleAddFormidletPeriod} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}><ShieldCheck size={14} /> {t('addSubmit')}</button>
                       </div>
                     </div>
                   )}
@@ -881,13 +887,13 @@ export default function ListingDetailsClient() {
           {/* 3. Kontaktinfo for formidling */}
           <section id="kontaktinfo" className="card no-hover listing-detail-card" style={{ padding: 'var(--space-8)' }}>
               <h3 style={{ margin: '0 0 var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
-                <User size={20} style={{ color: 'var(--color-accent)' }} /> Kontaktinfo for formidling
+                <User size={20} style={{ color: 'var(--color-accent)' }} /> {t('contactInfoForFormidling')}
               </h3>
               <p style={{ margin: '0 0 var(--space-4)', color: 'var(--text-body)', fontSize: '0.95rem', lineHeight: 1.6 }}>
                 Boligutleier har rett å få kontaktinformasjon til leietakere i boligene sine. Boligutleier skriver ut mal for kontaktinfoskjema fra bo.ly i to eksemplarer og fyller ut dette med leietaker. Boligutleier og leietaker beholder et eksemplar hver.
               </p>
               <a href="https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/Kontaktinfoschema.pdf" download target="_blank" rel="noopener noreferrer" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}>
-                <FileText size={18} /> Last ned Kontaktinfoskjema (PDF)
+                <FileText size={18} /> {t('downloadContactInfoPdf')}
               </a>
             </section>
 
@@ -895,7 +901,7 @@ export default function ListingDetailsClient() {
           <section id="overtakelsesrapport" className="card no-hover listing-detail-card" style={{ padding: 'var(--space-8)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
                 <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
-                  <FileText size={20} style={{ color: 'var(--color-accent)' }} /> Overtakelsesrapporter
+                  <FileText size={20} style={{ color: 'var(--color-accent)' }} /> {t('handoverReports')}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                   {handoverReports.length > 0 && (
@@ -974,7 +980,7 @@ export default function ListingDetailsClient() {
               {showHandoverForm ? (
                 <div style={{ marginBottom: 'var(--space-8)' }}>
                   <HandoverReport listingId={id as string} listingAddress={listing.address} ownerName={listing.owner_name} reporterType="homeowner" onSaved={() => { setShowHandoverForm(false); refetchHandoverReports() }} />
-                  <button onClick={() => setShowHandoverForm(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginTop: 'var(--space-2)' }}>Avbryt</button>
+                  <button onClick={() => setShowHandoverForm(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginTop: 'var(--space-2)' }}>{t('cancel')}</button>
                 </div>
               ) : null}
               <div style={{ maxHeight: '420px', overflowY: 'auto', display: 'grid', gap: 'var(--space-4)', paddingRight: 'var(--space-2)' }}>
@@ -987,7 +993,7 @@ export default function ListingDetailsClient() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }}>
-                            {report.reporter_type === 'homeowner' ? 'Utleier' : 'Leietaker'}
+                            {report.reporter_type === 'homeowner' ? t('landlord') : t('tenant')}
                             {report.content?.pdf_url ? ' – PDF lastet opp' : ` – ${(report.content?.condition_description || report.content?.general_condition || 'Rapport').toString().slice(0, 60)}${((report.content?.condition_description || report.content?.general_condition || '')?.toString().length > 60 ? '…' : '')}`}
                             {report.content?.photo_urls?.length ? ` · ${report.content.photo_urls.length} bilder vedlagt` : ''}
                           </div>
@@ -1027,7 +1033,7 @@ export default function ListingDetailsClient() {
                 if (!showTenantLink) return null
                 return (
                   <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '2px dashed rgba(59, 130, 246, 0.5)' }}>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}><strong style={{ color: 'var(--text-main)' }}>Lenke til leietaker:</strong> Send denne lenken til leietaker for nedlasting og opplasting av overtakelsesrapport (PDF) – de trenger ikke logge inn:</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}><strong style={{ color: 'var(--text-main)' }}>{t('linkForTenant')}</strong> {t('linkForTenantDesc')}</p>
                     {tenantReportToken ? (
                       <div style={{ marginTop: 'var(--space-2)' }}>
                         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1037,7 +1043,7 @@ export default function ListingDetailsClient() {
                         </div>
                         <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bruk «Ny lenke» hvis leietaker sier at lenken er ugyldig – send deretter den nye lenken.</p>
                       </div>
-                    ) : <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>Lenken genereres når boligen markeres som formidlet.</p>}
+                    ) : <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('linkGeneratedWhenFormidlet')}</p>}
                   </div>
                 )
               })()}
@@ -1212,17 +1218,21 @@ export default function ListingDetailsClient() {
                 </div>
               </div>
 
-              {listing?.status === 'Formidla' ? (
+              {!kommuneCanEdit ? (
+                <div style={{ padding: 'var(--space-3)', background: 'rgba(255,255,255,0.08)', borderRadius: '8px', marginBottom: 'var(--space-4)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>
+                  {t('formidlingManagedByCaseworkerShort')}
+                </div>
+              ) : listing?.status === 'Formidla' ? (
                 <div style={{ padding: 'var(--space-3)', background: 'rgba(59, 130, 246, 0.2)', borderRadius: '8px', marginBottom: 'var(--space-4)', fontSize: '0.9rem', color: 'white' }}>
-                  Boligen er markert som formidlet. Bruk «Fjern formidling» lenger ned for å gjøre den tilgjengelig igjen.
+                  {t('formidletUseRemoveBelow')}
                 </div>
               ) : (
                 <>
                   <div style={{ marginBottom: 'var(--space-4)' }}>
-                    <label className="label" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', marginBottom: 'var(--space-2)', display: 'block' }}>Tidsspann for formidling</label>
+                    <label className="label" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', marginBottom: 'var(--space-2)', display: 'block' }}>{t('tidsspannFormidling')}</label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>Fra</span>
+                        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>{t('from')}</span>
                         <DateInput
                           showCalendar
                           className="input"
@@ -1234,7 +1244,7 @@ export default function ListingDetailsClient() {
                         />
                       </div>
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>Til</span>
+                        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>{t('to')}</span>
                         <DateInput
                           showCalendar
                           className="input"
@@ -1261,18 +1271,18 @@ export default function ListingDetailsClient() {
                       cursor: (formidletSending || !formidletStart || !formidletEnd) ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {formidletSending ? 'Starter formidling...' : 'Start formidling'}
+                    {formidletSending ? t('startingFormidling') : t('startFormidling')}
                   </button>
                 </>
               )}
               <div style={{ textAlign: 'center', fontSize: '0.8rem', opacity: 0.6, color: 'white' }}>
-                Avtalehistorikk logges i systemet
+                {t('agreementHistoryLogged')}
               </div>
             </div>
 
             <div className="card" style={{ marginTop: 'var(--space-6)', padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}>
               <h3 style={{ fontSize: '1rem', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
-                <User size={18} style={{ color: 'var(--text-main)' }} /> Utleier
+                <User size={18} style={{ color: 'var(--text-main)' }} /> {t('landlord')}
               </h3>
               <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
                 <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.owner_name}</div>
@@ -1285,7 +1295,7 @@ export default function ListingDetailsClient() {
                     className="button button-secondary"
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', textDecoration: 'none', marginTop: 'var(--space-1)' }}
                   >
-                    <MessageSquare size={18} /> Melding
+                    <MessageSquare size={18} /> {t('message')}
                   </Link>
                 )}
                 <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-3)', background: 'rgba(45, 212, 191, 0.12)', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--color-teal)', border: '1px solid rgba(45, 212, 191, 0.3)' }}>
@@ -1340,7 +1350,7 @@ export default function ListingDetailsClient() {
             >
               <div style={{ position: 'sticky', top: 0, left: 0, right: 0, padding: 'var(--space-4) var(--space-6)', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)', zIndex: 1 }}>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>
-                  {expandedReport.reporter_type === 'homeowner' ? 'Utleier' : 'Leietaker'}
+                  {expandedReport.reporter_type === 'homeowner' ? t('landlord') : t('tenant')}
                   {expandedReport.content?.photo_urls?.length ? ` · ${expandedReport.content.photo_urls.length} bilder vedlagt` : ''}
                 </h3>
                 <button
@@ -1348,7 +1358,7 @@ export default function ListingDetailsClient() {
                   onClick={() => setExpandedReportId(null)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: '10px', color: 'var(--text-main)', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600 }}
                 >
-                  <ArrowLeft size={18} /> Lukk
+                  <ArrowLeft size={18} /> {t('close')}
                 </button>
               </div>
               <div style={{ padding: 'var(--space-6)', fontSize: '1rem', color: 'var(--text-body)', lineHeight: 1.6, overflow: 'auto', flex: 1, minHeight: 0 }}>
@@ -1365,8 +1375,8 @@ export default function ListingDetailsClient() {
                   {expandedReport.content?.agreement_period && <p style={{ margin: 0 }}><strong style={{ color: 'var(--text-main)' }}>Avtaleperiode:</strong> {expandedReport.content.agreement_period}</p>}
                   {expandedReport.content?.inventory && <p style={{ margin: 0 }}><strong style={{ color: 'var(--text-main)' }}>Inventar:</strong> {expandedReport.content.inventory}</p>}
                   {expandedReport.content?.keys && <p style={{ margin: 0 }}><strong style={{ color: 'var(--text-main)' }}>Nøkler:</strong> {expandedReport.content.keys}</p>}
-                  {expandedReport.content?.condition_description && <p style={{ margin: 0 }}><strong style={{ color: 'var(--text-main)' }}>Tilstandsbeskrivelse:</strong> {expandedReport.content.condition_description}</p>}
-                  {expandedReport.request_change_comment && <p style={{ margin: 0, color: '#ef4444' }}><strong>Kommentar fra kommune:</strong> {expandedReport.request_change_comment}</p>}
+                  {expandedReport.content?.condition_description && <p style={{ margin: 0 }}><strong style={{ color: 'var(--text-main)' }}>{t('conditionDescription')}</strong> {expandedReport.content.condition_description}</p>}
+                  {expandedReport.request_change_comment && <p style={{ margin: 0, color: '#ef4444' }}><strong>{t('commentFromKommune')}</strong> {expandedReport.request_change_comment}</p>}
                 </div>
                 {expandedReport.content?.photo_urls?.length ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-6)' }}>
@@ -1391,7 +1401,7 @@ export default function ListingDetailsClient() {
             <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.9rem', color: 'var(--text-body)' }}>Skriv en kommentar som sendes til utleier. De får melding og kan sende inn en ny rapport.</p>
             <textarea value={requestChangeComment} onChange={e => setRequestChangeComment(e.target.value)} placeholder="Forklar hva som må endres eller suppleres..." rows={4} className="input" style={{ width: '100%', marginBottom: 'var(--space-4)', resize: 'vertical', minHeight: '100px' }} />
             <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => setRequestChangeReport(null)} disabled={requestChangeSending} style={{ padding: '8px 16px', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-body)', cursor: requestChangeSending ? 'not-allowed' : 'pointer' }}>Avbryt</button>
+              <button type="button" onClick={() => setRequestChangeReport(null)} disabled={requestChangeSending} style={{ padding: '8px 16px', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-body)', cursor: requestChangeSending ? 'not-allowed' : 'pointer' }}>{t('cancel')}</button>
               <button type="button" onClick={handleRequestChangeSubmit} disabled={requestChangeSending} className="button" style={{ padding: '8px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {requestChangeSending ? 'Sender…' : <><Send size={16} /> Send melding og marker som ikke godkjent</>}
               </button>

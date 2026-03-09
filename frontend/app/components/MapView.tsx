@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '../../context/LanguageContext'
 
 /** Standard pin (blå/grønn) for tilgjengelige boliger – uten skygge for ryddig utseende. */
 const icon = L.icon({
@@ -52,6 +53,7 @@ interface MapViewProps {
 
 export default function MapView({ listings, availability = {} }: MapViewProps) {
   const router = useRouter()
+  const { t } = useLanguage()
   const mapRef = useRef<L.Map | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -85,7 +87,7 @@ export default function MapView({ listings, availability = {} }: MapViewProps) {
           <button id="view-listing-${l.id}" style="
             width: 100%; padding: 8px; background: #3b82f6; color: white;
             border: none; border-radius: 4px; cursor: pointer; font-weight: bold;
-          ">Se detaljer</button>
+          ">${t('seeDetails')}</button>
         `
         
         marker.bindPopup(popupContent)
@@ -106,7 +108,7 @@ export default function MapView({ listings, availability = {} }: MapViewProps) {
         mapRef.current = null
       }
     }
-  }, [listings, availability, router])
+  }, [listings, availability, router, t])
 
   return (
     <div 
