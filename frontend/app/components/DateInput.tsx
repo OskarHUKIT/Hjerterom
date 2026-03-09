@@ -171,7 +171,7 @@ export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅ
               if (day === null) return <div key={`e-${i}`} />;
               const iso = toISO(y, m, day);
               const date = new Date(y, m, day);
-              const disabled = (minDate && date < minDate) || (maxDate && date > maxDate);
+              const disabled = Boolean((minDate && date < minDate) || (maxDate && date > maxDate));
               const selected = value === iso;
               return (
                 <button
