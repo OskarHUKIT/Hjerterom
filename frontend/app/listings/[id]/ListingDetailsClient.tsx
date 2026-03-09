@@ -46,6 +46,7 @@ export default function ListingDetailsClient() {
   const [regionAccessDenied, setRegionAccessDenied] = useState(false)
   const [showNavNotes, setShowNavNotes] = useState(false)
   const [kommuneCanEdit, setKommuneCanEdit] = useState(false)
+  const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{ id: string; status: string } | null>(null)
   
   // Gallery state
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -164,6 +165,26 @@ export default function ListingDetailsClient() {
       if (t >= p.start_date && t <= p.end_date) return p.status
     }
     return null
+  }
+
+  const handleRemovePeriod = async (period: { id: string; status: string }) => {
+    const prevAvailability = [...availability]
+    setAvailability(prev => prev.filter(x => x.id !== period.id))
+    setPendingDeletePeriod(null)
+    try {
+      const { error } = await supabase.from('listing_availability').delete().eq('id', period.id)
+      if (error) throw error
+      if (period.status === 'Formidla') {
+        const remainingFormidla = availability.filter(p => p.id !== period.id && p.status === 'Formidla')
+        if (remainingFormidla.length === 0 && listing) {
+          setListing({ ...listing, status: 'Tilgjengelig', is_available: true })
+          await supabase.from('listings').update({ status: 'Tilgjengelig', is_available: true }).eq('id', id)
+        }
+      }
+    } catch (err: any) {
+      setAvailability(prevAvailability)
+      alert(t('errorPrefix') + err.message)
+    }
   }
 
   const handleRemoveFormidlet = async () => {
@@ -513,6 +534,57 @@ export default function ListingDetailsClient() {
 
   return (
     <main className="container">
+      {pendingDeletePeriod && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-remove-period-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 'var(--space-4)',
+          }}
+          onClick={() => setPendingDeletePeriod(null)}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 400,
+              padding: 'var(--space-6)',
+              boxShadow: 'var(--shadow-lg, 0 10px 40px rgba(0,0,0,0.2))',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p id="confirm-remove-period-title" style={{ margin: '0 0 var(--space-4)', fontSize: '1rem' }}>
+              {t('confirmRemovePeriod')}
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="button"
+                style={{ background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}
+                onClick={() => setPendingDeletePeriod(null)}
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                className="button"
+                style={{ background: '#dc2626', color: 'white', border: 'none' }}
+                onClick={() => pendingDeletePeriod && handleRemovePeriod(pendingDeletePeriod)}
+              >
+                {t('remove')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="listing-details-header" style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <Link href={isNavView ? "/nav/database" : "/homeowner/manage"} className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: '-1rem' }}>
           <ArrowLeft size={18} /> {isNavView ? t('backToHousingBank') : t('backToMyProperties')}
@@ -799,17 +871,31 @@ export default function ListingDetailsClient() {
               </h3>
               {availability.length > 0 ? (
                 <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
-                  {availability.map(p => (
-                    <div key={p.id} className="listing-availability-item" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--listing-availability-item-bg)', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                      <Calendar size={16} style={{ color: p.status === 'Formidla' ? 'var(--color-royal-blue)' : p.status === 'Utilgjengelig' ? '#ef4444' : 'var(--color-teal)' }} />
-                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                        {formatDateNo(p.start_date)} - {formatDateNo(p.end_date)}
-                      </span>
-                      <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: p.status === 'Formidla' ? 'var(--color-royal-blue)' : p.status === 'Utilgjengelig' ? '#ef4444' : 'var(--color-teal)', background: p.status === 'Formidla' ? 'rgba(59, 130, 246, 0.1)' : p.status === 'Utilgjengelig' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(32, 187, 175, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-                        {p.status === 'Formidla' ? t('formidlet') : p.status === 'Utilgjengelig' ? t('unavailable') : t('available')}
-                      </span>
-                    </div>
-                  ))}
+                  {availability.map(p => {
+                    const canDelete = (isOwner && !isNavView && p.status !== 'Formidla') || (isNavView && kommuneCanEdit)
+                    return (
+                      <div key={p.id} className="listing-availability-item" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--listing-availability-item-bg)', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
+                        <Calendar size={16} style={{ color: p.status === 'Formidla' ? 'var(--color-royal-blue)' : p.status === 'Utilgjengelig' ? '#ef4444' : 'var(--color-teal)' }} />
+                        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                          {formatDateNo(p.start_date)} - {formatDateNo(p.end_date)}
+                        </span>
+                        <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: p.status === 'Formidla' ? 'var(--color-royal-blue)' : p.status === 'Utilgjengelig' ? '#ef4444' : 'var(--color-teal)', background: p.status === 'Formidla' ? 'rgba(59, 130, 246, 0.1)' : p.status === 'Utilgjengelig' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(32, 187, 175, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                          {p.status === 'Formidla' ? t('formidlet') : p.status === 'Utilgjengelig' ? t('unavailable') : t('available')}
+                        </span>
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => setPendingDeletePeriod(p)}
+                            title={t('remove')}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-muted)', opacity: 0.7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            aria-label={t('remove')}
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               ) : (
                 <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Ingen spesifikke ledige perioder er lagt til for denne boligen.</p>

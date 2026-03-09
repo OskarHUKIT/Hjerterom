@@ -254,6 +254,7 @@ export const translations = {
     agreementHistoryLogged: 'Avtalehistorikk logges i systemet',
     commentFromKommune: 'Kommentar fra kommune:',
     messageFromKommune: 'Melding fra kommune',
+    confirmRemovePeriod: 'Er du sikker på at du vil fjerne denne perioden?',
   },
   se: {
     // Header & nav – Northern Sami (Davvisámegiella)
@@ -504,6 +505,7 @@ export const translations = {
     agreementHistoryLogged: 'Oaivámuš historjá loggejuvvo sisttis.',
     commentFromKommune: 'Kommentára kommuvdnas:',
     messageFromKommune: 'Sáhcastallan kommuvdnas',
+    confirmRemovePeriod: 'Leatgo sihkar aht hálid sihkkut dán áigodaga?',
   },
   en: {
     // Header & nav
@@ -754,6 +756,7 @@ export const translations = {
     agreementHistoryLogged: 'Agreement history is logged in the system.',
     commentFromKommune: 'Comment from municipality:',
     messageFromKommune: 'Message from municipality',
+    confirmRemovePeriod: 'Are you sure you want to remove this period?',
   },
 } as const;
 

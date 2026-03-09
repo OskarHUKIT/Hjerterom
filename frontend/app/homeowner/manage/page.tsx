@@ -24,6 +24,7 @@ export default function HomeownerManage(props: PageProps) {
   const [filter, setFilter] = useState<'Alle' | 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'>('Alle')
   const [editingAvailability, setEditingAvailability] = useState<string | null>(null)
   const [newPeriod, setNewPeriod] = useState({ start: '', end: '', status: 'Tilgjengelig' })
+  const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{ id: string; listingId: string } | null>(null)
 
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
@@ -186,11 +187,11 @@ export default function HomeownerManage(props: PageProps) {
       
       if (error) throw error
       
-      // Oppdater lokalt uten full reload
       setAvailability(prev => ({
         ...prev,
-        [listingId]: prev[listingId].filter(p => p.id !== id)
+        [listingId]: (prev[listingId] || []).filter(p => p.id !== id)
       }))
+      setPendingDeletePeriod(null)
     } catch (err: any) {
       alert('Feil ved sletting av periode: ' + err.message)
     }
@@ -224,6 +225,57 @@ export default function HomeownerManage(props: PageProps) {
 
   return (
     <main className="container">
+      {pendingDeletePeriod && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-remove-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 'var(--space-4)',
+          }}
+          onClick={() => setPendingDeletePeriod(null)}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 400,
+              padding: 'var(--space-6)',
+              boxShadow: 'var(--shadow-lg, 0 10px 40px rgba(0,0,0,0.2))',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p id="confirm-remove-title" style={{ margin: '0 0 var(--space-4)', fontSize: '1rem' }}>
+              {t('confirmRemovePeriod')}
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="button"
+                style={{ background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}
+                onClick={() => setPendingDeletePeriod(null)}
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                className="button"
+                style={{ background: '#dc2626', color: 'white', border: 'none' }}
+                onClick={() => pendingDeletePeriod && deleteAvailability(pendingDeletePeriod.id, pendingDeletePeriod.listingId)}
+              >
+                {t('remove')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="hm-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)', margin: 0 }}>Min Boly-oversikt</h1>
@@ -425,7 +477,8 @@ export default function HomeownerManage(props: PageProps) {
                                     </span>
                                     {p.status !== 'Formidla' ? (
                                       <button 
-                                        onClick={() => deleteAvailability(p.id, listing.id)}
+                                        type="button"
+                                        onClick={() => setPendingDeletePeriod({ id: p.id, listingId: listing.id })}
                                         style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto' }}
                                         title="Slett periode"
                                       >
