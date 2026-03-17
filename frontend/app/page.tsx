@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, Home as HomeIcon, ShieldCheck, HelpCircle, ArrowRight, LogOut } from 'lucide-react'
+import { LogIn, Presentation, ArrowRight, X } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import { useTheme } from '../context/ThemeContext'
 import { supabase } from './lib/supabase'
@@ -16,6 +16,7 @@ export default function Home(props: PageProps) {
   const { t } = useLanguage()
   const { setTheme } = useTheme()
   const [isKommune, setIsKommune] = useState<boolean | null>(null)
+  const [showDemoPopup, setShowDemoPopup] = useState(false)
 
   useEffect(() => {
     const check = async () => {
@@ -35,11 +36,6 @@ export default function Home(props: PageProps) {
       setTheme('light')
     }
   }, [isKommune, setTheme])
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    window.location.reload()
-  }
 
   return (
     <main className="container">
@@ -67,7 +63,7 @@ export default function Home(props: PageProps) {
       </div>
 
       <div className="grid-portal animate-delay-3">
-        {/* Kommune Worker Portal */}
+        {/* Logg inn */}
         <div className="card portal-card portal-card-align-buttons" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', backdropFilter: 'blur(8px)' }}>
           <div style={{ 
             width: '56px', 
@@ -80,22 +76,19 @@ export default function Home(props: PageProps) {
             marginBottom: 'var(--space-2)',
             color: 'var(--color-teal)'
           }}>
-            <Search size={28} />
+            <LogIn size={28} />
           </div>
           <div className="portal-card-body">
-            <h2>{t('forMunicipality')}</h2>
-            <p className="portal-card-desc" style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-              {t('searchDesc')}
-            </p>
+            <h2>Logg inn</h2>
             <div className="portal-card-cta">
-              <Link href="/nav/database" className="button button-accent" style={{ width: '100%', padding: 'var(--space-4)' }}>
-                {t('openHousingBank')} <ArrowRight size={18} />
+              <Link href="/login" className="button button-accent" style={{ width: '100%', padding: 'var(--space-4)' }}>
+                Logg inn <ArrowRight size={18} />
               </Link>
             </div>
           </div>
         </div>
 
-        {/* Homeowner Portal */}
+        {/* Be om demo */}
         <div className="card portal-card portal-card-align-buttons" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', backdropFilter: 'blur(8px)' }}>
           <div style={{ 
             width: '56px', 
@@ -108,85 +101,81 @@ export default function Home(props: PageProps) {
             marginBottom: 'var(--space-2)',
             color: 'var(--color-royal-blue)'
           }}>
-            <HomeIcon size={28} />
+            <Presentation size={28} />
           </div>
           <div className="portal-card-body">
-            <h2>{t('forHomeowners')}</h2>
-            <p className="portal-card-desc" style={{ fontSize: '1rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-              {t('manageDesc')}
-            </p>
+            <h2>Be om demo</h2>
             <div className="portal-card-cta">
-              {isKommune ? (
-                <div style={{ 
-                  padding: 'var(--space-4)', 
-                  background: 'rgba(251, 191, 36, 0.12)', 
-                  borderRadius: '12px', 
-                  border: '1px solid rgba(251, 191, 36, 0.4)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 'var(--space-3)'
-                }}>
-                  <p style={{ fontSize: '0.95rem', color: 'var(--text-main)', margin: 0 }}>
-                    {t('loginWithOtherAccount')}
-                  </p>
-                  <button 
-                    type="button"
-                    onClick={handleLogout}
-                    className="button button-secondary"
-                    style={{ 
-                      width: '100%', 
-                      padding: 'var(--space-3)', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      gap: 'var(--space-2)', 
-                      fontWeight: 600
-                    }}
-                  >
-                    <LogOut size={18} /> {t('logOut')}
-                  </button>
-                </div>
-              ) : (
-                <Link href="/homeowner/manage" className="button" style={{ width: '100%', padding: 'var(--space-4)' }}>
-                  {t('manageRental')} <ArrowRight size={18} />
-                </Link>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowDemoPopup(true)}
+                className="button"
+                style={{ width: '100%', padding: 'var(--space-4)' }}
+              >
+                Be om demo <ArrowRight size={18} />
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Trust & Support Section */}
-      <div className="animate-delay-3 trust-section" style={{ 
-        marginTop: 'var(--space-10)', 
-        padding: 'var(--space-8)', 
-        background: 'rgba(15, 23, 42, 0.4)',
-        borderRadius: '24px',
-        color: 'var(--text-main)',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: 'var(--space-8)',
-        border: '1px solid var(--border-subtle)'
-      }}>
-        <div>
-          <div style={{ color: 'var(--color-sky-blue)', marginBottom: 'var(--space-3)' }}>
-            <ShieldCheck size={36} />
+      {/* Be om demo – popup med kontaktinfo */}
+      {showDemoPopup && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="demo-popup-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 'var(--space-4)',
+          }}
+          onClick={() => setShowDemoPopup(false)}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 400,
+              padding: 'var(--space-6)',
+              boxShadow: 'var(--shadow-lg, 0 10px 40px rgba(0,0,0,0.2))',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+              <h3 id="demo-popup-title" style={{ margin: 0, fontSize: '1.25rem' }}>Be om demo</h3>
+              <button
+                type="button"
+                onClick={() => setShowDemoPopup(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)', display: 'flex' }}
+                aria-label="Lukk"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.9rem', color: 'var(--text-body)' }}>
+              Kontakt oss for å be om en demo:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', fontSize: '0.95rem' }}>
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Tina Olsen, NAV Narvik</div>
+                <a href="mailto:Tina.Olsen@nav.no" style={{ color: 'var(--color-accent)' }}>Tina.Olsen@nav.no</a>
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Lars Utstøl</div>
+                <a href="mailto:lars@gamechanging.no" style={{ color: 'var(--color-accent)' }}>lars@gamechanging.no</a>
+              </div>
+            </div>
           </div>
-          <h3 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>{t('securityTitle')}</h3>
-          <p style={{ color: 'var(--text-body)', fontSize: '1rem' }}>
-            {t('securityDesc')}
-          </p>
         </div>
-        <div>
-          <div style={{ color: 'var(--color-sky-blue)', marginBottom: 'var(--space-3)' }}>
-            <HelpCircle size={36} />
-          </div>
-          <h3 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-2)' }}>{t('improvementTitle')}</h3>
-          <p style={{ color: 'var(--text-body)', fontSize: '1rem' }}>
-            {t('improvementDesc')}
-          </p>
-        </div>
-      </div>
+      )}
+
     </main>
   )
 }
