@@ -51,15 +51,25 @@ export default function Header() {
   }
 
   useEffect(() => {
+    let cancelled = false
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) setLoading(false)
+    }, 8000)
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchHeaderData(session.user.id, session.user.user_metadata)
-      } else {
-        setLoading(false)
-      }
-    })
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (cancelled) return
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          fetchHeaderData(session.user.id, session.user.user_metadata)
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false)
+      })
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -89,6 +99,8 @@ export default function Header() {
     window.addEventListener('resize', handleResize)
 
     return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
       subscription.unsubscribe()
       window.removeEventListener('click', closeMenu)
       window.removeEventListener('resize', handleResize)
