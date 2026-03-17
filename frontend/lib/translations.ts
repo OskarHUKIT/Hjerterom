@@ -57,7 +57,7 @@ export const translations = {
     privacy: 'Personvern',
     aboutBoly: 'Om Boly',
     comingSoon: 'Kommer snart',
-    copyright: '© 2026 Utviklet av Game Changing AS. Alle rettigheter reservert.',
+    copyright: '© 2026 Utviklet av Nav Narvik og Gamechanging. Alle rettigheter reservert.',
 
     // Settings
     settings: 'Innstillinger',
@@ -308,7 +308,7 @@ export const translations = {
     privacy: 'Iešdovdus',
     aboutBoly: 'Boly birra',
     comingSoon: 'Boatná beaivi',
-    copyright: '© 2026 Game Changing AS. Buot vuoigatvuođat galgen.',
+    copyright: '© 2026 Ráhkadan Nav Narvik ja Gamechanging. Buot vuoigatvuođat galgen.',
 
     // Settings
     settings: 'Heivehusat',
@@ -559,7 +559,7 @@ export const translations = {
     privacy: 'Privacy',
     aboutBoly: 'About Boly',
     comingSoon: 'Coming soon',
-    copyright: '© 2026 Developed by Game Changing AS. All rights reserved.',
+    copyright: '© 2026 Developed by Nav Narvik and Gamechanging. All rights reserved.',
 
     // Settings
     settings: 'Settings',
