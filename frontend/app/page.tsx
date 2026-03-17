@@ -104,7 +104,7 @@ export default function Home(props: PageProps) {
             <Presentation size={28} />
           </div>
           <div className="portal-card-body">
-            <h2>Demo</h2>
+            <h2>Be om demo</h2>
             <div className="portal-card-cta">
               <button
                 type="button"
@@ -112,7 +112,7 @@ export default function Home(props: PageProps) {
                 className="button"
                 style={{ width: '100%', padding: 'var(--space-4)' }}
               >
-                Demo <ArrowRight size={18} />
+                Be om demo <ArrowRight size={18} />
               </button>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function Home(props: PageProps) {
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-              <h3 id="demo-popup-title" style={{ margin: 0, fontSize: '1.25rem' }}>Demo</h3>
+              <h3 id="demo-popup-title" style={{ margin: 0, fontSize: '1.25rem' }}>Be om demo</h3>
               <button
                 type="button"
                 onClick={() => setShowDemoPopup(false)}
