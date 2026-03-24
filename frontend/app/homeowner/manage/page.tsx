@@ -14,6 +14,7 @@ import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
 import {
   PwaInstallPromptDialog,
   PWA_PROMPT_DISMISSED_KEY,
+  PWA_PROMPT_MANAGE_SESSION_KEY,
   shouldShowPwaPrompt,
 } from '../../components/PWAInstallPrompt'
 import { useLanguage } from '../../../context/LanguageContext'
@@ -37,7 +38,8 @@ export default function HomeownerManage(props: PageProps) {
   const [pageGate, setPageGate] = useState<'init' | 'welcome' | 'ready'>('init')
   const [showOverviewIntro, setShowOverviewIntro] = useState(false)
   const [showMineBoligerIntro, setShowMineBoligerIntro] = useState(false)
-  const [pendingPwaBeforeWelcome, setPendingPwaBeforeWelcome] = useState(false)
+  /** PWA etter at velkomst-modalet er lukket (samme økt som første gang på siden). */
+  const [pendingPwaAfterWelcome, setPendingPwaAfterWelcome] = useState(false)
   const [pendingPwaBeforeOverview, setPendingPwaBeforeOverview] = useState(false)
 
   const todayStr = () => new Date().toISOString().slice(0, 10)
@@ -118,7 +120,13 @@ export default function HomeownerManage(props: PageProps) {
         const ovKey = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.overview, uid)
         const mineKey = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.mineBoliger, uid)
         if (!localStorage.getItem(ovKey)) {
-          if (shouldShowPwaPrompt()) {
+          let managePwaDone = false
+          try {
+            managePwaDone = sessionStorage.getItem(PWA_PROMPT_MANAGE_SESSION_KEY) === '1'
+          } catch {
+            managePwaDone = false
+          }
+          if (shouldShowPwaPrompt() && !managePwaDone) {
             setPendingPwaBeforeOverview(true)
           } else {
             setShowOverviewIntro(true)
@@ -140,8 +148,30 @@ export default function HomeownerManage(props: PageProps) {
     if (user && typeof window !== 'undefined') {
       localStorage.setItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.welcome, user.id), '1')
     }
+    let managePwaDone = false
+    try {
+      managePwaDone = sessionStorage.getItem(PWA_PROMPT_MANAGE_SESSION_KEY) === '1'
+    } catch {
+      managePwaDone = false
+    }
+    if (shouldShowPwaPrompt() && !managePwaDone) {
+      setPendingPwaAfterWelcome(true)
+      return
+    }
     setPageGate('ready')
     await fetchData()
+  }
+
+  const dismissPwaAfterWelcome = (remember: boolean) => {
+    try {
+      if (remember) localStorage.setItem(PWA_PROMPT_DISMISSED_KEY, '1')
+      sessionStorage.setItem(PWA_PROMPT_MANAGE_SESSION_KEY, '1')
+    } catch {
+      /* ignore */
+    }
+    setPendingPwaAfterWelcome(false)
+    setPageGate('ready')
+    void fetchData()
   }
 
   const dismissOverviewIntro = async () => {
@@ -182,7 +212,6 @@ export default function HomeownerManage(props: PageProps) {
         typeof window !== 'undefined' &&
         localStorage.getItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.welcome, user.id))
       if (!dismissed) {
-        setPendingPwaBeforeWelcome(shouldShowPwaPrompt())
         setPageGate('welcome')
         return
       }
@@ -341,17 +370,10 @@ export default function HomeownerManage(props: PageProps) {
     return (
       <>
         <PwaInstallPromptDialog
-          open={pendingPwaBeforeWelcome}
-          onDismiss={remember => {
-            try {
-              if (remember) localStorage.setItem(PWA_PROMPT_DISMISSED_KEY, '1')
-            } catch {
-              /* ignore */
-            }
-            setPendingPwaBeforeWelcome(false)
-          }}
+          open={pendingPwaAfterWelcome}
+          onDismiss={remember => dismissPwaAfterWelcome(remember)}
         />
-        {!pendingPwaBeforeWelcome && (
+        {!pendingPwaAfterWelcome && (
           <LandlordOnboardingModal
             open
             title={t('landlordWelcomeTitle')}
@@ -398,6 +420,7 @@ export default function HomeownerManage(props: PageProps) {
         onDismiss={remember => {
           try {
             if (remember) localStorage.setItem(PWA_PROMPT_DISMISSED_KEY, '1')
+            sessionStorage.setItem(PWA_PROMPT_MANAGE_SESSION_KEY, '1')
           } catch {
             /* ignore */
           }

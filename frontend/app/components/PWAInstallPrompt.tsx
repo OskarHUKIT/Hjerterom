@@ -7,6 +7,10 @@ import { useLanguage } from '../../context/LanguageContext'
 import { isMobileUserAgent } from '../lib/mobile'
 
 export const PWA_PROMPT_DISMISSED_KEY = 'boly-pwa-prompt-dismissed'
+/** Satt når det globale PWA-vinduet er vist denne økta – unngår gjentakelse ved client-navigasjon. */
+export const PWA_PROMPT_GLOBAL_SESSION_KEY = 'boly-pwa-global-shown-session'
+/** Maks én PWA-prompt per økt på Mine boliger (etter velkomst eller før oversikt). */
+export const PWA_PROMPT_MANAGE_SESSION_KEY = 'boly-pwa-manage-shown-session'
 
 function isRunningAsPWA(): boolean {
   if (typeof window === 'undefined') return true
@@ -187,7 +191,7 @@ export function PwaInstallPromptDialog({ open, onDismiss, overlayClassName }: Pw
   )
 }
 
-/** Global PWA-prompt i layout: mobil, ikke PWA, ikke avslått – vises tidlig. På /homeowner/manage håndteres egen kjede. */
+/** Global PWA-prompt i layout: én gang per økt når man åpner siden (ikke på nytt ved hver ruteendring). På /homeowner/manage håndteres egen kjede. */
 export default function PWAInstallPrompt() {
   const pathname = usePathname()
   const [show, setShow] = useState(false)
@@ -197,10 +201,30 @@ export default function PWAInstallPrompt() {
       setShow(false)
       return
     }
-    if (!shouldShowPwaPrompt()) return
+    if (!shouldShowPwaPrompt()) {
+      setShow(false)
+      return
+    }
+    try {
+      if (sessionStorage.getItem(PWA_PROMPT_GLOBAL_SESSION_KEY) === '1') {
+        setShow(false)
+        return
+      }
+    } catch {
+      /* sessionStorage utilgjengelig – vis prompt likevel */
+    }
     const t = setTimeout(() => setShow(true), 0)
     return () => clearTimeout(t)
   }, [pathname])
+
+  useEffect(() => {
+    if (!show) return
+    try {
+      sessionStorage.setItem(PWA_PROMPT_GLOBAL_SESSION_KEY, '1')
+    } catch {
+      /* ignore */
+    }
+  }, [show])
 
   if (!show) return null
 
