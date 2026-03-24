@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import Logo from './Logo'
-import { User, LogOut, LogIn, ChevronDown, ShieldCheck, Bell, Menu, X, MessageSquare, Sun, Moon, Globe } from 'lucide-react'
+import { User, LogOut, LogIn, ChevronDown, ShieldCheck, Bell, Menu, X, MessageSquare, Sun, Moon, Globe, Building2, Home } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
 import { isKommuneAdminRole, isKommuneStaffRole, kommuneNavUsesAccountsLabel } from '../lib/kommuneRoles'
@@ -145,14 +145,35 @@ export default function Header() {
 
   const kommuneMobileNav = isKommuneStaffRole(role) && isMobileLayout
 
+  const logoHref =
+    !user ? '/' : isKommuneStaffRole(role) ? '/nav/database' : '/homeowner/manage'
+
   const navContent = (
     <>
           {isKommuneStaffRole(role) && (
             <>
               {kommuneMobileNav ? (
                 <>
-                  <Link href="/nav/messages" className="nav-link" onClick={closeMobileNav}>{t('messages')}</Link>
-                  <Link href="/nav/database" className="nav-link" onClick={closeMobileNav}>{t('housingBank')}</Link>
+                  <Link
+                    href="/nav/messages"
+                    className="nav-link"
+                    onClick={closeMobileNav}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    aria-label={t('messages')}
+                    title={t('messages')}
+                  >
+                    <MessageSquare size={22} />
+                  </Link>
+                  <Link
+                    href="/nav/database"
+                    className="nav-link"
+                    onClick={closeMobileNav}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    aria-label={t('housingBank')}
+                    title={t('housingBank')}
+                  >
+                    <Building2 size={22} />
+                  </Link>
                 </>
               ) : (
                 <>
@@ -329,7 +350,7 @@ export default function Header() {
         paddingLeft: 'max(var(--space-4), env(safe-area-inset-left))',
         paddingRight: 'max(var(--space-4), env(safe-area-inset-right))'
       }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }} onClick={closeMobileNav}>
+        <Link href={logoHref} style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }} onClick={closeMobileNav}>
           <Logo />
         </Link>
         
@@ -341,6 +362,29 @@ export default function Header() {
         {/* Mobile: varsel-ikon + hamburger */}
         <div className="header-mobile-actions" style={{ display: 'none', alignItems: 'center', gap: 'var(--space-2)' }}>
           {user && (
+            <>
+              {!isKommuneStaffRole(role) && (
+                <Link
+                  href="/homeowner/manage"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 44,
+                    height: 44,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 10,
+                    color: 'white',
+                    textDecoration: 'none',
+                  }}
+                  aria-label={t('myProperties')}
+                  title={t('myProperties')}
+                  onClick={closeMobileNav}
+                >
+                  <Home size={22} />
+                </Link>
+              )}
             <Link 
               href="/nav/notifications" 
               style={{ 
@@ -357,6 +401,7 @@ export default function Header() {
                 textDecoration: 'none'
               }}
               aria-label={t('notifications')}
+              onClick={closeMobileNav}
             >
               <Bell size={22} />
               {unreadCount > 0 && (
@@ -371,6 +416,7 @@ export default function Header() {
                 </span>
               )}
             </Link>
+            </>
           )}
           <button
             className="header-hamburger"

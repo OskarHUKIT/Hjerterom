@@ -46,6 +46,8 @@ function MessagesContent() {
   const [colleagues, setColleagues] = useState<{ id: string; name: string }[]>([])
   const [landlordAccounts, setLandlordAccounts] = useState<{ id: string; name: string }[]>([])
   const [showLandlordMessagesIntro, setShowLandlordMessagesIntro] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const messagesScrollRef = useRef<HTMLDivElement>(null)
 
   const isKommune = role === 'kommune_ansatt' || role === 'kommune_admin'
   const peerIsKommuneColleague = peerRole === 'kommune_ansatt' || peerRole === 'kommune_admin'
@@ -54,6 +56,14 @@ function MessagesContent() {
     kommuneCanEdit === false &&
     !!withUserId &&
     (peerRole === null || !peerIsKommuneColleague)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const sync = () => setIsMobile(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -224,7 +234,7 @@ function MessagesContent() {
       setConversations(peers.sort((a, b) => (b.lastAt > a.lastAt ? 1 : -1)))
     }
 
-    if (isKommune && (!withUserId || kommuneCanEdit === false)) {
+    if (isKommune) {
       fetchConversations()
     }
     setLoading(false)
@@ -272,6 +282,15 @@ function MessagesContent() {
 
     return () => { sub.unsubscribe() }
   }, [currentUser, withUserId, isKommune])
+
+  useEffect(() => {
+    if (!currentUser) return
+    const inChat = isKommune ? !!withUserId : true
+    if (!inChat) return
+    const el = messagesScrollRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [messages, currentUser, withUserId, isKommune, isMobile])
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : []
@@ -379,7 +398,10 @@ function MessagesContent() {
 
   /** Kun-les trenger sidestolpe også når en samtale er åpen (kollegaer + bytte tråd). Full redigering beholder én kolonne i aktiv chat. */
   const showKommuneSidebar = isKommune && (!withUserId || kommuneCanEdit === false)
+  const kommuneMobileListOnly = isKommune && isMobile && !withUserId
+  const kommuneMobileChatOnly = isKommune && isMobile && !!withUserId
   const showChat = isKommune ? withUserId : true
+
   const showReadonlyBanner =
     isKommune &&
     kommuneCanEdit === false &&
@@ -395,8 +417,10 @@ function MessagesContent() {
     setShowLandlordMessagesIntro(false)
   }
 
+  const backHref = kommuneMobileChatOnly ? '/nav/messages' : isKommune ? '/nav/database' : '/homeowner/manage'
+
   return (
-    <main className="container">
+    <main className="container" style={kommuneMobileChatOnly || (!isKommune && isMobile) ? { display: 'flex', flexDirection: 'column', minHeight: 'calc(100dvh - 72px)', paddingBottom: 'env(safe-area-inset-bottom)' } : undefined}>
       <LandlordOnboardingModal
         open={showLandlordMessagesIntro}
         title={t('landlordMessagesTitle')}
@@ -432,8 +456,8 @@ function MessagesContent() {
         </div>
       </LandlordOnboardingModal>
 
-      <div style={{ marginBottom: 'var(--space-6)' }}>
-        <Link href={isKommune ? '/nav/users' : '/homeowner/manage'} className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: '-1rem' }}>
+      <div style={{ marginBottom: 'var(--space-6)', flexShrink: 0 }}>
+        <Link href={backHref} className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: '-1rem' }}>
           <ArrowLeft size={18} /> {t('back')}
         </Link>
         <h1 style={{ fontSize: '2rem', marginTop: 'var(--space-2)' }}>{t('messages')}</h1>
@@ -442,12 +466,15 @@ function MessagesContent() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: showKommuneSidebar ? 'minmax(280px, 340px) 1fr' : '1fr',
+          gridTemplateColumns:
+            kommuneMobileListOnly ? '1fr' : kommuneMobileChatOnly ? '1fr' : showKommuneSidebar ? 'minmax(280px, 340px) 1fr' : '1fr',
           gap: 'var(--space-6)',
-          minHeight: '400px'
+          minHeight: kommuneMobileChatOnly || (!isKommune && isMobile) ? 'min(520px, calc(100dvh - 220px))' : '400px',
+          flex: kommuneMobileChatOnly || (!isKommune && isMobile) ? '1 1 auto' : undefined,
+          minWidth: 0,
         }}
       >
-        {showKommuneSidebar && (
+        {showKommuneSidebar && !kommuneMobileChatOnly && (
           <aside className="card" style={{ padding: 'var(--space-4)', overflow: 'hidden', display: 'flex', flexDirection: 'column', minWidth: 0, gap: 'var(--space-5)' }}>
             {kommuneCanEdit === false && (
               <div style={{ flexShrink: 0 }}>
@@ -575,10 +602,21 @@ function MessagesContent() {
           </aside>
         )}
 
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: 0, minHeight: '400px' }}>
+        <div
+          className="card"
+          style={{
+            display: kommuneMobileListOnly ? 'none' : 'flex',
+            flexDirection: 'column',
+            padding: 0,
+            minHeight: kommuneMobileChatOnly || (!isKommune && isMobile) ? 0 : 400,
+            flex: kommuneMobileChatOnly || (!isKommune && isMobile) ? '1 1 auto' : undefined,
+            minWidth: 0,
+            maxHeight: kommuneMobileChatOnly || (!isKommune && isMobile) ? 'calc(100dvh - 200px)' : undefined,
+          }}
+        >
           {showChat && (withUserId || !isKommune) ? (
             <>
-              <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <div style={{ padding: 'var(--space-4)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)', flexShrink: 0 }}>
                 <MessageSquare size={20} style={{ color: 'var(--color-sky-blue)' }} />
                 <span style={{ fontWeight: 600 }}>
                   {isKommune && withUserId ? (otherUser ? `Chat med ${otherUser.name}` : 'Chat') : 'Chat med Kommune'}
@@ -599,7 +637,19 @@ function MessagesContent() {
                   {t('readonlyMessageBanner')}
                 </div>
               )}
-              <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <div
+                ref={messagesScrollRef}
+                style={{
+                  flex: '1 1 0',
+                  minHeight: kommuneMobileChatOnly || (!isKommune && isMobile) ? 120 : 200,
+                  overflowY: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  padding: 'var(--space-4)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-3)',
+                }}
+              >
                 {messages.map(m => {
                   const isMe = m.sender_id === currentUser.id
                   const urls = (m.image_urls || []).filter(Boolean)
@@ -632,7 +682,7 @@ function MessagesContent() {
                   )
                 })}
               </div>
-              <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)' }}>
+              <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)', flexShrink: 0, background: 'var(--bg-card)' }}>
                 {imagePreviews.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: 'var(--space-3)' }}>
                     {imagePreviews.map((url, i) => (

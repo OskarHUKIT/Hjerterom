@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useEffect } from 'react'
+import { use, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -81,6 +81,7 @@ export default function NavDatabase(props: PageProps) {
   const [tabCache, setTabCache] = useState<Record<string, { listings: any[]; availability: Record<string, any[]> }>>({})
   const [activeTab, setActiveTab] = useState<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'>('Tilgjengelig')
   const [viewMode, setViewMode] = useState<'table' | 'map' | 'timeline'>('timeline')
+  const [isMobile, setIsMobile] = useState(false)
   const [sortField, setSortField] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [showFilters, setShowFilters] = useState(false)
@@ -97,7 +98,7 @@ export default function NavDatabase(props: PageProps) {
   const [formidletExtendEnd, setFormidletExtendEnd] = useState('')
   const [kommuneFetchError, setKommuneFetchError] = useState<string | null>(null)
 
-  const [visibleColumns, setVisibleColumns] = useState(['address', 'city', 'owner_name', 'price_daily'])
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(['address', 'city', 'owner_name', 'price_daily'])
   /** I kartvisning: hvilke statuser skal vises (kan velges i filterdelen). */
   const [mapStatusFilter, setMapStatusFilter] = useState<('Tilgjengelig' | 'Utilgjengelig' | 'Formidlet')[]>(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'])
 
@@ -114,19 +115,72 @@ export default function NavDatabase(props: PageProps) {
     { id: 'status', label: t('status') },
   ]
 
-  const toggleColumn = (id: string) => {
-    if (visibleColumns.includes(id)) {
-      if (visibleColumns.length > 1) {
-        setVisibleColumns(visibleColumns.filter(c => c !== id))
-      }
-    } else {
-      setVisibleColumns([...visibleColumns, id])
+  const persistVisibleColumns = useCallback((cols: string[]) => {
+    try {
+      localStorage.setItem('boly-nav-db-columns', JSON.stringify(cols))
+    } catch {
+      /* ignore */
     }
+  }, [])
+
+  const toggleColumn = (id: string) => {
+    setVisibleColumns(prev => {
+      let next: string[]
+      if (prev.includes(id)) {
+        next = prev.length > 1 ? prev.filter(c => c !== id) : prev
+      } else {
+        next = [...prev, id]
+      }
+      persistVisibleColumns(next)
+      return next
+    })
   }
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const sync = () => setIsMobile(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('boly-nav-db-columns')
+      if (saved) {
+        const parsed = JSON.parse(saved) as string[]
+        if (Array.isArray(parsed) && parsed.length >= 1) setVisibleColumns(parsed)
+      } else if (window.matchMedia('(max-width: 768px)').matches) {
+        setVisibleColumns(['address', 'price_daily'])
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isMobile && (viewMode === 'map' || viewMode === 'timeline')) setViewMode('table')
+  }, [isMobile, viewMode])
 
   const translateValue = (id: string, val: any, listing?: any, statusForToday?: 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null) => {
     if (id === 'status') {
       const s = statusForToday !== undefined ? (statusForToday ?? 'Tilgjengelig') : val
+      const label = s === 'Formidla' ? t('formidlet') : s === 'Utilgjengelig' ? t('unavailable') : t('available')
+      if (isKommuneStaffRole(userRole) && isMobile) {
+        const icon =
+          s === 'Formidla' ? (
+            <ShieldCheck size={18} style={{ color: 'var(--color-sky-blue)' }} aria-hidden />
+          ) : s === 'Utilgjengelig' ? (
+            <XCircle size={18} style={{ color: '#ef4444' }} aria-hidden />
+          ) : (
+            <CheckCircle2 size={18} style={{ color: 'var(--color-teal)' }} aria-hidden />
+          )
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} title={label} aria-label={label}>
+            {icon}
+          </span>
+        )
+      }
       if (s === 'Formidla') return t('formidlet')
       if (s === 'Utilgjengelig') return t('unavailable')
       return t('available')
@@ -577,7 +631,7 @@ export default function NavDatabase(props: PageProps) {
           <strong>Feil ved henting av boliger:</strong> {kommuneFetchError}
         </div>
       )}
-      <div className="db-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+      <div className="db-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
         <div>
           <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             ← {t('overview')}
@@ -589,33 +643,48 @@ export default function NavDatabase(props: PageProps) {
             padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'table' ? 'var(--color-accent)' : 'var(--bg-app)',
             border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'table' ? 'white' : 'var(--text-main)'
           }} title="Tabellvisning"><LayoutList size={20} /></button>
-          <button onClick={() => setViewMode('map')} style={{ 
-            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'map' ? 'var(--color-accent)' : 'var(--bg-app)',
-            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'map' ? 'white' : 'var(--text-main)'
-          }} title="Kartvisning"><MapPin size={20} /></button>
-          <button onClick={() => setViewMode('timeline')} style={{ 
-            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'timeline' ? 'var(--color-accent)' : 'var(--bg-app)',
-            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'timeline' ? 'white' : 'var(--text-main)'
-          }} title="Tidslinje"><Calendar size={20} /></button>
+          {!isMobile && (
+            <>
+              <button onClick={() => setViewMode('map')} style={{ 
+                padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'map' ? 'var(--color-accent)' : 'var(--bg-app)',
+                border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'map' ? 'white' : 'var(--text-main)'
+              }} title="Kartvisning"><MapPin size={20} /></button>
+              <button onClick={() => setViewMode('timeline')} style={{ 
+                padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'timeline' ? 'var(--color-accent)' : 'var(--bg-app)',
+                border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'timeline' ? 'white' : 'var(--text-main)'
+              }} title="Tidslinje"><Calendar size={20} /></button>
+            </>
+          )}
         </div>
       </div>
 
       <div className="db-tabs-row" style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-1)', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', rowGap: 'var(--space-4)' }}>
         <div className="tabs-scroll" style={{ display: 'flex', gap: 'var(--space-4)', flex: '1 1 auto', minWidth: 0, overflowX: 'auto', paddingBottom: '4px' }}>
           {viewMode === 'map' ? null : viewMode !== 'timeline' ? (
-            (['Tilgjengelig', 'Utilgjengelig', 'Formidlet'] as const).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} style={{
-                padding: 'var(--space-3) var(--space-4)', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer',
+            (['Tilgjengelig', 'Utilgjengelig', 'Formidlet'] as const).map(tab => {
+              const tabLabel = tab === 'Tilgjengelig' ? t('available') : tab === 'Utilgjengelig' ? t('unavailable') : t('formidlet')
+              const iconOnly = isKommuneStaffRole(userRole) && isMobile
+              return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                aria-label={tabLabel}
+                title={tabLabel}
+                style={{
+                padding: iconOnly ? 'var(--space-3)' : 'var(--space-3) var(--space-4)', fontSize: '0.95rem', fontWeight: 600, cursor: 'pointer',
                 background: 'none', border: 'none', color: activeTab === tab ? 'var(--color-sky-blue)' : 'var(--text-muted)',
                 borderBottom: activeTab === tab ? '2px solid var(--color-sky-blue)' : '2px solid transparent',
-                transition: 'all 0.2s', whiteSpace: 'nowrap', flexShrink: 0
+                transition: 'all 0.2s', whiteSpace: 'nowrap', flexShrink: 0,
+                display: 'inline-flex', alignItems: 'center', gap: iconOnly ? 0 : 8,
               }}>
-                {tab === 'Tilgjengelig' && <CheckCircle2 size={16} style={{ display: 'inline', marginRight: '8px' }} />}
-                {tab === 'Utilgjengelig' && <XCircle size={16} style={{ display: 'inline', marginRight: '8px' }} />}
-                {tab === 'Formidlet' && <ShieldCheck size={16} style={{ display: 'inline', marginRight: '8px' }} />}
-                {tab}
+                {tab === 'Tilgjengelig' && <CheckCircle2 size={iconOnly ? 22 : 16} style={{ color: activeTab === tab ? 'var(--color-teal)' : undefined }} aria-hidden />}
+                {tab === 'Utilgjengelig' && <XCircle size={iconOnly ? 22 : 16} style={{ color: activeTab === tab ? '#ef4444' : undefined }} aria-hidden />}
+                {tab === 'Formidlet' && <ShieldCheck size={iconOnly ? 22 : 16} style={{ color: activeTab === tab ? 'var(--color-sky-blue)' : undefined }} aria-hidden />}
+                {!iconOnly && tab}
               </button>
-            ))
+            )
+            })
           ) : (
             <div style={{ padding: 'var(--space-3) 0', color: 'var(--color-sky-blue)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Calendar size={18} /> Tilgjengelighetskalender
@@ -953,7 +1022,7 @@ export default function NavDatabase(props: PageProps) {
           viewMode === 'table' ? (
             <div className="card db-table-wrapper" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', minHeight: '200px' }}>
-              <table className="db-table" style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+              <table className="db-table" style={{ width: '100%', minWidth: visibleColumns.length <= 2 && isMobile ? '100%' : '600px', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                 <thead>
                   <tr style={{ background: 'rgba(59, 130, 246, 0.1)', textAlign: 'left' }}>
                     {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => (
@@ -1335,10 +1404,10 @@ export default function NavDatabase(props: PageProps) {
           }
         }
         @media (max-width: 768px) {
-          .db-header-row { flex-direction: column; align-items: flex-start; }
+          .db-header-row { flex-direction: column; align-items: stretch !important; }
           .db-view-btns { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
           .db-tabs-row { flex-direction: column; align-items: stretch; }
-          .db-action-btns { justify-content: flex-start; }
+          .db-action-btns { justify-content: flex-start; width: 100%; }
           .db-table-wrapper { padding: 0 !important; }
           .db-table { font-size: 0.8rem; }
           .db-table th, .db-table td { padding: var(--space-2) var(--space-3) !important; }

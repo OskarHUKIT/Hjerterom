@@ -1,12 +1,13 @@
 'use client'
 
-import { use, useState, Suspense } from 'react'
+import { use, useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
 import { Mail, Lock, ShieldCheck, UserPlus, LogIn, User, Phone } from 'lucide-react'
 import Logo from '../components/Logo'
 import { useLanguage } from '../../context/LanguageContext'
+import { isKommuneStaffRole } from '../lib/kommuneRoles'
 
 function LoginPageContent() {
   const { t } = useLanguage()
@@ -21,6 +22,30 @@ function LoginPageContent() {
   const [contactPhone, setContactPhone] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [bankIdRedirecting, setBankIdRedirecting] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user || cancelled) return
+      const raw = redirectTo
+      const safeRedirect =
+        typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') ? raw : null
+      if (safeRedirect && safeRedirect !== '/') {
+        router.replace(safeRedirect)
+        return
+      }
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).maybeSingle()
+      if (cancelled) return
+      const r = profile?.role ?? session.user.user_metadata?.role
+      const home = isKommuneStaffRole(r) ? '/nav/database' : '/homeowner/manage'
+      router.replace(home)
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [router, redirectTo])
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,8 +77,8 @@ function LoginPageContent() {
         if (redirectTo === '/' || !redirectTo) {
           const { data: { user } } = await supabase.auth.getUser()
           const { data: profile } = user ? await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle() : { data: null }
-          const isKommune = profile?.role === 'kommune_ansatt'
-          router.push(isKommune ? '/nav/database' : '/homeowner/manage')
+          const r = profile?.role ?? user?.user_metadata?.role
+          router.push(isKommuneStaffRole(r) ? '/nav/database' : '/homeowner/manage')
         } else {
           router.push(redirectTo)
         }

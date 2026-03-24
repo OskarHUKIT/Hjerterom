@@ -147,19 +147,19 @@ export default function NavNotifications(props: PageProps) {
         </div>
       </LandlordOnboardingModal>
 
-      <div style={{ marginBottom: 'var(--space-8)' }}>
+      <div style={{ marginBottom: 'var(--space-8)', width: '100%', maxWidth: 'min(900px, 100%)', paddingLeft: 'max(0px, env(safe-area-inset-left))', paddingRight: 'max(0px, env(safe-area-inset-right))' }}>
         <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           ← {t('overview')}
         </Link>
-        <h1 style={{ fontSize: '2.75rem' }}>{t('notifications')}</h1>
-        <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>
+        <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)' }}>{t('notifications')}</h1>
+        <p style={{ fontSize: 'clamp(0.95rem, 3vw, 1.125rem)', opacity: 0.8, lineHeight: 1.5 }}>
           {(role === 'kommune_ansatt' || role === 'kommune_admin') ? t('notificationsSharedDesc') : t('notificationsUserDesc')}
         </p>
       </div>
 
       <PushPermissionCard />
 
-      <div className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-6)', maxWidth: '560px' }}>
+      <div className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-6)', width: '100%', maxWidth: 'min(640px, 100%)', boxSizing: 'border-box' }}>
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', cursor: 'pointer' }}>
           <input
             type="checkbox"
@@ -215,7 +215,7 @@ export default function NavNotifications(props: PageProps) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main)' }}>{notif.title}</h3>
-                  <p style={{ margin: '4px 0 0', color: 'var(--text-body)' }}>{notif.message}</p>
+                  <p style={{ margin: '4px 0 0', color: 'var(--text-body)', lineHeight: 1.5, wordBreak: 'break-word' }}>{notif.message}</p>
                   <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '10px', fontSize: '0.85rem', color: 'var(--text-muted)', flexWrap: 'wrap', alignItems: 'center' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <Clock size={12} /> {formatDateTimeNo(notif.created_at)}

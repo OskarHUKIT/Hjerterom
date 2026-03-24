@@ -364,24 +364,26 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
           <label
             style={{
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               gap: '10px',
               cursor: 'pointer',
-              fontSize: '0.95rem',
+              fontSize: 'clamp(0.85rem, 2.8vw, 0.95rem)',
               marginTop: 'var(--space-8)',
               padding: 'var(--space-3) var(--space-4)',
               background: submissionConfirmed ? '#e0f2f7' : 'transparent',
               border: '1px solid #b8d4e0',
               borderRadius: 8,
+              maxWidth: '100%',
+              boxSizing: 'border-box',
             }}
           >
             <input
               type="checkbox"
               checked={submissionConfirmed}
               onChange={e => setSubmissionConfirmed(e.target.checked)}
-              style={{ width: '18px', height: '18px', flexShrink: 0 }}
+              style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: 3 }}
             />
-            <span style={{ fontWeight: 500, color: '#0f172a' }}>
+            <span style={{ fontWeight: 500, color: '#0f172a', flex: '1 1 auto', minWidth: 0, wordBreak: 'break-word', lineHeight: 1.45 }}>
               Jeg ({reporterName || '…'}) bekrefter at jeg sender inn overtakelsesrapport ({formatDateNo(formData.photos_date || new Date().toISOString().split('T')[0])}).
             </span>
           </label>
