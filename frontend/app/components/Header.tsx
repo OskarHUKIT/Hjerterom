@@ -8,6 +8,7 @@ import Logo from './Logo'
 import { User, LogOut, LogIn, ChevronDown, ShieldCheck, Bell, Menu, X, MessageSquare, Sun, Moon, Globe } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
+import { isKommuneAdminRole, isKommuneStaffRole, kommuneNavUsesAccountsLabel } from '../lib/kommuneRoles'
 
 export default function Header() {
   const router = useRouter()
@@ -17,9 +18,12 @@ export default function Header() {
   const [loading, setLoading] = useState(true)
   const [hasSignedTerms, setHasSignedTerms] = useState(false)
   const [role, setRole] = useState<string | null>(null)
+  const [kommuneCanEdit, setKommuneCanEdit] = useState<boolean | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  /** Samme breakpoint som header (768px): forenklet kommune-nav på små skjermer. */
+  const [isMobileLayout, setIsMobileLayout] = useState(false)
 
   const fetchHeaderData = async (userId: string, metadata: any) => {
     try {
@@ -27,12 +31,13 @@ export default function Header() {
       const metadataRole = metadata?.role
       
       const [profileRes, agreementRes] = await Promise.all([
-        supabase.from('profiles').select('role').eq('id', userId).maybeSingle(),
+        supabase.from('profiles').select('role, kommune_can_edit').eq('id', userId).maybeSingle(),
         supabase.from('user_agreements').select('*').eq('user_id', userId).eq('is_terminated', false).maybeSingle()
       ])
       
       const userRole = metadataRole || profileRes.data?.role || 'homeowner'
       setRole(userRole)
+      setKommuneCanEdit(profileRes.data?.kommune_can_edit ?? null)
       setHasSignedTerms(!!agreementRes.data)
 
       // Hent unread count – kun varsler som er til brukeren (owner_id)
@@ -79,6 +84,7 @@ export default function Header() {
       } else {
         setHasSignedTerms(false)
         setRole(null)
+        setKommuneCanEdit(null)
         setUnreadCount(0)
         setLoading(false)
       }
@@ -98,12 +104,18 @@ export default function Header() {
     }
     window.addEventListener('resize', handleResize)
 
+    const mq = window.matchMedia('(max-width: 768px)')
+    const syncMobileLayout = () => setIsMobileLayout(mq.matches)
+    syncMobileLayout()
+    mq.addEventListener('change', syncMobileLayout)
+
     return () => {
       cancelled = true
       clearTimeout(timeoutId)
       subscription.unsubscribe()
       window.removeEventListener('click', closeMenu)
       window.removeEventListener('resize', handleResize)
+      mq.removeEventListener('change', syncMobileLayout)
     }
   }, [])
 
@@ -131,14 +143,30 @@ export default function Header() {
 
   const closeMobileNav = () => setIsMobileNavOpen(false)
 
+  const kommuneMobileNav = isKommuneStaffRole(role) && isMobileLayout
+
   const navContent = (
     <>
-          {role === 'kommune_ansatt' && (
+          {isKommuneStaffRole(role) && (
             <>
-              <Link href="/nav/database" className="nav-link" onClick={closeMobileNav}>{t('housingBank')}</Link>
-              <Link href="/nav/users" className="nav-link" onClick={closeMobileNav}>{t('users')}</Link>
-              <Link href="/nav/messages" className="nav-link" onClick={closeMobileNav}>{t('messages')}</Link>
-              <Link href="/nav/expired" className="nav-link" onClick={closeMobileNav}>{t('expired')}</Link>
+              {kommuneMobileNav ? (
+                <>
+                  <Link href="/nav/messages" className="nav-link" onClick={closeMobileNav}>{t('messages')}</Link>
+                  <Link href="/nav/database" className="nav-link" onClick={closeMobileNav}>{t('housingBank')}</Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/nav/database" className="nav-link" onClick={closeMobileNav}>{t('housingBank')}</Link>
+                  <Link href="/nav/users" className="nav-link" onClick={closeMobileNav}>
+                    {kommuneNavUsesAccountsLabel(role) ? t('navAccounts') : t('navLandlords')}
+                  </Link>
+                  <Link href="/nav/messages" className="nav-link" onClick={closeMobileNav}>{t('messages')}</Link>
+                  <Link href="/nav/expired" className="nav-link" onClick={closeMobileNav}>{t('expired')}</Link>
+                  {isKommuneAdminRole(role) && (
+                    <Link href="/nav/terms-documents" className="nav-link" onClick={closeMobileNav}>{t('termsDocumentsNav')}</Link>
+                  )}
+                </>
+              )}
             </>
           )}
           
@@ -158,14 +186,14 @@ export default function Header() {
             </Link>
           )}
 
-          {user && role !== 'kommune_ansatt' && (
+          {user && !isKommuneStaffRole(role) && (
             <Link href="/nav/messages" className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={closeMobileNav}>
               <MessageSquare size={18} />
               <span className="nav-text">{t('messages')}</span>
             </Link>
           )}
 
-          {user && role !== 'kommune_ansatt' && (
+          {user && !isKommuneStaffRole(role) && (
             <Link href="/homeowner/manage" className="nav-link" onClick={closeMobileNav}>{t('myProperties')}</Link>
           )}
           
@@ -191,7 +219,11 @@ export default function Header() {
                 <User size={18} />
                 <span style={{ fontSize: '0.9rem', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                  {role && <span style={{ opacity: 0.5, marginLeft: '6px', fontSize: '0.75rem' }}>({role === 'kommune_ansatt' ? t('kommune') : t('landlord')})</span>}
+                  {role && (
+                    <span style={{ opacity: 0.5, marginLeft: '6px', fontSize: '0.75rem' }}>
+                      ({role === 'kommune_ansatt' ? t('kommune') : role === 'kommune_admin' ? t('kommuneAdminRole') : t('landlord')})
+                    </span>
+                  )}
                 </span>
                 <ChevronDown size={14} style={{ transform: isMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               </button>

@@ -6,6 +6,7 @@ import { LogIn, Presentation, ArrowRight, X } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import { useTheme } from '../context/ThemeContext'
 import { supabase } from './lib/supabase'
+import { isKommuneStaffRole } from './lib/kommuneRoles'
 
 const THEME_STORAGE_KEY = 'boly-theme'
 
@@ -26,7 +27,8 @@ export default function Home(props: PageProps) {
         return
       }
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
-      setIsKommune(profile?.role === 'kommune_ansatt')
+      const r = profile?.role || user.user_metadata?.role
+      setIsKommune(isKommuneStaffRole(r))
     }
     check()
   }, [])

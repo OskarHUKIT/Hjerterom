@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useEffect } from 'react'
+import { use, useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -9,11 +9,20 @@ import {
   Wifi, Zap, Tv, ShieldCheck, Phone, User
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useLanguage } from '../../../context/LanguageContext'
+import {
+  nominatimResultToGeocodeHit,
+  searchNorwegianAddress,
+  type GeocodeHit
+} from '../../lib/geocoding'
+import { savePendingFirstListingDraft } from '../lib/pendingFirstListing'
+import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
 
 export default function HomeownerRegister(props: PageProps) {
   use(props.searchParams ?? Promise.resolve({}))
+  const { t } = useLanguage()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [imageFiles, setImageFiles] = useState<File[]>([])
@@ -33,6 +42,8 @@ export default function HomeownerRegister(props: PageProps) {
     accessibility: [] as string[],
     floor_detail: [] as string[],
     furnishing: 'Umøblert',
+    pet_policy: 'Ingen dyr tillatt' as 'Tillatt' | 'Ingen dyr tillatt' | 'Enkelte dyr er tillatt',
+    pet_policy_detail: '',
     price_daily: '',
     price_weekly: '',
     price_monthly_short: '',
@@ -47,12 +58,27 @@ export default function HomeownerRegister(props: PageProps) {
     longitude: null as number | null,
     has_insurance: false
   })
+  const formRef = useRef(formData)
+  formRef.current = formData
+  const [geocodeLoading, setGeocodeLoading] = useState(false)
+  const [geocodeCandidates, setGeocodeCandidates] = useState<GeocodeHit[] | null>(null)
+  const [geocodeError, setGeocodeError] = useState<string | null>(null)
+  const geocodeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const addressSuggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [addressSuggestions, setAddressSuggestions] = useState<GeocodeHit[] | null>(null)
+  const [addressSuggesting, setAddressSuggesting] = useState(false)
 
   useEffect(() => {
     const checkTerms = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
+        return
+      }
+
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      if (isKommuneStaffRole(profile?.role)) {
+        router.replace('/nav/database')
         return
       }
 
@@ -65,7 +91,6 @@ export default function HomeownerRegister(props: PageProps) {
 
       if (!data) {
         setHasSignedTerms(false)
-        router.push('/homeowner/sign-terms')
       } else {
         setHasSignedTerms(true)
       }
@@ -126,40 +151,118 @@ export default function HomeownerRegister(props: PageProps) {
     return urls
   }
 
-  const geocodeAddress = async () => {
-    if (!formData.address || formData.address.trim().length < 3) return
+  const runGeocode = useCallback(async () => {
+    const fd = formRef.current
+    if (!fd.address || fd.address.trim().length < 3) {
+      setGeocodeCandidates(null)
+      setGeocodeError(null)
+      return
+    }
 
+    setGeocodeLoading(true)
+    setGeocodeError(null)
     try {
-      const query = `${formData.address.trim()}, Norway`
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(query)}&limit=1`,
-        { headers: { 'Accept-Language': 'no' } }
-      )
-      const data = await response.json()
-
-      if (data && data.length > 0) {
-        const hit = data[0]
-        const addr = hit.address || {}
-        const postcode = (addr.postcode || '').toString().replace(/\s/g, '').slice(0, 4)
-        const rawCity =
-          addr.city ||
-          addr.town ||
-          addr.village ||
-          addr.municipality ||
-          ''
-        // Bruk kommunenavn fra geokoding (ingen "Annet") – tillatelsesområder for kommune er basert på kommune
-        const city = (rawCity || '').trim()
+      let raw = await searchNorwegianAddress({
+        address: fd.address,
+        postal_code: fd.postal_code,
+        city: fd.city
+      })
+      if (raw.length === 0) {
+        raw = await searchNorwegianAddress({
+          address: fd.address,
+          postal_code: undefined,
+          city: undefined
+        })
+      }
+      const hits = raw.map(h => nominatimResultToGeocodeHit(h as Record<string, unknown>))
+      if (hits.length === 0) {
+        setGeocodeCandidates(null)
+        setFormData(prev => ({ ...prev, latitude: null, longitude: null }))
+        setGeocodeError('Fant ingen posisjon. Sjekk adresse og postnummer.')
+        return
+      }
+      if (hits.length === 1) {
+        const h = hits[0]
+        setGeocodeCandidates(null)
         setFormData(prev => ({
           ...prev,
-          latitude: parseFloat(hit.lat),
-          longitude: parseFloat(hit.lon),
-          ...(postcode && { postal_code: postcode }),
-          ...(city && { city })
+          latitude: h.lat,
+          longitude: h.lon,
+          ...(h.postal_code && { postal_code: h.postal_code }),
+          ...(h.city && { city: h.city })
         }))
+        return
       }
+      setGeocodeCandidates(hits)
+      setFormData(prev => ({ ...prev, latitude: null, longitude: null }))
     } catch (err) {
       console.error('Geocoding error:', err)
+      setGeocodeError('Geokoding feilet. Prøv igjen senere.')
+    } finally {
+      setGeocodeLoading(false)
     }
+  }, [])
+
+  const scheduleGeocode = () => {
+    if (geocodeDebounceRef.current) clearTimeout(geocodeDebounceRef.current)
+    geocodeDebounceRef.current = setTimeout(() => {
+      void runGeocode()
+    }, 450)
+  }
+
+  const selectGeocodeCandidate = (index: number) => {
+    const c = geocodeCandidates?.[index]
+    if (!c) return
+    setGeocodeCandidates(null)
+    setGeocodeError(null)
+    setFormData(prev => ({
+      ...prev,
+      latitude: c.lat,
+      longitude: c.lon,
+      ...(c.postal_code && { postal_code: c.postal_code }),
+      ...(c.city && { city: c.city })
+    }))
+  }
+
+  const scheduleAddressSuggest = () => {
+    if (addressSuggestDebounceRef.current) clearTimeout(addressSuggestDebounceRef.current)
+    addressSuggestDebounceRef.current = setTimeout(() => {
+      void (async () => {
+        const fd = formRef.current
+        const a = fd.address?.trim() || ''
+        if (a.length < 4) {
+          setAddressSuggestions(null)
+          return
+        }
+        setAddressSuggesting(true)
+        try {
+          const raw = await searchNorwegianAddress(
+            { address: a, postal_code: fd.postal_code, city: fd.city },
+            8
+          )
+          const hits = raw.map(h => nominatimResultToGeocodeHit(h as Record<string, unknown>))
+          setAddressSuggestions(hits.length ? hits.slice(0, 8) : null)
+        } catch {
+          setAddressSuggestions(null)
+        } finally {
+          setAddressSuggesting(false)
+        }
+      })()
+    }, 350)
+  }
+
+  const applyAddressSuggestion = (h: GeocodeHit) => {
+    setAddressSuggestions(null)
+    setGeocodeCandidates(null)
+    setGeocodeError(null)
+    setFormData(prev => ({
+      ...prev,
+      latitude: h.lat,
+      longitude: h.lon,
+      address: prev.address,
+      ...(h.postal_code && { postal_code: h.postal_code }),
+      ...(h.city && { city: h.city })
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -169,6 +272,32 @@ export default function HomeownerRegister(props: PageProps) {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
+
+      const { count: existingCount } = await supabase
+        .from('listings')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_id', user.id)
+      const isFirstListing = (existingCount ?? 0) === 0
+
+      const { data: agreementRow } = await supabase
+        .from('user_agreements')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_terminated', false)
+        .maybeSingle()
+
+      if (!isFirstListing) {
+        const { data: termsOk, error: termsErr } = await supabase.rpc('listing_publish_terms_ok', {
+          p_city: formData.city?.trim() || ''
+        })
+        if (termsErr) throw termsErr
+        if (!termsOk) {
+          alert(t('termsMissingForRegion'))
+          router.push(`/homeowner/sign-terms?city=${encodeURIComponent(formData.city?.trim() || '')}&returnTo=${encodeURIComponent('/homeowner/register')}`)
+          setLoading(false)
+          return
+        }
+      }
 
       let imageUrls: string[] = []
       if (imageFiles.length > 0) {
@@ -189,28 +318,41 @@ export default function HomeownerRegister(props: PageProps) {
       const floorNumber = formData.floor_detail?.length ? formData.floor_detail.join(', ') : ''
 
       const { has_insurance: _skip, ...listingFields } = formData
+      const listingRow = {
+        ...listingFields,
+        floor_number: floorNumber,
+        image_url: imageUrls[0] ?? null,
+        image_urls: imageUrls,
+        is_available: true,
+        status: 'Tilgjengelig',
+        size_sqm: sizeSqm,
+        bedrooms: bedroomsVal,
+        max_occupants: maxOcc,
+        price_daily: priceDaily,
+        price_per_night: priceDaily,
+        price_weekly: priceWeekly,
+        price_monthly_short: priceShort,
+        price_monthly_long: priceLong,
+        deposit_amount: deposit,
+        latitude: formData.latitude,
+        longitude: formData.longitude
+      }
+
+      if (isFirstListing && !agreementRow) {
+        savePendingFirstListingDraft(listingRow as unknown as Record<string, unknown>)
+        const cityQ = encodeURIComponent(formData.city?.trim() || '')
+        const returnTo = encodeURIComponent('/homeowner/register')
+        router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}&pendingListing=1`)
+        setLoading(false)
+        return
+      }
+
       const { data, error } = await supabase
         .from('listings')
         .insert([
           {
-            ...listingFields,
-            owner_id: user.id,
-            floor_number: floorNumber,
-            image_url: imageUrls[0] ?? null, // Hovedbilde
-            image_urls: imageUrls, // Hele galleriet
-            is_available: true,
-            status: 'Tilgjengelig',
-            size_sqm: sizeSqm,
-            bedrooms: bedroomsVal,
-            max_occupants: maxOcc,
-            price_daily: priceDaily,
-            price_per_night: priceDaily, // backward compatibility
-            price_weekly: priceWeekly,
-            price_monthly_short: priceShort,
-            price_monthly_long: priceLong,
-            deposit_amount: deposit,
-            latitude: formData.latitude,
-            longitude: formData.longitude
+            ...listingRow,
+            owner_id: user.id
           }
         ])
         .select('id')
@@ -242,7 +384,7 @@ export default function HomeownerRegister(props: PageProps) {
 
       // Varsle kun kommune – ikke utleier som registrerte
       const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'En utleier'
-      const { data: kommuneProfiles } = await supabase.from('profiles').select('id').eq('role', 'kommune_ansatt')
+      const { data: kommuneProfiles } = await supabase.from('profiles').select('id').in('role', ['kommune_ansatt', 'kommune_admin'])
       const rows = (kommuneProfiles || []).map((p: { id: string }) => ({
         listing_id: listingId,
         owner_id: p.id,
@@ -256,6 +398,21 @@ export default function HomeownerRegister(props: PageProps) {
       }
 
       alert('Bolig registrert!')
+
+      const { data: agreementAfter } = await supabase
+        .from('user_agreements')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_terminated', false)
+        .maybeSingle()
+
+      const cityQ = encodeURIComponent(formData.city?.trim() || '')
+      const returnTo = encodeURIComponent('/homeowner/manage')
+      if (!agreementAfter) {
+        router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}`)
+        return
+      }
+
       router.push('/homeowner/manage')
     } catch (err: any) {
       const message = err?.message ?? err?.error_description ?? (typeof err === 'string' ? err : JSON.stringify(err))
@@ -300,18 +457,105 @@ export default function HomeownerRegister(props: PageProps) {
                 </div>
               </div>
               <div style={{ marginTop: 'var(--space-4)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                   <label className="label">Gateadresse</label>
-                  {formData.latitude && (
-                    <span style={{ fontSize: '0.7rem', color: 'var(--color-teal)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <CheckCircle2 size={12} /> Posisjon funnet
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    {geocodeLoading && (
+                      <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>Søker posisjon …</span>
+                    )}
+                    {!geocodeLoading && formData.latitude != null && formData.longitude != null && !geocodeCandidates?.length && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--color-teal)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CheckCircle2 size={12} /> Posisjon satt
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void runGeocode()}
+                      title="Kjør geokoding på nytt hvis kartet ikke stemmer"
+                      style={{
+                        fontSize: '0.75rem',
+                        padding: '6px 10px',
+                        borderRadius: 8,
+                        border: '1px solid var(--border-medium)',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-main)',
+                        cursor: 'pointer',
+                        fontWeight: 500
+                      }}
+                    >
+                      Oppdater posisjon på kart
+                    </button>
+                  </div>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="F.eks. Storgata 1"
+                    required
+                    value={formData.address}
+                    onChange={e => {
+                      const v = e.target.value
+                      setFormData(prev => ({ ...prev, address: v }))
+                      scheduleAddressSuggest()
+                      scheduleGeocode()
+                    }}
+                    onBlur={() => {
+                      scheduleGeocode()
+                      setTimeout(() => setAddressSuggestions(null), 200)
+                    }}
+                    autoComplete="street-address"
+                  />
+                  {addressSuggesting && (
+                    <span style={{ fontSize: '0.7rem', opacity: 0.75, display: 'block', marginTop: 4 }}>Søker adresser …</span>
+                  )}
+                  {addressSuggestions && addressSuggestions.length > 0 && (
+                    <ul
+                      role="listbox"
+                      style={{
+                        position: 'absolute',
+                        zIndex: 20,
+                        left: 0,
+                        right: 0,
+                        top: '100%',
+                        margin: '4px 0 0',
+                        padding: 0,
+                        listStyle: 'none',
+                        background: 'var(--bg-card, #1e293b)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 8,
+                        maxHeight: 220,
+                        overflowY: 'auto',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.25)'
+                      }}
+                    >
+                      {addressSuggestions.map((h, i) => (
+                        <li key={`${h.lat}-${h.lon}-${i}`}>
+                          <button
+                            type="button"
+                            role="option"
+                            onMouseDown={e => e.preventDefault()}
+                            onClick={() => applyAddressSuggestion(h)}
+                            style={{
+                              display: 'block',
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 12px',
+                              border: 'none',
+                              borderBottom: '1px solid var(--border-subtle)',
+                              background: 'transparent',
+                              color: 'inherit',
+                              fontSize: '0.85rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {h.displayLabel}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
-                <input type="text" className="input" placeholder="F.eks. Storgata 1" required 
-                  value={formData.address} 
-                  onChange={e => setFormData({...formData, address: e.target.value})}
-                  onBlur={geocodeAddress} />
               </div>
               <div className="form-grid">
                 <div>
@@ -321,16 +565,66 @@ export default function HomeownerRegister(props: PageProps) {
                     className="input"
                     placeholder="Fylles fra adresse eller skriv kommune"
                     value={formData.city}
-                    onChange={e => setFormData({ ...formData, city: e.target.value })}
+                    onChange={e => {
+                      setFormData(prev => ({ ...prev, city: e.target.value }))
+                      scheduleGeocode()
+                    }}
+                    onBlur={scheduleGeocode}
                     required
                   />
                 </div>
                 <div>
                   <label className="label">Postnummer</label>
                   <input type="text" className="input" placeholder="4 siffer" maxLength={4} required 
-                    value={formData.postal_code} onChange={e => setFormData({...formData, postal_code: e.target.value})} />
+                    value={formData.postal_code}
+                    onChange={e => {
+                      setFormData(prev => ({ ...prev, postal_code: e.target.value }))
+                      scheduleGeocode()
+                    }}
+                    onBlur={scheduleGeocode} />
                 </div>
               </div>
+              {geocodeError && (
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-warning, #b45309)', marginTop: 'var(--space-2)' }}>{geocodeError}</p>
+              )}
+              {geocodeCandidates && geocodeCandidates.length > 1 && (
+                <div
+                  role="group"
+                  aria-label="Flere treff for adressen"
+                  style={{
+                    marginTop: 'var(--space-3)',
+                    padding: 'var(--space-4)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'rgba(255,255,255,0.04)'
+                  }}
+                >
+                  <p style={{ fontSize: '0.85rem', marginBottom: 'var(--space-3)', opacity: 0.9 }}>
+                    Flere mulige steder ble funnet. Velg det som stemmer med boligen — posisjon på kart settes etter valg.
+                  </p>
+                  <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+                    {geocodeCandidates.map((h, i) => (
+                      <button
+                        key={`${h.lat}-${h.lon}-${i}`}
+                        type="button"
+                        onClick={() => selectGeocodeCandidate(i)}
+                        style={{
+                          textAlign: 'left',
+                          padding: 'var(--space-3)',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-subtle)',
+                          background: 'rgba(0,0,0,0.15)',
+                          color: 'inherit',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {h.displayLabel}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
 
             {/* Section 2: Boligdetaljer */}
@@ -429,8 +723,39 @@ export default function HomeownerRegister(props: PageProps) {
                   <option>Umøblert</option>
                   <option>Kun hvitevarer</option>
                   <option>Fullt møblert</option>
-                  <option>Fullt møblert med inventar på kjøkken og bad</option>
+                  <option>Fullt møblert og boligen har alt nødvendig inventar for matlaging og overnatting.</option>
                 </select>
+              </div>
+              <div style={{ marginTop: 'var(--space-4)' }}>
+                <label className="label">Mulighet for husdyr</label>
+                <select
+                  className="input"
+                  value={formData.pet_policy}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      pet_policy: e.target.value as typeof formData.pet_policy,
+                      pet_policy_detail: e.target.value === 'Enkelte dyr er tillatt' ? formData.pet_policy_detail : ''
+                    })
+                  }
+                >
+                  <option value="Tillatt">Tillatt</option>
+                  <option value="Ingen dyr tillatt">Ingen dyr tillatt</option>
+                  <option value="Enkelte dyr er tillatt">Enkelte dyr er tillatt</option>
+                </select>
+                {formData.pet_policy === 'Enkelte dyr er tillatt' && (
+                  <div style={{ marginTop: 'var(--space-3)' }}>
+                    <label className="label">Utdyp svaret ditt</label>
+                    <textarea
+                      className="input"
+                      rows={3}
+                      placeholder="F.eks. kun små hunder, ikke katter …"
+                      value={formData.pet_policy_detail}
+                      onChange={e => setFormData({ ...formData, pet_policy_detail: e.target.value })}
+                      style={{ width: '100%', minHeight: '72px', resize: 'vertical' }}
+                    />
+                  </div>
+                )}
               </div>
             </section>
           </div>

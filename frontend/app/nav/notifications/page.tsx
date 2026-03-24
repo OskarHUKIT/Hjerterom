@@ -10,6 +10,9 @@ import { supabase } from '../../lib/supabase'
 import { formatDateTimeNo } from '../../lib/dateFormat'
 import PushPermissionCard from '../../components/PushPermissionCard'
 import { useLanguage } from '../../../context/LanguageContext'
+import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
+import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
 
@@ -20,6 +23,9 @@ export default function NavNotifications(props: PageProps) {
   const [loading, setLoading] = useState(true)
   const [role, setRole] = useState<string | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(false)
+  const [emailPrefSaving, setEmailPrefSaving] = useState(false)
+  const [showLandlordNotificationsIntro, setShowLandlordNotificationsIntro] = useState(false)
 
   const fetchNotifications = async (showLoader = true) => {
     if (showLoader) setLoading(true)
@@ -28,8 +34,9 @@ export default function NavNotifications(props: PageProps) {
       if (!user) return
 
       setCurrentUserId(user.id)
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      const { data: profile } = await supabase.from('profiles').select('role, email_notifications_enabled').eq('id', user.id).maybeSingle()
       setRole(profile?.role || 'homeowner')
+      setEmailNotificationsEnabled(profile?.email_notifications_enabled === true)
 
       const { data, error } = await supabase
         .from('notifications')
@@ -49,6 +56,22 @@ export default function NavNotifications(props: PageProps) {
   useEffect(() => {
     fetchNotifications()
   }, [])
+
+  useEffect(() => {
+    if (loading || !currentUserId) return
+    if (role == null) return
+    if (isKommuneStaffRole(role)) return
+    if (typeof window === 'undefined') return
+    const key = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.notifications, currentUserId)
+    if (!localStorage.getItem(key)) setShowLandlordNotificationsIntro(true)
+  }, [loading, currentUserId, role])
+
+  const dismissLandlordNotificationsIntro = () => {
+    if (currentUserId && typeof window !== 'undefined') {
+      localStorage.setItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.notifications, currentUserId), '1')
+    }
+    setShowLandlordNotificationsIntro(false)
+  }
 
   const handleStatusChange = async (id: string, newStatus: 'unread' | 'completed') => {
     const previous = notifications
@@ -89,17 +112,83 @@ export default function NavNotifications(props: PageProps) {
 
   return (
     <main className="container">
+      <LandlordOnboardingModal
+        open={showLandlordNotificationsIntro}
+        title={t('landlordNotificationsTitle')}
+        titleId="landlord-notifications-intro-title"
+        onDismiss={dismissLandlordNotificationsIntro}
+        ctaLabel={t('landlordNotificationsCta')}
+        icon={Bell}
+        iconAccent="blue"
+      >
+        <p style={{ margin: '0 0 var(--space-4)', fontSize: '1rem', color: 'var(--text-body)', lineHeight: 1.55 }}>
+          {t('landlordNotificationsLead')}
+        </p>
+        <ul style={{ margin: '0 0 var(--space-5)', paddingLeft: '1.25rem', color: 'var(--text-body)', lineHeight: 1.65, fontSize: '0.95rem' }}>
+          <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordNotificationsBullet1')}</li>
+          <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordNotificationsBullet2')}</li>
+          <li>{t('landlordNotificationsBullet3')}</li>
+        </ul>
+        <div
+          style={{
+            marginBottom: 'var(--space-6)',
+            padding: 'var(--space-4)',
+            borderRadius: 12,
+            background: 'rgba(45, 212, 191, 0.1)',
+            border: '1px solid rgba(45, 212, 191, 0.28)',
+          }}
+        >
+          <h2 style={{ margin: '0 0 var(--space-2)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-teal)' }}>
+            {t('landlordNotificationsExpectTitle')}
+          </h2>
+          <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.55 }}>
+            {t('landlordNotificationsExpectBody')}
+          </p>
+        </div>
+      </LandlordOnboardingModal>
+
       <div style={{ marginBottom: 'var(--space-8)' }}>
         <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           ← {t('overview')}
         </Link>
         <h1 style={{ fontSize: '2.75rem' }}>{t('notifications')}</h1>
         <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>
-          {role === 'kommune_ansatt' ? t('notificationsSharedDesc') : t('notificationsUserDesc')}
+          {(role === 'kommune_ansatt' || role === 'kommune_admin') ? t('notificationsSharedDesc') : t('notificationsUserDesc')}
         </p>
       </div>
 
       <PushPermissionCard />
+
+      <div className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-6)', maxWidth: '560px' }}>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={emailNotificationsEnabled}
+            disabled={emailPrefSaving}
+            onChange={async e => {
+              const v = e.target.checked
+              setEmailNotificationsEnabled(v)
+              setEmailPrefSaving(true)
+              try {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) return
+                const { error } = await supabase.from('profiles').update({ email_notifications_enabled: v }).eq('id', user.id)
+                if (error) throw error
+              } catch (err: any) {
+                setEmailNotificationsEnabled(!v)
+                alert(err?.message || 'Kunne ikke lagre innstilling')
+              } finally {
+                setEmailPrefSaving(false)
+              }
+            }}
+            style={{ width: 18, height: 18, marginTop: 2, flexShrink: 0 }}
+          />
+          <span>
+            <span style={{ fontWeight: 600, color: 'var(--text-main)', display: 'block' }}>{t('emailNotificationsToggle')}</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginTop: 4 }}>{t('emailNotificationsHint')}</span>
+          </span>
+        </label>
+      </div>
 
       {loading ? (
         <div className="card" style={{ padding: 'var(--space-10)', minHeight: '200px' }} />
@@ -108,10 +197,10 @@ export default function NavNotifications(props: PageProps) {
           {notifications.map(notif => {
             const isFormidletNotif = (notif.type === 'HOUSE_FORMIDLET' || notif.type === 'HANDOVER_REMINDER') && notif.listing_id
             const messageLink = notif.type === 'NEW_MESSAGE'
-              ? (role === 'kommune_ansatt' && notif.related_user_id
+              ? ((role === 'kommune_ansatt' || role === 'kommune_admin') && notif.related_user_id
                 ? `/nav/messages?with=${notif.related_user_id}`
                 : '/nav/messages')
-              : !isFormidletNotif && (notif.type === 'NEW_REPORT' && notif.listing_id && role === 'kommune_ansatt')
+              : !isFormidletNotif && (notif.type === 'NEW_REPORT' && notif.listing_id && (role === 'kommune_ansatt' || role === 'kommune_admin'))
                   ? `/listings/${notif.listing_id}?view=nav#overtakelsesrapport`
                   : null
             const cardContent = (
@@ -134,7 +223,7 @@ export default function NavNotifications(props: PageProps) {
                     {notif.resolved_by && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <CheckCircle2 size={12} />
-                        {(role === 'kommune_ansatt' && notif.resolved_by !== currentUserId) ? t('resolvedByColleague') : t('resolvedByYou')}
+                        {((role === 'kommune_ansatt' || role === 'kommune_admin') && notif.resolved_by !== currentUserId) ? t('resolvedByColleague') : t('resolvedByYou')}
                       </span>
                     )}
                     {messageLink && !isFormidletNotif && (

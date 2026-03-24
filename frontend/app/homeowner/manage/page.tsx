@@ -5,9 +5,17 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
   Plus, Home as HomeIcon, Info, Trash2, Edit3, Clock, FileText, 
-  ShieldCheck, MessageSquare
+  ShieldCheck, MessageSquare, Sparkles, LayoutDashboard
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
+import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
+import {
+  PwaInstallPromptDialog,
+  PWA_PROMPT_DISMISSED_KEY,
+  shouldShowPwaPrompt,
+} from '../../components/PWAInstallPrompt'
 import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
@@ -25,6 +33,12 @@ export default function HomeownerManage(props: PageProps) {
   const [editingAvailability, setEditingAvailability] = useState<string | null>(null)
   const [newPeriod, setNewPeriod] = useState({ start: '', end: '', status: 'Tilgjengelig' })
   const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{ id: string; listingId: string } | null>(null)
+  const [pendingDeleteListing, setPendingDeleteListing] = useState<{ id: string; address: string } | null>(null)
+  const [pageGate, setPageGate] = useState<'init' | 'welcome' | 'ready'>('init')
+  const [showOverviewIntro, setShowOverviewIntro] = useState(false)
+  const [showMineBoligerIntro, setShowMineBoligerIntro] = useState(false)
+  const [pendingPwaBeforeWelcome, setPendingPwaBeforeWelcome] = useState(false)
+  const [pendingPwaBeforeOverview, setPendingPwaBeforeOverview] = useState(false)
 
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
@@ -42,7 +56,12 @@ export default function HomeownerManage(props: PageProps) {
         return
       }
 
-      // Sjekk om brukeren har signert vilkårene
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      if (isKommuneStaffRole(profile?.role)) {
+        router.replace('/nav/database')
+        return
+      }
+
       const { data: agreement } = await supabase
         .from('user_agreements')
         .select('*')
@@ -51,7 +70,19 @@ export default function HomeownerManage(props: PageProps) {
         .maybeSingle()
 
       if (!agreement) {
-        router.push('/homeowner/sign-terms')
+        const { data: firstListing } = await supabase
+          .from('listings')
+          .select('city')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+        const city = firstListing?.city?.trim()
+        if (city) {
+          router.push(`/homeowner/sign-terms?city=${encodeURIComponent(city)}&returnTo=${encodeURIComponent('/homeowner/manage')}`)
+        } else {
+          router.push('/homeowner/register')
+        }
         return
       }
 
@@ -82,6 +113,21 @@ export default function HomeownerManage(props: PageProps) {
         setAvailability(availMap)
       }
 
+      if (typeof window !== 'undefined') {
+        const uid = user.id
+        const ovKey = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.overview, uid)
+        const mineKey = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.mineBoliger, uid)
+        if (!localStorage.getItem(ovKey)) {
+          if (shouldShowPwaPrompt()) {
+            setPendingPwaBeforeOverview(true)
+          } else {
+            setShowOverviewIntro(true)
+          }
+        } else if (!localStorage.getItem(mineKey) && (listingsData || []).length > 0) {
+          setShowMineBoligerIntro(true)
+        }
+      }
+
     } catch (err: any) {
       console.error('Unexpected error:', err)
     } finally {
@@ -89,8 +135,61 @@ export default function HomeownerManage(props: PageProps) {
     }
   }
 
+  const dismissLandlordWelcome = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user && typeof window !== 'undefined') {
+      localStorage.setItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.welcome, user.id), '1')
+    }
+    setPageGate('ready')
+    await fetchData()
+  }
+
+  const dismissOverviewIntro = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user && typeof window !== 'undefined') {
+      localStorage.setItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.overview, user.id), '1')
+    }
+    setShowOverviewIntro(false)
+    if (user && myListings.length > 0 && typeof window !== 'undefined') {
+      const mineKey = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.mineBoliger, user.id)
+      if (!localStorage.getItem(mineKey)) {
+        setShowMineBoligerIntro(true)
+      }
+    }
+  }
+
+  const dismissMineBoligerIntro = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user && typeof window !== 'undefined') {
+      localStorage.setItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.mineBoliger, user.id), '1')
+    }
+    setShowMineBoligerIntro(false)
+  }
+
   useEffect(() => {
-    fetchData()
+    async function bootstrap() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      if (isKommuneStaffRole(profile?.role)) {
+        router.replace('/nav/database')
+        return
+      }
+      const dismissed =
+        typeof window !== 'undefined' &&
+        localStorage.getItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.welcome, user.id))
+      if (!dismissed) {
+        setPendingPwaBeforeWelcome(shouldShowPwaPrompt())
+        setPageGate('welcome')
+        return
+      }
+      setPageGate('ready')
+      await fetchData()
+    }
+    bootstrap()
   }, [])
 
   const setStatus = async (id: string, newStatus: 'Tilgjengelig' | 'Utilgjengelig') => {
@@ -125,8 +224,9 @@ export default function HomeownerManage(props: PageProps) {
     }
   }
 
-  const deleteListing = async (id: string, address: string) => {
-    if (!confirm(`Dersom du sletter boligen "${address}", vil den ikke lengre være synlig i boligbank. Ønsker du å fortsette?`)) return
+  const executeDeleteListing = async () => {
+    if (!pendingDeleteListing) return
+    const { id, address } = pendingDeleteListing
 
     const prevListings = myListings
     setMyListings(prev => prev.filter(item => item.id !== id))
@@ -147,6 +247,12 @@ export default function HomeownerManage(props: PageProps) {
         details: { address }
       }])
 
+      setAvailability(prev => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      setPendingDeleteListing(null)
     } catch (err: any) {
       setMyListings(prevListings)
       alert('Feil ved sletting: ' + err.message)
@@ -223,8 +329,188 @@ export default function HomeownerManage(props: PageProps) {
     return mapping[type] || type
   }
 
+  if (pageGate === 'init') {
+    return (
+      <main className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: 'var(--text-muted)' }}>…</div>
+      </main>
+    )
+  }
+
+  if (pageGate === 'welcome') {
+    return (
+      <>
+        <PwaInstallPromptDialog
+          open={pendingPwaBeforeWelcome}
+          onDismiss={remember => {
+            try {
+              if (remember) localStorage.setItem(PWA_PROMPT_DISMISSED_KEY, '1')
+            } catch {
+              /* ignore */
+            }
+            setPendingPwaBeforeWelcome(false)
+          }}
+        />
+        {!pendingPwaBeforeWelcome && (
+          <LandlordOnboardingModal
+            open
+            title={t('landlordWelcomeTitle')}
+            titleId="landlord-welcome-title"
+            onDismiss={() => void dismissLandlordWelcome()}
+            ctaLabel={t('landlordWelcomeCta')}
+            icon={Sparkles}
+            iconAccent="teal"
+          >
+            <p style={{ margin: '0 0 var(--space-4)', fontSize: '1rem', color: 'var(--text-body)', lineHeight: 1.55 }}>
+              {t('landlordWelcomeIntro')}
+            </p>
+            <ul style={{ margin: '0 0 var(--space-5)', paddingLeft: '1.25rem', color: 'var(--text-body)', lineHeight: 1.65, fontSize: '0.95rem' }}>
+              <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordWelcomeBulletRegister')}</li>
+              <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordWelcomeBulletMessages')}</li>
+              <li>{t('landlordWelcomeBulletSign')}</li>
+            </ul>
+            <div
+              style={{
+                marginBottom: 'var(--space-6)',
+                padding: 'var(--space-4)',
+                borderRadius: 12,
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+              }}
+            >
+              <h2 style={{ margin: '0 0 var(--space-2)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-accent)' }}>
+                {t('landlordWelcomeOrderTitle')}
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.55 }}>
+                {t('landlordWelcomeOrderBody')}
+              </p>
+            </div>
+          </LandlordOnboardingModal>
+        )}
+      </>
+    )
+  }
+
   return (
     <main className="container">
+      <PwaInstallPromptDialog
+        open={pendingPwaBeforeOverview}
+        onDismiss={remember => {
+          try {
+            if (remember) localStorage.setItem(PWA_PROMPT_DISMISSED_KEY, '1')
+          } catch {
+            /* ignore */
+          }
+          setPendingPwaBeforeOverview(false)
+          setShowOverviewIntro(true)
+        }}
+      />
+
+      <LandlordOnboardingModal
+        open={showOverviewIntro}
+        title={t('landlordOverviewTitle')}
+        titleId="landlord-overview-title"
+        onDismiss={() => void dismissOverviewIntro()}
+        ctaLabel={t('landlordOverviewCta')}
+        icon={LayoutDashboard}
+        iconAccent="blue"
+      >
+        <p style={{ margin: '0 0 var(--space-4)', fontSize: '1rem', color: 'var(--text-body)', lineHeight: 1.55 }}>
+          {t('landlordOverviewLead')}
+        </p>
+        <ul style={{ margin: '0 0 var(--space-5)', paddingLeft: '1.25rem', color: 'var(--text-body)', lineHeight: 1.65, fontSize: '0.95rem' }}>
+          <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordOverviewBullet1')}</li>
+          <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordOverviewBullet2')}</li>
+          <li>{t('landlordOverviewBullet3')}</li>
+        </ul>
+        <div
+          style={{
+            marginBottom: 'var(--space-6)',
+            padding: 'var(--space-4)',
+            borderRadius: 12,
+            background: 'rgba(45, 212, 191, 0.1)',
+            border: '1px solid rgba(45, 212, 191, 0.28)',
+          }}
+        >
+          <h2 style={{ margin: '0 0 var(--space-2)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-teal)' }}>
+            {t('landlordOverviewExpectTitle')}
+          </h2>
+          <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.55 }}>
+            {t('landlordOverviewExpectBody')}
+          </p>
+        </div>
+      </LandlordOnboardingModal>
+
+      <LandlordOnboardingModal
+        open={showMineBoligerIntro && !showOverviewIntro}
+        title={t('landlordMineBoligerTitle')}
+        titleId="landlord-mineboliger-title"
+        onDismiss={() => void dismissMineBoligerIntro()}
+        ctaLabel={t('landlordMineBoligerCta')}
+        icon={HomeIcon}
+        iconAccent="teal"
+      >
+        <p style={{ margin: '0 0 var(--space-4)', fontSize: '1rem', color: 'var(--text-body)', lineHeight: 1.55 }}>
+          {t('landlordMineBoligerLead')}
+        </p>
+        <ul style={{ margin: '0 0 var(--space-6)', paddingLeft: '1.25rem', color: 'var(--text-body)', lineHeight: 1.65, fontSize: '0.95rem' }}>
+          <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordMineBoligerBullet1')}</li>
+          <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordMineBoligerBullet2')}</li>
+          <li>{t('landlordMineBoligerBullet3')}</li>
+        </ul>
+      </LandlordOnboardingModal>
+
+      {pendingDeleteListing && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-delete-listing-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 'var(--space-4)',
+          }}
+          onClick={() => setPendingDeleteListing(null)}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: 440,
+              padding: 'var(--space-6)',
+              boxShadow: 'var(--shadow-lg, 0 10px 40px rgba(0,0,0,0.2))',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p id="confirm-delete-listing-title" style={{ margin: '0 0 var(--space-4)', fontSize: '1rem', lineHeight: 1.5 }}>
+              {t('confirmDeleteListing').replace('{address}', pendingDeleteListing.address)}
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="button"
+                style={{ background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}
+                onClick={() => setPendingDeleteListing(null)}
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                className="button"
+                style={{ background: '#dc2626', color: 'white', border: 'none' }}
+                onClick={() => void executeDeleteListing()}
+              >
+                {t('delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pendingDeletePeriod && (
         <div
           role="dialog"
@@ -416,7 +702,7 @@ export default function HomeownerManage(props: PageProps) {
                               <Edit3 size={18} />
                             </button>
                             <button 
-                              onClick={() => deleteListing(listing.id, listing.address)}
+                              onClick={() => setPendingDeleteListing({ id: listing.id, address: listing.address })}
                               style={{ padding: '8px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.05)', border: 'none', cursor: 'pointer', color: '#ef4444' }}
                             >
                               <Trash2 size={18} />
@@ -505,11 +791,27 @@ export default function HomeownerManage(props: PageProps) {
                             </div>
                             <div style={{ flex: 1 }}>
                                 <label className="label" style={{ fontSize: '0.7rem' }}>{t('fromDate')}</label>
-                              <DateInput className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.start} onChange={v => setNewPeriod({...newPeriod, start: v})} placeholder="DD.MM.ÅÅÅÅ" />
+                              <DateInput
+                                showCalendar
+                                className="input"
+                                style={{ marginBottom: 0, fontSize: '0.85rem' }}
+                                value={newPeriod.start}
+                                onChange={v => setNewPeriod({ ...newPeriod, start: v })}
+                                max={newPeriod.end || undefined}
+                                placeholder="DD.MM.ÅÅÅÅ"
+                              />
                             </div>
                             <div style={{ flex: 1 }}>
                                 <label className="label" style={{ fontSize: '0.7rem' }}>{t('toDate')}</label>
-                              <DateInput className="input" style={{ marginBottom: 0, fontSize: '0.85rem' }} value={newPeriod.end} onChange={v => setNewPeriod({...newPeriod, end: v})} placeholder="DD.MM.ÅÅÅÅ" />
+                              <DateInput
+                                showCalendar
+                                className="input"
+                                style={{ marginBottom: 0, fontSize: '0.85rem' }}
+                                value={newPeriod.end}
+                                onChange={v => setNewPeriod({ ...newPeriod, end: v })}
+                                min={newPeriod.start || undefined}
+                                placeholder="DD.MM.ÅÅÅÅ"
+                              />
                             </div>
                             <button 
                               onClick={() => {

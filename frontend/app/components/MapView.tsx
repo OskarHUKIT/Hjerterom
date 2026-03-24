@@ -68,11 +68,13 @@ export default function MapView({ listings, availability = {} }: MapViewProps) {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map)
 
+    const boundsPoints: L.LatLngTuple[] = []
     listings.forEach(l => {
       const lat = parseFloat(l.latitude)
       const lon = parseFloat(l.longitude)
       
       if (!isNaN(lat) && !isNaN(lon)) {
+        boundsPoints.push([lat, lon])
         const statusToday = getStatusForToday(l.id, availability)
         const markerIcon = statusToday === 'Formidla' ? formidletIcon : statusToday === 'Utilgjengelig' ? utilgjengeligIcon : icon
         const marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map)
@@ -100,6 +102,14 @@ export default function MapView({ listings, availability = {} }: MapViewProps) {
         })
       }
     })
+
+    if (boundsPoints.length === 1) {
+      map.setView(boundsPoints[0], 14)
+    } else if (boundsPoints.length > 1) {
+      map.fitBounds(boundsPoints, { padding: [48, 48], maxZoom: 15 })
+    } else {
+      map.setView(narvik, 13)
+    }
 
     // 4. CLEANUP - Dette er den viktigste delen!
     return () => {

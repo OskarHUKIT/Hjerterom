@@ -5,15 +5,22 @@ import { supabase } from '../lib/supabase'
 import { savePushSubscription, urlBase64ToUint8Array, VAPID_PUBLIC } from '../lib/push-utils'
 import { Bell, CheckCircle2 } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
+import { isMobileUserAgent } from '../lib/mobile'
 
 type Status = 'loading' | 'show-button' | 'granted' | 'unsupported'
 
 export default function PushPermissionCard() {
   const { t } = useLanguage()
+  const [isMobile, setIsMobile] = useState<boolean | null>(null)
   const [status, setStatus] = useState<Status>('loading')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    setIsMobile(isMobileUserAgent())
+  }, [])
+
+  useEffect(() => {
+    if (isMobile !== true) return
     let cancelled = false
 
     async function check() {
@@ -60,7 +67,7 @@ export default function PushPermissionCard() {
       cancelled = true
       subscription.unsubscribe()
     }
-  }, [])
+  }, [isMobile])
 
   async function requestPermission() {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
@@ -87,6 +94,7 @@ export default function PushPermissionCard() {
     }
   }
 
+  if (isMobile === null || isMobile === false) return null
   if (status === 'loading') return null
 
   return (

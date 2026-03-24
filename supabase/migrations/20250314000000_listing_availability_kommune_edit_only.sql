@@ -2,6 +2,10 @@
 -- Les: alle kommune_ansatt. Skriv (insert/update/delete): kun når kommune_can_edit er satt og ikke false.
 
 drop policy if exists "Kommune can manage availability" on listing_availability;
+drop policy if exists "Kommune can read availability" on listing_availability;
+drop policy if exists "Kommune with edit can insert availability" on listing_availability;
+drop policy if exists "Kommune with edit can update availability" on listing_availability;
+drop policy if exists "Kommune with edit can delete availability" on listing_availability;
 
 -- Alle kommune_ansatt kan lese availability (inkl. kun-les-brukere)
 create policy "Kommune can read availability"

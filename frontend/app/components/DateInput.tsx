@@ -15,6 +15,7 @@ type Props = {
   id?: string;
   /** Vis kalender-ikon og dropdown for å velge dato */
   showCalendar?: boolean;
+  disabled?: boolean;
 };
 
 function getMonthDays(year: number, month: number) {
@@ -37,7 +38,7 @@ function toISO(y: number, m: number, d: number) {
  * value/onChange bruker fortsatt YYYY-MM-DD for API/lagring.
  * Med showCalendar vises kalender-dropdown ved klikk på ikon.
  */
-export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅÅÅ', className, style, id, showCalendar }: Props) {
+export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅÅÅ', className, style, id, showCalendar, disabled }: Props) {
   const [display, setDisplay] = useState(() => (value ? formatDateNo(value) : ''));
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(() => {
@@ -58,6 +59,10 @@ export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅ
   }, [value]);
 
   useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+
+  useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
@@ -67,6 +72,7 @@ export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅ
   }, [open]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     const raw = e.target.value;
     setDisplay(raw);
     if (!raw.trim()) {
@@ -96,6 +102,7 @@ export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅ
       inputMode="numeric"
       id={id}
       className={className}
+      disabled={disabled}
       style={showCalendar ? { ...style, paddingRight: 40 } : style}
       placeholder={placeholder}
       value={display}
@@ -121,8 +128,9 @@ export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅ
         {inputEl}
         <button
           type="button"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => !disabled && setOpen(o => !o)}
           aria-label="Åpne kalender"
+          disabled={disabled}
           style={{
             position: 'absolute',
             right: 8,
@@ -131,7 +139,8 @@ export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅ
             background: 'none',
             border: 'none',
             padding: 4,
-            cursor: 'pointer',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? 0.45 : 1,
             color: 'var(--text-muted)',
             display: 'flex',
             alignItems: 'center',

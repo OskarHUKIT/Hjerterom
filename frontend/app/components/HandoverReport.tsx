@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type CSSProperties } from 'react'
 import { Send, ImagePlus, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { DateInput } from './DateInput'
@@ -15,11 +15,19 @@ interface HandoverReportProps {
   onSaved?: () => void
 }
 
-const ROW_STYLE = { border: '1px solid #b8d4e0', borderCollapse: 'collapse' } as const
 const LABEL_BG = '#e0f2f7'
-const LABEL_CELL = { padding: '10px 14px', background: LABEL_BG, fontWeight: 600, fontSize: '0.95rem', color: '#0f172a', width: '36px', textAlign: 'center' as const }
-const LABEL_TEXT = { padding: '10px 14px', background: LABEL_BG, fontSize: '0.95rem', color: '#0f172a', width: '220px' }
-const INPUT_CELL = { padding: 0, background: 'white', border: '1px solid #b8d4e0' }
+const SECTION_STYLE: CSSProperties = {
+  border: '1px solid #b8d4e0',
+  borderRadius: 10,
+  overflow: 'hidden',
+  marginBottom: 'var(--space-4)'
+}
+const sectionHeader = (num: string, title: string) => (
+  <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, background: LABEL_BG, borderBottom: '1px solid #b8d4e0' }}>
+    <span style={{ padding: '10px 14px', fontWeight: 700, background: LABEL_BG, color: '#0f172a', minWidth: 40, textAlign: 'center' }}>{num}</span>
+    <h2 style={{ margin: 0, padding: '10px 14px', fontSize: '0.95rem', fontWeight: 600, color: '#0f172a', flex: 1 }}>{title}</h2>
+  </div>
+)
 
 export default function HandoverReport({ listingId, listingAddress, ownerName, reporterType, tenantToken, onSaved }: HandoverReportProps) {
   const [loading, setLoading] = useState(false)
@@ -80,6 +88,32 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
     }
     load()
   }, [reporterType])
+
+  /** Prefyll pkt. 3 fra Nav-formidlet periode (listing_availability, status Formidla). */
+  useEffect(() => {
+    if (!listingId || reporterType !== 'homeowner') return
+    let cancelled = false
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('listing_availability')
+        .select('start_date, end_date')
+        .eq('listing_id', listingId)
+        .eq('status', 'Formidla')
+        .order('end_date', { ascending: false })
+      if (cancelled || error || !data?.length) return
+      const today = new Date().toISOString().slice(0, 10)
+      const active = data.find(p => p.start_date <= today && p.end_date >= today)
+      const chosen = active || data[0]
+      const periodLabel = `${formatDateNo(chosen.start_date)} – ${formatDateNo(chosen.end_date)}`
+      setFormData(prev => {
+        if (prev.agreement_period.trim() !== '') return prev
+        return { ...prev, agreement_period: periodLabel }
+      })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [listingId, reporterType])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -175,161 +209,155 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
       )}
 
       <form onSubmit={handleSubmit}>
-        <table style={{ width: '100%', ...ROW_STYLE }}>
-          <tbody>
-            <tr>
-              <td style={{ ...LABEL_CELL, ...ROW_STYLE }}>1</td>
-              <td style={{ ...LABEL_TEXT, ...ROW_STYLE }}>Adresse</td>
-              <td style={{ ...INPUT_CELL, ...ROW_STYLE }}>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={e => setFormData({ ...formData, address: e.target.value })}
-                  readOnly={!!listingAddress}
-                  required
-                  style={{ ...inputStyle }}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td style={{ ...LABEL_CELL, ...ROW_STYLE }}>2</td>
-              <td style={{ ...LABEL_TEXT, ...ROW_STYLE }}>Utleier</td>
-              <td style={{ ...INPUT_CELL, ...ROW_STYLE }}>
-                <input
-                  type="text"
-                  value={formData.landlord}
-                  onChange={e => setFormData({ ...formData, landlord: e.target.value })}
-                  readOnly={!!ownerName}
-                  required
-                  style={{ ...inputStyle }}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td style={{ ...LABEL_CELL, ...ROW_STYLE }}>3</td>
-              <td style={{ ...LABEL_TEXT, ...ROW_STYLE }}>Avtaleperiode</td>
-              <td style={{ ...INPUT_CELL, ...ROW_STYLE }}>
-                <input
-                  type="text"
-                  placeholder="f.eks. 01.01.2026 - 31.03.2026"
-                  value={formData.agreement_period}
-                  onChange={e => setFormData({ ...formData, agreement_period: e.target.value })}
-                  required
-                  style={{ ...inputStyle }}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td style={{ ...LABEL_CELL, ...ROW_STYLE }}>4</td>
-              <td style={{ ...LABEL_TEXT, ...ROW_STYLE }}>Møbler, hvite-varer og annet innbo</td>
-              <td style={{ ...INPUT_CELL, ...ROW_STYLE }}>
-                <textarea
-                  value={formData.inventory}
-                  onChange={e => setFormData({ ...formData, inventory: e.target.value })}
-                  placeholder="List opp inventar..."
-                  rows={3}
-                  style={{ ...inputStyle, minHeight: '70px', resize: 'vertical' }}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td style={{ ...LABEL_CELL, ...ROW_STYLE }}>5</td>
-              <td style={{ ...LABEL_TEXT, ...ROW_STYLE }}>Nøkler (type og antall)</td>
-              <td style={{ ...INPUT_CELL, ...ROW_STYLE }}>
-                <textarea
-                  value={formData.keys}
-                  onChange={e => setFormData({ ...formData, keys: e.target.value })}
-                  placeholder="f.eks. 2 stk systemnøkler, 1 stk postkassenøkkel"
-                  rows={2}
-                  style={{ ...inputStyle, minHeight: '50px', resize: 'vertical' }}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td style={{ ...LABEL_CELL, ...ROW_STYLE }}>6</td>
-              <td style={{ ...LABEL_TEXT, ...ROW_STYLE }}>
-                Tilstands-beskrivelse (inkl. eventuelle feil/skader/mangler – skal også dokumenteres med bilder)
-              </td>
-              <td style={{ ...INPUT_CELL, ...ROW_STYLE }}>
-                <textarea
-                  value={formData.condition_description}
-                  onChange={e => setFormData({ ...formData, condition_description: e.target.value })}
-                  placeholder="Beskriv boligens tilstand ved overtakelse..."
-                  rows={5}
-                  style={{ ...inputStyle, minHeight: '120px', resize: 'vertical' }}
-                />
-              </td>
-            </tr>
-            <tr>
-              <td style={{ ...LABEL_CELL, ...ROW_STYLE }}>7</td>
-              <td style={{ ...LABEL_TEXT, ...ROW_STYLE }}>
-                Bilder vedleggs dokumentet
-              </td>
-              <td style={{ padding: '10px 14px', background: 'white', ...ROW_STYLE }}>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handlePhotoUpload}
-                  style={{ display: 'none' }}
-                />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={() => { fileInputRef.current?.click(); setUploadError(null) }}
-                    disabled={uploadingPhotos}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
-                      background: LABEL_BG, border: '1px solid #b8d4e0', borderRadius: 8, cursor: uploadingPhotos ? 'wait' : 'pointer',
-                      fontSize: '0.95rem', fontWeight: 600, color: '#0f172a'
-                    }}
-                  >
-                    <ImagePlus size={20} />
-                    {uploadingPhotos ? 'Laster opp...' : 'Legg ved bilder'}
-                  </button>
-                  <span style={{ fontSize: '0.95rem', fontWeight: 600, color: photoUrls.length > 0 ? '#0d9488' : '#64748b' }}>
-                    {photoUrls.length === 0 ? 'Ingen bilder lagt ved ennå' : `${photoUrls.length} bilder lastet opp`}
-                  </span>
+        <div style={{ display: 'grid', gap: 0 }}>
+          <section style={SECTION_STYLE} aria-labelledby="hr-field-1">
+            {sectionHeader('1', 'Adresse')}
+            <div style={{ padding: '12px 14px', background: 'white' }}>
+              <input
+                id="hr-field-1"
+                type="text"
+                value={formData.address}
+                onChange={e => setFormData({ ...formData, address: e.target.value })}
+                readOnly={!!listingAddress}
+                required
+                style={{ ...inputStyle }}
+              />
+            </div>
+          </section>
+
+          <section style={SECTION_STYLE}>
+            {sectionHeader('2', 'Utleier')}
+            <div style={{ padding: '12px 14px', background: 'white' }}>
+              <input
+                type="text"
+                value={formData.landlord}
+                onChange={e => setFormData({ ...formData, landlord: e.target.value })}
+                readOnly={!!ownerName}
+                required
+                style={{ ...inputStyle }}
+              />
+            </div>
+          </section>
+
+          <section style={SECTION_STYLE}>
+            {sectionHeader('3', 'Avtaleperiode')}
+            <div style={{ padding: '12px 14px', background: 'white' }}>
+              <input
+                type="text"
+                placeholder="f.eks. 01.01.2026 - 31.03.2026"
+                value={formData.agreement_period}
+                onChange={e => setFormData({ ...formData, agreement_period: e.target.value })}
+                required
+                style={{ ...inputStyle }}
+              />
+            </div>
+          </section>
+
+          <section style={SECTION_STYLE}>
+            {sectionHeader('4', 'Møbler, hvite-varer og annet innbo')}
+            <div style={{ padding: '12px 14px', background: 'white' }}>
+              <textarea
+                value={formData.inventory}
+                onChange={e => setFormData({ ...formData, inventory: e.target.value })}
+                placeholder="List opp inventar..."
+                rows={3}
+                style={{ ...inputStyle, minHeight: '70px', resize: 'vertical' }}
+              />
+            </div>
+          </section>
+
+          <section style={SECTION_STYLE}>
+            {sectionHeader('5', 'Nøkler (type og antall)')}
+            <div style={{ padding: '12px 14px', background: 'white' }}>
+              <textarea
+                value={formData.keys}
+                onChange={e => setFormData({ ...formData, keys: e.target.value })}
+                placeholder="f.eks. 2 stk systemnøkler, 1 stk postkassenøkkel"
+                rows={2}
+                style={{ ...inputStyle, minHeight: '50px', resize: 'vertical' }}
+              />
+            </div>
+          </section>
+
+          <section style={SECTION_STYLE}>
+            {sectionHeader('6', 'Tilstands-beskrivelse (inkl. eventuelle feil/skader/mangler – skal også dokumenteres med bilder)')}
+            <div style={{ padding: '12px 14px', background: 'white' }}>
+              <textarea
+                value={formData.condition_description}
+                onChange={e => setFormData({ ...formData, condition_description: e.target.value })}
+                placeholder="Beskriv boligens tilstand ved overtakelse..."
+                rows={5}
+                style={{ ...inputStyle, minHeight: '120px', resize: 'vertical' }}
+              />
+            </div>
+          </section>
+
+          <section style={SECTION_STYLE}>
+            {sectionHeader('7', 'Bilder vedleggs dokumentet')}
+            <div style={{ padding: '12px 14px', background: 'white' }}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePhotoUpload}
+                style={{ display: 'none' }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => { fileInputRef.current?.click(); setUploadError(null) }}
+                  disabled={uploadingPhotos}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
+                    background: LABEL_BG, border: '1px solid #b8d4e0', borderRadius: 8, cursor: uploadingPhotos ? 'wait' : 'pointer',
+                    fontSize: '0.95rem', fontWeight: 600, color: '#0f172a'
+                  }}
+                >
+                  <ImagePlus size={20} />
+                  {uploadingPhotos ? 'Laster opp...' : 'Legg ved bilder'}
+                </button>
+                <span style={{ fontSize: '0.95rem', fontWeight: 600, color: photoUrls.length > 0 ? '#0d9488' : '#64748b' }}>
+                  {photoUrls.length === 0 ? 'Ingen bilder lagt ved ennå' : `${photoUrls.length} bilder lastet opp`}
+                </span>
+              </div>
+              {uploadError && (
+                <p style={{ margin: '8px 0 0', fontSize: '0.9rem', color: '#dc2626' }}>{uploadError}</p>
+              )}
+              {photoUrls.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                  {photoUrls.map(url => (
+                    <div key={url} style={{ position: 'relative' }}>
+                      <img src={url} alt="Vedlegg" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #b8d4e0' }} />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(url)}
+                        style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                {uploadError && (
-                  <p style={{ margin: '8px 0 0', fontSize: '0.9rem', color: '#dc2626' }}>{uploadError}</p>
-                )}
-                {photoUrls.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                    {photoUrls.map(url => (
-                      <div key={url} style={{ position: 'relative' }}>
-                        <img src={url} alt="Vedlegg" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, border: '1px solid #b8d4e0' }} />
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(url)}
-                          style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%', background: '#ef4444', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.95rem', marginTop: 12 }}>
-                  <input
-                    type="checkbox"
-                    checked={formData.photos_confirmed}
-                    onChange={e => setFormData({ ...formData, photos_confirmed: e.target.checked })}
-                    style={{ width: '18px', height: '18px' }}
-                  />
-                  <span>Det bekreftes at bildene er tatt dato:</span>
-                  <DateInput
-                    value={formData.photos_date}
-                    onChange={v => setFormData({ ...formData, photos_date: v })}
-                    placeholder="DD.MM.ÅÅÅÅ"
-                    style={{ border: 'none', borderBottom: '1px solid #0f172a', background: 'transparent', padding: '2px 6px', fontWeight: 600, fontSize: '0.95rem' }}
-                  />
-                </label>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              )}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.95rem', marginTop: 12, flexWrap: 'wrap' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.photos_confirmed}
+                  onChange={e => setFormData({ ...formData, photos_confirmed: e.target.checked })}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <span>Det bekreftes at bildene er tatt dato:</span>
+                <DateInput
+                  value={formData.photos_date}
+                  onChange={v => setFormData({ ...formData, photos_date: v })}
+                  placeholder="DD.MM.ÅÅÅÅ"
+                  style={{ border: 'none', borderBottom: '1px solid #0f172a', background: 'transparent', padding: '2px 6px', fontWeight: 600, fontSize: '0.95rem' }}
+                />
+              </label>
+            </div>
+          </section>
+        </div>
 
         {/* Bekreftelse for utleier – knapp/avkryssing som bildebekreftelsen */}
         {reporterType === 'homeowner' && (

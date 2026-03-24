@@ -1,5 +1,7 @@
 /* Professional Dark Design System with Northern Scenery */
 :root {
+  /* Styrer OS/nettleser (skjema, native select-lister) slik at lys/mørk matcher app-tema */
+  color-scheme: dark;
   /* Mobile breakpoints (use in media queries) */
   --bp-sm: 480px;
   --bp-md: 768px;
@@ -58,6 +60,7 @@
 
 /* Light mode – overrides when data-theme="light" */
 [data-theme="light"] {
+  color-scheme: light;
   --bg-app: #f8fafc;
   --bg-card: #ffffff;
   --border-subtle: rgba(15, 23, 42, 0.12);
@@ -368,7 +371,7 @@ a {
 .pwa-prompt-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 10070;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -611,6 +614,23 @@ p {
 
 [data-theme="light"] select {
   background-color: rgba(15, 23, 42, 0.04) !important;
+  color: var(--text-main);
+}
+
+/*
+ * Native <select>: I mørk modus kan OS/nettleser tegne nedtrekkslisten «lys» mens tekst
+ * arver lys farge fra select → uleselig. color-scheme + option-farger synker liste og tekst.
+ */
+select {
+  color-scheme: dark;
+}
+[data-theme="light"] select {
+  color-scheme: light;
+}
+
+select option,
+select optgroup {
+  background-color: var(--bg-card);
   color: var(--text-main);
 }
 
@@ -1060,6 +1080,11 @@ p {
   .listing-details-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+  /* Signering: ikke fast høyde som stikker ut av skjerm på små telefoner */
+  .sign-terms-scroll {
+    height: min(450px, 58vh) !important;
+    max-height: 70dvh;
   }
 }
 

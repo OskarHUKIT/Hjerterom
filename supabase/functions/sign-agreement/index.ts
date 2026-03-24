@@ -8,9 +8,16 @@ const corsHeaders = {
 
 const CLIENT_ID = "sandbox-misty-angle-164"
 const CLIENT_SECRET = Deno.env.get("SIGNICAT_SECRET_SIGN")?.trim()
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "")
 
-const PDF_URL = "https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf"
+function fallbackPdfUrl(): string {
+  const fromEnv = Deno.env.get("TERMS_FALLBACK_PDF_URL")?.trim()
+  if (fromEnv) return fromEnv
+  if (SUPABASE_URL) {
+    return `${SUPABASE_URL}/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf`
+  }
+  return "https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf"
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -20,28 +27,55 @@ serve(async (req) => {
   let currentStep = "Initialisering"
   try {
     const raw = await req.text()
-    let body: { userId?: string; origin?: string }
+    let body: { userId?: string; origin?: string; city?: string }
     try {
       body = raw ? JSON.parse(raw) : {}
     } catch {
       console.error('Body parse failed. Raw (first 200):', raw.slice(0, 200))
       throw new Error('Ugyldig forespørsel: kunne ikke parse JSON.')
     }
-    const { userId, origin } = body
-    
-    console.log(`DEBUG: Starter signering for ${userId}. Origin: ${origin}. Secret konfigurert: ${!!CLIENT_SECRET}`)
+    const { userId, origin, city } = body
+    const cityParam = city?.trim() ? `&city=${encodeURIComponent(city.trim())}` : ''
+
+    console.log(`DEBUG: Starter signering for ${userId}. Origin: ${origin}. City: ${city ?? '(none)'}. Secret konfigurert: ${!!CLIENT_SECRET}`)
     
     if (!userId) throw new Error("Mangler userId i forespørselen")
     if (!CLIENT_SECRET) throw new Error("SIGNICAT_SECRET_SIGN mangler i Supabase Secrets. Sjekk at du har lagt den til i Edge Functions -> Secrets.")
+    if (!SUPABASE_URL) throw new Error("SUPABASE_URL mangler")
 
     // Logg initieringen (rate limit deaktivert for nå)
     currentStep = "Logging"
-    const supabaseAdmin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"))
+    const supabaseAdmin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
     await supabaseAdmin.from('audit_logs').insert([{
       user_id: userId,
       action_type: 'SIGN_INITIATED',
       details: { note: 'Rate limit deaktivert' }
     }])
+
+    currentStep = "Hent gjeldende vilkår-dokument"
+    const { data: docId, error: rpcErr } = await supabaseAdmin.rpc('get_latest_terms_document_id_for_user', {
+      p_user_id: userId,
+      p_city: city?.trim() || null,
+    })
+    if (rpcErr) console.warn('get_latest_terms_document_id_for_user:', rpcErr.message)
+
+    let pdfUrl = fallbackPdfUrl()
+    let signTitle = "Vilkårsavtale Boligbank"
+
+    if (docId && typeof docId === 'string') {
+      const { data: row } = await supabaseAdmin
+        .from('terms_documents')
+        .select('title, pdf_bucket, pdf_storage_path')
+        .eq('id', docId)
+        .maybeSingle()
+
+      if (row?.pdf_storage_path?.trim()) {
+        const bucket = (row.pdf_bucket || 'documents').trim()
+        const path = row.pdf_storage_path.trim()
+        pdfUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`
+        if (row.title?.trim()) signTitle = row.title.trim()
+      }
+    }
 
     // 1. Token
     currentStep = "Henting av Access Token"
@@ -62,8 +96,8 @@ serve(async (req) => {
 
     // 2. PDF
     currentStep = "Henting av PDF fra Storage"
-    const pdfRes = await fetch(PDF_URL)
-    if (!pdfRes.ok) throw new Error("Kunne ikke laste ned PDF fra Storage")
+    const pdfRes = await fetch(pdfUrl)
+    if (!pdfRes.ok) throw new Error(`Kunne ikke laste ned PDF fra Storage (${pdfRes.status})`)
     const pdfBuffer = await pdfRes.arrayBuffer()
 
     // 3. Dokument
@@ -96,10 +130,10 @@ serve(async (req) => {
     if (!collRes.ok) throw new Error(`Samling-opprettelse feilet: ${JSON.stringify(collData)}`)
     const collectionId = collData.id || collData.documentCollectionId
 
+    const functionsHost = `${SUPABASE_URL}/functions/v1`
+
     // 5. Sesjon
     currentStep = "Opprettelse av signerings-økt"
-    // Prøver uten array-innpakning dersom det er en enkelt sesjon, 
-    // men Signicat v2 krever ofte array for POST /signing-sessions
     const sessionRes = await fetch("https://api.signicat.com/sign/signing-sessions", {
       method: "POST",
       headers: {
@@ -108,7 +142,7 @@ serve(async (req) => {
         "Accept": "application/json"
       },
       body: JSON.stringify([{
-        title: "Vilkårsavtale Boligbank",
+        title: signTitle.slice(0, 200),
         externalReference: userId,
         documents: [{
           documentId,
@@ -120,9 +154,9 @@ serve(async (req) => {
           signingFlow: "AUTHENTICATION_BASED"
         }],
         redirectSettings: {
-          success: `https://ayddwbmkclujefnhsaqv.functions.supabase.co/sign-callback?userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(origin || "")}`,
-          cancel: `https://ayddwbmkclujefnhsaqv.functions.supabase.co/sign-callback?status=cancel&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(origin || "")}`,
-          error: `https://ayddwbmkclujefnhsaqv.functions.supabase.co/sign-callback?status=error&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(origin || "")}`
+          success: `${functionsHost}/sign-callback?userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(origin || "")}${cityParam}`,
+          cancel: `${functionsHost}/sign-callback?status=cancel&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(origin || "")}${cityParam}`,
+          error: `${functionsHost}/sign-callback?status=error&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(origin || "")}${cityParam}`
         }
       }])
     })
@@ -132,7 +166,6 @@ serve(async (req) => {
     
     if (!sessionRes.ok) throw new Error(`Signerings-økt feilet: ${JSON.stringify(sessionData)}`)
 
-    // Signicat v2 kan returnere enten et objekt eller en liste
     const sessionObj = Array.isArray(sessionData) ? sessionData[0] : sessionData
     const signatureUrl = sessionObj?.signatureUrl || sessionObj?.url
     
@@ -145,10 +178,11 @@ serve(async (req) => {
     })
 
   } catch (err) {
-    console.error(`FEIL i steg "${currentStep}":`, err.message)
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(`FEIL i steg "${currentStep}":`, message)
     return new Response(JSON.stringify({ 
       error: `Feil under ${currentStep}`, 
-      message: err.message 
+      message 
     }), { 
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" }

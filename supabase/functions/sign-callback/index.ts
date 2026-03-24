@@ -21,8 +21,9 @@ serve(async (req) => {
   // Signicat v2 sender ofte disse som query-parametre i redirecten
   const signingSessionId = url.searchParams.get("signingSessionId")
   const userId = url.searchParams.get("userId") || url.searchParams.get("externalReference") || url.searchParams.get("externalId")
+  const city = url.searchParams.get("city")?.trim() || ""
 
-  console.log("Signering ferdig:", { status, signingSessionId, userId, origin })
+  console.log("Signering ferdig:", { status, signingSessionId, userId, origin, city })
 
   const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!)
   
@@ -51,6 +52,15 @@ serve(async (req) => {
         throw updateError
       }
 
+      // 1b. Versjonerte vilkår (tekst) — kobles til user_terms_acceptances
+      const { error: termsSyncErr } = await supabaseAdmin.rpc("sync_terms_acceptance_after_sign", {
+        p_user_id: userId,
+        p_city: city || null,
+      })
+      if (termsSyncErr) {
+        console.error("sync_terms_acceptance_after_sign:", termsSyncErr)
+      }
+
       // 2. Logg hendelsen
       await supabaseAdmin.from('audit_logs').insert([{
         user_id: userId,
@@ -71,7 +81,7 @@ serve(async (req) => {
       const { data: kommuneProfiles } = await supabaseAdmin
         .from('profiles')
         .select('id')
-        .eq('role', 'kommune_ansatt')
+        .in('role', ['kommune_ansatt', 'kommune_admin'])
 
       // Kun kommune-ansatte, ALDRI brukeren som signerte selv (utleier)
       const recipients = (kommuneProfiles || []).filter((p) => p.id !== userId)
@@ -91,7 +101,7 @@ serve(async (req) => {
         }
       }
 
-      redirectUrl += "?signed=true"
+      redirectUrl += "?signed=true" + (city ? `&city=${encodeURIComponent(city)}` : "")
     } else {
       redirectUrl += `?signed=false&error=${status || 'unknown'}`
     }

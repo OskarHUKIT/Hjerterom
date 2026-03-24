@@ -9,8 +9,10 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDateNo } from '../../lib/dateFormat'
+import { formatKommuneRegionsForDisplay, listingCityMatchesRegions } from '../../lib/kommuneRegions'
 import UserProfileClient from './UserProfileClient'
 import { useLanguage } from '../../../context/LanguageContext'
+import { isKommuneAdminRole, isKommuneStaffRole, kommuneNavUsesAccountsLabel } from '../../lib/kommuneRoles'
 
 function NavUsersContent() {
   const { t } = useLanguage()
@@ -20,6 +22,14 @@ function NavUsersContent() {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [isKommuneAdmin, setIsKommuneAdmin] = useState(false)
+  const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
+  const [useAccountsNavCopy, setUseAccountsNavCopy] = useState(false)
+  const [accountTab, setAccountTab] = useState<'landlords' | 'staff'>('landlords')
+  const [staffRows, setStaffRows] = useState<
+    { id: string; full_name: string; email: string; kommune_region: string | null; kommune_can_edit: boolean; updated_at: string | null }[]
+  >([])
+  const [staffLoading, setStaffLoading] = useState(false)
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -43,8 +53,16 @@ function NavUsersContent() {
         }
       }
 
-      if (userRole !== 'kommune_ansatt') {
+      setIsKommuneAdmin(isKommuneAdminRole(userRole))
+      setKommuneCanEdit(
+        userRole === 'kommune_admin' ||
+          (currentProfile as { kommune_can_edit?: boolean | null } | null)?.kommune_can_edit !== false
+      )
+      setUseAccountsNavCopy(kommuneNavUsesAccountsLabel(userRole))
+
+      if (!isKommuneStaffRole(userRole)) {
         setUsers([])
+        setUseAccountsNavCopy(false)
         setLoading(false)
         return
       }
@@ -72,10 +90,7 @@ function NavUsersContent() {
 
       const regionsNorm = regions.map(r => r.trim().toLowerCase()).filter(Boolean)
       const { data: allListings } = await supabase.rpc('get_listings_for_kommune')
-      const listingsInRegion = (allListings || []).filter((l: any) => {
-        const city = (l.city || '').trim().toLowerCase()
-        return city && regionsNorm.some((r: string) => r === city)
-      })
+      const listingsInRegion = (allListings || []).filter((l: any) => listingCityMatchesRegions(l.city, regionsNorm))
       const allowedOwnerIds = new Set(listingsInRegion.map((l: any) => l.owner_id).filter(Boolean))
 
       const { data: profiles, error: profileError } = await supabase.rpc('get_all_users_for_kommune')
@@ -138,7 +153,36 @@ function NavUsersContent() {
     fetchUsers()
   }, [])
 
-  const filteredUsers = users.filter(u => 
+  useEffect(() => {
+    if (!useAccountsNavCopy || accountTab !== 'staff') return
+    let cancelled = false
+    ;(async () => {
+      setStaffLoading(true)
+      const { data, error } = await supabase.rpc('get_kommune_staff_for_admin')
+      if (cancelled) return
+      if (error) console.error(error)
+      setStaffRows((data as typeof staffRows) || [])
+      setStaffLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [useAccountsNavCopy, accountTab])
+
+  const toggleStaffEdit = async (staffId: string, currentCanEdit: boolean) => {
+    const { error } = await supabase.rpc('kommune_admin_set_staff_can_edit', {
+      p_target_user_id: staffId,
+      p_can_edit: !currentCanEdit
+    })
+    if (error) {
+      alert(error.message)
+      return
+    }
+    setStaffRows(prev => prev.map(r => (r.id === staffId ? { ...r, kommune_can_edit: !currentCanEdit } : r)))
+  }
+
+  const landlordUsers = users.filter((u: { role?: string }) => !isKommuneStaffRole(u.role))
+  const filteredUsers = landlordUsers.filter(u =>
     u.owner_name?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -153,10 +197,40 @@ function NavUsersContent() {
         <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           ← {t('overview')}
         </Link>
-        <h1 style={{ fontSize: '2.75rem' }}>{t('users')}</h1>
-        <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>{t('usersDesc')}</p>
+        <h1 style={{ fontSize: '2.75rem' }}>{useAccountsNavCopy ? t('navAccounts') : t('navLandlords')}</h1>
+        <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>
+          {useAccountsNavCopy
+            ? isKommuneAdmin
+              ? t('navAccountsDesc')
+              : kommuneCanEdit
+                ? t('navAccountsDescEditor')
+                : t('navAccountsDescReadonly')
+            : t('navLandlordsDesc')}
+        </p>
       </div>
 
+      {useAccountsNavCopy && (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className={accountTab === 'landlords' ? 'button' : 'button button-secondary'}
+            style={{ padding: '8px 16px' }}
+            onClick={() => setAccountTab('landlords')}
+          >
+            {t('tabLandlords')}
+          </button>
+          <button
+            type="button"
+            className={accountTab === 'staff' ? 'button' : 'button button-secondary'}
+            style={{ padding: '8px 16px' }}
+            onClick={() => setAccountTab('staff')}
+          >
+            {t('tabStaff')}
+          </button>
+        </div>
+      )}
+
+      {accountTab === 'landlords' && (
       <div className="card" style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-4)' }}>
         <div style={{ position: 'relative' }}>
           <input 
@@ -170,8 +244,61 @@ function NavUsersContent() {
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '14px', opacity: 0.5 }} />
         </div>
       </div>
+      )}
 
-      {loading ? (
+      {accountTab === 'staff' && useAccountsNavCopy ? (
+        staffLoading ? (
+          <div className="card" style={{ padding: 'var(--space-10)', minHeight: '200px' }} />
+        ) : staffRows.length > 0 ? (
+          <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+            {staffRows.map(s => (
+              <div key={s.id} className="card" style={{ padding: 'var(--space-5)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 4px', color: 'var(--color-accent)' }}>{s.full_name || s.email}</h3>
+                    <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>{s.email}</p>
+                    <p style={{ margin: '8px 0 0', fontSize: '0.85rem', opacity: 0.7, maxWidth: '420px' }}>
+                      {t('kommuneAccess')}: {formatKommuneRegionsForDisplay(s.kommune_region) || '—'}
+                    </p>
+                  </div>
+                  {isKommuneAdmin && (
+                  <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer', fontSize: '0.9rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={s.kommune_can_edit !== false}
+                        onChange={() => toggleStaffEdit(s.id, s.kommune_can_edit !== false)}
+                      />
+                      {t('staffEditAccess')}
+                    </label>
+                  </div>
+                  )}
+                </div>
+                <div style={{ marginTop: 'var(--space-3)', display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                  <Link
+                    href={`/nav/messages?with=${s.id}`}
+                    className="button button-secondary"
+                    style={{ padding: '8px 16px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                  >
+                    <MessageSquare size={16} style={{ marginRight: '8px' }} /> {t('chat')}
+                  </Link>
+                  <button type="button" className="button" style={{ padding: '8px 16px' }} onClick={() => router.push(`/nav/users?id=${s.id}`)}>
+                    {t('seeProfile')} <ChevronRight size={16} style={{ marginLeft: '4px' }} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
+            <Info size={40} style={{ margin: '0 auto var(--space-3)', opacity: 0.3 }} />
+            <p>{t('noUsersMatch')}</p>
+          </div>
+        )
+      ) : null}
+
+      {accountTab === 'landlords' && (
+        loading ? (
         <div className="card" style={{ padding: 'var(--space-10)', minHeight: '200px' }} />
       ) : filteredUsers.length > 0 ? (
         <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
@@ -214,6 +341,7 @@ function NavUsersContent() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+                  {kommuneCanEdit ? (
                   <Link
                     href={`/nav/messages?with=${user.owner_id}`}
                     className="button button-secondary"
@@ -222,6 +350,7 @@ function NavUsersContent() {
                   >
                     <MessageSquare size={16} style={{ marginRight: '8px' }} /> {t('chat')}
                   </Link>
+                  ) : null}
                   <button className="button" style={{ padding: '8px 16px' }}>
                     {t('seeProfile')} <ChevronRight size={16} style={{ marginLeft: '4px' }} />
                   </button>
@@ -235,6 +364,7 @@ function NavUsersContent() {
           <Info size={40} style={{ margin: '0 auto var(--space-3)', opacity: 0.3 }} />
           <p>{t('noUsersMatch')}</p>
         </div>
+      )
       )}
 
       <style jsx>{`

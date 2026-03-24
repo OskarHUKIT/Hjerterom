@@ -14,6 +14,8 @@ import { supabase } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
+import { appendMediationNoteToOwnerMessage, MAX_MEDIATION_NOTE_IN_NOTIFICATION } from '../../lib/formidletNotification'
+import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 
 // Dynamically import Map component to avoid SSR issues
 const MapView = dynamic(() => import('../../components/MapView'), { 
@@ -44,10 +46,15 @@ export default function NavDatabase(props: PageProps) {
 
       const role = user.user_metadata?.role
       const { data: profile } = await supabase.from('profiles').select('role, kommune_can_edit, kommune_region').eq('id', user.id).maybeSingle()
-      if (role === 'kommune_ansatt' || profile?.role === 'kommune_ansatt') {
+      const kr =
+        role === 'kommune_ansatt' ||
+        profile?.role === 'kommune_ansatt' ||
+        role === 'kommune_admin' ||
+        profile?.role === 'kommune_admin'
+      if (kr) {
         setIsAuthorized(true)
         setUserRole(profile?.role || role || 'kommune_ansatt')
-        setKommuneCanEdit(profile?.kommune_can_edit !== false)
+        setKommuneCanEdit(profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false)
         let region = profile?.kommune_region ?? null
         if ((region == null || String(region).trim() === '') && user.email) {
           const rpcRes = await supabase.rpc('get_whitelist_region_for_email', { p_email: user.email })
@@ -79,9 +86,12 @@ export default function NavDatabase(props: PageProps) {
   const [showFilters, setShowFilters] = useState(false)
   const [showColumnSettings, setShowColumnSettings] = useState(false)
   const [timelineOffset, setTimelineOffset] = useState(0)
+  const [timelineColorHelpOpen, setTimelineColorHelpOpen] = useState(false)
   const [formidletModalListing, setFormidletModalListing] = useState<any>(null)
   const [formidletStart, setFormidletStart] = useState('')
   const [formidletEnd, setFormidletEnd] = useState('')
+  const [formidletMediationNote, setFormidletMediationNote] = useState('')
+  const [formidletIncludeNoteInOwnerNotif, setFormidletIncludeNoteInOwnerNotif] = useState(false)
   const [formidletSending, setFormidletSending] = useState(false)
   const [formidletExtendModal, setFormidletExtendModal] = useState<{ listing: any; period: any } | null>(null)
   const [formidletExtendEnd, setFormidletExtendEnd] = useState('')
@@ -188,7 +198,7 @@ export default function NavDatabase(props: PageProps) {
   /** Cache-nøkkel inkluderer region slik at vi ikke gjenbruker tom cache fra før kommune_region er lastet. I kartvisning brukes én nøkkel (alle statuser vises samtidig). */
   const getTabCacheKey = () => {
     const base = viewMode === 'map' ? 'map' : `${activeTab}_${viewMode}`
-    if (userRole === 'kommune_ansatt') {
+    if (isKommuneStaffRole(userRole)) {
       const regions = parseKommuneRegions(kommuneRegion)
       const regionKey = regions.length ? regions.sort().join(',') : 'none'
       return `${base}_${regionKey}`
@@ -231,7 +241,7 @@ export default function NavDatabase(props: PageProps) {
       let error: any = null
 
       setKommuneFetchError(null)
-      if (isAuthorized && userRole === 'kommune_ansatt') {
+      if (isAuthorized && isKommuneStaffRole(userRole)) {
         const res = await supabase.rpc('get_listings_for_kommune')
         const raw = res.data
         data = Array.isArray(raw) ? raw : (raw != null ? [raw] : [])
@@ -264,8 +274,8 @@ export default function NavDatabase(props: PageProps) {
         )
       }
       // Tillatelsesområder: kommune ser bare boliger i kommuner de har eksplisitt tilgang til
-      const regions = isAuthorized && userRole === 'kommune_ansatt' ? parseKommuneRegions(kommuneRegion) : []
-      if (isAuthorized && userRole === 'kommune_ansatt') {
+      const regions = isAuthorized && isKommuneStaffRole(userRole) ? parseKommuneRegions(kommuneRegion) : []
+      if (isAuthorized && isKommuneStaffRole(userRole)) {
         if (regions.length > 0) {
           filtered = filtered.filter(item => {
             const city = (item.city || '').trim().toLowerCase()
@@ -361,7 +371,7 @@ export default function NavDatabase(props: PageProps) {
   useEffect(() => {
     if (!isAuthorized) return
     // For kommune uten region ennå: vis tom liste (ikke blank skjerm), så vi henter på nytt når region er satt
-    if (userRole === 'kommune_ansatt' && kommuneRegion == null) {
+    if (isKommuneStaffRole(userRole) && kommuneRegion == null) {
       setLoading(false)
       setListings([])
       setAvailability({})
@@ -400,11 +410,20 @@ export default function NavDatabase(props: PageProps) {
     }
   }
 
+  const closeFormidletModal = () => {
+    if (formidletSending) return
+    setFormidletModalListing(null)
+    setFormidletMediationNote('')
+    setFormidletIncludeNoteInOwnerNotif(false)
+  }
+
   const openFormidletModal = (listing: any) => {
     const today = new Date().toISOString().slice(0, 10)
     setFormidletModalListing(listing)
     setFormidletStart(today)
     setFormidletEnd(today)
+    setFormidletMediationNote('')
+    setFormidletIncludeNoteInOwnerNotif(false)
   }
 
   const openFormidletExtendModal = (listing: any) => {
@@ -453,6 +472,8 @@ export default function NavDatabase(props: PageProps) {
     const id = formidletModalListing.id
     const address = formidletModalListing.address
     const listing = formidletModalListing
+    const noteTrimmed = formidletMediationNote.trim()
+    const includeNote = !!(formidletIncludeNoteInOwnerNotif && noteTrimmed)
     const attachSchema = confirm(`Vil du markere "${address}" som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}?`)
     
     setFormidletSending(true)
@@ -460,7 +481,14 @@ export default function NavDatabase(props: PageProps) {
       // 1. Legg til formidlet-periode i listing_availability
       const { error: availError } = await supabase
         .from('listing_availability')
-        .insert([{ listing_id: id, start_date: formidletStart, end_date: formidletEnd, status: 'Formidla' }])
+        .insert([{
+          listing_id: id,
+          start_date: formidletStart,
+          end_date: formidletEnd,
+          status: 'Formidla',
+          mediation_note: noteTrimmed || null,
+          include_note_in_owner_notification: includeNote
+        }])
       
       if (availError) throw availError
       
@@ -477,22 +505,26 @@ export default function NavDatabase(props: PageProps) {
         user_id: user?.id,
         action_type: 'KOMMUNE_MARK_FORMIDLA',
         listing_address: address,
-        details: { by: 'Kommune-ansatt', attached_schema: attachSchema, start_date: formidletStart, end_date: formidletEnd }
+        details: { by: 'Kommune-ansatt', attached_schema: attachSchema, start_date: formidletStart, end_date: formidletEnd, include_note_in_owner_notification: includeNote, has_mediation_note: !!noteTrimmed }
       }])
 
       if (listing?.owner_id) {
         await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
+        const baseMsg = `Kommunen har markert boligen din i ${address} som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`
+        const message = appendMediationNoteToOwnerMessage(baseMsg, noteTrimmed, includeNote)
         await supabase.from('notifications').insert([{
           owner_id: listing.owner_id,
           type: 'HOUSE_FORMIDLET',
           title: 'Bolig formidlet',
-          message: `Kommunen har markert boligen din i ${address} som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`,
+          message,
           listing_id: id
         }])
       }
 
       // Optimistic update: move listing to Formidlet in UI immediately
       setListings(prev => prev.filter(l => l.id !== id))
+      setFormidletMediationNote('')
+      setFormidletIncludeNoteInOwnerNotif(false)
       setFormidletModalListing(null)
       fetchListings(false) // Background refresh, no loader
     } catch (err: any) {
@@ -738,7 +770,7 @@ export default function NavDatabase(props: PageProps) {
                     <option>Umøblert</option>
                     <option>Kun hvitevarer</option>
                     <option>Fullt møblert</option>
-                    <option>Fullt møblert med inventar på kjøkken og bad</option>
+                    <option>Fullt møblert og boligen har alt nødvendig inventar for matlaging og overnatting.</option>
                   </select>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
@@ -803,7 +835,7 @@ export default function NavDatabase(props: PageProps) {
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', 
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 
           }}
-          onClick={() => !formidletSending && setFormidletModalListing(null)}
+          onClick={() => closeFormidletModal()}
         >
           <div 
             className="card" 
@@ -812,7 +844,7 @@ export default function NavDatabase(props: PageProps) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
               <h3 style={{ margin: 0 }}>Legg inn formidlet periode</h3>
-              <button onClick={() => !formidletSending && setFormidletModalListing(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
+              <button onClick={() => closeFormidletModal()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
                 <X size={20} />
               </button>
             </div>
@@ -848,8 +880,36 @@ export default function NavDatabase(props: PageProps) {
                 </div>
               </div>
             </div>
+            <details style={{ fontSize: '0.85rem', marginBottom: 'var(--space-6)', color: 'var(--text-muted)' }}>
+              <summary style={{ cursor: 'pointer', userSelect: 'none', color: 'var(--text-main)' }}>{t('mediationNoteOptional')}</summary>
+              <div style={{ marginTop: 'var(--space-3)', display: 'grid', gap: 'var(--space-2)' }}>
+                <textarea
+                  className="input"
+                  rows={2}
+                  maxLength={MAX_MEDIATION_NOTE_IN_NOTIFICATION}
+                  value={formidletMediationNote}
+                  onChange={e => {
+                    const v = e.target.value
+                    setFormidletMediationNote(v)
+                    if (!v.trim()) setFormidletIncludeNoteInOwnerNotif(false)
+                  }}
+                  placeholder={t('mediationNotePlaceholder')}
+                  style={{ marginBottom: 0, width: '100%', resize: 'vertical', minHeight: '48px', maxHeight: '120px', fontSize: '0.9rem' }}
+                />
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)', cursor: formidletMediationNote.trim() ? 'pointer' : 'default', color: 'var(--text-body)' }}>
+                  <input
+                    type="checkbox"
+                    checked={formidletIncludeNoteInOwnerNotif}
+                    onChange={e => setFormidletIncludeNoteInOwnerNotif(e.target.checked)}
+                    disabled={!formidletMediationNote.trim()}
+                    style={{ marginTop: '2px' }}
+                  />
+                  <span>{t('includeMediationNoteInNotification')}</span>
+                </label>
+              </div>
+            </details>
             <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <button onClick={() => !formidletSending && setFormidletModalListing(null)} style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', padding: 'var(--space-3) var(--space-5)', borderRadius: '10px', cursor: 'pointer' }}>
+              <button onClick={() => closeFormidletModal()} style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', padding: 'var(--space-3) var(--space-5)', borderRadius: '10px', cursor: 'pointer' }}>
                 Avbryt
               </button>
               <button onClick={handleMarkAsFormidlet} disabled={formidletSending} className="button button-accent">
@@ -970,8 +1030,94 @@ export default function NavDatabase(props: PageProps) {
             />
           ) : (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-              <div className="card" style={{ padding: 'var(--space-6)', overflowX: 'auto' }}>
-                <div style={{ minWidth: '800px' }}>
+              {timelineColorHelpOpen && (
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="timeline-color-help-title"
+                  style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 10050,
+                    background: 'rgba(0,0,0,0.55)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 'var(--space-4)',
+                  }}
+                  onClick={() => setTimelineColorHelpOpen(false)}
+                >
+                  <div
+                    className="card"
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      maxWidth: 460,
+                      width: '100%',
+                      padding: 'var(--space-6)',
+                      textAlign: 'left',
+                      boxShadow: 'var(--shadow-lg, 0 12px 40px rgba(0,0,0,0.35))',
+                    }}
+                  >
+                    <h2 id="timeline-color-help-title" style={{ margin: '0 0 var(--space-3)', fontSize: '1.2rem' }}>
+                      {t('timelineColorHelpTitle')}
+                    </h2>
+                    <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.95rem', opacity: 0.9, lineHeight: 1.5 }}>
+                      {t('timelineColorHelpIntro')}
+                    </p>
+                    <ul style={{ margin: 0, paddingLeft: '1.1rem', display: 'grid', gap: 'var(--space-3)', fontSize: '0.9rem', lineHeight: 1.45 }}>
+                      <li style={{ listStyle: 'none', marginLeft: '-1.1rem', paddingLeft: 0, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                        <span style={{ width: 14, height: 14, background: 'var(--color-teal)', borderRadius: 3, flexShrink: 0, marginTop: 3 }} />
+                        <span>{t('timelineColorHelpTeal')}</span>
+                      </li>
+                      <li style={{ listStyle: 'none', marginLeft: '-1.1rem', paddingLeft: 0, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                        <span style={{ width: 14, height: 14, background: 'var(--color-sky-blue)', borderRadius: 3, flexShrink: 0, marginTop: 3 }} />
+                        <span>{t('timelineColorHelpBlue')}</span>
+                      </li>
+                      <li style={{ listStyle: 'none', marginLeft: '-1.1rem', paddingLeft: 0, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                        <span style={{ width: 14, height: 14, background: '#ef4444', borderRadius: 3, flexShrink: 0, marginTop: 3 }} />
+                        <span>{t('timelineColorHelpRed')}</span>
+                      </li>
+                      <li style={{ listStyle: 'none', marginLeft: '-1.1rem', paddingLeft: 0, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                        <span style={{ width: 14, height: 14, background: '#991b1b', borderRadius: 3, flexShrink: 0, marginTop: 3 }} />
+                        <span>{t('timelineColorHelpConflict')}</span>
+                      </li>
+                    </ul>
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={() => setTimelineColorHelpOpen(false)}
+                      style={{ marginTop: 'var(--space-6)', width: '100%' }}
+                    >
+                      {t('close')}
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="card" style={{ padding: 'var(--space-6)', overflowX: 'auto', position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setTimelineColorHelpOpen(true)}
+                  aria-label={t('timelineColorHelpTitle')}
+                  title={t('timelineColorHelpTitle')}
+                  style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    zIndex: 5,
+                    background: 'rgba(59, 130, 246, 0.12)',
+                    border: '1px solid rgba(59, 130, 246, 0.35)',
+                    borderRadius: '10px',
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                    color: 'var(--color-sky-blue)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Info size={18} aria-hidden />
+                </button>
+                <div style={{ minWidth: '800px', paddingRight: '44px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 'var(--space-4)', borderBottom: '1px solid var(--border-subtle)' }}>
                     {/* Rad 1: Måneder og År */}
                     <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -1127,18 +1273,18 @@ export default function NavDatabase(props: PageProps) {
               </div>
               
               <div className="card" style={{ padding: 'var(--space-4)', display: 'grid', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>
-                <div style={{ display: 'flex', gap: 'var(--space-6)', marginBottom: 'var(--space-2)', fontSize: '0.75rem', opacity: 0.8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div style={{ width: '12px', height: '12px', background: 'var(--color-teal)', borderRadius: '2px' }}></div> Tilgjengelig
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)', marginBottom: 'var(--space-2)', fontSize: '0.75rem', opacity: 0.8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={t('calendarLegendAvailableInfo')}>
+                    <div style={{ width: '12px', height: '12px', background: 'var(--color-teal)', borderRadius: '2px' }} /> {t('available')}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div style={{ width: '12px', height: '12px', background: 'var(--color-sky-blue)', borderRadius: '2px' }}></div> Formidlet
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={t('calendarLegendFormidletInfo')}>
+                    <div style={{ width: '12px', height: '12px', background: 'var(--color-sky-blue)', borderRadius: '2px' }} /> {t('formidlet')}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div style={{ width: '12px', height: '12px', background: '#ef4444', borderRadius: '2px' }}></div> Utilgjengelig
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={t('calendarLegendUnavailableInfo')}>
+                    <div style={{ width: '12px', height: '12px', background: '#ef4444', borderRadius: '2px' }} /> {t('unavailable')}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div style={{ width: '12px', height: '12px', background: '#991b1b', borderRadius: '2px' }}></div> Konflikt
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title={t('calendarLegendConflictInfo')}>
+                    <div style={{ width: '12px', height: '12px', background: '#991b1b', borderRadius: '2px' }} /> {t('timelineLegendConflictShort')}
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

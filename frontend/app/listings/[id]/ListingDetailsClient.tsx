@@ -10,12 +10,15 @@ import {
   Phone, User, Home as HomeIcon, CheckCircle2, 
   Ruler, Building, Tag, Wifi, Zap, Tv, Clipboard, 
   MessageSquare, Send, Trash2, Clock, ChevronLeft, ChevronRight, ChevronDown,
-  Maximize2, X, Plus, Camera, Edit3, FileText, RotateCcw, RefreshCw
+  Maximize2, X, Plus, Camera, Edit3, FileText, RotateCcw, RefreshCw, Lock
 } from 'lucide-react'
 
 import HandoverReport from '../../components/HandoverReport'
 import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
+import { geocodeAddressBestEffort } from '../../lib/geocoding'
 import { DateInput } from '../../components/DateInput'
+import { appendMediationNoteToOwnerMessage, MAX_MEDIATION_NOTE_IN_NOTIFICATION } from '../../lib/formidletNotification'
+import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 
 export default function ListingDetailsClient() {
   const { id } = useParams()
@@ -46,6 +49,8 @@ export default function ListingDetailsClient() {
   const [regionAccessDenied, setRegionAccessDenied] = useState(false)
   const [showNavNotes, setShowNavNotes] = useState(false)
   const [kommuneCanEdit, setKommuneCanEdit] = useState(false)
+  /** True når innlogget bruker er kommune (for meldingslenke til utleier utenfor nav-visning). */
+  const [viewerIsKommuneStaff, setViewerIsKommuneStaff] = useState(false)
   const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{ id: string; status: string } | null>(null)
   
   // Gallery state
@@ -58,6 +63,11 @@ export default function ListingDetailsClient() {
   const [formidletStart, setFormidletStart] = useState('')
   const [formidletEnd, setFormidletEnd] = useState('')
   const [formidletSending, setFormidletSending] = useState(false)
+  const [formidletMediationNote, setFormidletMediationNote] = useState('')
+  const [formidletIncludeNoteInNotification, setFormidletIncludeNoteInNotification] = useState(false)
+  const [mediationReservation, setMediationReservation] = useState<(Record<string, any> & { reserved_by_name?: string }) | null>(null)
+  const [reservationNote, setReservationNote] = useState('')
+  const [reservationLoading, setReservationLoading] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const d = new Date()
     return new Date(d.getFullYear(), d.getMonth(), 1)
@@ -84,7 +94,7 @@ export default function ListingDetailsClient() {
     
     if (!hasActiveAgreement) {
       alert(t('signAgreementToEdit'))
-      router.push('/homeowner/sign-terms')
+      router.push(`/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`)
       return
     }
 
@@ -97,14 +107,32 @@ export default function ListingDetailsClient() {
 
       if (error) throw error
 
-      setListing({ ...listing, [field]: value })
+      const nextListing = { ...listing, [field]: value }
+      setListing(nextListing)
+
+      if (['address', 'city', 'postal_code'].includes(field)) {
+        const hit = await geocodeAddressBestEffort({
+          address: String(nextListing.address || ''),
+          postal_code: String(nextListing.postal_code || ''),
+          city: String(nextListing.city || '')
+        })
+        if (hit && Number.isFinite(hit.lat) && Number.isFinite(hit.lon)) {
+          const { error: geoErr } = await supabase
+            .from('listings')
+            .update({ latitude: hit.lat, longitude: hit.lon })
+            .eq('id', id)
+          if (!geoErr) {
+            setListing({ ...nextListing, latitude: hit.lat, longitude: hit.lon })
+          }
+        }
+      }
       
       // Log event
       await supabase.from('audit_logs').insert([{
         user_id: currentUser.id,
         action_type: 'UPDATE_FIELD',
         listing_id: id,
-        listing_address: listing.address,
+        listing_address: nextListing.address,
         details: { field, value }
       }])
     } catch (err: any) {
@@ -114,9 +142,96 @@ export default function ListingDetailsClient() {
     }
   }
 
+  /** Én atomisk lagring — to separate handleUpdateField-kall overskrev pet_policy med gammel state fra closure. */
+  const handlePetPolicyChange = async (v: string) => {
+    if (!listing || !isOwner || isNavView) return
+    if (!hasActiveAgreement) {
+      alert(t('signAgreementToEdit'))
+      router.push(`/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`)
+      return
+    }
+    const nextDetail = v === 'Enkelte dyr er tillatt' ? (listing.pet_policy_detail || '') : ''
+    const nextListing = { ...listing, pet_policy: v, pet_policy_detail: nextDetail }
+    const previous = listing
+    setListing(nextListing)
+    setIsSaving('pet_policy')
+    try {
+      const { error } = await supabase
+        .from('listings')
+        .update({ pet_policy: v, pet_policy_detail: nextDetail })
+        .eq('id', id)
+      if (error) throw error
+      await supabase.from('audit_logs').insert([{
+        user_id: currentUser?.id,
+        action_type: 'UPDATE_FIELD',
+        listing_id: id,
+        listing_address: nextListing.address,
+        details: { field: 'pet_policy', value: v, pet_policy_detail: nextDetail }
+      }])
+    } catch (err: any) {
+      alert(t('errorSaving') + err.message)
+      setListing(previous)
+    } finally {
+      setIsSaving(null)
+    }
+  }
+
+  const loadMediationReservation = async () => {
+    if (!id || !isNavView) return
+    await supabase.rpc('expire_stale_mediation_reservations')
+    const { data: resRow } = await supabase
+      .from('listing_mediation_reservations')
+      .select('*')
+      .eq('listing_id', id)
+      .eq('status', 'active')
+      .maybeSingle()
+    if (!resRow) {
+      setMediationReservation(null)
+      return
+    }
+    const { data: n } = await supabase.rpc('get_user_display_name', { p_user_id: resRow.reserved_by })
+    setMediationReservation({ ...resRow, reserved_by_name: typeof n === 'string' ? n : '…' })
+  }
+
+  const handleReserveMediation = async () => {
+    if (!listing || !isNavView || !kommuneCanEdit) return
+    setReservationLoading(true)
+    try {
+      const { error } = await supabase.rpc('reserve_listing_mediation', {
+        p_listing_id: id,
+        p_note: reservationNote.trim() || null
+      })
+      if (error) throw error
+      await loadMediationReservation()
+      setReservationNote('')
+    } catch (e: any) {
+      alert(t('mediationReserveError') + (e?.message ? `: ${e.message}` : ''))
+    } finally {
+      setReservationLoading(false)
+    }
+  }
+
+  const handleReleaseMediation = async () => {
+    if (!listing || !isNavView) return
+    setReservationLoading(true)
+    try {
+      const { error } = await supabase.rpc('release_listing_mediation', { p_listing_id: id })
+      if (error) throw error
+      await loadMediationReservation()
+    } catch (e: any) {
+      alert(t('mediationReserveError') + (e?.message ? `: ${e.message}` : ''))
+    } finally {
+      setReservationLoading(false)
+    }
+  }
+
   const handleAddFormidletPeriod = async () => {
     if (!listing || !isNavView || !formidletStart || !formidletEnd) {
       alert(t('selectStartEndFormidling'))
+      return
+    }
+    if (mediationReservation && mediationReservation.reserved_by !== currentUser?.id) {
+      alert(t('mediationBlockedFormidlet'))
       return
     }
     if (new Date(formidletEnd) < new Date(formidletStart)) {
@@ -125,32 +240,62 @@ export default function ListingDetailsClient() {
     }
     const start = formidletStart
     const end = formidletEnd
+    const savedNote = formidletMediationNote
+    const savedInclude = formidletIncludeNoteInNotification
+    const noteTrimmed = formidletMediationNote.trim()
+    const includeNote = !!(formidletIncludeNoteInNotification && noteTrimmed)
     setFormidletSending(true)
-    const newPeriod = { id: crypto.randomUUID(), listing_id: id, start_date: start, end_date: end, status: 'Formidla' }
+    const newPeriod = {
+      id: crypto.randomUUID(),
+      listing_id: id,
+      start_date: start,
+      end_date: end,
+      status: 'Formidla',
+      mediation_note: noteTrimmed || null,
+      include_note_in_owner_notification: includeNote
+    }
     setListing({ ...listing, status: 'Formidla', is_available: false })
     setAvailability(prev => [...prev.filter(p => p.status !== 'Formidla'), newPeriod].sort((a, b) => (a.start_date > b.start_date ? 1 : -1)))
     setFormidletStart('')
     setFormidletEnd('')
+    setFormidletMediationNote('')
+    setFormidletIncludeNoteInNotification(false)
     try {
       const { error: availError } = await supabase
         .from('listing_availability')
-        .insert([{ listing_id: id, start_date: start, end_date: end, status: 'Formidla' }])
+        .insert([{
+          listing_id: id,
+          start_date: start,
+          end_date: end,
+          status: 'Formidla',
+          mediation_note: noteTrimmed || null,
+          include_note_in_owner_notification: includeNote
+        }])
       if (availError) throw availError
       const { error } = await supabase.from('listings').update({ status: 'Formidla', is_available: false }).eq('id', id)
       if (error) throw error
       const { data: availData } = await supabase.from('listing_availability').select('*').eq('listing_id', id).order('start_date')
       if (availData) setAvailability(availData)
       const { data: { user } } = await supabase.auth.getUser()
-      await supabase.from('audit_logs').insert([{ user_id: user?.id, action_type: 'KOMMUNE_MARK_FORMIDLA', listing_address: listing.address, details: { start_date: start, end_date: end } }])
+      await supabase.from('audit_logs').insert([{
+        user_id: user?.id,
+        action_type: 'KOMMUNE_MARK_FORMIDLA',
+        listing_address: listing.address,
+        details: { start_date: start, end_date: end, include_note_in_owner_notification: includeNote, has_mediation_note: !!noteTrimmed }
+      }])
       if (listing?.owner_id) {
         await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
-        await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Bolig formidlet', message: `Boligen din i ${listing.address} er markert som formidlet for perioden ${start}–${end}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`, listing_id: id }])
+        const baseMsg = `Boligen din i ${listing.address} er markert som formidlet for perioden ${start}–${end}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`
+        const message = appendMediationNoteToOwnerMessage(baseMsg, noteTrimmed, includeNote)
+        await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Bolig formidlet', message, listing_id: id }])
       }
     } catch (err: any) {
       setListing({ ...listing, status: listing.status, is_available: listing.is_available })
       setAvailability(availability)
       setFormidletStart(start)
       setFormidletEnd(end)
+      setFormidletMediationNote(savedNote)
+      setFormidletIncludeNoteInNotification(savedInclude)
       alert(t('errorPrefix') + err.message)
     } finally {
       setFormidletSending(false)
@@ -161,10 +306,15 @@ export default function ListingDetailsClient() {
   const getStatusForDate = (date: Date) => {
     const ymd = (d: Date) => d.toISOString().slice(0, 10)
     const t = ymd(date)
-    for (const p of availability) {
-      if (t >= p.start_date && t <= p.end_date) return p.status
+    const hits = availability.filter(p => t >= p.start_date && t <= p.end_date)
+    if (hits.length === 0) return null
+    if (hits.length > 1) {
+      const statuses = new Set(hits.map(h => h.status))
+      if (statuses.size > 1) return 'Konflikt'
     }
-    return null
+    if (hits.some(h => h.status === 'Formidla')) return 'Formidla'
+    if (hits.some(h => h.status === 'Utilgjengelig')) return 'Utilgjengelig'
+    return hits[0]?.status ?? null
   }
 
   const handleRemovePeriod = async (period: { id: string; status: string }) => {
@@ -229,14 +379,21 @@ export default function ListingDetailsClient() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         setCurrentUser(user)
-        
+        if (user) {
+          const { data: roleProfile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+          const role = user.user_metadata?.role || roleProfile?.role
+          setViewerIsKommuneStaff(isKommuneStaffRole(role))
+        } else {
+          setViewerIsKommuneStaff(false)
+        }
+
         // Sjekk tilgang hvis NAV-visning (kommune må ha rolle og tillatelse til boligens kommune)
         let profileKommuneRegion: string | null = null
         if (isNavView && user) {
           const { data: profile } = await supabase.from('profiles').select('role, kommune_region, kommune_can_edit').eq('id', user.id).maybeSingle()
           const role = user.user_metadata?.role || profile?.role
           profileKommuneRegion = profile?.kommune_region ?? null
-          setKommuneCanEdit(profile?.kommune_can_edit !== false)
+          setKommuneCanEdit(profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false)
           if ((profileKommuneRegion == null || String(profileKommuneRegion).trim() === '') && user.email) {
             const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', { p_email: user.email })
             const fromRpc = typeof rpcRegion === 'string' ? rpcRegion : (Array.isArray(rpcRegion) && rpcRegion?.length ? rpcRegion[0] : null)
@@ -247,7 +404,7 @@ export default function ListingDetailsClient() {
               if (fromTable && String(fromTable).trim()) profileKommuneRegion = fromTable
             }
           }
-          if (role !== 'kommune_ansatt') {
+          if (!isKommuneStaffRole(role)) {
             router.push(`/listings/${id}?view=owner`)
             return
           }
@@ -317,6 +474,7 @@ export default function ListingDetailsClient() {
             .eq('listing_id', id)
             .order('created_at', { ascending: false })
           setNavNotes(notesData || [])
+          await loadMediationReservation()
         }
 
         // Fetch Handover Reports
@@ -355,7 +513,7 @@ export default function ListingDetailsClient() {
     
     if (!hasActiveAgreement) {
       alert(t('signAgreementToUpload'))
-      router.push('/homeowner/sign-terms')
+      router.push(`/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`)
       return
     }
 
@@ -752,9 +910,48 @@ export default function ListingDetailsClient() {
                         <option>Kun hvitevarer</option>
                         <option>Delvis møblert</option>
                         <option>Fullt møblert</option>
+                        <option>Fullt møblert og boligen har alt nødvendig inventar for matlaging og overnatting.</option>
                         <option>Møblert m/utstyr</option>
                       </select>
                     ) : listing.furnishing}
+                  </div>
+                  <div className="text-sm" style={{ color: 'var(--text-body)' }}>
+                    <strong>Mulighet for husdyr:</strong>{' '}
+                    {isOwner && !isNavView ? (
+                      <>
+                        <select
+                          value={listing.pet_policy || 'Ingen dyr tillatt'}
+                          onChange={e => {
+                            void handlePetPolicyChange(e.target.value)
+                          }}
+                          className="listing-inline-input"
+                          style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', outline: 'none', color: 'var(--text-main)' }}
+                        >
+                          <option value="Tillatt">Tillatt</option>
+                          <option value="Ingen dyr tillatt">Ingen dyr tillatt</option>
+                          <option value="Enkelte dyr er tillatt">Enkelte dyr er tillatt</option>
+                        </select>
+                        {(listing.pet_policy || '') === 'Enkelte dyr er tillatt' && (
+                          <div style={{ marginTop: 6 }}>
+                            <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>Utdyp svaret ditt: </span>
+                            <input
+                              value={listing.pet_policy_detail || ''}
+                              onChange={e => setListing({ ...listing, pet_policy_detail: e.target.value })}
+                              onBlur={e => handleUpdateField('pet_policy_detail', e.target.value)}
+                              className="listing-inline-input"
+                              style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '4px 8px', width: 'min(100%, 280px)', outline: 'none', color: 'var(--text-main)' }}
+                        />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {listing.pet_policy || '—'}
+                        {(listing.pet_policy || '') === 'Enkelte dyr er tillatt' && listing.pet_policy_detail ? (
+                          <span style={{ display: 'block', fontSize: '0.85rem', marginTop: 4 }}>{listing.pet_policy_detail}</span>
+                        ) : null}
+                      </>
+                    )}
                   </div>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
                     <strong>Parkering:</strong> {isOwner && !isNavView ? (
@@ -864,6 +1061,36 @@ export default function ListingDetailsClient() {
             )}
           </section>
 
+          {/* Utleier: synlig for alle som ikke er eier når man ikke er i nav-høyrekolonne (kart, view=owner, osv.) */}
+          {!isOwner && !isNavView && (
+            <section className="card listing-detail-card" id="kontaktinfo" style={{ padding: 'var(--space-6)' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
+                <User size={18} style={{ color: 'var(--text-main)' }} /> {t('landlord')}
+              </h3>
+              <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.owner_name?.trim() || '–'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.9rem', color: 'var(--text-body)' }}>
+                  <Phone size={14} style={{ color: 'var(--color-accent)' }} /> {listing.contact_phone?.trim() || '–'}
+                </div>
+                {viewerIsKommuneStaff && listing.owner_id && (
+                  <Link
+                    href={`/nav/messages?with=${listing.owner_id}`}
+                    className="button button-secondary"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', textDecoration: 'none', marginTop: 'var(--space-1)', width: 'fit-content' }}
+                  >
+                    <MessageSquare size={18} /> {t('message')}
+                  </Link>
+                )}
+                {listing.last_verified && (
+                  <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-3)', background: 'rgba(45, 212, 191, 0.12)', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--color-teal)', border: '1px solid rgba(45, 212, 191, 0.3)' }}>
+                    <ShieldCheck size={14} style={{ display: 'inline', marginRight: '6px', color: 'var(--color-teal)' }} />
+                    Vilkår signert: {formatDateNo(listing.last_verified)}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           {/* 4. Ledige perioder og kalender */}
           <div className="listing-availability-box" style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
               <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -924,20 +1151,116 @@ export default function ListingDetailsClient() {
                           const isInFormidletRange = formidletStart && formidletEnd && (() => { const t = date.toISOString().slice(0, 10); return t >= formidletStart && t <= formidletEnd })()
                           let bg = 'var(--listing-calendar-cell-bg)'
                           if (isInFormidletRange) bg = 'var(--calendar-formidlet-range-bg)'
+                          else if (status === 'Konflikt') bg = '#991b1b'
                           else if (status === 'Formidla') bg = 'var(--calendar-formidlet-bg)'
                           else if (status === 'Tilgjengelig') bg = 'var(--calendar-tilgjengelig-bg)'
                           else if (status === 'Utilgjengelig') bg = 'var(--calendar-utilgjengelig-bg)'
-                          cells.push(<div key={d} title={status ? `${d}. ${status}` : `${d}`} style={{ minHeight: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', background: bg, color: status || isInFormidletRange ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: 500 }}>{d}</div>)
+                          cells.push(<div key={d} title={status ? `${d}. ${status}` : `${d}`} style={{ minHeight: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', background: bg, color: status === 'Konflikt' ? '#fff' : status || isInFormidletRange ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: 500 }}>{d}</div>)
                         }
                         return cells
                       })()}
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-3)', fontSize: '0.7rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-formidlet-bg)' }} /> {t('formidlet')}</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-tilgjengelig-bg)' }} /> {t('available')}</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-utilgjengelig-bg)' }} /> {t('unavailable')}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('calendarLegendFormidletInfo')}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-formidlet-bg)' }} /> {t('formidlet')}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('calendarLegendAvailableInfo')}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-tilgjengelig-bg)' }} /> {t('available')}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('calendarLegendUnavailableInfo')}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-utilgjengelig-bg)' }} /> {t('unavailable')}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('calendarLegendConflictInfo')}><span style={{ width: 10, height: 10, borderRadius: 4, background: '#991b1b' }} /> Konflikt</span>
                     </div>
                   </div>
+                </div>
+              )}
+              {isNavView && kommuneCanEdit && (
+                <div
+                  style={{
+                    marginTop: 'var(--space-6)',
+                    padding: 'var(--space-4)',
+                    background: 'rgba(245, 158, 11, 0.08)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(245, 158, 11, 0.4)'
+                  }}
+                >
+                  <h4 style={{ marginBottom: 'var(--space-2)', fontSize: '0.95rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Lock size={18} style={{ opacity: 0.9 }} /> {t('mediationReserveTitle')}
+                  </h4>
+                  <p className="text-sm" style={{ margin: '0 0 var(--space-3)', color: 'var(--text-body)', lineHeight: 1.5 }}>{t('mediationReserveHint')}</p>
+                  {mediationReservation ? (
+                    mediationReservation.reserved_by === currentUser?.id ? (
+                      <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                        <p className="text-sm" style={{ margin: 0, color: 'var(--text-main)' }}>
+                          {t('mediationReservedByYou').replace(
+                            '{expires}',
+                            mediationReservation.expires_at ? formatDateTimeNo(mediationReservation.expires_at) : '—'
+                          )}
+                        </p>
+                        {mediationReservation.internal_note ? (
+                          <p className="text-sm" style={{ margin: 0, opacity: 0.85 }}>
+                            <strong>{t('mediationInternalNote')}:</strong> {mediationReservation.internal_note}
+                          </p>
+                        ) : null}
+                        <label className="label" style={{ fontSize: '0.7rem' }}>{t('mediationInternalNote')}</label>
+                        <textarea
+                          className="input"
+                          rows={2}
+                          value={reservationNote}
+                          onChange={e => setReservationNote(e.target.value)}
+                          placeholder={t('mediationInternalNote')}
+                          style={{ marginBottom: 0, resize: 'vertical', minHeight: '56px' }}
+                        />
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                          <button
+                            type="button"
+                            onClick={handleReserveMediation}
+                            disabled={reservationLoading}
+                            className="button"
+                            style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+                          >
+                            <Clock size={14} /> {t('mediationReserveButton')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleReleaseMediation}
+                            disabled={reservationLoading}
+                            className="button"
+                            style={{ padding: '8px 16px', fontSize: '0.85rem', background: 'var(--bg-subtle)' }}
+                          >
+                            {t('mediationRelease')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm" style={{ margin: 0, color: 'var(--text-body)' }}>
+                        {t('mediationReservedByOther')
+                          .replace('{name}', mediationReservation.reserved_by_name || '…')
+                          .replace(
+                            '{expires}',
+                            mediationReservation.expires_at ? formatDateTimeNo(mediationReservation.expires_at) : '—'
+                          )}
+                      </p>
+                    )
+                  ) : (
+                    <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                      <label className="label" style={{ fontSize: '0.7rem' }}>{t('mediationInternalNote')}</label>
+                      <textarea
+                        className="input"
+                        rows={2}
+                        value={reservationNote}
+                        onChange={e => setReservationNote(e.target.value)}
+                        placeholder={t('mediationInternalNote')}
+                        style={{ marginBottom: 0, resize: 'vertical', minHeight: '56px' }}
+                      />
+                      <div>
+                        <button
+                          type="button"
+                          onClick={handleReserveMediation}
+                          disabled={reservationLoading}
+                          className="button"
+                          style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+                        >
+                          <Lock size={14} /> {t('mediationReserveButton')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {isNavView && (
@@ -956,14 +1279,43 @@ export default function ListingDetailsClient() {
                       <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: '120px' }}>
                           <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>{t('from')}</span>
-                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)' }} value={formidletStart} onChange={setFormidletStart} max={formidletEnd || undefined} placeholder="DD.MM.ÅÅÅÅ" />
+                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)', opacity: mediationReservation && mediationReservation.reserved_by !== currentUser?.id ? 0.55 : 1 }} value={formidletStart} onChange={setFormidletStart} max={formidletEnd || undefined} placeholder="DD.MM.ÅÅÅÅ" disabled={!!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} />
                         </div>
                         <div style={{ flex: 1, minWidth: '120px' }}>
                           <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>{t('to')}</span>
-                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)' }} value={formidletEnd} onChange={setFormidletEnd} min={formidletStart || undefined} placeholder="DD.MM.ÅÅÅÅ" />
+                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)', opacity: mediationReservation && mediationReservation.reserved_by !== currentUser?.id ? 0.55 : 1 }} value={formidletEnd} onChange={setFormidletEnd} min={formidletStart || undefined} placeholder="DD.MM.ÅÅÅÅ" disabled={!!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} />
                         </div>
-                        <button onClick={handleAddFormidletPeriod} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}><ShieldCheck size={14} /> {t('addSubmit')}</button>
+                        <button onClick={handleAddFormidletPeriod} disabled={formidletSending || !!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}><ShieldCheck size={14} /> {t('addSubmit')}</button>
                       </div>
+                      <details style={{ fontSize: '0.8rem', marginTop: 'var(--space-1)' }}>
+                        <summary style={{ cursor: 'pointer', color: 'var(--text-muted)', userSelect: 'none' }}>{t('mediationNoteOptional')}</summary>
+                        <div style={{ marginTop: 'var(--space-2)', display: 'grid', gap: 'var(--space-2)', paddingTop: 'var(--space-2)' }}>
+                          <textarea
+                            className="input"
+                            rows={2}
+                            maxLength={MAX_MEDIATION_NOTE_IN_NOTIFICATION}
+                            value={formidletMediationNote}
+                            onChange={e => {
+                              const v = e.target.value
+                              setFormidletMediationNote(v)
+                              if (!v.trim()) setFormidletIncludeNoteInNotification(false)
+                            }}
+                            placeholder={t('mediationNotePlaceholder')}
+                            disabled={!!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)}
+                            style={{ marginBottom: 0, fontSize: '0.85rem', resize: 'vertical', minHeight: '48px', maxHeight: '120px' }}
+                          />
+                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)', cursor: formidletMediationNote.trim() ? 'pointer' : 'default', color: 'var(--text-body)' }}>
+                            <input
+                              type="checkbox"
+                              checked={formidletIncludeNoteInNotification}
+                              onChange={e => setFormidletIncludeNoteInNotification(e.target.checked)}
+                              disabled={!formidletMediationNote.trim() || !!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)}
+                              style={{ marginTop: '2px' }}
+                            />
+                            <span>{t('includeMediationNoteInNotification')}</span>
+                          </label>
+                        </div>
+                      </details>
                     </div>
                   )}
                 </div>
@@ -1343,6 +1695,43 @@ export default function ListingDetailsClient() {
                       </div>
                     </div>
                   </div>
+                  <details style={{ fontSize: '0.75rem', marginBottom: 'var(--space-3)', color: 'rgba(255,255,255,0.75)' }}>
+                    <summary style={{ cursor: 'pointer', userSelect: 'none' }}>{t('mediationNoteOptional')}</summary>
+                    <div style={{ marginTop: 'var(--space-2)', display: 'grid', gap: 'var(--space-2)' }}>
+                      <textarea
+                        className="input"
+                        rows={2}
+                        maxLength={MAX_MEDIATION_NOTE_IN_NOTIFICATION}
+                        value={formidletMediationNote}
+                        onChange={e => {
+                          const v = e.target.value
+                          setFormidletMediationNote(v)
+                          if (!v.trim()) setFormidletIncludeNoteInNotification(false)
+                        }}
+                        placeholder={t('mediationNotePlaceholder')}
+                        style={{
+                          marginBottom: 0,
+                          fontSize: '0.85rem',
+                          resize: 'vertical',
+                          minHeight: '48px',
+                          maxHeight: '120px',
+                          background: 'rgba(255,255,255,0.1)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          color: 'white'
+                        }}
+                      />
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)', cursor: formidletMediationNote.trim() ? 'pointer' : 'default', color: 'rgba(255,255,255,0.9)' }}>
+                        <input
+                          type="checkbox"
+                          checked={formidletIncludeNoteInNotification}
+                          onChange={e => setFormidletIncludeNoteInNotification(e.target.checked)}
+                          disabled={!formidletMediationNote.trim()}
+                          style={{ marginTop: '2px' }}
+                        />
+                        <span>{t('includeMediationNoteInNotification')}</span>
+                      </label>
+                    </div>
+                  </details>
                   <button
                     type="button"
                     onClick={handleAddFormidletPeriod}
