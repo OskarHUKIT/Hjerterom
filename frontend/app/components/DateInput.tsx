@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { formatDateNo, parseDateNo } from '@/app/lib/dateFormat';
 import { Calendar } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
@@ -61,6 +62,8 @@ export function DateInput({ value, onChange, min, max, placeholder, className, s
     return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   });
   const wrapRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   useEffect(() => {
     if (value) {
@@ -74,13 +77,35 @@ export function DateInput({ value, onChange, min, max, placeholder, className, s
     if (disabled) setOpen(false);
   }, [disabled]);
 
+  useLayoutEffect(() => {
+    if (!open) {
+      setPanelPos(null);
+      return;
+    }
+    const update = () => {
+      const el = wrapRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setPanelPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    };
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (wrapRef.current?.contains(t) || panelRef.current?.contains(t)) return;
+      setOpen(false);
     };
-    document.addEventListener('click', onDocClick);
-    return () => document.removeEventListener('click', onDocClick);
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
   }, [open]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,6 +133,10 @@ export function DateInput({ value, onChange, min, max, placeholder, className, s
     setOpen(false);
   };
 
+  const inputStyle: React.CSSProperties | undefined = showCalendar
+    ? { ...style, marginBottom: 0, flex: 1, minWidth: 0, width: 'auto' }
+    : style
+
   const inputEl = (
     <input
       type="text"
@@ -115,7 +144,7 @@ export function DateInput({ value, onChange, min, max, placeholder, className, s
       id={id}
       className={className}
       disabled={disabled}
-      style={showCalendar ? { ...style, paddingRight: 40 } : style}
+      style={inputStyle}
       placeholder={resolvedPlaceholder}
       value={display}
       onChange={handleChange}
@@ -142,87 +171,108 @@ export function DateInput({ value, onChange, min, max, placeholder, className, s
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
-      <div style={{ position: 'relative', width: '100%' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          width: '100%',
+        }}
+      >
         {inputEl}
         <button
           type="button"
-          onClick={() => !disabled && setOpen(o => !o)}
+          onClick={e => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!disabled) setOpen(o => !o);
+          }}
           aria-label={t('calendarOpenAria')}
           disabled={disabled}
           style={{
-            position: 'absolute',
-            right: 8,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            background: 'none',
-            border: 'none',
-            padding: 4,
+            flexShrink: 0,
+            alignSelf: 'stretch',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(2, 6, 23, 0.35)',
+            border: '1px solid var(--border-medium)',
+            borderRadius: 10,
+            padding: '0 10px',
+            minWidth: 44,
             cursor: disabled ? 'not-allowed' : 'pointer',
             opacity: disabled ? 0.45 : 1,
             color: 'var(--text-muted)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            lineHeight: 0,
+            boxSizing: 'border-box',
           }}
         >
           <Calendar size={18} />
         </button>
       </div>
-      {open && (
-        <div
-          className="date-input-calendar"
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            marginTop: 4,
-            zIndex: 50,
-            minWidth: 260,
-            padding: 12,
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 12,
-            boxShadow: 'var(--shadow-lg)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <button type="button" onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))} style={{ background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer', color: 'var(--text-main)', fontSize: 18 }}>‹</button>
-            <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.9rem' }}>{monthYearLabel}</span>
-            <button type="button" onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))} style={{ background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer', color: 'var(--text-main)', fontSize: 18 }}>›</button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, fontSize: '0.75rem' }}>
-            {weekdayLabels.map((day, wi) => (
-              <div key={wi} style={{ textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>{day}</div>
-            ))}
-            {days.map((day, i) => {
-              if (day === null) return <div key={`e-${i}`} />;
-              const iso = toISO(y, m, day);
-              const date = new Date(y, m, day);
-              const disabled = Boolean((minDate && date < minDate) || (maxDate && date > maxDate));
-              const selected = value === iso;
-              return (
-                <button
-                  key={iso}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => !disabled && handleSelectDay(y, m, day)}
-                  style={{
-                    padding: '6px',
-                    border: 'none',
-                    borderRadius: 6,
-                    background: selected ? 'var(--color-accent)' : 'transparent',
-                    color: selected ? 'var(--text-on-dark)' : disabled ? 'var(--text-muted)' : 'var(--text-main)',
-                    cursor: disabled ? 'not-allowed' : 'pointer',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {open &&
+        panelPos &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            ref={panelRef}
+            className="date-input-calendar"
+            role="dialog"
+            aria-label={t('calendarOpenAria')}
+            style={{
+              position: 'fixed',
+              top: panelPos.top,
+              left: panelPos.left,
+              width: Math.max(panelPos.width, 260),
+              zIndex: 5000,
+              padding: 12,
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 12,
+              boxShadow: 'var(--shadow-lg)',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <button type="button" onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))} style={{ background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer', color: 'var(--text-main)', fontSize: 18 }}>‹</button>
+              <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.9rem' }}>{monthYearLabel}</span>
+              <button type="button" onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))} style={{ background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer', color: 'var(--text-main)', fontSize: 18 }}>›</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, fontSize: '0.75rem' }}>
+              {weekdayLabels.map((day, wi) => (
+                <div key={wi} style={{ textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>{day}</div>
+              ))}
+              {days.map((day, i) => {
+                if (day === null) return <div key={`e-${i}`} />;
+                const iso = toISO(y, m, day);
+                const date = new Date(y, m, day);
+                const dateDisabled = Boolean((minDate && date < minDate) || (maxDate && date > maxDate));
+                const selected = value === iso;
+                return (
+                  <button
+                    key={iso}
+                    type="button"
+                    disabled={dateDisabled}
+                    onClick={() => !dateDisabled && handleSelectDay(y, m, day)}
+                    style={{
+                      padding: '6px',
+                      border: 'none',
+                      borderRadius: 6,
+                      background: selected ? 'var(--color-accent)' : 'transparent',
+                      color: selected ? 'var(--text-on-dark)' : dateDisabled ? 'var(--text-muted)' : 'var(--text-main)',
+                      cursor: dateDisabled ? 'not-allowed' : 'pointer',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

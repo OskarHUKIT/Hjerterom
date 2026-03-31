@@ -305,12 +305,23 @@ export default function ListingDetailsClient() {
       const { data: availData } = await supabase.from('listing_availability').select('*').eq('listing_id', id).order('start_date')
       if (availData) setAvailability(availData)
       const { data: { user } } = await supabase.auth.getUser()
-      await supabase.from('audit_logs').insert([{
-        user_id: user?.id,
-        action_type: 'KOMMUNE_MARK_FORMIDLA',
-        listing_address: listing.address,
-        details: { start_date: start, end_date: end, include_note_in_owner_notification: includeNote, has_mediation_note: !!noteTrimmed }
-      }])
+      if (listing?.owner_id) {
+        await supabase.from('audit_logs').insert([
+          {
+            user_id: listing.owner_id,
+            listing_id: id,
+            action_type: 'KOMMUNE_MARK_FORMIDLA',
+            listing_address: listing.address,
+            details: {
+              performed_by_user_id: user?.id,
+              start_date: start,
+              end_date: end,
+              include_note_in_owner_notification: includeNote,
+              has_mediation_note: !!noteTrimmed,
+            },
+          },
+        ])
+      }
       if (listing?.owner_id) {
         await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
         const baseMsg = `Boligen din i ${listing.address} er markert som formidlet for perioden ${start}–${end}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`
@@ -392,7 +403,17 @@ export default function ListingDetailsClient() {
       const { error } = await supabase.from('listings').update({ status: 'Tilgjengelig', is_available: true }).eq('id', id)
       if (error) throw error
       const { data: { user } } = await supabase.auth.getUser()
-      await supabase.from('audit_logs').insert([{ user_id: user?.id, action_type: 'KOMMUNE_REMOVE_FORMIDLA', listing_address: listing.address }])
+      if (listing?.owner_id) {
+        await supabase.from('audit_logs').insert([
+          {
+            user_id: listing.owner_id,
+            listing_id: id,
+            action_type: 'KOMMUNE_REMOVE_FORMIDLA',
+            listing_address: listing.address,
+            details: { performed_by_user_id: user?.id },
+          },
+        ])
+      }
     } catch (err: any) {
       setListing(prevListing)
       setAvailability(prevAvailability)

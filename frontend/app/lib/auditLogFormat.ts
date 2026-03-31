@@ -35,6 +35,8 @@ export function formatAuditLogDescription(log: AuditLog): string {
         ? `Markerte ${addr} som formidlet for perioden ${start}–${end}`
         : `Markerte ${addr} som formidlet`
     }
+    case 'KOMMUNE_EXTEND_FORMIDLA':
+      return `Forlenget formidlingsperiode for ${addr}${(d as any).new_end ? ` til ${formatDateNo((d as any).new_end)}` : ''}`
     case 'KOMMUNE_REMOVE_FORMIDLA':
       return `Fjernet formidling for ${addr}`
     case 'UPDATE_FIELD': {
@@ -65,6 +67,7 @@ export function getAuditLogIcon(action_type: string): string {
     case 'SIGN_INITIATED':
     case 'TERMINATE_AGREEMENT': return 'shield'
     case 'KOMMUNE_MARK_FORMIDLA':
+    case 'KOMMUNE_EXTEND_FORMIDLA':
     case 'KOMMUNE_REMOVE_FORMIDLA': return 'home'
     case 'UPDATE_FIELD': return 'edit'
     default: return 'clock'

@@ -7,7 +7,12 @@ import { ArrowLeft, FileText, Plus, ExternalLink, Info } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateTimeNo } from '../../lib/dateFormat'
-import { parseKommuneRegions, parseTermsRegionField, termsRegionVisibleToUser } from '../../lib/kommuneRegions'
+import {
+  parseKommuneRegions,
+  parseTermsRegionField,
+  termsRegionVisibleToUser,
+  kommuneRegionForTermsDocument,
+} from '../../lib/kommuneRegions'
 import { isKommuneAdminRole } from '../../lib/kommuneRoles'
 
 const PDF_MAX_BYTES = 12 * 1024 * 1024
@@ -61,6 +66,8 @@ export default function TermsDocumentsPage() {
   const [myRegions, setMyRegions] = useState<string[]>([])
   const [rows, setRows] = useState<TermsRow[]>([])
   const [region, setRegion] = useState('')
+  /** For kommune_admin: which assigned areas this PDF applies to (multi-select when len > 1). */
+  const [adminSelectedRegions, setAdminSelectedRegions] = useState<string[]>([])
   const [title, setTitle] = useState('Vilkår for bruk av Boligbank')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
@@ -104,8 +111,17 @@ export default function TermsDocumentsPage() {
   }, [router])
 
   useEffect(() => {
-    if (isKommuneAdminRole(userRole) && myRegions.length === 1) {
-      setRegion(myRegions[0])
+    if (!isKommuneAdminRole(userRole)) return
+    if (myRegions.length === 1) {
+      setAdminSelectedRegions([myRegions[0]])
+    } else if (myRegions.length > 1) {
+      setAdminSelectedRegions(prev => {
+        if (prev.length === 0) return [...myRegions]
+        const kept = prev.filter(p => myRegions.includes(p))
+        return kept.length > 0 ? kept : [...myRegions]
+      })
+    } else {
+      setAdminSelectedRegions([])
     }
   }, [userRole, myRegions])
 
@@ -160,11 +176,12 @@ export default function TermsDocumentsPage() {
     e.preventDefault()
     if (!kommuneCanEdit || !title.trim() || !pdfFile) return
     if (isAdmin) {
-      if (!region.trim()) {
+      if (adminSelectedRegions.length === 0) {
         setError(t('termsAdminRegionRequired'))
         return
       }
-      if (myRegions.length > 0 && !myRegions.includes(region.trim().toLowerCase())) {
+      const invalid = adminSelectedRegions.some(r => !myRegions.includes(r))
+      if (myRegions.length > 0 && invalid) {
         setError(t('termsAdminRegionInvalid'))
         return
       }
@@ -179,13 +196,18 @@ export default function TermsDocumentsPage() {
     }
     setSaving(true)
     setError(null)
-    const kommuneRegion = isAdmin ? region.trim() : region.trim() || null
+    const kommuneRegion = isAdmin ? kommuneRegionForTermsDocument(adminSelectedRegions) : region.trim() || null
     let maxQ = supabase.from('terms_documents').select('version').order('version', { ascending: false }).limit(1)
     if (kommuneRegion) maxQ = maxQ.eq('kommune_region', kommuneRegion)
     else maxQ = maxQ.is('kommune_region', null)
     const { data: maxRow } = await maxQ.maybeSingle()
     const nextVersion = (maxRow?.version ?? 0) + 1
-    const seg = regionPathSegment(isAdmin ? region : region || '')
+    const segPathSource = isAdmin
+      ? adminSelectedRegions.length > 1
+        ? [...adminSelectedRegions].sort((a, b) => a.localeCompare(b, 'nb')).join('-')
+        : adminSelectedRegions[0] || ''
+      : region || ''
+    const seg = regionPathSegment(segPathSource)
     const path = `terms/${seg}/v${nextVersion}_${crypto.randomUUID()}.pdf`
 
     const { error: upErr } = await supabase.storage.from('documents').upload(path, pdfFile, {
@@ -261,20 +283,36 @@ export default function TermsDocumentsPage() {
             ) : myRegions.length === 1 ? (
               <p className="input" style={{ marginBottom: 12, background: 'var(--bg-app)' }}>{displayRegionList(myRegions)}</p>
             ) : (
-              <select
-                className="input"
-                style={{ marginBottom: 12 }}
-                required
-                value={region}
-                onChange={e => setRegion(e.target.value)}
-              >
-                <option value="">{t('termsRegionPickPlaceholder')}</option>
-                {myRegions.map(r => (
-                  <option key={r} value={r}>
-                    {displayRegionList([r])}
-                  </option>
-                ))}
-              </select>
+              <div style={{ marginBottom: 12 }}>
+                <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.45 }}>
+                  {t('termsRegionMultiHint')}
+                </p>
+                <fieldset style={{ border: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {myRegions.map(r => (
+                    <label
+                      key={r}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        cursor: 'pointer',
+                        fontSize: '0.95rem',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={adminSelectedRegions.includes(r)}
+                        onChange={() => {
+                          setAdminSelectedRegions(prev =>
+                            prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]
+                          )
+                        }}
+                      />
+                      <span>{displayRegionList([r])}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              </div>
             )
           ) : (
             <input
@@ -299,7 +337,11 @@ export default function TermsDocumentsPage() {
           <button
             type="submit"
             className="button"
-            disabled={saving || !pdfFile || (isAdmin && (myRegions.length === 0 || !region.trim()))}
+            disabled={
+              saving ||
+              !pdfFile ||
+              (isAdmin && (myRegions.length === 0 || adminSelectedRegions.length === 0))
+            }
           >
             <FileText size={18} /> {saving ? t('termsPublishing') : t('termsPublish')}
           </button>

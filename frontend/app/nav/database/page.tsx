@@ -526,8 +526,16 @@ export default function NavDatabase(props: PageProps) {
       const { error } = await supabase.from('listing_availability').update({ end_date: formidletExtendEnd }).eq('id', period.id)
       if (error) throw error
       const { data: { user } } = await supabase.auth.getUser()
-      await supabase.from('audit_logs').insert([{ user_id: user?.id, action_type: 'KOMMUNE_EXTEND_FORMIDLA', listing_address: listing.address, details: { period_id: period.id, new_end: formidletExtendEnd } }])
-      if (listing?.owner_id) {
+      if (listing.owner_id) {
+        await supabase.from('audit_logs').insert([
+          {
+            user_id: listing.owner_id,
+            listing_id: listing.id,
+            action_type: 'KOMMUNE_EXTEND_FORMIDLA',
+            listing_address: listing.address,
+            details: { performed_by_user_id: user?.id, period_id: period.id, new_end: formidletExtendEnd },
+          },
+        ])
         await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Formidlingsperiode forlenget', message: `Kommunen har forlenget formidlingsperioden for ${listing.address} til ${formatDateNo(formidletExtendEnd)}.`, listing_id: listing.id }])
       }
       setFormidletExtendModal(null)
@@ -597,12 +605,25 @@ export default function NavDatabase(props: PageProps) {
       if (error) throw error
       
       const { data: { user } } = await supabase.auth.getUser()
-      await supabase.from('audit_logs').insert([{
-        user_id: user?.id,
-        action_type: 'KOMMUNE_MARK_FORMIDLA',
-        listing_address: address,
-        details: { by: 'Kommune-ansatt', attached_schema: attachSchema, start_date: formidletStart, end_date: formidletEnd, include_note_in_owner_notification: includeNote, has_mediation_note: !!noteTrimmed }
-      }])
+      if (listing?.owner_id) {
+        await supabase.from('audit_logs').insert([
+          {
+            user_id: listing.owner_id,
+            listing_id: id,
+            action_type: 'KOMMUNE_MARK_FORMIDLA',
+            listing_address: address,
+            details: {
+              performed_by_user_id: user?.id,
+              by: 'Kommune-ansatt',
+              attached_schema: attachSchema,
+              start_date: formidletStart,
+              end_date: formidletEnd,
+              include_note_in_owner_notification: includeNote,
+              has_mediation_note: !!noteTrimmed,
+            },
+          },
+        ])
+      }
 
       if (listing?.owner_id) {
         await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
@@ -657,13 +678,19 @@ export default function NavDatabase(props: PageProps) {
       if (error) throw error
       
       const { data: { user } } = await supabase.auth.getUser()
-      await supabase.from('audit_logs').insert([{
-        user_id: user?.id,
-        action_type: 'KOMMUNE_REMOVE_FORMIDLA',
-        listing_address: address,
-        details: { by: 'Kommune-ansatt' }
-      }])
-      
+      const ownerId = listings.find(l => l.id === id)?.owner_id
+      if (ownerId) {
+        await supabase.from('audit_logs').insert([
+          {
+            user_id: ownerId,
+            listing_id: id,
+            action_type: 'KOMMUNE_REMOVE_FORMIDLA',
+            listing_address: address,
+            details: { performed_by_user_id: user?.id, by: 'Kommune-ansatt' },
+          },
+        ])
+      }
+
       // Optimistic update: remove from Formidlet list immediately
       setListings(prev => prev.filter(l => l.id !== id))
       fetchListings(false) // Background refresh

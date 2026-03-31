@@ -83,6 +83,19 @@ export function formatKommuneRegionsForDisplay(val: string | string[] | null | u
     .join(', ')
 }
 
+/**
+ * Lagrer kommune_region for terms_documents: ett område som ren streng (matcher eldre rader),
+ * flere som sortert JSON-array (samme logikk som DB-RPC).
+ */
+export function kommuneRegionForTermsDocument(regions: string[]): string | null {
+  const u = [...new Set(regions.map(r => r.trim().toLowerCase()).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, 'nb')
+  )
+  if (u.length === 0) return null
+  if (u.length === 1) return u[0]
+  return JSON.stringify(u)
+}
+
 /** Rader i terms_documents: én tekst kan liste flere kommuner (kommaseparert). */
 export function parseTermsRegionField(region: string | null | undefined): string[] {
   if (region == null || !String(region).trim()) return []
@@ -95,4 +108,11 @@ export function termsRegionVisibleToUser(docRegionsLower: string[], userRegionsL
   if (userRegionsLower.length === 0) return false
   const set = new Set(userRegionsLower)
   return docRegionsLower.some(r => set.has(r))
+}
+
+/** True hvis to normaliserte regionlister deler minst ett område (f.eks. saksbehandler ↔ saksbehandler). */
+export function regionsOverlap(a: string[], b: string[]): boolean {
+  if (!a.length || !b.length) return false
+  const set = new Set(a)
+  return b.some(r => set.has(r))
 }

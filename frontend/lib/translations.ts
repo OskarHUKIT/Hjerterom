@@ -38,7 +38,9 @@ export const translations = {
     termsDocumentsDescAdmin: 'Som kommune-admin laster du opp PDF kun for dine tildelte kommuner/områder. Du kan ikke opprette global mal her — standard-PDF fra systemet vises under «Publiserte dokumenter».',
     termsRegionLabelAdmin: 'Kommune / område for dette dokumentet',
     termsRegionPickPlaceholder: 'Velg kommune …',
-    termsAdminRegionRequired: 'Velg hvilket område dokumentet gjelder.',
+    termsRegionMultiHint:
+      'Velg ett eller flere områder. Dokumentet brukes ved BankID-signering for alle valgte kommuner.',
+    termsAdminRegionRequired: 'Velg minst ett område dokumentet skal gjelde for.',
     termsAdminRegionInvalid: 'Du kan bare publisere for egne tildelte områder.',
     termsAdminNoRegions: 'Profilen din har ingen kommune/område. Be administrator oppdatere profil eller hviteliste før du publiserer vilkår.',
     termsDefaultStorageTitle: 'Standard vilkår',
@@ -220,6 +222,11 @@ export const translations = {
     termsNotSigned: 'Vilkår IKKE signert',
     termsSigned: 'Vilkår signert',
     backToUsers: 'Tilbake til brukere',
+    userProfileAccessDeniedTitle: 'Du har ikke tilgang til denne brukeren',
+    userProfileAccessDeniedHomeowner:
+      'Brukeren har ingen bolig registrert i dine tillatte kommuner. Du ser bare utleiere som har eller har hatt bolig i din region.',
+    userProfileAccessDeniedStaff:
+      'Dere har ikke felles kommune- eller områdetilgang i profilen. Andre saksbehandlere og kommune-admins ser du bare når minst ett av deres tildelte områder overlapper med dine.',
     seeProperty: 'Se bolig',
     editListing: 'Rediger bolig',
     extend: 'Forleng',
@@ -660,7 +667,9 @@ export const translations = {
     termsDocumentsDescAdmin: 'Kommuvdna-adminin vurket du PDF dušše iežat guovlluide. It sáhte láhit globála málli das — standárda-PDF čájehuvvo «Almmuhan dokumeanttat».',
     termsRegionLabelAdmin: 'Kommune / guovlu dán dokumeantta várás',
     termsRegionPickPlaceholder: 'Vállje kommuvnna …',
-    termsAdminRegionRequired: 'Vállje guovllu.',
+    termsRegionMultiHint:
+      'Vállje ovtta dahje máŋgga guovllu. Dokumeanta geavahuvvo BankID-almmus buot válljejuvvon kommuvnnaide.',
+    termsAdminRegionRequired: 'Vállje ummáseamet ovtta guovllu maid dokumeanta galgá gustot.',
     termsAdminRegionInvalid: 'Sáhttát almmuhit dušše iežat guovlluide.',
     termsAdminNoRegions: 'Profiliinas ii leat kommuvnna/guovlu. Bivdde hálddašeaddji ođasmahttit profiilla.',
     termsDefaultStorageTitle: 'Standárda ektui',
@@ -841,6 +850,11 @@ export const translations = {
     termsNotSigned: 'Ektui Ii almmuhan',
     termsSigned: 'Ektui almmuhan',
     backToUsers: 'Máhcat bruhkaide',
+    userProfileAccessDeniedTitle: 'It oačču bajidusa dán bruhkii',
+    userProfileAccessDeniedHomeowner:
+      'Bruhkkis eai leat dávvirat registrerejuvvon du dohkkehan kommuvnnaide. Oainnat dušše goddánuslohkkiid geain leat dahje leat leamaš dávvir du regiovnnas.',
+    userProfileAccessDeniedStaff:
+      'Ehpet leat oktasaš kommuvnna- dahje guovlubajidusa profiillas. Oainnat eará saksbeallegiid ja kommuvdna-admiid dušše go ummáseamos okta sin juogaduvvon guovlluide lea ovttas duiguin.',
     seeProperty: 'Čájeh dávira',
     editListing: 'Rievdat dávira',
     extend: 'Nuppástuhte',
@@ -1279,7 +1293,9 @@ export const translations = {
     termsDocumentsDescAdmin: 'As municipality admin you upload PDFs only for your assigned areas. You cannot create a global template here — the system default PDF is listed under Published documents.',
     termsRegionLabelAdmin: 'Municipality / area for this document',
     termsRegionPickPlaceholder: 'Select municipality…',
-    termsAdminRegionRequired: 'Select which area the document applies to.',
+    termsRegionMultiHint:
+      'Choose one or more areas. The document is used for BankID signing for all selected municipalities.',
+    termsAdminRegionRequired: 'Select at least one area the document should apply to.',
     termsAdminRegionInvalid: 'You can only publish for your assigned areas.',
     termsAdminNoRegions: 'Your profile has no municipality/area. Ask an administrator to update your profile or whitelist before publishing terms.',
     termsDefaultStorageTitle: 'Default terms',
@@ -1460,6 +1476,11 @@ export const translations = {
     termsNotSigned: 'Terms NOT signed',
     termsSigned: 'Terms signed',
     backToUsers: 'Back to users',
+    userProfileAccessDeniedTitle: 'You do not have access to this user',
+    userProfileAccessDeniedHomeowner:
+      'This user has no property registered in your allowed municipalities. You only see landlords who have or have had a home in your region.',
+    userProfileAccessDeniedStaff:
+      'Your municipality areas in your profiles do not overlap. You only see other caseworkers and municipality admins when at least one of their assigned areas matches yours.',
     seeProperty: 'View property',
     editListing: 'Edit property',
     extend: 'Extend',
