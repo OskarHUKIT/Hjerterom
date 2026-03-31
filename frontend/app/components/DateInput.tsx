@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { formatDateNo, parseDateNo } from '@/app/lib/dateFormat';
 import { Calendar } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 type Props = {
   value: string; // YYYY-MM-DD
@@ -38,7 +39,18 @@ function toISO(y: number, m: number, d: number) {
  * value/onChange bruker fortsatt YYYY-MM-DD for API/lagring.
  * Med showCalendar vises kalender-dropdown ved klikk på ikon.
  */
-export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅÅÅ', className, style, id, showCalendar, disabled }: Props) {
+export function DateInput({ value, onChange, min, max, placeholder, className, style, id, showCalendar, disabled }: Props) {
+  const { t, locale } = useLanguage();
+  const resolvedPlaceholder = placeholder ?? t('dateInputPlaceholder');
+  const localeTag = locale === 'no' ? 'nb-NO' : locale === 'se' ? 'se' : 'en-GB';
+  const weekdayLabels = useMemo(() => {
+    const base = new Date(2024, 0, 1)
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base)
+      d.setDate(d.getDate() + i)
+      return d.toLocaleDateString(localeTag, { weekday: 'short' })
+    })
+  }, [localeTag])
   const [display, setDisplay] = useState(() => (value ? formatDateNo(value) : ''));
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(() => {
@@ -104,12 +116,18 @@ export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅ
       className={className}
       disabled={disabled}
       style={showCalendar ? { ...style, paddingRight: 40 } : style}
-      placeholder={placeholder}
+      placeholder={resolvedPlaceholder}
       value={display}
       onChange={handleChange}
       onBlur={handleBlur}
       maxLength={10}
-      title={min ? `Etter eller lik ${formatDateNo(min)}` : max ? `Før eller lik ${formatDateNo(max)}` : undefined}
+      title={
+        min
+          ? t('dateOnOrAfter').replace('{date}', formatDateNo(min))
+          : max
+            ? t('dateOnOrBefore').replace('{date}', formatDateNo(max))
+            : undefined
+      }
     />
   );
 
@@ -120,7 +138,7 @@ export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅ
   const days = getMonthDays(y, m);
   const minDate = min ? new Date(min) : null;
   const maxDate = max ? new Date(max) : null;
-  const monthNames = ['Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Desember'];
+  const monthYearLabel = new Date(y, m, 1).toLocaleDateString(localeTag, { month: 'long', year: 'numeric' });
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
@@ -129,7 +147,7 @@ export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅ
         <button
           type="button"
           onClick={() => !disabled && setOpen(o => !o)}
-          aria-label="Åpne kalender"
+          aria-label={t('calendarOpenAria')}
           disabled={disabled}
           style={{
             position: 'absolute',
@@ -169,12 +187,12 @@ export function DateInput({ value, onChange, min, max, placeholder = 'DD.MM.ÅÅ
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <button type="button" onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))} style={{ background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer', color: 'var(--text-main)', fontSize: 18 }}>‹</button>
-            <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.9rem' }}>{monthNames[m]} {y}</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.9rem' }}>{monthYearLabel}</span>
             <button type="button" onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))} style={{ background: 'none', border: 'none', padding: '4px 8px', cursor: 'pointer', color: 'var(--text-main)', fontSize: 18 }}>›</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, fontSize: '0.75rem' }}>
-            {['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'].map(day => (
-              <div key={day} style={{ textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>{day}</div>
+            {weekdayLabels.map((day, wi) => (
+              <div key={wi} style={{ textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>{day}</div>
             ))}
             {days.map((day, i) => {
               if (day === null) return <div key={`e-${i}`} />;

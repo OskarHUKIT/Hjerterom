@@ -1,43 +1,16 @@
 'use client'
 
-import { use, useState, useEffect } from 'react'
+import { use, useState } from 'react'
 import Link from 'next/link'
 import { LogIn, Presentation, ArrowRight, X } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
-import { useTheme } from '../context/ThemeContext'
-import { supabase } from './lib/supabase'
-import { isKommuneStaffRole } from './lib/kommuneRoles'
-
-const THEME_STORAGE_KEY = 'boly-theme'
 
 type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
 
 export default function Home(props: PageProps) {
   use(props.searchParams ?? Promise.resolve({}))
   const { t } = useLanguage()
-  const { setTheme } = useTheme()
-  const [isKommune, setIsKommune] = useState<boolean | null>(null)
   const [showDemoPopup, setShowDemoPopup] = useState(false)
-
-  useEffect(() => {
-    const check = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setIsKommune(null)
-        return
-      }
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
-      const r = profile?.role || user.user_metadata?.role
-      setIsKommune(isKommuneStaffRole(r))
-    }
-    check()
-  }, [])
-
-  useEffect(() => {
-    if (isKommune === true && typeof window !== 'undefined' && !localStorage.getItem(THEME_STORAGE_KEY)) {
-      setTheme('light')
-    }
-  }, [isKommune, setTheme])
 
   return (
     <main className="container">
@@ -81,10 +54,10 @@ export default function Home(props: PageProps) {
             <LogIn size={28} />
           </div>
           <div className="portal-card-body">
-            <h2>Logg inn</h2>
+            <h2>{t('homeLoginCardTitle')}</h2>
             <div className="portal-card-cta">
               <Link href="/login" className="button button-accent" style={{ width: '100%', padding: 'var(--space-4)' }}>
-                Logg inn <ArrowRight size={18} />
+                {t('homeLoginCardCta')} <ArrowRight size={18} />
               </Link>
             </div>
           </div>
@@ -106,7 +79,7 @@ export default function Home(props: PageProps) {
             <Presentation size={28} />
           </div>
           <div className="portal-card-body">
-            <h2>Be om demo</h2>
+            <h2>{t('homeDemoCardTitle')}</h2>
             <div className="portal-card-cta">
               <button
                 type="button"
@@ -114,7 +87,7 @@ export default function Home(props: PageProps) {
                 className="button"
                 style={{ width: '100%', padding: 'var(--space-4)' }}
               >
-                Be om demo <ArrowRight size={18} />
+                {t('homeDemoCardCta')} <ArrowRight size={18} />
               </button>
             </div>
           </div>
@@ -151,12 +124,12 @@ export default function Home(props: PageProps) {
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-              <h3 id="demo-popup-title" style={{ margin: 0, fontSize: '1.25rem' }}>Be om demo</h3>
+              <h3 id="demo-popup-title" style={{ margin: 0, fontSize: '1.25rem' }}>{t('homeDemoCardTitle')}</h3>
               <button
                 type="button"
                 onClick={() => setShowDemoPopup(false)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)', display: 'flex' }}
-                aria-label="Lukk"
+                aria-label={t('close')}
               >
                 <X size={20} />
               </button>
@@ -167,8 +140,8 @@ export default function Home(props: PageProps) {
                 <a href="mailto:Tina.Olsen@nav.no" style={{ color: 'var(--color-accent)' }}>Tina.Olsen@nav.no</a>
               </div>
               <div>
-                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Lars Utstøl</div>
-                <a href="mailto:lars@gamechanging.no" style={{ color: 'var(--color-accent)' }}>lars@gamechanging.no</a>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Lars Utstøl, GAMECHANGING</div>
+                <a href="mailto:utstol@gamechanging.no" style={{ color: 'var(--color-accent)' }}>utstol@gamechanging.no</a>
               </div>
             </div>
           </div>

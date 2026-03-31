@@ -226,13 +226,13 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
                   />
                 </div>
                 <DateInput
-                  placeholder="DD.MM.ÅÅÅÅ"
+                  placeholder={t('dateInputPlaceholder')}
                   value={historyDateFrom}
                   onChange={setHistoryDateFrom}
                   style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', fontSize: '0.9rem' }}
                 />
                 <DateInput
-                  placeholder="DD.MM.ÅÅÅÅ"
+                  placeholder={t('dateInputPlaceholder')}
                   value={historyDateTo}
                   onChange={setHistoryDateTo}
                   style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', fontSize: '0.9rem' }}

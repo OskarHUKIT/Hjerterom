@@ -15,6 +15,7 @@ import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
 import { appendMediationNoteToOwnerMessage, MAX_MEDIATION_NOTE_IN_NOTIFICATION } from '../../lib/formidletNotification'
+import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 
 // Dynamically import Map component to avoid SSR issues
@@ -27,7 +28,7 @@ type PageProps = { searchParams?: Promise<Record<string, string | string[] | und
 
 export default function NavDatabase(props: PageProps) {
   use(props.searchParams ?? Promise.resolve({}))
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const router = useRouter()
   const [userRole, setUserRole] = useState<string | null>(null)
   const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
@@ -106,7 +107,7 @@ export default function NavDatabase(props: PageProps) {
     { id: 'address', label: t('address') },
     { id: 'city', label: t('city') },
     { id: 'owner_name', label: t('owner') },
-    { id: 'price_daily', label: t('price') },
+    { id: 'price_daily', label: isMobile ? t('dailyCost') : t('price') },
     { id: 'type', label: t('type') },
     { id: 'bedrooms', label: t('bedrooms') },
     { id: 'size_sqm', label: t('area') },
@@ -117,11 +118,12 @@ export default function NavDatabase(props: PageProps) {
 
   const persistVisibleColumns = useCallback((cols: string[]) => {
     try {
-      localStorage.setItem('boly-nav-db-columns', JSON.stringify(cols))
+      const key = isMobile ? 'boly-nav-db-columns-mobile' : 'boly-nav-db-columns'
+      localStorage.setItem(key, JSON.stringify(cols))
     } catch {
       /* ignore */
     }
-  }, [])
+  }, [isMobile])
 
   const toggleColumn = (id: string) => {
     setVisibleColumns(prev => {
@@ -146,17 +148,28 @@ export default function NavDatabase(props: PageProps) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('boly-nav-db-columns')
-      if (saved) {
-        const parsed = JSON.parse(saved) as string[]
-        if (Array.isArray(parsed) && parsed.length >= 1) setVisibleColumns(parsed)
-      } else if (window.matchMedia('(max-width: 768px)').matches) {
-        setVisibleColumns(['address', 'price_daily'])
+      if (isMobile) {
+        const m = localStorage.getItem('boly-nav-db-columns-mobile')
+        if (m) {
+          const parsed = JSON.parse(m) as string[]
+          if (Array.isArray(parsed) && parsed.length >= 1) setVisibleColumns(parsed)
+          else setVisibleColumns(['address', 'price_daily'])
+        } else {
+          setVisibleColumns(['address', 'price_daily'])
+        }
+      } else {
+        const saved = localStorage.getItem('boly-nav-db-columns')
+        if (saved) {
+          const parsed = JSON.parse(saved) as string[]
+          if (Array.isArray(parsed) && parsed.length >= 1) setVisibleColumns(parsed)
+        } else {
+          setVisibleColumns(['address', 'city', 'owner_name', 'price_daily'])
+        }
       }
     } catch {
-      /* ignore */
+      setVisibleColumns(isMobile ? ['address', 'price_daily'] : ['address', 'city', 'owner_name', 'price_daily'])
     }
-  }, [])
+  }, [isMobile])
 
   useEffect(() => {
     if (isMobile && (viewMode === 'map' || viewMode === 'timeline')) setViewMode('table')
@@ -300,7 +313,7 @@ export default function NavDatabase(props: PageProps) {
         const raw = res.data
         data = Array.isArray(raw) ? raw : (raw != null ? [raw] : [])
         if (res.error) {
-          setKommuneFetchError(res.error.message || 'Kunne ikke hente boliger. Kjør migrasjonen 20250308000000_listings_kommune_select.sql i Supabase (SQL Editor).')
+          setKommuneFetchError(res.error.message || t('dbRpcFetchErrorHint'))
           error = null
         } else {
           error = res.error
@@ -491,11 +504,23 @@ export default function NavDatabase(props: PageProps) {
   const handleExtendFormidlet = async () => {
     if (!formidletExtendModal || !formidletExtendEnd) return
     const { listing, period } = formidletExtendModal
+    if (listing?.owner_id) {
+      const { data: ownerTerm } = await supabase
+        .from('user_agreements')
+        .select('id')
+        .eq('user_id', listing.owner_id)
+        .eq('is_terminated', true)
+        .maybeSingle()
+      if (ownerTerm) {
+        alert(t('expiredOwnerNoMediationNav'))
+        return
+      }
+    }
     if (new Date(formidletExtendEnd) < new Date(period.end_date)) {
-      alert('Ny sluttdato må være etter nåværende sluttdato.')
+      alert(t('dbExtendEndAfterCurrent'))
       return
     }
-    if (!confirm(`Forleng formidlingsperioden for "${listing.address}" til ${formatDateNo(formidletExtendEnd)}?`)) return
+    if (!confirm(t('dbExtendConfirm').replace('{address}', listing.address).replace('{date}', formatDateNo(formidletExtendEnd)))) return
     setFormidletSending(true)
     try {
       const { error } = await supabase.from('listing_availability').update({ end_date: formidletExtendEnd }).eq('id', period.id)
@@ -508,7 +533,7 @@ export default function NavDatabase(props: PageProps) {
       setFormidletExtendModal(null)
       fetchListings(false)
     } catch (err: any) {
-      alert('Feil: ' + err.message)
+      alert(t('errorPrefix') + err.message)
     } finally {
       setFormidletSending(false)
     }
@@ -516,19 +541,36 @@ export default function NavDatabase(props: PageProps) {
 
   const handleMarkAsFormidlet = async () => {
     if (!formidletModalListing || !formidletStart || !formidletEnd) {
-      alert('Velg både start- og sluttdato.')
+      alert(t('dbSelectStartEnd'))
       return
     }
     if (new Date(formidletEnd) < new Date(formidletStart)) {
-      alert('Sluttdato må være etter eller lik startdato.')
+      alert(t('endDateAfterStart'))
       return
     }
     const id = formidletModalListing.id
     const address = formidletModalListing.address
     const listing = formidletModalListing
+    if (listing?.owner_id) {
+      const { data: ownerTerm } = await supabase
+        .from('user_agreements')
+        .select('id')
+        .eq('user_id', listing.owner_id)
+        .eq('is_terminated', true)
+        .maybeSingle()
+      if (ownerTerm) {
+        alert(t('expiredOwnerNoMediationNav'))
+        return
+      }
+    }
     const noteTrimmed = formidletMediationNote.trim()
     const includeNote = !!(formidletIncludeNoteInOwnerNotif && noteTrimmed)
-    const attachSchema = confirm(`Vil du markere "${address}" som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}?`)
+    const attachSchema = confirm(
+      t('dbMarkFormidletConfirm')
+        .replace('{address}', address)
+        .replace('{start}', formatDateNo(formidletStart))
+        .replace('{end}', formatDateNo(formidletEnd))
+    )
     
     setFormidletSending(true)
     try {
@@ -573,6 +615,12 @@ export default function NavDatabase(props: PageProps) {
           message,
           listing_id: id
         }])
+        await notifyLandlordInvoiceBasisIfKonto(supabase, {
+          ownerId: listing.owner_id,
+          listingId: id,
+          address,
+          paymentMethod: listing.payment_method
+        })
       }
 
       // Optimistic update: move listing to Formidlet in UI immediately
@@ -582,14 +630,14 @@ export default function NavDatabase(props: PageProps) {
       setFormidletModalListing(null)
       fetchListings(false) // Background refresh, no loader
     } catch (err: any) {
-      alert('Feil: ' + err.message)
+      alert(t('errorPrefix') + err.message)
     } finally {
       setFormidletSending(false)
     }
   }
 
   const handleRemoveFormidlet = async (id: string, address: string) => {
-    if (!confirm(`Vil du fjerne formidlingen for "${address}"?\n\nBoligen vil igjen vises som tilgjengelig.`)) return
+    if (!confirm(t('dbRemoveFormidletConfirm').replace('{address}', address))) return
     try {
       // Slett alle Formidla-perioder for denne listing
       const { error: delError } = await supabase
@@ -620,46 +668,121 @@ export default function NavDatabase(props: PageProps) {
       setListings(prev => prev.filter(l => l.id !== id))
       fetchListings(false) // Background refresh
     } catch (err: any) {
-      alert('Feil: ' + err.message)
+      alert(t('errorPrefix') + err.message)
     }
   }
+
+  const dateLocaleTag = locale === 'no' ? 'nb-NO' : locale === 'se' ? 'se' : 'en-GB'
 
   return (
     <main className="container">
       {kommuneFetchError && (
         <div className="card" style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-4)', background: 'var(--color-error-bg, #fef2f2)', color: 'var(--color-error-text, #b91c1c)', border: '1px solid var(--color-error-border, #fecaca)' }}>
-          <strong>Feil ved henting av boliger:</strong> {kommuneFetchError}
+          <strong>{t('dbFetchErrorLabel')}</strong> {kommuneFetchError}
         </div>
       )}
-      <div className="db-header-row" style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-        <div>
-          <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+      <div
+        className="db-header-row"
+        style={{
+          marginBottom: isMobile ? 'var(--space-3)' : 'var(--space-8)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: isMobile ? 'var(--space-2)' : 'var(--space-4)',
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <Link
+            href="/"
+            className="nav-link"
+            style={{
+              marginLeft: '-1rem',
+              marginBottom: isMobile ? 0 : 'var(--space-2)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              fontSize: isMobile ? '0.85rem' : undefined,
+            }}
+          >
             ← {t('overview')}
           </Link>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)' }}>{t('housingBank')}</h1>
+          <h1
+            style={{
+              fontSize: isMobile ? 'clamp(1.35rem, 5vw, 1.75rem)' : 'clamp(1.5rem, 5vw, 2.75rem)',
+              margin: isMobile ? '2px 0 0' : undefined,
+              lineHeight: isMobile ? 1.2 : undefined,
+            }}
+          >
+            {t('housingBank')}
+          </h1>
         </div>
-        <div className="db-view-btns" style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <button onClick={() => setViewMode('table')} style={{ 
-            padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'table' ? 'var(--color-accent)' : 'var(--bg-app)',
-            border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'table' ? 'white' : 'var(--text-main)'
-          }} title="Tabellvisning"><LayoutList size={20} /></button>
-          {!isMobile && (
-            <>
-              <button onClick={() => setViewMode('map')} style={{ 
-                padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'map' ? 'var(--color-accent)' : 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'map' ? 'white' : 'var(--text-main)'
-              }} title="Kartvisning"><MapPin size={20} /></button>
-              <button onClick={() => setViewMode('timeline')} style={{ 
-                padding: 'var(--space-3)', borderRadius: '10px', background: viewMode === 'timeline' ? 'var(--color-accent)' : 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)', cursor: 'pointer', color: viewMode === 'timeline' ? 'white' : 'var(--text-main)'
-              }} title="Tidslinje"><Calendar size={20} /></button>
-            </>
-          )}
-        </div>
+        {!isMobile && (
+          <div className="db-view-btns" style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              style={{
+                padding: 'var(--space-3)',
+                borderRadius: '10px',
+                background: viewMode === 'table' ? 'var(--color-accent)' : 'var(--bg-app)',
+                border: '1px solid var(--border-subtle)',
+                cursor: 'pointer',
+                color: viewMode === 'table' ? 'white' : 'var(--text-main)',
+              }}
+              title={t('dbViewTable')}
+            >
+              <LayoutList size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('map')}
+              style={{
+                padding: 'var(--space-3)',
+                borderRadius: '10px',
+                background: viewMode === 'map' ? 'var(--color-accent)' : 'var(--bg-app)',
+                border: '1px solid var(--border-subtle)',
+                cursor: 'pointer',
+                color: viewMode === 'map' ? 'white' : 'var(--text-main)',
+              }}
+              title={t('dbViewMap')}
+            >
+              <MapPin size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('timeline')}
+              style={{
+                padding: 'var(--space-3)',
+                borderRadius: '10px',
+                background: viewMode === 'timeline' ? 'var(--color-accent)' : 'var(--bg-app)',
+                border: '1px solid var(--border-subtle)',
+                cursor: 'pointer',
+                color: viewMode === 'timeline' ? 'white' : 'var(--text-main)',
+              }}
+              title={t('dbViewTimeline')}
+            >
+              <Calendar size={20} />
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="db-tabs-row" style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-1)', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', rowGap: 'var(--space-4)' }}>
-        <div className="tabs-scroll" style={{ display: 'flex', gap: 'var(--space-4)', flex: '1 1 auto', minWidth: 0, overflowX: 'auto', paddingBottom: '4px' }}>
+      <div
+        className="db-tabs-row"
+        style={{
+          display: 'flex',
+          gap: isMobile ? 'var(--space-2)' : 'var(--space-4)',
+          marginBottom: isMobile ? 'var(--space-3)' : 'var(--space-6)',
+          borderBottom: '1px solid var(--border-subtle)',
+          paddingBottom: 'var(--space-1)',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          rowGap: isMobile ? 'var(--space-2)' : 'var(--space-4)',
+        }}
+      >
+        <div className="tabs-scroll" style={{ display: 'flex', gap: 'var(--space-4)', flex: '1 1 auto', minWidth: 0, overflowX: 'auto', paddingBottom: '4px', alignItems: 'flex-end' }}>
           {viewMode === 'map' ? null : viewMode !== 'timeline' ? (
             (['Tilgjengelig', 'Utilgjengelig', 'Formidlet'] as const).map(tab => {
               const tabLabel = tab === 'Tilgjengelig' ? t('available') : tab === 'Utilgjengelig' ? t('unavailable') : t('formidlet')
@@ -681,51 +804,53 @@ export default function NavDatabase(props: PageProps) {
                 {tab === 'Tilgjengelig' && <CheckCircle2 size={iconOnly ? 22 : 16} style={{ color: activeTab === tab ? 'var(--color-teal)' : undefined }} aria-hidden />}
                 {tab === 'Utilgjengelig' && <XCircle size={iconOnly ? 22 : 16} style={{ color: activeTab === tab ? '#ef4444' : undefined }} aria-hidden />}
                 {tab === 'Formidlet' && <ShieldCheck size={iconOnly ? 22 : 16} style={{ color: activeTab === tab ? 'var(--color-sky-blue)' : undefined }} aria-hidden />}
-                {!iconOnly && tab}
+                {!iconOnly && tabLabel}
               </button>
             )
             })
           ) : (
             <div style={{ padding: 'var(--space-3) 0', color: 'var(--color-sky-blue)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Calendar size={18} /> Tilgjengelighetskalender
+              <Calendar size={18} /> {t('dbAvailabilityCalendarTitle')}
             </div>
           )}
         </div>
-        <div className="db-action-btns" style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+        <div className="db-action-btns" style={{ display: 'flex', gap: isMobile ? 6 : 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
           {viewMode !== 'map' && (
           <button 
+            type="button"
             onClick={() => {
               setShowColumnSettings(!showColumnSettings)
               setShowFilters(false)
             }}
             style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px',
+              display: 'flex', alignItems: 'center', gap: '8px', padding: isMobile ? '10px 12px' : '10px 20px', borderRadius: '12px',
               background: showColumnSettings ? 'var(--color-accent)' : 'var(--bg-app)',
               border: '1px solid var(--border-subtle)', color: showColumnSettings ? 'white' : 'var(--text-main)', cursor: 'pointer', fontWeight: 600
             }}
           >
-            <Settings size={18} /> <span className="btn-label">Tilpass kolonner</span>
+            <Settings size={18} /> <span className="btn-label">{t('dbCustomizeColumns')}</span>
           </button>
           )}
           <button 
+            type="button"
             onClick={() => {
               setShowFilters(!showFilters)
               setShowColumnSettings(false)
             }}
             style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px',
+              display: 'flex', alignItems: 'center', gap: '8px', padding: isMobile ? '10px 12px' : '10px 20px', borderRadius: '12px',
               background: showFilters ? 'var(--color-accent)' : 'var(--bg-app)',
               border: '1px solid var(--border-subtle)', color: showFilters ? 'white' : 'var(--text-main)', cursor: 'pointer', fontWeight: 600
             }}
           >
-            <Filter size={18} /> <span className="btn-label">{showFilters ? 'Lukk filter' : 'Filtrer'}</span>
+            <Filter size={18} /> <span className="btn-label">{showFilters ? t('dbFilterClose') : t('dbFilterOpen')}</span>
           </button>
         </div>
       </div>
 
       {showColumnSettings && viewMode !== 'map' && (
         <div className="card card-settings-panel" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)' }}>
-          <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Velg informasjon som skal vises i tabellen</h3>
+          <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>{t('dbColumnSettingsTitle')}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--space-3)' }}>
             {ALL_COLUMNS.map(col => (
               <label key={col.id} className="card-settings-option" style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px', borderRadius: '8px' }}>
@@ -740,7 +865,7 @@ export default function NavDatabase(props: PageProps) {
             ))}
           </div>
           <div style={{ marginTop: 'var(--space-6)', display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={() => setShowColumnSettings(false)} className="button" style={{ padding: '8px 24px' }}>Ferdig</button>
+            <button onClick={() => setShowColumnSettings(false)} className="button" style={{ padding: '8px 24px' }}>{t('dbDone')}</button>
           </div>
         </div>
       )}
@@ -749,9 +874,11 @@ export default function NavDatabase(props: PageProps) {
         <div className="card card-settings-panel" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)' }}>
           {viewMode === 'map' && (
             <div style={{ marginBottom: 'var(--space-6)', paddingBottom: 'var(--space-6)', borderBottom: '1px solid var(--border-subtle)' }}>
-              <label className="label" style={{ display: 'block', marginBottom: 'var(--space-3)' }}>Vis på kart</label>
+              <label className="label" style={{ display: 'block', marginBottom: 'var(--space-3)' }}>{t('dbMapShowStatuses')}</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-                {(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'] as const).map(status => (
+                {(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'] as const).map(status => {
+                  const statusLabel = status === 'Tilgjengelig' ? t('available') : status === 'Utilgjengelig' ? t('unavailable') : t('formidlet')
+                  return (
                   <label key={status} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-main)' }}>
                     <input
                       type="checkbox"
@@ -762,24 +889,25 @@ export default function NavDatabase(props: PageProps) {
                     {status === 'Tilgjengelig' && <CheckCircle2 size={16} style={{ color: 'var(--color-teal)' }} />}
                     {status === 'Utilgjengelig' && <XCircle size={16} style={{ color: '#ef4444' }} />}
                     {status === 'Formidlet' && <ShieldCheck size={16} style={{ color: 'var(--color-sky-blue)' }} />}
-                    {status}
+                    {statusLabel}
                   </label>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)' }}>
             <div>
-              <label className="label">Søk</label>
+              <label className="label">{t('dbSearch')}</label>
               <div style={{ position: 'relative' }}>
-                <input type="text" className="input" placeholder="Adresse / eier..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ paddingLeft: '2.5rem' }} />
+                <input type="text" className="input" placeholder={t('dbSearchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ paddingLeft: '2.5rem' }} />
                 <Search size={16} style={{ position: 'absolute', left: '12px', top: '14px', opacity: 0.5 }} />
               </div>
             </div>
             <div>
-              <label className="label">Region</label>
+              <label className="label">{t('dbRegion')}</label>
               <select className="input" value={filters.city} onChange={e => setFilters({...filters, city: e.target.value})}>
-                <option>Alle</option>
+                <option value="Alle">{t('all')}</option>
                 <option>Narvik</option>
                 <option>Gratangen</option>
                 <option>Evenes</option>
@@ -790,9 +918,9 @@ export default function NavDatabase(props: PageProps) {
               </select>
             </div>
             <div>
-              <label className="label">Boligtype</label>
+              <label className="label">{t('dbPropertyType')}</label>
               <select className="input" value={filters.type} onChange={e => setFilters({...filters, type: e.target.value})}>
-                <option>Alle</option>
+                <option value="Alle">{t('all')}</option>
                 <option>Enebolig/flermannsbolig</option>
                 <option>Leilighet</option>
                 <option>Hybelleilighet</option>
@@ -801,10 +929,10 @@ export default function NavDatabase(props: PageProps) {
               </select>
             </div>
             <div>
-              <label className="label">Prisklasse (Døgn)</label>
+              <label className="label">{t('dbPricePerDay')}</label>
               <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                <input type="number" className="input" placeholder="Fra" value={filters.minPrice} onChange={e => setFilters({...filters, minPrice: e.target.value})} style={{ marginBottom: 0 }} />
-                <input type="number" className="input" placeholder="Til" value={filters.maxPrice} onChange={e => setFilters({...filters, maxPrice: e.target.value})} style={{ marginBottom: 0 }} />
+                <input type="number" className="input" placeholder={t('dbFrom')} value={filters.minPrice} onChange={e => setFilters({...filters, minPrice: e.target.value})} style={{ marginBottom: 0 }} />
+                <input type="number" className="input" placeholder={t('dbTo')} value={filters.maxPrice} onChange={e => setFilters({...filters, maxPrice: e.target.value})} style={{ marginBottom: 0 }} />
               </div>
             </div>
           </div>
@@ -814,28 +942,28 @@ export default function NavDatabase(props: PageProps) {
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
             >
-              {showAdvancedFilters ? 'Skjul avanserte filter' : 'Vis flere filter (Soverom, Areal, Tilgjengelighet...)'}
+              {showAdvancedFilters ? t('dbAdvancedFiltersHide') : t('dbAdvancedFiltersShow')}
               <ChevronRight size={16} style={{ transform: showAdvancedFilters ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
             </button>
 
             {showAdvancedFilters && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)', marginTop: 'var(--space-6)' }}>
                 <div>
-                  <label className="label">Min. antall soverom</label>
-                  <input type="number" className="input" placeholder="F.eks. 2" value={filters.minBedrooms} onChange={e => setFilters({...filters, minBedrooms: e.target.value})} />
+                  <label className="label">{t('dbMinBedrooms')}</label>
+                  <input type="number" className="input" placeholder={t('dbPlaceholderEg2')} value={filters.minBedrooms} onChange={e => setFilters({...filters, minBedrooms: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">Min. areal (m²)</label>
-                  <input type="number" className="input" placeholder="F.eks. 50" value={filters.minSize} onChange={e => setFilters({...filters, minSize: e.target.value})} />
+                  <label className="label">{t('dbMinArea')}</label>
+                  <input type="number" className="input" placeholder={t('dbPlaceholderEg50')} value={filters.minSize} onChange={e => setFilters({...filters, minSize: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">Min. antall personer</label>
-                  <input type="number" className="input" placeholder="F.eks. 3" value={filters.minOccupants} onChange={e => setFilters({...filters, minOccupants: e.target.value})} />
+                  <label className="label">{t('dbMinPeople')}</label>
+                  <input type="number" className="input" placeholder={t('dbPlaceholderEg3')} value={filters.minOccupants} onChange={e => setFilters({...filters, minOccupants: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">Møblering</label>
+                  <label className="label">{t('dbFurnishing')}</label>
                   <select className="input" value={filters.furnishing} onChange={e => setFilters({...filters, furnishing: e.target.value})}>
-                    <option>Alle</option>
+                    <option value="Alle">{t('all')}</option>
                     <option>Umøblert</option>
                     <option>Kun hvitevarer</option>
                     <option>Fullt møblert</option>
@@ -843,7 +971,7 @@ export default function NavDatabase(props: PageProps) {
                   </select>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label className="label">Fysisk tilrettelegging</label>
+                  <label className="label">{t('dbAccessibility')}</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {[
                       'Alt på ett plan', 
@@ -891,8 +1019,8 @@ export default function NavDatabase(props: PageProps) {
                 floor: 'Alle',
                 furnishing: 'Alle'
               })
-            }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>Nullstill alle filter</button>
-            <button onClick={() => setShowFilters(false)} className="button" style={{ padding: '8px 24px' }}>Ferdig</button>
+            }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>{t('dbResetFilters')}</button>
+            <button onClick={() => setShowFilters(false)} className="button" style={{ padding: '8px 24px' }}>{t('dbDone')}</button>
           </div>
         </div>
       )}
@@ -912,7 +1040,7 @@ export default function NavDatabase(props: PageProps) {
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
-              <h3 style={{ margin: 0 }}>Legg inn formidlet periode</h3>
+              <h3 style={{ margin: 0 }}>{t('dbModalAddFormidletTitle')}</h3>
               <button onClick={() => closeFormidletModal()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
                 <X size={20} />
               </button>
@@ -921,10 +1049,10 @@ export default function NavDatabase(props: PageProps) {
               {formidletModalListing.address}
             </p>
             <div style={{ marginBottom: 'var(--space-6)' }}>
-              <label className="label">Periode (datoområde)</label>
+              <label className="label">{t('periodDateRange')}</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }} className="formidlet-date-range">
                 <div>
-                  <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}>Fra</span>
+                  <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}>{t('from')}</span>
                   <DateInput
                     showCalendar
                     className="input"
@@ -932,11 +1060,11 @@ export default function NavDatabase(props: PageProps) {
                     value={formidletStart}
                     onChange={setFormidletStart}
                     max={formidletEnd || undefined}
-                    placeholder="DD.MM.ÅÅÅÅ"
+                    placeholder={t('dateInputPlaceholder')}
                   />
                 </div>
                 <div>
-                  <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}>Til</span>
+                  <span className="text-sm" style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}>{t('to')}</span>
                   <DateInput
                     showCalendar
                     className="input"
@@ -944,7 +1072,7 @@ export default function NavDatabase(props: PageProps) {
                     value={formidletEnd}
                     onChange={setFormidletEnd}
                     min={formidletStart || undefined}
-                    placeholder="DD.MM.ÅÅÅÅ"
+                    placeholder={t('dateInputPlaceholder')}
                   />
                 </div>
               </div>
@@ -979,11 +1107,11 @@ export default function NavDatabase(props: PageProps) {
             </details>
             <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
               <button onClick={() => closeFormidletModal()} style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', padding: 'var(--space-3) var(--space-5)', borderRadius: '10px', cursor: 'pointer' }}>
-                Avbryt
+                {t('cancel')}
               </button>
               <button onClick={handleMarkAsFormidlet} disabled={formidletSending} className="button button-accent">
                 {formidletSending ? <ShieldCheck size={18} style={{ opacity: 0.5 }} /> : <ShieldCheck size={18} />}
-                {formidletSending ? ' Lagrer...' : ' Bekreft formidling'}
+                {formidletSending ? ` ${t('dbSavingShort')}` : ` ${t('dbConfirmMediation')}`}
               </button>
             </div>
           </div>
@@ -998,18 +1126,18 @@ export default function NavDatabase(props: PageProps) {
         >
           <div className="card" style={{ padding: 'var(--space-8)', maxWidth: '420px', width: '90%' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
-              <h3 style={{ margin: 0 }}>Forleng formidlingsperiode</h3>
+              <h3 style={{ margin: 0 }}>{t('dbModalExtendTitle')}</h3>
               <button onClick={() => !formidletSending && setFormidletExtendModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}><X size={20} /></button>
             </div>
             <p style={{ marginBottom: 'var(--space-4)', fontSize: '0.95rem', color: 'var(--text-muted)' }}>{formidletExtendModal.listing.address}</p>
-            <p style={{ marginBottom: 'var(--space-3)', fontSize: '0.9rem' }}>Nåværende periode: {formatDateNo(formidletExtendModal.period.start_date)} – {formatDateNo(formidletExtendModal.period.end_date)}</p>
+            <p style={{ marginBottom: 'var(--space-3)', fontSize: '0.9rem' }}>{t('dbModalExtendCurrent')} {formatDateNo(formidletExtendModal.period.start_date)} – {formatDateNo(formidletExtendModal.period.end_date)}</p>
             <div style={{ marginBottom: 'var(--space-6)' }}>
-              <label className="label">Ny sluttdato</label>
-              <DateInput showCalendar className="input" style={{ marginTop: 'var(--space-2)', width: '100%' }} value={formidletExtendEnd} onChange={setFormidletExtendEnd} min={formidletExtendModal.period.end_date} placeholder="DD.MM.ÅÅÅÅ" />
+              <label className="label">{t('dbModalNewEndDate')}</label>
+              <DateInput showCalendar className="input" style={{ marginTop: 'var(--space-2)', width: '100%' }} value={formidletExtendEnd} onChange={setFormidletExtendEnd} min={formidletExtendModal.period.end_date} placeholder={t('dateInputPlaceholder')} />
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <button onClick={() => !formidletSending && setFormidletExtendModal(null)} style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', padding: 'var(--space-3) var(--space-5)', borderRadius: '10px', cursor: 'pointer' }}>Avbryt</button>
-              <button onClick={handleExtendFormidlet} disabled={formidletSending} className="button button-accent">{formidletSending ? ' Lagrer...' : 'Forleng'}</button>
+              <button onClick={() => !formidletSending && setFormidletExtendModal(null)} style={{ background: 'none', border: '1px solid var(--border-subtle)', color: 'var(--text-main)', padding: 'var(--space-3) var(--space-5)', borderRadius: '10px', cursor: 'pointer' }}>{t('cancel')}</button>
+              <button onClick={handleExtendFormidlet} disabled={formidletSending} className="button button-accent">{formidletSending ? ` ${t('dbSavingShort')}` : t('dbExtendButton')}</button>
             </div>
           </div>
         </div>
@@ -1036,7 +1164,7 @@ export default function NavDatabase(props: PageProps) {
                         </div>
                       </th>
                     ))}
-                    <th style={{ padding: 'var(--space-4)' }}>Handling</th>
+                    <th style={{ padding: 'var(--space-4)' }}>{t('dbActionColumn')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1046,12 +1174,12 @@ export default function NavDatabase(props: PageProps) {
                       onClick={() => router.push(`/listings/${l.id}?view=nav`)}
                       style={{ 
                         borderTop: '1px solid var(--border-subtle)', 
-                        background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+                        background: i % 2 === 0 ? 'transparent' : 'rgba(59, 130, 246, 0.04)',
                         cursor: 'pointer',
                         transition: 'background 0.2s'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)'}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(59, 130, 246, 0.04)'}
                     >
                       {ALL_COLUMNS.filter(col => visibleColumns.includes(col.id)).map(col => (
                         <td key={col.id} style={{ padding: 'var(--space-4)' }}>
@@ -1066,16 +1194,16 @@ export default function NavDatabase(props: PageProps) {
                             <Eye size={16} />
                           </Link>
                           {activeTab === 'Tilgjengelig' && kommuneCanEdit && (
-                            <button onClick={() => openFormidletModal(l)} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)', border: 'none', cursor: 'pointer' }} title="Legg inn formidlet periode">
+                            <button onClick={() => openFormidletModal(l)} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)', border: 'none', cursor: 'pointer' }} title={t('dbTitleAddFormidletPeriod')}>
                               <ShieldCheck size={16} />
                             </button>
                           )}
                           {activeTab === 'Formidlet' && kommuneCanEdit && (
                             <>
-                              <button onClick={() => openFormidletExtendModal(l)} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)', border: 'none', cursor: 'pointer' }} title="Forleng periode">
+                              <button onClick={() => openFormidletExtendModal(l)} style={{ padding: '6px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '6px', color: 'var(--color-sky-blue)', border: 'none', cursor: 'pointer' }} title={t('dbTitleExtendPeriod')}>
                                 <CalendarPlus size={16} />
                               </button>
-                              <button onClick={() => handleRemoveFormidlet(l.id, l.address)} style={{ padding: '6px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', color: '#ef4444', border: 'none', cursor: 'pointer' }} title="Fjern formidling">
+                              <button onClick={() => handleRemoveFormidlet(l.id, l.address)} style={{ padding: '6px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '6px', color: '#ef4444', border: 'none', cursor: 'pointer' }} title={t('dbTitleRemoveMediation')}>
                                 <RotateCcw size={16} />
                               </button>
                             </>
@@ -1218,7 +1346,7 @@ export default function NavDatabase(props: PageProps) {
                                 color: 'var(--color-sky-blue)',
                                 whiteSpace: 'nowrap'
                               }}>
-                                {d.toLocaleDateString('no-NO', { month: 'long', year: isJan1st || i === 0 ? 'numeric' : undefined })}
+                                {d.toLocaleDateString(dateLocaleTag, { month: 'long', year: isJan1st || i === 0 ? 'numeric' : undefined })}
                               </div>
                             );
                           }
@@ -1228,7 +1356,7 @@ export default function NavDatabase(props: PageProps) {
                     </div>
                     {/* Rad 2: Uker og dager */}
                     <div style={{ display: 'flex' }}>
-                      <div style={{ width: '200px', fontWeight: 700, fontSize: '0.75rem', opacity: 0.5, display: 'flex', alignItems: 'center', paddingLeft: '8px' }}>BOLIG</div>
+                      <div style={{ width: '200px', fontWeight: 700, fontSize: '0.75rem', opacity: 0.5, display: 'flex', alignItems: 'center', paddingLeft: '8px' }}>{t('dbPropertyRowHeader')}</div>
                       <div style={{ flex: 1, display: 'flex' }}>
                         {Array.from({ length: 60 }).map((_, i) => {
                           const d = new Date();
@@ -1357,8 +1485,8 @@ export default function NavDatabase(props: PageProps) {
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>Tidslinje-styring</span>
-                  <button onClick={() => setTimelineOffset(0)} style={{ background: 'none', border: 'none', color: 'var(--color-sky-blue)', cursor: 'pointer', fontSize: '0.75rem' }}>Gå til i dag</button>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t('dbTimelineControls')}</span>
+                  <button onClick={() => setTimelineOffset(0)} style={{ background: 'none', border: 'none', color: 'var(--color-sky-blue)', cursor: 'pointer', fontSize: '0.75rem' }}>{t('dbGoToToday')}</button>
                 </div>
                 <div style={{ position: 'relative', height: '20px', margin: '10px 0' }}>
                   <input 
@@ -1382,16 +1510,16 @@ export default function NavDatabase(props: PageProps) {
                   }}></div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', opacity: 0.5 }}>
-                  <span>-30 dager</span>
-                  <span style={{ color: 'var(--color-sky-blue)', fontWeight: 700, marginLeft: '-15%' }}>I dag</span>
-                  <span>+1 år</span>
+                  <span>{t('dbTimelineRangePast')}</span>
+                  <span style={{ color: 'var(--color-sky-blue)', fontWeight: 700, marginLeft: '-15%' }}>{t('dbTimelineRangeToday')}</span>
+                  <span>{t('dbTimelineRangeFuture')}</span>
                 </div>
               </div>
             </div>
           )
         ) : (
           <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-            <Info size={40} style={{ margin: '0 auto var(--space-3)', opacity: 0.3 }} />
+            <Info size={40} className="empty-state-icon" style={{ margin: '0 auto var(--space-3)' }} />
             <p>{t('noResults')}</p>
           </div>
         )}

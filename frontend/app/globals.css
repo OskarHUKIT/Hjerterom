@@ -576,6 +576,12 @@ p {
   font-weight: 500;
 }
 
+/* Gjest-header: jevn vertikal linje mellom globus, språkliste og Logg inn */
+.header-guest-lang-select {
+  cursor: pointer;
+  align-self: center;
+}
+
 .nav-link:hover {
   background: rgba(125, 211, 252, 0.1);
   color: var(--color-accent);
@@ -657,6 +663,32 @@ select optgroup {
   color: var(--color-accent);
 }
 
+.footer-brand-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.footer-developed-credit {
+  margin: 0 0 var(--space-5);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: center;
+  width: 100%;
+}
+
+.footer-logos-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-10);
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+}
+
 .footer-grid {
   display: grid;
   grid-template-columns: 3fr 1fr 1fr;
@@ -715,6 +747,7 @@ select optgroup {
 @media (max-width: 480px) {
   .footer-logos-row {
     flex-direction: column;
+    align-items: center;
     gap: var(--space-4);
   }
   .footer-logo-container {
@@ -1119,17 +1152,27 @@ select optgroup {
 
 /* Animations */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-main > * {
-  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+/* Unngå `animation-fill-mode: both` på hele main-innhold: det kan gi opacity:0 som
+   henger igjen etter klientnavigasjon (blank/hvit side). Valgfri, respekterer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  main > * {
+    animation: fadeInUp 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  main > * {
+    animation: none;
+    opacity: 1;
+  }
 }
 
-.animate-delay-1 { animation-delay: 0.1s; }
-.animate-delay-2 { animation-delay: 0.2s; }
-.animate-delay-3 { animation-delay: 0.3s; }
+.animate-delay-1 { animation-delay: 0.04s; }
+.animate-delay-2 { animation-delay: 0.08s; }
+.animate-delay-3 { animation-delay: 0.12s; }
 
 /* Fullskjerm rapport-overlay */
 @keyframes reportOverlayFadeIn {
@@ -1141,10 +1184,10 @@ main > * {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 .report-fullscreen-overlay {
-  animation: reportOverlayFadeIn 0.2s ease-out;
+  animation: reportOverlayFadeIn 0.14s ease-out;
 }
 .report-fullscreen-panel {
-  animation: reportPanelSlideIn 0.25s ease-out;
+  animation: reportPanelSlideIn 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 /* Tidsfilter for overtakelsesrapporter – lesbar dropdown */

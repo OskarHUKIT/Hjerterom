@@ -35,7 +35,8 @@ export default function Header() {
         supabase.from('user_agreements').select('*').eq('user_id', userId).eq('is_terminated', false).maybeSingle()
       ])
       
-      const userRole = metadataRole || profileRes.data?.role || 'homeowner'
+      // Profil i DB er kilden; metadata kan være utdatert og gi feil nav-etikett.
+      const userRole = profileRes.data?.role || metadataRole || 'homeowner'
       setRole(userRole)
       setKommuneCanEdit(profileRes.data?.kommune_can_edit ?? null)
       setHasSignedTerms(!!agreementRes.data)
@@ -153,28 +154,16 @@ export default function Header() {
           {isKommuneStaffRole(role) && (
             <>
               {kommuneMobileNav ? (
-                <>
-                  <Link
-                    href="/nav/messages"
-                    className="nav-link"
-                    onClick={closeMobileNav}
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                    aria-label={t('messages')}
-                    title={t('messages')}
-                  >
-                    <MessageSquare size={22} />
-                  </Link>
-                  <Link
-                    href="/nav/database"
-                    className="nav-link"
-                    onClick={closeMobileNav}
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                    aria-label={t('housingBank')}
-                    title={t('housingBank')}
-                  >
-                    <Building2 size={22} />
-                  </Link>
-                </>
+                <Link
+                  href="/nav/database"
+                  className="nav-link"
+                  onClick={closeMobileNav}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  aria-label={t('housingBank')}
+                  title={t('housingBank')}
+                >
+                  <Building2 size={22} />
+                </Link>
               ) : (
                 <>
                   <Link href="/nav/database" className="nav-link" onClick={closeMobileNav}>{t('housingBank')}</Link>
@@ -323,19 +312,70 @@ export default function Header() {
               )}
             </div>
           ) : (
-            <Link 
-              href="/login" 
-              className="button" 
-              style={{ 
-                fontSize: '0.85rem', 
-                padding: 'var(--space-2) var(--space-5)', 
+            <div
+              className="header-guest-toolbar"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
                 marginLeft: 'var(--space-2)',
-                borderRadius: '10px'
               }}
-              onClick={closeMobileNav}
             >
-              <LogIn size={16} style={{ marginRight: '6px' }} /> {t('logIn')}
-            </Link>
+              <div
+                className="header-guest-lang-row"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  height: 'var(--touch-target-sm)',
+                  flexShrink: 0,
+                }}
+                aria-label={t('language')}
+              >
+                <Globe size={18} style={{ opacity: 0.85, color: 'var(--text-muted)', flexShrink: 0 }} aria-hidden />
+                <select
+                  value={locale}
+                  onChange={e => setLocale(e.target.value as 'no' | 'se' | 'en')}
+                  className="header-guest-lang-select"
+                  style={{
+                    margin: 0,
+                    height: 'var(--touch-target-sm)',
+                    minHeight: 'var(--touch-target-sm)',
+                    boxSizing: 'border-box',
+                    padding: '0 10px',
+                    borderRadius: 8,
+                    background: 'var(--bg-app)',
+                    border: '1px solid var(--border-subtle)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.85rem',
+                    lineHeight: 1.2,
+                    maxWidth: '150px',
+                  }}
+                >
+                  <option value="no">{t('norwegian')}</option>
+                  <option value="se">{t('sami')}</option>
+                  <option value="en">{t('english')}</option>
+                </select>
+              </div>
+              <Link
+                href="/login"
+                className="button"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.85rem',
+                  padding: '0 var(--space-5)',
+                  minHeight: 'var(--touch-target-sm)',
+                  height: 'var(--touch-target-sm)',
+                  boxSizing: 'border-box',
+                  borderRadius: '10px',
+                }}
+                onClick={closeMobileNav}
+              >
+                <LogIn size={16} style={{ marginRight: '6px' }} /> {t('logIn')}
+              </Link>
+            </div>
           )}
     </>
   )
@@ -359,10 +399,70 @@ export default function Header() {
           {navContent}
         </nav>
 
-        {/* Mobile: varsel-ikon + hamburger */}
+        {/* Mobile: gjester får språk + hamburger; innloggede får snarveier + hamburger */}
         <div className="header-mobile-actions" style={{ display: 'none', alignItems: 'center', gap: 'var(--space-2)' }}>
+          {!loading && !user && (
+            <div
+              className="header-guest-lang"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                height: 'var(--touch-target)',
+                flexShrink: 0,
+              }}
+              aria-label={t('language')}
+            >
+              <Globe size={20} style={{ opacity: 0.85, color: 'var(--text-muted)', flexShrink: 0 }} aria-hidden />
+              <select
+                value={locale}
+                onChange={e => setLocale(e.target.value as 'no' | 'se' | 'en')}
+                className="header-guest-lang-select"
+                style={{
+                  margin: 0,
+                  height: 'var(--touch-target)',
+                  minHeight: 'var(--touch-target)',
+                  boxSizing: 'border-box',
+                  padding: '0 8px',
+                  borderRadius: 8,
+                  background: 'var(--bg-app)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.8rem',
+                  lineHeight: 1.2,
+                  maxWidth: 'min(130px, 28vw)',
+                }}
+              >
+                <option value="no">{t('norwegian')}</option>
+                <option value="se">{t('sami')}</option>
+                <option value="en">{t('english')}</option>
+              </select>
+            </div>
+          )}
           {user && (
             <>
+              {isKommuneStaffRole(role) && (
+                <Link
+                  href="/nav/messages"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 44,
+                    height: 44,
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 10,
+                    color: 'white',
+                    textDecoration: 'none',
+                  }}
+                  aria-label={t('messages')}
+                  title={t('messages')}
+                  onClick={closeMobileNav}
+                >
+                  <MessageSquare size={22} />
+                </Link>
+              )}
               {!isKommuneStaffRole(role) && (
                 <Link
                   href="/homeowner/manage"
@@ -462,6 +562,17 @@ export default function Header() {
         }
         @media (min-width: 769px) {
           .header-nav-mobile { display: none !important; }
+        }
+        /* Gjest: språk i topplinjen; ikke gjenta globus i mobil-drawer */
+        @media (max-width: 768px) {
+          .header-nav-mobile .header-guest-lang-row {
+            display: none !important;
+          }
+          .header-nav-mobile .header-guest-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            margin-left: 0 !important;
+          }
         }
         .menu-item {
           display: flex;

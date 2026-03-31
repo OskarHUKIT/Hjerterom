@@ -36,7 +36,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('boly-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);})();`,
+            __html: `(function(){document.documentElement.setAttribute('data-theme','dark');})();`,
           }}
         />
       </head>

@@ -294,7 +294,7 @@ function SignTermsContent() {
       } catch (e: unknown) {
         console.error(e)
         const msg = e instanceof Error ? e.message : String(e)
-        alert('Kunne ikke fullføre boligregistrering etter signering: ' + msg)
+        alert(t('signTermsListingAfterSignError') + msg)
       } finally {
         sessionStorage.removeItem(lockKey)
       }
@@ -323,7 +323,7 @@ function SignTermsContent() {
 
   const handleSign = async () => {
     if (!canProceedToSign) {
-      alert(termsPdfUrl ? t('termsConfirmReadPdf') : 'Scroll ned i avtalen først for å aktivere signering.')
+      alert(termsPdfUrl ? t('termsConfirmReadPdf') : t('termsScrollBeforeSign'))
       return
     }
 
@@ -374,13 +374,13 @@ function SignTermsContent() {
       const errMsg = data?.error ?? data?.message ?? 'Kunne ikke starte signering.'
       throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg))
     } catch (err: any) {
-      alert('Feil ved start av signering: ' + (err?.message || String(err)))
+      alert(t('signTermsStartError') + (err?.message || String(err)))
       setLoading(false)
     }
   }
 
   const handleTerminate = async () => {
-    if (!confirm('Er du sikker på at du vil si opp avtalen? Du mister tilgang til Boligbank med en gang. Informasjon om deg og boligene dine bevares for kommunens historikk.')) return
+    if (!confirm(t('signTermsTerminateConfirm'))) return
 
     setLoading(true)
     try {
@@ -402,11 +402,11 @@ function SignTermsContent() {
         details: { version: '1.0' }
       }])
 
-      alert('Avtalen er nå sagt opp. Du logges ut. Kommunen beholder historikk over boliger og avtale.')
+      alert(t('signTermsTerminatedSuccess'))
       await supabase.auth.signOut()
       router.push('/')
     } catch (err: any) {
-      alert('Feil ved oppsigelse: ' + err.message)
+      alert(t('signTermsTerminateError') + err.message)
     } finally {
       setLoading(false)
     }
@@ -691,7 +691,7 @@ function SignTermsContent() {
               <>
                 <h2 style={{ color: '#0f172a', fontSize: '1.6rem', marginBottom: 'var(--space-4)', borderBottom: '2px solid #f1f5f9', paddingBottom: 'var(--space-2)' }}>{termsDoc?.title}</h2>
                 <iframe
-                  title="Vilkår PDF"
+                  title={t('termsPdfTooltip')}
                   src={termsPdfUrl}
                   style={{ width: '100%', height: '320px', border: '1px solid #e2e8f0', borderRadius: 8 }}
                 />

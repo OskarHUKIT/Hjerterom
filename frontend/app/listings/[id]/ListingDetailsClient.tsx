@@ -18,7 +18,20 @@ import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
 import { geocodeAddressBestEffort } from '../../lib/geocoding'
 import { DateInput } from '../../components/DateInput'
 import { appendMediationNoteToOwnerMessage, MAX_MEDIATION_NOTE_IN_NOTIFICATION } from '../../lib/formidletNotification'
+import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import InvoiceBasisSection from './InvoiceBasisSection'
+
+/** Verdier i `listings.deposit_guarantee` – må samsvare med registreringsskjema. */
+const DEPOSIT_GUARANTEE_VALUES = {
+  nav: 'Godtar depositumsgaranti fra Nav',
+  other: 'Godtar depositumsgaranti fra andre tilbydere',
+  ordinary: 'Godtar ordinært depositum',
+} as const
+
+function hasDepositGuarantee(arr: unknown, key: keyof typeof DEPOSIT_GUARANTEE_VALUES): boolean {
+  return Array.isArray(arr) && arr.includes(DEPOSIT_GUARANTEE_VALUES[key])
+}
 
 export default function ListingDetailsClient() {
   const { id } = useParams()
@@ -51,6 +64,8 @@ export default function ListingDetailsClient() {
   const [kommuneCanEdit, setKommuneCanEdit] = useState(false)
   /** True når innlogget bruker er kommune (for meldingslenke til utleier utenfor nav-visning). */
   const [viewerIsKommuneStaff, setViewerIsKommuneStaff] = useState(false)
+  /** Utleierens user_agreements.is_terminated – blokkerer formidling og melding i NAV-visning */
+  const [ownerAgreementTerminated, setOwnerAgreementTerminated] = useState(false)
   const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{ id: string; status: string } | null>(null)
   
   // Gallery state
@@ -195,6 +210,10 @@ export default function ListingDetailsClient() {
 
   const handleReserveMediation = async () => {
     if (!listing || !isNavView || !kommuneCanEdit) return
+    if (ownerAgreementTerminated) {
+      alert(t('expiredOwnerNoMediationNav'))
+      return
+    }
     setReservationLoading(true)
     try {
       const { error } = await supabase.rpc('reserve_listing_mediation', {
@@ -213,6 +232,10 @@ export default function ListingDetailsClient() {
 
   const handleReleaseMediation = async () => {
     if (!listing || !isNavView) return
+    if (ownerAgreementTerminated) {
+      alert(t('expiredOwnerNoMediationNav'))
+      return
+    }
     setReservationLoading(true)
     try {
       const { error } = await supabase.rpc('release_listing_mediation', { p_listing_id: id })
@@ -226,7 +249,12 @@ export default function ListingDetailsClient() {
   }
 
   const handleAddFormidletPeriod = async () => {
-    if (!listing || !isNavView || !formidletStart || !formidletEnd) {
+    if (!listing || !isNavView) return
+    if (ownerAgreementTerminated) {
+      alert(t('expiredOwnerNoMediationNav'))
+      return
+    }
+    if (!formidletStart || !formidletEnd) {
       alert(t('selectStartEndFormidling'))
       return
     }
@@ -288,6 +316,12 @@ export default function ListingDetailsClient() {
         const baseMsg = `Boligen din i ${listing.address} er markert som formidlet for perioden ${start}–${end}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`
         const message = appendMediationNoteToOwnerMessage(baseMsg, noteTrimmed, includeNote)
         await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Bolig formidlet', message, listing_id: id }])
+        await notifyLandlordInvoiceBasisIfKonto(supabase, {
+          ownerId: listing.owner_id,
+          listingId: String(id),
+          address: listing.address,
+          paymentMethod: listing.payment_method
+        })
       }
     } catch (err: any) {
       setListing({ ...listing, status: listing.status, is_available: listing.is_available })
@@ -308,16 +342,20 @@ export default function ListingDetailsClient() {
     const t = ymd(date)
     const hits = availability.filter(p => t >= p.start_date && t <= p.end_date)
     if (hits.length === 0) return null
+    if (hits.some(h => h.status === 'Formidla')) return 'Formidla'
     if (hits.length > 1) {
       const statuses = new Set(hits.map(h => h.status))
       if (statuses.size > 1) return 'Konflikt'
     }
-    if (hits.some(h => h.status === 'Formidla')) return 'Formidla'
     if (hits.some(h => h.status === 'Utilgjengelig')) return 'Utilgjengelig'
     return hits[0]?.status ?? null
   }
 
   const handleRemovePeriod = async (period: { id: string; status: string }) => {
+    if (isNavView && ownerAgreementTerminated) {
+      alert(t('expiredOwnerNoMediationNav'))
+      return
+    }
     const prevAvailability = [...availability]
     setAvailability(prev => prev.filter(x => x.id !== period.id))
     setPendingDeletePeriod(null)
@@ -338,7 +376,12 @@ export default function ListingDetailsClient() {
   }
 
   const handleRemoveFormidlet = async () => {
-    if (!listing || !isNavView || !confirm(`Vil du fjerne formidlingen for "${listing.address}"?`)) return
+    if (!listing || !isNavView) return
+    if (ownerAgreementTerminated) {
+      alert(t('expiredOwnerNoMediationNav'))
+      return
+    }
+    if (!confirm(`Vil du fjerne formidlingen for "${listing.address}"?`)) return
     const prevListing = listing
     const prevAvailability = availability
     setListing({ ...listing, status: 'Tilgjengelig', is_available: true })
@@ -359,6 +402,10 @@ export default function ListingDetailsClient() {
 
   const handleRegenerateTenantLink = async () => {
     if (!id || tenantLinkRegenerating) return
+    if (ownerAgreementTerminated) {
+      alert(t('expiredOwnerNoMediationNav'))
+      return
+    }
     if (!confirm(t('generateNewLinkConfirm'))) return
     setTenantLinkRegenerating(true)
     try {
@@ -376,6 +423,7 @@ export default function ListingDetailsClient() {
   useEffect(() => {
     setRegionAccessDenied(false)
     async function fetchData() {
+      setOwnerAgreementTerminated(false)
       try {
         const { data: { user } } = await supabase.auth.getUser()
         setCurrentUser(user)
@@ -435,6 +483,20 @@ export default function ListingDetailsClient() {
         if (error) throw error
         setListing(data)
 
+        let ownerTerm = false
+        if (data?.owner_id) {
+          const { data: termRow } = await supabase
+            .from('user_agreements')
+            .select('id')
+            .eq('user_id', data.owner_id)
+            .eq('is_terminated', true)
+            .maybeSingle()
+          ownerTerm = !!termRow
+          setOwnerAgreementTerminated(ownerTerm)
+        } else {
+          setOwnerAgreementTerminated(false)
+        }
+
         // Kommune: kun tilgang til boliger i tillatte kommuner (støtter JSON-array ["Narvik","Gratangen"] og streng)
         if (isNavView && data) {
           const raw = profileKommuneRegion
@@ -474,7 +536,8 @@ export default function ListingDetailsClient() {
             .eq('listing_id', id)
             .order('created_at', { ascending: false })
           setNavNotes(notesData || [])
-          await loadMediationReservation()
+          if (!ownerTerm) await loadMediationReservation()
+          else setMediationReservation(null)
         }
 
         // Fetch Handover Reports
@@ -488,7 +551,7 @@ export default function ListingDetailsClient() {
         // Fetch or create tenant report token only for kommune (lenken vises bare for kommuneansatte)
         const today = new Date().toISOString().slice(0, 10)
         const isFormidlet = data?.status === 'Formidla' || (availData && availData.some((p: any) => p.status === 'Formidla' && p.start_date <= today && p.end_date >= today))
-        if (user && isNavView && isFormidlet) {
+        if (user && isNavView && isFormidlet && !ownerTerm) {
           let tokenData = await supabase.from('listing_tenant_tokens').select('token').eq('listing_id', id).maybeSingle()
           if (!tokenData.data) {
             await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
@@ -507,6 +570,33 @@ export default function ListingDetailsClient() {
 
     if (id) fetchData()
   }, [id, isNavView])
+
+  /** App Router / klientnavigasjon scroller ikke alltid til #anker (f.eks. varsel «Åpne fakturagrunnlag»). */
+  useEffect(() => {
+    if (loading || !listing) return
+    const raw = typeof window !== 'undefined' ? window.location.hash.replace(/^#/, '').trim() : ''
+    if (!raw) return
+    let cancelled = false
+    let attempts = 0
+    const tryScroll = () => {
+      if (cancelled) return true
+      const el = document.getElementById(raw)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        return true
+      }
+      return false
+    }
+    if (tryScroll()) return
+    const timer = window.setInterval(() => {
+      attempts += 1
+      if (tryScroll() || attempts > 50) window.clearInterval(timer)
+    }, 80)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [loading, listing?.id, id])
 
   const handleUploadMore = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
@@ -614,7 +704,7 @@ export default function ListingDetailsClient() {
       if (error) throw error
       refetchHandoverReports()
     } catch (err: any) {
-      alert('Kunne ikke godkjenne: ' + err?.message)
+      alert(t('errApprove') + err?.message)
     }
   }
 
@@ -640,7 +730,10 @@ export default function ListingDetailsClient() {
         listing_id: listing.id,
         type: 'NEW_MESSAGE',
         title: t('messageFromKommune'),
-        message: 'Kommune har bedt om ny overtakelsesrapport. Se meldinger.',
+        message:
+          comment.trim().length > 0
+            ? `Kommunen: ${comment.trim()}`
+            : 'Kommunen har bedt om ny overtakelsesrapport. Se meldinger.',
         status: 'unread',
         related_user_id: currentUser.id
       })
@@ -648,7 +741,7 @@ export default function ListingDetailsClient() {
       setRequestChangeReport(null)
       setRequestChangeComment('')
     } catch (err: any) {
-      alert('Kunne ikke sende: ' + err?.message)
+      alert(t('errSend') + err?.message)
     } finally {
       setRequestChangeSending(false)
     }
@@ -749,6 +842,20 @@ export default function ListingDetailsClient() {
         </Link>
       </div>
 
+      {isNavView && ownerAgreementTerminated && (
+        <div
+          className="card"
+          style={{
+            marginBottom: 'var(--space-6)',
+            padding: 'var(--space-4)',
+            border: '1px solid rgba(245, 158, 11, 0.45)',
+            background: 'rgba(245, 158, 11, 0.08)',
+          }}
+        >
+          <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-body)', lineHeight: 1.55 }}>{t('expiredOwnerNoMediationNav')}</p>
+        </div>
+      )}
+
       <div className="listing-details-grid" style={{ display: 'grid', gridTemplateColumns: isNavView ? '1.5fr 1fr' : '1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
         {/* Left Column – rekkefølge: adresse, boliginfo, prisnivåer, ledige perioder, deretter kontaktinfo, overtakelsesrapport, bilder */}
         <div style={{ display: 'grid', gap: 'var(--space-6)' }}>
@@ -792,15 +899,54 @@ export default function ListingDetailsClient() {
             ) : (
               <h2 style={{ fontSize: '2rem', marginBottom: 'var(--space-2)', color: 'var(--text-main)', paddingRight: isNavView ? '48px' : 0 }}>{listing.address}</h2>
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', color: 'var(--color-royal-blue)', fontSize: '1rem' }}>
-              <MapPin size={18} />
+            <div
+              className="listing-city-line"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-3)',
+                color: 'var(--color-royal-blue)',
+                fontSize: '1rem',
+              }}
+            >
+              <MapPin size={18} style={{ color: 'var(--color-royal-blue)', flexShrink: 0 }} aria-hidden />
               {isOwner && !isNavView ? (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input value={listing.city} onChange={e => setListing({...listing, city: e.target.value})} onBlur={e => handleUpdateField('city', e.target.value)} style={{ fontWeight: 600, color: 'inherit', border: 'none', background: 'none', width: '120px', padding: 0, outline: 'none' }} />
-                  <input value={listing.postal_code} onChange={e => setListing({...listing, postal_code: e.target.value})} onBlur={e => handleUpdateField('postal_code', e.target.value)} style={{ fontWeight: 600, color: 'inherit', border: 'none', background: 'none', width: '80px', padding: 0, outline: 'none' }} />
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <input
+                    value={listing.city}
+                    onChange={e => setListing({ ...listing, city: e.target.value })}
+                    onBlur={e => handleUpdateField('city', e.target.value)}
+                    style={{
+                      fontWeight: 600,
+                      color: 'var(--color-royal-blue)',
+                      WebkitTextFillColor: 'var(--color-royal-blue)',
+                      border: 'none',
+                      background: 'none',
+                      width: '120px',
+                      padding: 0,
+                      outline: 'none',
+                    }}
+                  />
+                  <input
+                    value={listing.postal_code}
+                    onChange={e => setListing({ ...listing, postal_code: e.target.value })}
+                    onBlur={e => handleUpdateField('postal_code', e.target.value)}
+                    style={{
+                      fontWeight: 600,
+                      color: 'var(--color-royal-blue)',
+                      WebkitTextFillColor: 'var(--color-royal-blue)',
+                      border: 'none',
+                      background: 'none',
+                      width: '80px',
+                      padding: 0,
+                      outline: 'none',
+                    }}
+                  />
                 </div>
               ) : (
-                <span style={{ fontWeight: 600 }}>{listing.city} {listing.postal_code}</span>
+                <span style={{ fontWeight: 600, color: 'var(--color-royal-blue)' }}>
+                  {listing.city} {listing.postal_code}
+                </span>
               )}
             </div>
           </section>
@@ -844,12 +990,13 @@ export default function ListingDetailsClient() {
           {/* 2. Boliginformasjon (type, størrelse, boliginfo, inkludert, beskrivelse) */}
           <section className="card listing-detail-card" style={{ padding: 'var(--space-8)' }}>
             <div className="listing-metrics-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-4)', padding: 'var(--space-6) 0', borderTop: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--space-6)' }}>
-              <div style={{ textAlign: 'center' }}>
+              <div className="listing-metric-cell" style={{ textAlign: 'center' }}>
                 <Building size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
                 {isOwner && !isNavView ? (
                   <select 
                     value={listing.type} 
                     onChange={e => { setListing({...listing, type: e.target.value}); handleUpdateField('type', e.target.value); }}
+                    className="listing-metric-select"
                     style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'center', width: '100%', fontSize: '0.9rem', cursor: 'pointer' }}
                   >
                     <option value="Short-term">Korttid</option>
@@ -859,42 +1006,64 @@ export default function ListingDetailsClient() {
                     <option value="Shared">Bofelleskap</option>
                   </select>
                 ) : (
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{translateType(listing.type)}</div>
+                  <div className="listing-metric-value" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{translateType(listing.type)}</div>
                 )}
                 <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>TYPE</div>
               </div>
-              <div style={{ textAlign: 'center' }}>
+              <div className="listing-metric-cell" style={{ textAlign: 'center' }}>
                 <Ruler size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
                 {isOwner && !isNavView ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                  <div className="listing-metric-size-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                     <input type="number" value={listing.size_sqm} onChange={e => setListing({...listing, size_sqm: e.target.value})} onBlur={e => handleUpdateField('size_sqm', e.target.value)} style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'right', width: '40px', padding: 0, outline: 'none' }} />
                     <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>m²</span>
                   </div>
                 ) : (
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.size_sqm} m²</div>
+                  <div className="listing-metric-value" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.size_sqm} m²</div>
                 )}
                 <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>STØRRELSE</div>
               </div>
-              <div style={{ textAlign: 'center' }}>
+              <div className="listing-metric-cell" style={{ textAlign: 'center' }}>
                 <Bed size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
                 {isOwner && !isNavView ? (
                   <input type="number" value={listing.bedrooms} onChange={e => setListing({...listing, bedrooms: e.target.value})} onBlur={e => handleUpdateField('bedrooms', e.target.value)} style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'center', width: '100%', padding: 0, outline: 'none' }} />
                 ) : (
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.bedrooms}</div>
+                  <div className="listing-metric-value" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.bedrooms}</div>
                 )}
                 <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>SOVEROM</div>
               </div>
-              <div style={{ textAlign: 'center' }}>
+              <div className="listing-metric-cell" style={{ textAlign: 'center' }}>
                 <Users size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
                 {isOwner && !isNavView ? (
                   <input type="number" value={listing.max_occupants} onChange={e => setListing({...listing, max_occupants: e.target.value})} onBlur={e => handleUpdateField('max_occupants', e.target.value)} style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'center', width: '100%', padding: 0, outline: 'none' }} />
                 ) : (
-                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.max_occupants}</div>
+                  <div className="listing-metric-value" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.max_occupants}</div>
                 )}
                 <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>MAKS PERS</div>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}>
+            <div style={{ marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 6 }}>{t('paymentMethodLabel')}</div>
+              {isOwner && !isNavView ? (
+                <select
+                  value={listing.payment_method === 'konto' ? 'konto' : 'faktura'}
+                  onChange={e => {
+                    const v = e.target.value === 'konto' ? 'konto' : 'faktura'
+                    setListing({ ...listing, payment_method: v })
+                    void handleUpdateField('payment_method', v)
+                  }}
+                  className="input"
+                  style={{ maxWidth: 360, fontSize: '0.9rem', padding: '8px 12px' }}
+                >
+                  <option value="faktura">{t('paymentMethodFaktura')}</option>
+                  <option value="konto">{t('paymentMethodKonto')}</option>
+                </select>
+              ) : (
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                  {listing.payment_method === 'konto' ? t('paymentMethodKonto') : t('paymentMethodFaktura')}
+                </div>
+              )}
+            </div>
+            <div className="listing-detail-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}>
               <div>
                 <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Boliginformasjon</h3>
                 <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
@@ -1072,7 +1241,7 @@ export default function ListingDetailsClient() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.9rem', color: 'var(--text-body)' }}>
                   <Phone size={14} style={{ color: 'var(--color-accent)' }} /> {listing.contact_phone?.trim() || '–'}
                 </div>
-                {viewerIsKommuneStaff && listing.owner_id && (
+                {viewerIsKommuneStaff && listing.owner_id && !ownerAgreementTerminated && (
                   <Link
                     href={`/nav/messages?with=${listing.owner_id}`}
                     className="button button-secondary"
@@ -1099,7 +1268,9 @@ export default function ListingDetailsClient() {
               {availability.length > 0 ? (
                 <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
                   {availability.map(p => {
-                    const canDelete = (isOwner && !isNavView && p.status !== 'Formidla') || (isNavView && kommuneCanEdit)
+                    const canDelete =
+                      (isOwner && !isNavView && p.status !== 'Formidla') ||
+                      (isNavView && kommuneCanEdit && !ownerAgreementTerminated)
                     return (
                       <div key={p.id} className="listing-availability-item" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--listing-availability-item-bg)', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
                         <Calendar size={16} style={{ color: p.status === 'Formidla' ? 'var(--color-royal-blue)' : p.status === 'Utilgjengelig' ? '#ef4444' : 'var(--color-teal)' }} />
@@ -1169,7 +1340,7 @@ export default function ListingDetailsClient() {
                   </div>
                 </div>
               )}
-              {isNavView && kommuneCanEdit && (
+              {isNavView && kommuneCanEdit && !ownerAgreementTerminated && (
                 <div
                   style={{
                     marginTop: 'var(--space-6)',
@@ -1263,7 +1434,7 @@ export default function ListingDetailsClient() {
                   )}
                 </div>
               )}
-              {isNavView && (
+              {isNavView && !ownerAgreementTerminated && (
                 <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.4)' }}>
                   <h4 style={{ marginBottom: 'var(--space-3)', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('formidling')}</h4>
                   {!kommuneCanEdit ? (
@@ -1279,11 +1450,11 @@ export default function ListingDetailsClient() {
                       <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: '120px' }}>
                           <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>{t('from')}</span>
-                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)', opacity: mediationReservation && mediationReservation.reserved_by !== currentUser?.id ? 0.55 : 1 }} value={formidletStart} onChange={setFormidletStart} max={formidletEnd || undefined} placeholder="DD.MM.ÅÅÅÅ" disabled={!!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} />
+                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)', opacity: mediationReservation && mediationReservation.reserved_by !== currentUser?.id ? 0.55 : 1 }} value={formidletStart} onChange={setFormidletStart} max={formidletEnd || undefined} placeholder={t('dateInputPlaceholder')} disabled={!!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} />
                         </div>
                         <div style={{ flex: 1, minWidth: '120px' }}>
                           <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>{t('to')}</span>
-                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)', opacity: mediationReservation && mediationReservation.reserved_by !== currentUser?.id ? 0.55 : 1 }} value={formidletEnd} onChange={setFormidletEnd} min={formidletStart || undefined} placeholder="DD.MM.ÅÅÅÅ" disabled={!!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} />
+                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)', opacity: mediationReservation && mediationReservation.reserved_by !== currentUser?.id ? 0.55 : 1 }} value={formidletEnd} onChange={setFormidletEnd} min={formidletStart || undefined} placeholder={t('dateInputPlaceholder')} disabled={!!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} />
                         </div>
                         <button onClick={handleAddFormidletPeriod} disabled={formidletSending || !!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}><ShieldCheck size={14} /> {t('addSubmit')}</button>
                       </div>
@@ -1334,6 +1505,25 @@ export default function ListingDetailsClient() {
                 <FileText size={18} /> {t('downloadContactInfoPdf')}
               </a>
             </section>
+
+          <InvoiceBasisSection
+            listingId={String(id)}
+            paymentMethod={listing.payment_method}
+            listingAddress={listing.address}
+            listingCity={listing.city}
+            listingPostalCode={listing.postal_code}
+            ownerName={listing.owner_name}
+            isOwner={isOwner}
+            isNavView={isNavView}
+            hasActiveAgreement={hasActiveAgreement}
+            ownerAgreementTerminated={ownerAgreementTerminated}
+            onRequireSignTerms={() =>
+              router.push(
+                `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
+              )
+            }
+            t={t}
+          />
 
           {/* 4. Overtakelsesrapporter */}
           <section id="overtakelsesrapport" className="card no-hover listing-detail-card" style={{ padding: 'var(--space-8)' }}>
@@ -1467,7 +1657,7 @@ export default function ListingDetailsClient() {
               {(() => {
                 const today = new Date().toISOString().slice(0, 10)
                 const isFormidlet = listing?.status === 'Formidla' || (Array.isArray(availability) && availability.some((p: any) => p.status === 'Formidla' && p.start_date <= today && p.end_date >= today))
-                const showTenantLink = isNavView && isFormidlet
+                const showTenantLink = isNavView && isFormidlet && !ownerAgreementTerminated
                 if (!showTenantLink) return null
                 return (
                   <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '2px dashed rgba(59, 130, 246, 0.5)' }}>
@@ -1477,7 +1667,7 @@ export default function ListingDetailsClient() {
                         <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
                           <code className="listing-code" style={{ padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', wordBreak: 'break-all', flex: 1, minWidth: 0 }}>{typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantReportToken}` : ''}</code>
                           <button type="button" onClick={() => { const url = typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantReportToken}` : ''; navigator.clipboard?.writeText(url).then(() => setCopyFeedback(true)); setTimeout(() => setCopyFeedback(false), 2000) }} className="button" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{copyFeedback ? <CheckCircle2 size={14} /> : <Clipboard size={14} />}{copyFeedback ? ' Kopiert!' : ' Kopier'}</button>
-                          <button type="button" onClick={handleRegenerateTenantLink} disabled={tenantLinkRegenerating} className="button button-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} title="Den gamle lenken vil slutte å fungere. Send den nye lenken til leietaker.">{tenantLinkRegenerating ? <RefreshCw size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> : <RefreshCw size={14} />}{tenantLinkRegenerating ? ' Lager...' : ' Ny lenke'}</button>
+                          <button type="button" onClick={handleRegenerateTenantLink} disabled={tenantLinkRegenerating} className="button button-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} title={t('listingRegenerateLinkTitle')}>{tenantLinkRegenerating ? <RefreshCw size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> : <RefreshCw size={14} />}{tenantLinkRegenerating ? ` ${t('listingRegenerating')}` : ` ${t('listingNewLink')}`}</button>
                         </div>
                         <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bruk «Ny lenke» hvis leietaker sier at lenken er ugyldig – send deretter den nye lenken.</p>
                       </div>
@@ -1488,11 +1678,17 @@ export default function ListingDetailsClient() {
             </section>
 
           {/* 5. Bilder */}
-          <div style={{ 
-            width: '100%', aspectRatio: '16/9', background: 'rgba(15, 23, 42, 0.6)', 
-            borderRadius: '24px', overflow: 'hidden', border: '1px solid var(--border-medium)', position: 'relative',
-            cursor: allImages.length > 0 ? 'pointer' : 'default'
-          }}>
+          <div
+            className="listing-image-gallery"
+            style={{
+              width: '100%',
+              aspectRatio: '16/9',
+              borderRadius: '24px',
+              overflow: 'hidden',
+              position: 'relative',
+              cursor: allImages.length > 0 ? 'pointer' : 'default',
+            }}
+          >
             {allImages.length > 0 ? (
               <>
                 <img 
@@ -1524,16 +1720,21 @@ export default function ListingDetailsClient() {
                 <button 
                   onClick={(e) => { e.stopPropagation(); setIsFullscreen(true) }}
                   style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '8px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', zIndex: 5 }}
-                  title="Fullskjerm"
+                  title={t('listingFullscreen')}
                 >
                   <Maximize2 size={20} />
                 </button>
               </>
             ) : (
-              <label style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-sky-blue)', opacity: 0.2, cursor: isOwner ? 'pointer' : 'default' }}>
+              <label
+                className={`listing-image-placeholder${isOwner ? ' is-clickable' : ''}`}
+                style={{ width: '100%', height: '100%' }}
+              >
                 {isOwner && <input type="file" multiple accept="image/*" onChange={handleUploadMore} style={{ display: 'none' }} />}
-                <HomeIcon size={100} />
-                <p style={{ marginTop: '10px', fontSize: '1.1rem' }}>{isOwner ? 'Klikk for å legge til bilder' : 'Ingen bilder lagt til'}</p>
+                <HomeIcon size={88} strokeWidth={1.15} className="listing-image-placeholder-icon" aria-hidden />
+                <p className="listing-image-placeholder-text">
+                  {isOwner ? 'Klikk for å legge til bilder' : 'Ingen bilder lagt til'}
+                </p>
               </label>
             )}
 
@@ -1656,7 +1857,66 @@ export default function ListingDetailsClient() {
                 </div>
               </div>
 
-              {!kommuneCanEdit ? (
+              <div
+                style={{
+                  marginBottom: 'var(--space-4)',
+                  padding: 'var(--space-3)',
+                  background: 'rgba(255,255,255,0.06)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '0.7rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    opacity: 0.65,
+                    marginBottom: 'var(--space-2)',
+                    color: 'white',
+                  }}
+                >
+                  {t('depositGuaranteeHeading')}
+                </div>
+                {listing.deposit_guarantee == null ? (
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.45 }}>
+                    {t('depositGuaranteeNotSpecified')}
+                  </p>
+                ) : (
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    {(
+                      [
+                        ['nav', 'depositGuaranteeRowNav'] as const,
+                        ['other', 'depositGuaranteeRowOther'] as const,
+                        ['ordinary', 'depositGuaranteeRowOrdinary'] as const,
+                      ]
+                    ).map(([key, labelKey]) => (
+                      <div
+                        key={key}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          gap: 'var(--space-3)',
+                          fontSize: '0.85rem',
+                          color: 'rgba(255,255,255,0.92)',
+                        }}
+                      >
+                        <span style={{ flex: 1, lineHeight: 1.4 }}>{t(labelKey)}</span>
+                        <span style={{ fontWeight: 700, flexShrink: 0, opacity: 0.95 }}>
+                          {hasDepositGuarantee(listing.deposit_guarantee, key) ? t('depositGuaranteeYes') : t('depositGuaranteeNo')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {ownerAgreementTerminated ? (
+                <div style={{ padding: 'var(--space-3)', background: 'rgba(255,255,255,0.08)', borderRadius: '8px', marginBottom: 'var(--space-4)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>
+                  {t('expiredOwnerNoMediationShort')}
+                </div>
+              ) : !kommuneCanEdit ? (
                 <div style={{ padding: 'var(--space-3)', background: 'rgba(255,255,255,0.08)', borderRadius: '8px', marginBottom: 'var(--space-4)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>
                   {t('formidlingManagedByCaseworkerShort')}
                 </div>
@@ -1677,7 +1937,7 @@ export default function ListingDetailsClient() {
                           value={formidletStart}
                           onChange={setFormidletStart}
                           max={formidletEnd || undefined}
-                          placeholder="DD.MM.ÅÅÅÅ"
+                          placeholder={t('dateInputPlaceholder')}
                           style={{ padding: 'var(--space-2)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', marginBottom: 0, width: '100%' }}
                         />
                       </div>
@@ -1689,7 +1949,7 @@ export default function ListingDetailsClient() {
                           value={formidletEnd}
                           onChange={setFormidletEnd}
                           min={formidletStart || undefined}
-                          placeholder="DD.MM.ÅÅÅÅ"
+                          placeholder={t('dateInputPlaceholder')}
                           style={{ padding: 'var(--space-2)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', marginBottom: 0, width: '100%' }}
                         />
                       </div>
@@ -1764,7 +2024,7 @@ export default function ListingDetailsClient() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.9rem', color: 'var(--text-body)' }}>
                   <Phone size={14} style={{ color: 'var(--color-accent)' }} /> {listing.contact_phone}
                 </div>
-                {listing.owner_id && (
+                {listing.owner_id && !ownerAgreementTerminated && (
                   <Link
                     href={`/nav/messages?with=${listing.owner_id}`}
                     className="button button-secondary"
@@ -1874,7 +2134,7 @@ export default function ListingDetailsClient() {
           <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: 'var(--space-8)', maxWidth: '440px', width: '100%', border: '1px solid var(--border-subtle)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
             <h4 style={{ margin: '0 0 var(--space-4)', color: 'var(--text-main)' }}>Be om endring i overtakelsesrapport</h4>
             <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.9rem', color: 'var(--text-body)' }}>Skriv en kommentar som sendes til utleier. De får melding og kan sende inn en ny rapport.</p>
-            <textarea value={requestChangeComment} onChange={e => setRequestChangeComment(e.target.value)} placeholder="Forklar hva som må endres eller suppleres..." rows={4} className="input" style={{ width: '100%', marginBottom: 'var(--space-4)', resize: 'vertical', minHeight: '100px' }} />
+            <textarea value={requestChangeComment} onChange={e => setRequestChangeComment(e.target.value)} placeholder={t('listingRequestChangePlaceholder')} rows={4} className="input" style={{ width: '100%', marginBottom: 'var(--space-4)', resize: 'vertical', minHeight: '100px' }} />
             <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setRequestChangeReport(null)} disabled={requestChangeSending} style={{ padding: '8px 16px', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-body)', cursor: requestChangeSending ? 'not-allowed' : 'pointer' }}>{t('cancel')}</button>
               <button type="button" onClick={handleRequestChangeSubmit} disabled={requestChangeSending} className="button" style={{ padding: '8px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>

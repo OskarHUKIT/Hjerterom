@@ -5,6 +5,7 @@ import { Send, ImagePlus, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { DateInput } from './DateInput'
 import { formatDateNo } from '../lib/dateFormat'
+import { useLanguage } from '../../context/LanguageContext'
 
 interface HandoverReportProps {
   listingId?: string
@@ -30,6 +31,7 @@ const sectionHeader = (num: string, title: string) => (
 )
 
 export default function HandoverReport({ listingId, listingAddress, ownerName, reporterType, tenantToken, onSaved }: HandoverReportProps) {
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
@@ -67,8 +69,8 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
         setPhotoUrls(prev => [...prev, publicUrl])
       }
     } catch (err: any) {
-      setUploadError(err?.message || 'Feil ved opplasting')
-      alert('Feil ved opplasting: ' + err.message)
+      setUploadError(err?.message || t('errUnknown'))
+      alert(t('errUpload') + err.message)
     } finally {
       setUploadingPhotos(false)
       e.target.value = ''
@@ -244,7 +246,7 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
             <div style={{ padding: '12px 14px', background: 'white' }}>
               <input
                 type="text"
-                placeholder="f.eks. 01.01.2026 - 31.03.2026"
+                placeholder={t('handoverRentPeriodPlaceholder')}
                 value={formData.agreement_period}
                 onChange={e => setFormData({ ...formData, agreement_period: e.target.value })}
                 required
@@ -259,7 +261,7 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
               <textarea
                 value={formData.inventory}
                 onChange={e => setFormData({ ...formData, inventory: e.target.value })}
-                placeholder="List opp inventar..."
+                placeholder={t('handoverInventoryPlaceholder')}
                 rows={3}
                 style={{ ...inputStyle, minHeight: '70px', resize: 'vertical' }}
               />
@@ -272,7 +274,7 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
               <textarea
                 value={formData.keys}
                 onChange={e => setFormData({ ...formData, keys: e.target.value })}
-                placeholder="f.eks. 2 stk systemnøkler, 1 stk postkassenøkkel"
+                placeholder={t('handoverKeysPlaceholder')}
                 rows={2}
                 style={{ ...inputStyle, minHeight: '50px', resize: 'vertical' }}
               />
@@ -285,7 +287,7 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
               <textarea
                 value={formData.condition_description}
                 onChange={e => setFormData({ ...formData, condition_description: e.target.value })}
-                placeholder="Beskriv boligens tilstand ved overtakelse..."
+                placeholder={t('handoverConditionPlaceholder')}
                 rows={5}
                 style={{ ...inputStyle, minHeight: '120px', resize: 'vertical' }}
               />
@@ -351,7 +353,7 @@ export default function HandoverReport({ listingId, listingAddress, ownerName, r
                 <DateInput
                   value={formData.photos_date}
                   onChange={v => setFormData({ ...formData, photos_date: v })}
-                  placeholder="DD.MM.ÅÅÅÅ"
+                  placeholder={t('dateInputPlaceholder')}
                   style={{ border: 'none', borderBottom: '1px solid #0f172a', background: 'transparent', padding: '2px 6px', fontWeight: 600, fontSize: '0.95rem' }}
                 />
               </label>

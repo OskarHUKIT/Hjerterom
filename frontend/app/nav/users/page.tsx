@@ -24,7 +24,8 @@ function NavUsersContent() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isKommuneAdmin, setIsKommuneAdmin] = useState(false)
   const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
-  const [useAccountsNavCopy, setUseAccountsNavCopy] = useState(false)
+  /** null = rolle ikke avklart ennå (unngår «Utleiere» → «Kontoer»-flimmer ved innlasting) */
+  const [useAccountsNavCopy, setUseAccountsNavCopy] = useState<boolean | null>(null)
   const [accountTab, setAccountTab] = useState<'landlords' | 'staff'>('landlords')
   const [staffRows, setStaffRows] = useState<
     { id: string; full_name: string; email: string; kommune_region: string | null; kommune_can_edit: boolean; updated_at: string | null }[]
@@ -35,11 +36,14 @@ function NavUsersContent() {
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        setUseAccountsNavCopy(false)
+        return
+      }
 
       const metadataRole = user.user_metadata?.role
       const { data: currentProfile } = await supabase.from('profiles').select('role, kommune_region').eq('id', user.id).maybeSingle()
-      const userRole = metadataRole || currentProfile?.role
+      const userRole = currentProfile?.role || metadataRole
       let kommuneRegion: string | string[] | null = currentProfile?.kommune_region ?? null
       if ((kommuneRegion == null || String(kommuneRegion).trim() === '') && user.email) {
         const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', { p_email: user.email })
@@ -144,6 +148,7 @@ function NavUsersContent() {
       setUsers(mappedUsers)
     } catch (err: any) {
       console.error('Error fetching users:', err)
+      setUseAccountsNavCopy(false)
     } finally {
       setLoading(false)
     }
@@ -154,7 +159,7 @@ function NavUsersContent() {
   }, [])
 
   useEffect(() => {
-    if (!useAccountsNavCopy || accountTab !== 'staff') return
+    if (useAccountsNavCopy !== true || accountTab !== 'staff') return
     let cancelled = false
     ;(async () => {
       setStaffLoading(true)
@@ -197,19 +202,53 @@ function NavUsersContent() {
         <Link href="/" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           ← {t('overview')}
         </Link>
-        <h1 style={{ fontSize: '2.75rem' }}>{useAccountsNavCopy ? t('navAccounts') : t('navLandlords')}</h1>
-        <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>
-          {useAccountsNavCopy
-            ? isKommuneAdmin
-              ? t('navAccountsDesc')
-              : kommuneCanEdit
-                ? t('navAccountsDescEditor')
-                : t('navAccountsDescReadonly')
-            : t('navLandlordsDesc')}
+        <h1 style={{ fontSize: '2.75rem', minHeight: '1.15em' }}>
+          {useAccountsNavCopy === null ? (
+            <span
+              aria-hidden
+              style={{
+                display: 'inline-block',
+                height: '0.95em',
+                width: 'min(12rem, 70vw)',
+                borderRadius: '10px',
+                background: 'var(--border-subtle)',
+                opacity: 0.55,
+              }}
+            />
+          ) : useAccountsNavCopy ? (
+            t('navAccounts')
+          ) : (
+            t('navLandlords')
+          )}
+        </h1>
+        <p style={{ fontSize: '1.125rem', opacity: 0.8, minHeight: '2.75em' }}>
+          {useAccountsNavCopy === null ? (
+            <span
+              aria-hidden
+              style={{
+                display: 'block',
+                height: '0.85em',
+                maxWidth: '36rem',
+                borderRadius: '8px',
+                background: 'var(--border-subtle)',
+                opacity: 0.35,
+              }}
+            />
+          ) : useAccountsNavCopy ? (
+            isKommuneAdmin ? (
+              t('navAccountsDesc')
+            ) : kommuneCanEdit ? (
+              t('navAccountsDescEditor')
+            ) : (
+              t('navAccountsDescReadonly')
+            )
+          ) : (
+            t('navLandlordsDesc')
+          )}
         </p>
       </div>
 
-      {useAccountsNavCopy && (
+      {useAccountsNavCopy === true && (
         <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
           <button
             type="button"
@@ -246,7 +285,7 @@ function NavUsersContent() {
       </div>
       )}
 
-      {accountTab === 'staff' && useAccountsNavCopy ? (
+      {accountTab === 'staff' && useAccountsNavCopy === true ? (
         staffLoading ? (
           <div className="card" style={{ padding: 'var(--space-10)', minHeight: '200px' }} />
         ) : staffRows.length > 0 ? (

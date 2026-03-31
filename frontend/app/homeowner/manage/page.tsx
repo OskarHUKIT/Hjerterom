@@ -249,7 +249,7 @@ export default function HomeownerManage(props: PageProps) {
       setMyListings(prev => prev.map(item =>
         item.id === id ? { ...item, status: currentStatus, is_available: currentStatus === 'Tilgjengelig' } : item
       ))
-      alert('Feil ved oppdatering: ' + err.message)
+      alert(t('errUpdateGeneric') + err.message)
     }
   }
 
@@ -284,7 +284,7 @@ export default function HomeownerManage(props: PageProps) {
       setPendingDeleteListing(null)
     } catch (err: any) {
       setMyListings(prevListings)
-      alert('Feil ved sletting: ' + err.message)
+      alert(t('errDeleteGeneric') + err.message)
     }
   }
 
@@ -328,7 +328,7 @@ export default function HomeownerManage(props: PageProps) {
       }))
       setPendingDeletePeriod(null)
     } catch (err: any) {
-      alert('Feil ved sletting av periode: ' + err.message)
+      alert(t('errDeletePeriod') + err.message)
     }
   }
 
@@ -789,7 +789,7 @@ export default function HomeownerManage(props: PageProps) {
                                         type="button"
                                         onClick={() => setPendingDeletePeriod({ id: p.id, listingId: listing.id })}
                                         style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto' }}
-                                        title="Slett periode"
+                                        title={t('manageDeletePeriodTitle')}
                                       >
                                         <Trash2 size={14} />
                                       </button>
@@ -821,7 +821,7 @@ export default function HomeownerManage(props: PageProps) {
                                 value={newPeriod.start}
                                 onChange={v => setNewPeriod({ ...newPeriod, start: v })}
                                 max={newPeriod.end || undefined}
-                                placeholder="DD.MM.ÅÅÅÅ"
+                                placeholder={t('dateInputPlaceholder')}
                               />
                             </div>
                             <div style={{ flex: 1 }}>
@@ -833,7 +833,7 @@ export default function HomeownerManage(props: PageProps) {
                                 value={newPeriod.end}
                                 onChange={v => setNewPeriod({ ...newPeriod, end: v })}
                                 min={newPeriod.start || undefined}
-                                placeholder="DD.MM.ÅÅÅÅ"
+                                placeholder={t('dateInputPlaceholder')}
                               />
                             </div>
                             <button 

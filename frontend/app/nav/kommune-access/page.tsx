@@ -89,7 +89,7 @@ export default function KommuneAccessPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Er du sikker på at du vil fjerne denne adressen?')) return
+    if (!confirm(t('kommuneAccessRemoveConfirm'))) return
     const { error: err } = await supabase.from('kommune_access_list').delete().eq('id', id)
     if (err) {
       setError(err.message)
@@ -207,7 +207,7 @@ export default function KommuneAccessPage() {
                       <button
                         onClick={() => handleDelete(row.id)}
                         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
-                        title="Slett"
+                        title={t('deleteShort')}
                       >
                         <Trash2 size={18} />
                       </button>

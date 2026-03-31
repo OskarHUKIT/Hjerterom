@@ -3,6 +3,7 @@
 // Mobile builds use next.config.mobile.js via build-mobile.js
 const nextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ['@react-pdf/renderer'],
   images: {
     unoptimized: true,
   },

@@ -24,7 +24,13 @@ export default function Footer() {
         <div className="footer-grid">
           {/* Logo Section */}
           <div className="footer-section">
-            <div className="footer-logos-row" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-10)', alignItems: 'flex-start' }}>
+            <div className="footer-brand-block">
+            <p className="footer-developed-credit">
+              {t('footerDevelopedLine1')}
+              <br />
+              {t('footerDevelopedLine2')}
+            </p>
+            <div className="footer-logos-row">
               <div className="footer-logo-container">
                 <img 
                   src="/logo-gamechanging.png" 
@@ -50,18 +56,16 @@ export default function Footer() {
                 />
               </div>
             </div>
+            </div>
           </div>
 
           {/* Contact Section */}
           <div className="footer-section">
             <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', marginBottom: 'var(--space-4)' }}>{t('contactUs')}</h3>
             <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
-              <a href="mailto:info@gamechanging.no" className="footer-link">
-                <Mail size={16} /> info@gamechanging.no
+              <a href="mailto:info@bolynorge.no" className="footer-link">
+                <Mail size={16} /> info@bolynorge.no
               </a>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                {t('contactDesc')}
-              </p>
             </div>
           </div>
 

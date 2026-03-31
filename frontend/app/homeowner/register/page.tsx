@@ -56,7 +56,8 @@ export default function HomeownerRegister(props: PageProps) {
     additional_info: '',
     latitude: null as number | null,
     longitude: null as number | null,
-    has_insurance: false
+    has_insurance: false,
+    payment_method: 'faktura' as 'faktura' | 'konto'
   })
   const formRef = useRef(formData)
   formRef.current = formData
@@ -178,7 +179,7 @@ export default function HomeownerRegister(props: PageProps) {
       if (hits.length === 0) {
         setGeocodeCandidates(null)
         setFormData(prev => ({ ...prev, latitude: null, longitude: null }))
-        setGeocodeError('Fant ingen posisjon. Sjekk adresse og postnummer.')
+        setGeocodeError(t('regGeocodeError'))
         return
       }
       if (hits.length === 1) {
@@ -197,11 +198,11 @@ export default function HomeownerRegister(props: PageProps) {
       setFormData(prev => ({ ...prev, latitude: null, longitude: null }))
     } catch (err) {
       console.error('Geocoding error:', err)
-      setGeocodeError('Geokoding feilet. Prøv igjen senere.')
+      setGeocodeError(t('regGeocodeFailed'))
     } finally {
       setGeocodeLoading(false)
     }
-  }, [])
+  }, [t])
 
   const scheduleGeocode = () => {
     if (geocodeDebounceRef.current) clearTimeout(geocodeDebounceRef.current)
@@ -365,7 +366,7 @@ export default function HomeownerRegister(props: PageProps) {
       const inserted = Array.isArray(data) && data.length > 0 ? data[0] : null
       const listingId = inserted?.id
       if (!listingId) {
-        throw new Error('Lagring fullført, men kunne ikke hente ID for den nye boligen. Sjekk at du har tilgang til å opprette boliger.')
+        throw new Error(t('regSaveNoIdError'))
       }
 
       // Logg handling inkl. viktige bekreftelser (forsikring akseptert ved publisering)
@@ -397,7 +398,7 @@ export default function HomeownerRegister(props: PageProps) {
         await supabase.from('notifications').insert(rows)
       }
 
-      alert('Bolig registrert!')
+      alert(t('registerSuccess'))
 
       const { data: agreementAfter } = await supabase
         .from('user_agreements')
@@ -417,7 +418,7 @@ export default function HomeownerRegister(props: PageProps) {
     } catch (err: any) {
       const message = err?.message ?? err?.error_description ?? (typeof err === 'string' ? err : JSON.stringify(err))
       console.error('Error saving listing:', message, err)
-      alert('Feil ved lagring: ' + (message || 'Ukjent feil'))
+      alert(t('errSaveListing') + (message || t('errUnknown')))
     } finally {
       setLoading(false)
     }
@@ -429,10 +430,10 @@ export default function HomeownerRegister(props: PageProps) {
     <main className="container">
       <div style={{ marginBottom: 'var(--space-8)' }}>
         <Link href="/homeowner/manage" className="nav-link" style={{ marginLeft: '-1rem', marginBottom: 'var(--space-2)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <ArrowLeft size={18} /> Tilbake til mine boliger
+          <ArrowLeft size={18} /> {t('regBack')}
         </Link>
-        <h1 style={{ fontSize: '2.75rem' }}>Registrer ny bolig</h1>
-        <p style={{ maxWidth: '700px', opacity: 0.8 }}>Fyll ut alle detaljer om boligen. Denne informasjonen er grunnlaget for kommunens vurdering av boligen.</p>
+        <h1 style={{ fontSize: '2.75rem' }}>{t('regTitle')}</h1>
+        <p style={{ maxWidth: '700px', opacity: 0.8 }}>{t('regLead')}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="register-form" style={{ display: 'grid', gap: 'var(--space-6)' }}>
@@ -442,36 +443,62 @@ export default function HomeownerRegister(props: PageProps) {
             {/* Section 1: Basic Info & Kontakt */}
             <section className="form-section">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-5)', color: 'var(--color-sky-blue)' }}>
-                <User size={20} /> Kontaktinformasjon
+                <User size={20} /> {t('regContactSection')}
               </h3>
               <div className="form-grid">
                 <div>
-                  <label className="label">Utleier / Firma</label>
-                  <input type="text" className="input" placeholder="Fullt navn eller firmanavn" required 
+                  <label className="label">{t('regOwnerLabel')}</label>
+                  <input type="text" className="input" placeholder={t('placeholderOwnerName')} required 
                     value={formData.owner_name} onChange={e => setFormData({...formData, owner_name: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">Telefonnummer</label>
-                  <input type="tel" className="input" placeholder="Mobil eller fasttelefon" required 
+                  <label className="label">{t('regPhoneLabel')}</label>
+                  <input type="tel" className="input" placeholder={t('placeholderPhoneGeneric')} required 
                     value={formData.contact_phone} onChange={e => setFormData({...formData, contact_phone: e.target.value})} />
                 </div>
               </div>
+              <div style={{ marginTop: 'var(--space-5)', padding: 'var(--space-4)', background: 'var(--bg-subtle, rgba(0,0,0,0.04))', borderRadius: 12, border: '1px solid var(--border-subtle)' }}>
+                <label className="label" style={{ display: 'block', marginBottom: 'var(--space-3)' }}>{t('paymentMethodLabel')}</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', cursor: 'pointer', color: 'var(--text-body)' }}>
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      checked={formData.payment_method === 'faktura'}
+                      onChange={() => setFormData({ ...formData, payment_method: 'faktura' })}
+                      style={{ marginTop: 4 }}
+                    />
+                    <span>{t('paymentMethodFaktura')}</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', cursor: 'pointer', color: 'var(--text-body)' }}>
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      checked={formData.payment_method === 'konto'}
+                      onChange={() => setFormData({ ...formData, payment_method: 'konto' })}
+                      style={{ marginTop: 4 }}
+                    />
+                    <span>{t('paymentMethodKonto')}</span>
+                  </label>
+                </div>
+                <p style={{ margin: 'var(--space-3) 0 0', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('paymentMethodKontoHint')}</p>
+              </div>
               <div style={{ marginTop: 'var(--space-4)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  <label className="label">Gateadresse</label>
+                  <label className="label">{t('regStreetLabel')}</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
                     {geocodeLoading && (
-                      <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>Søker posisjon …</span>
+                      <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>{t('regGeocodeSearching')}</span>
                     )}
                     {!geocodeLoading && formData.latitude != null && formData.longitude != null && !geocodeCandidates?.length && (
                       <span style={{ fontSize: '0.7rem', color: 'var(--color-teal)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <CheckCircle2 size={12} /> Posisjon satt
+                        <CheckCircle2 size={12} /> {t('regPositionSet')}
                       </span>
                     )}
                     <button
                       type="button"
                       onClick={() => void runGeocode()}
-                      title="Kjør geokoding på nytt hvis kartet ikke stemmer"
+                      title={t('regGeocodeTitle')}
                       style={{
                         fontSize: '0.75rem',
                         padding: '6px 10px',
@@ -483,7 +510,7 @@ export default function HomeownerRegister(props: PageProps) {
                         fontWeight: 500
                       }}
                     >
-                      Oppdater posisjon på kart
+                      {t('regUpdateMapBtn')}
                     </button>
                   </div>
                 </div>
@@ -491,7 +518,7 @@ export default function HomeownerRegister(props: PageProps) {
                   <input
                     type="text"
                     className="input"
-                    placeholder="F.eks. Storgata 1"
+                    placeholder={t('placeholderStreet')}
                     required
                     value={formData.address}
                     onChange={e => {
@@ -507,7 +534,7 @@ export default function HomeownerRegister(props: PageProps) {
                     autoComplete="street-address"
                   />
                   {addressSuggesting && (
-                    <span style={{ fontSize: '0.7rem', opacity: 0.75, display: 'block', marginTop: 4 }}>Søker adresser …</span>
+                    <span style={{ fontSize: '0.7rem', opacity: 0.75, display: 'block', marginTop: 4 }}>{t('regSearchingAddresses')}</span>
                   )}
                   {addressSuggestions && addressSuggestions.length > 0 && (
                     <ul
@@ -559,11 +586,11 @@ export default function HomeownerRegister(props: PageProps) {
               </div>
               <div className="form-grid">
                 <div>
-                  <label className="label">Kommune</label>
+                  <label className="label">{t('regKommuneLabel')}</label>
                   <input
                     type="text"
                     className="input"
-                    placeholder="Fylles fra adresse eller skriv kommune"
+                    placeholder={t('placeholderCity')}
                     value={formData.city}
                     onChange={e => {
                       setFormData(prev => ({ ...prev, city: e.target.value }))
@@ -574,8 +601,8 @@ export default function HomeownerRegister(props: PageProps) {
                   />
                 </div>
                 <div>
-                  <label className="label">Postnummer</label>
-                  <input type="text" className="input" placeholder="4 siffer" maxLength={4} required 
+                  <label className="label">{t('regPostnrLabel')}</label>
+                  <input type="text" className="input" placeholder={t('placeholderPost4')} maxLength={4} required 
                     value={formData.postal_code}
                     onChange={e => {
                       setFormData(prev => ({ ...prev, postal_code: e.target.value }))
@@ -590,7 +617,7 @@ export default function HomeownerRegister(props: PageProps) {
               {geocodeCandidates && geocodeCandidates.length > 1 && (
                 <div
                   role="group"
-                  aria-label="Flere treff for adressen"
+                  aria-label={t('regAddressPickAria')}
                   style={{
                     marginTop: 'var(--space-3)',
                     padding: 'var(--space-4)',
@@ -600,7 +627,7 @@ export default function HomeownerRegister(props: PageProps) {
                   }}
                 >
                   <p style={{ fontSize: '0.85rem', marginBottom: 'var(--space-3)', opacity: 0.9 }}>
-                    Flere mulige steder ble funnet. Velg det som stemmer med boligen — posisjon på kart settes etter valg.
+                    {t('regGeocodeMultiHelp')}
                   </p>
                   <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
                     {geocodeCandidates.map((h, i) => (
@@ -630,11 +657,11 @@ export default function HomeownerRegister(props: PageProps) {
             {/* Section 2: Boligdetaljer */}
             <section className="form-section">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-5)', color: 'var(--color-sky-blue)' }}>
-                <Building size={20} /> Boligdetaljer
+                <Building size={20} /> {t('regDetailsSection')}
               </h3>
               <div className="form-grid">
                 <div>
-                  <label className="label">Type bolig</label>
+                  <label className="label">{t('regTypeLabel')}</label>
                   <select className="input" value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
                     <option>Enebolig/flermannsbolig</option>
                     <option>Leilighet</option>
@@ -644,41 +671,43 @@ export default function HomeownerRegister(props: PageProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="label">Størrelse (kvm)</label>
-                  <input type="number" className="input" placeholder="F.eks. 45" required min={1} max={9999}
+                  <label className="label">{t('regSizeLabel')}</label>
+                  <input type="number" className="input" placeholder={t('placeholderSizeEg')} required min={1} max={9999}
                     value={formData.size_sqm} onChange={e => setFormData({...formData, size_sqm: e.target.value})} />
                 </div>
               </div>
               <div className="form-grid">
                 <div>
-                  <label className="label">Antall soverom</label>
-                  <input type="number" className="input" placeholder="Antall" required min={0} max={20}
+                  <label className="label">{t('regBedroomsLabel')}</label>
+                  <input type="number" className="input" placeholder={t('placeholderCount')} required min={0} max={20}
                     value={formData.bedrooms} onChange={e => setFormData({...formData, bedrooms: e.target.value})} />
                 </div>
               </div>
 
               <div style={{ marginTop: 'var(--space-4)' }}>
-                <label className="label">Etasje (velg alle som passer)</label>
+                <label className="label">{t('regFloorLabel')}</label>
                 <div className="floor-detail-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)' }}>
-                  {['Underetasje', '1', '2', '3', '4'].map(f => (
+                  {['Underetasje', '1', '2', '3', '4'].map(f => {
+                    const selected = formData.floor_detail.includes(f)
+                    return (
                     <button type="button" key={f} 
                       onClick={() => toggleMultiSelect('floor_detail', f)}
                       style={{ 
                         padding: 'var(--space-2)', 
-                        background: formData.floor_detail.includes(f) ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.1)',
-                        border: '1px solid var(--border-subtle)',
+                        background: selected ? 'var(--color-royal-blue)' : 'var(--bg-app)',
+                        border: selected ? '1px solid var(--color-royal-blue)' : '1px solid var(--border-subtle)',
                         borderRadius: '8px',
                         fontSize: '0.85rem',
                         cursor: 'pointer',
-                        color: 'white'
+                        color: selected ? '#fff' : 'var(--text-main)',
                       }}
                     >{f}</button>
-                  ))}
+                  )})}
                 </div>
               </div>
 
               <div style={{ marginTop: 'var(--space-6)' }}>
-                <label className="label">Fysisk tilrettelegging</label>
+                <label className="label">{t('regPhysicalAccess')}</label>
                 
                 <div className="physical-access-info" style={{ 
                   padding: 'var(--space-4)', 
@@ -689,7 +718,7 @@ export default function HomeownerRegister(props: PageProps) {
                   border: '1px solid rgba(59, 130, 246, 0.2)',
                   color: 'var(--text-body)'
                 }}>
-                  <h4 className="physical-access-info-title" style={{ marginBottom: 'var(--space-2)', fontSize: '0.9rem' }}>Hva betyr valgene?</h4>
+                  <h4 className="physical-access-info-title" style={{ marginBottom: 'var(--space-2)', fontSize: '0.9rem' }}>{t('regPhysicalAccessHelpTitle')}</h4>
                   <ul style={{ paddingLeft: '1.2rem', display: 'grid', gap: 'var(--space-1)' }}>
                     <li><strong>Alt på ett plan:</strong> Ingen trapper eller høye dørstokker inne i boenheten.</li>
                     <li><strong>Heis i bygget:</strong> Bygget har heis som er stor nok for rullestol eller barnevogn.</li>
@@ -718,7 +747,7 @@ export default function HomeownerRegister(props: PageProps) {
               </div>
 
               <div style={{ marginTop: 'var(--space-6)' }}>
-                <label className="label">Møblering</label>
+                <label className="label">{t('regFurnishingLabel')}</label>
                 <select className="input" value={formData.furnishing} onChange={e => setFormData({...formData, furnishing: e.target.value})}>
                   <option>Umøblert</option>
                   <option>Kun hvitevarer</option>
@@ -727,7 +756,7 @@ export default function HomeownerRegister(props: PageProps) {
                 </select>
               </div>
               <div style={{ marginTop: 'var(--space-4)' }}>
-                <label className="label">Mulighet for husdyr</label>
+                <label className="label">{t('regPetsLabel')}</label>
                 <select
                   className="input"
                   value={formData.pet_policy}
@@ -745,11 +774,11 @@ export default function HomeownerRegister(props: PageProps) {
                 </select>
                 {formData.pet_policy === 'Enkelte dyr er tillatt' && (
                   <div style={{ marginTop: 'var(--space-3)' }}>
-                    <label className="label">Utdyp svaret ditt</label>
+                    <label className="label">{t('regPetsDetailLabel')}</label>
                     <textarea
                       className="input"
                       rows={3}
-                      placeholder="F.eks. kun små hunder, ikke katter …"
+                      placeholder={t('placeholderPetDetail')}
                       value={formData.pet_policy_detail}
                       onChange={e => setFormData({ ...formData, pet_policy_detail: e.target.value })}
                       style={{ width: '100%', minHeight: '72px', resize: 'vertical' }}
@@ -764,56 +793,58 @@ export default function HomeownerRegister(props: PageProps) {
             {/* Section 3: Pris og Vilkår */}
             <section className="form-section">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-5)', color: 'var(--color-sky-blue)' }}>
-                <Tag size={20} /> Pris og kapasitet
+                <Tag size={20} /> {t('regPriceSection')}
               </h3>
               <div className="form-grid">
                 <div>
-                  <label className="label">Døgnpris</label>
-                  <input type="number" className="input" placeholder="NOK" required min={0} max={999999}
+                  <label className="label">{t('regDailyPrice')}</label>
+                  <input type="number" className="input" placeholder={t('placeholderNok')} required min={0} max={999999}
                     value={formData.price_daily} onChange={e => setFormData({...formData, price_daily: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">Ukespris</label>
-                  <input type="number" className="input" placeholder="NOK" required min={0} max={999999}
+                  <label className="label">{t('regWeeklyPrice')}</label>
+                  <input type="number" className="input" placeholder={t('placeholderNok')} required min={0} max={999999}
                     value={formData.price_weekly} onChange={e => setFormData({...formData, price_weekly: e.target.value})} />
                 </div>
               </div>
               <div className="form-grid">
                 <div>
-                  <label className="label">Månedsleie (korttid)</label>
-                  <input type="number" className="input" placeholder="Inntil 3 mnd" required min={0} max={999999}
+                  <label className="label">{t('regMonthlyShort')}</label>
+                  <input type="number" className="input" placeholder={t('placeholderMonthsShort')} required min={0} max={999999}
                     value={formData.price_monthly_short} onChange={e => setFormData({...formData, price_monthly_short: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">Månedsleie (langtid)</label>
-                  <input type="number" className="input" placeholder="Valgfritt" min={0} max={999999}
+                  <label className="label">{t('regMonthlyLong')}</label>
+                  <input type="number" className="input" placeholder={t('placeholderOptional')} min={0} max={999999}
                     value={formData.price_monthly_long} onChange={e => setFormData({...formData, price_monthly_long: e.target.value})} />
                 </div>
               </div>
 
               <div style={{ marginTop: 'var(--space-4)' }}>
-                <label className="label">Hva inkluderer månedsleien?</label>
+                <label className="label">{t('regIncludesLabel')}</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-                  {['Ingenting inkludert', 'Strøm', 'Internett', 'Kabel-tv'].map(i => (
+                  {['Ingenting inkludert', 'Strøm', 'Internett', 'Kabel-tv'].map(i => {
+                    const selected = formData.includes.includes(i)
+                    return (
                     <button type="button" key={i} 
                       onClick={() => toggleMultiSelect('includes', i)}
                       style={{ 
                         padding: 'var(--space-2) var(--space-4)', 
-                        background: formData.includes.includes(i) ? 'var(--color-teal)' : 'rgba(255,255,255,0.1)',
-                        border: '1px solid var(--border-subtle)',
+                        background: selected ? 'var(--color-teal)' : 'var(--bg-app)',
+                        border: selected ? '1px solid var(--color-teal)' : '1px solid var(--border-subtle)',
                         borderRadius: '20px',
                         fontSize: '0.85rem',
                         cursor: 'pointer',
-                        color: 'white'
+                        color: selected ? '#fff' : 'var(--text-main)',
                       }}
                     >{i}</button>
-                  ))}
+                  )})}
                 </div>
               </div>
 
               <div style={{ marginTop: 'var(--space-6)' }}>
-                <label className="label">Langtidsleie: Depositum & Garanti</label>
-                <input type="number" className="input" placeholder="Depositumsbeløp" min={0} max={9999999}
+                <label className="label">{t('regDepositSection')}</label>
+                <input type="number" className="input" placeholder={t('placeholderDeposit')} min={0} max={9999999}
                   value={formData.deposit_amount} onChange={e => setFormData({...formData, deposit_amount: e.target.value})} />
                 <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
                   {[
@@ -831,13 +862,13 @@ export default function HomeownerRegister(props: PageProps) {
 
               <div className="form-grid" style={{ marginTop: 'var(--space-6)' }}>
                 <div>
-                  <label className="label">Parkering</label>
-                  <input type="text" className="input" placeholder="F.eks. Garasje" required 
+                  <label className="label">{t('regParkingLabel')}</label>
+                  <input type="text" className="input" placeholder={t('placeholderParking')} required 
                     value={formData.parking_info} onChange={e => setFormData({...formData, parking_info: e.target.value})} />
                 </div>
                 <div>
-                  <label className="label">Maks personer</label>
-                  <input type="number" className="input" placeholder="Antall" required min={1} max={50}
+                  <label className="label">{t('regMaxPersons')}</label>
+                  <input type="number" className="input" placeholder={t('placeholderCount')} required min={1} max={50}
                     value={formData.max_occupants} onChange={e => setFormData({...formData, max_occupants: e.target.value})} />
                 </div>
               </div>
@@ -846,7 +877,7 @@ export default function HomeownerRegister(props: PageProps) {
             {/* Section 4: Bilder & Annet */}
             <section className="form-section">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-5)', color: 'var(--color-sky-blue)' }}>
-                <Camera size={20} /> Bilder og info
+                <Camera size={20} /> {t('regImagesSection')}
               </h3>
               <div style={{ border: '2px dashed var(--border-medium)', padding: 'var(--space-6)', textAlign: 'center', borderRadius: '16px', background: 'var(--bg-app)' }}>
                 <div className="image-previews-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
@@ -859,12 +890,12 @@ export default function HomeownerRegister(props: PageProps) {
                 </div>
                 <label className="button" style={{ backgroundColor: 'var(--color-muted-blue)', fontSize: '0.875rem', cursor: 'pointer' }}>
                   <input type="file" multiple accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
-                  Last opp bilder
+                  {t('regUploadImages')}
                 </label>
               </div>
               <div style={{ marginTop: 'var(--space-4)' }}>
-                <label className="label">Annen info om boligen</label>
-                <textarea className="input" placeholder="Ytterligere detaljer..." 
+                <label className="label">{t('regAdditionalInfo')}</label>
+                <textarea className="input" placeholder={t('placeholderMoreDetails')} 
                   value={formData.additional_info} onChange={e => setFormData({...formData, additional_info: e.target.value})}></textarea>
               </div>
             </section>
@@ -873,27 +904,28 @@ export default function HomeownerRegister(props: PageProps) {
 
         <div className="register-form-footer" style={{ 
           marginTop: 'var(--space-4)', padding: 'var(--space-5) var(--space-6)', 
-          background: 'rgba(15, 23, 42, 0.9)', borderRadius: '20px', 
+          background: 'var(--bg-card)', borderRadius: '20px', 
           display: 'flex', flexDirection: 'column', gap: 'var(--space-4)',
-          position: 'sticky', bottom: '20px', zIndex: 10, backdropFilter: 'blur(16px)', border: '1px solid var(--border-subtle)' 
+          position: 'sticky', bottom: '20px', zIndex: 10, backdropFilter: 'blur(16px)', border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-md)',
         }}>
-          <label style={{ display: 'flex', gap: '12px', cursor: 'pointer', alignItems: 'center' }}>
+          <label style={{ display: 'flex', gap: '12px', cursor: 'pointer', alignItems: 'flex-start', color: 'var(--text-main)' }}>
             <input 
               type="checkbox" 
               required
               checked={formData.has_insurance}
               onChange={e => setFormData({...formData, has_insurance: e.target.checked})}
-              style={{ width: '20px', height: '20px' }} 
+              style={{ width: '20px', height: '20px', flexShrink: 0, marginTop: '2px', accentColor: 'var(--color-royal-blue)' }} 
             />
-            <div style={{ fontSize: '0.85rem' }}>
-              <span style={{ fontWeight: 700, display: 'block' }}>Bolig- og innboforsikring</span>
-              <span style={{ opacity: 0.8 }}>I henhold til vilkårsavtalen plikter utleier å ha både bolig- og innboforsikring.</span>
+            <div style={{ fontSize: '0.85rem', lineHeight: 1.45 }}>
+              <span style={{ fontWeight: 700, display: 'block', color: 'var(--text-main)' }}>{t('regInsuranceTitle')}</span>
+              <span style={{ color: 'var(--text-body)', marginTop: '4px', display: 'block' }}>{t('regInsuranceBody')}</span>
             </div>
           </label>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button type="submit" className="button" disabled={loading || !formData.has_insurance} style={{ padding: 'var(--space-4) var(--space-10)', fontSize: '1.125rem', borderRadius: '14px' }}>
               {loading ? <Save size={22} style={{ opacity: 0.6 }} /> : <Save size={22} />} 
-              {loading ? 'Lagrer...' : 'Publiser bolig'}
+              {loading ? t('regSaving') : t('regPublish')}
             </button>
           </div>
         </div>

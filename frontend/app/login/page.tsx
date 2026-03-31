@@ -4,7 +4,7 @@ import { use, useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 import Link from 'next/link'
-import { Mail, Lock, ShieldCheck, UserPlus, LogIn, User, Phone } from 'lucide-react'
+import { Mail, Lock, UserPlus, LogIn, User, Phone } from 'lucide-react'
 import Logo from '../components/Logo'
 import { useLanguage } from '../../context/LanguageContext'
 import { isKommuneStaffRole } from '../lib/kommuneRoles'
@@ -90,6 +90,7 @@ function LoginPageContent() {
     }
   }
 
+  /** BankID login button removed from UI; logic kept for possible re-enable. */
   const handleBankIDLogin = (e: React.MouseEvent) => {
     e.preventDefault()
     if (bankIdRedirecting) return
@@ -155,7 +156,7 @@ function LoginPageContent() {
                   <input 
                     type="text" 
                     className="input login-input" 
-                    placeholder="F.eks. Ola Nordmann"
+                    placeholder={t('loginPlaceholderFullName')}
                     required={isSignUp}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -170,7 +171,7 @@ function LoginPageContent() {
                   <input 
                     type="tel" 
                     className="input login-input" 
-                    placeholder="F.eks. 123 45 678"
+                    placeholder={t('loginPlaceholderPhone')}
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
                     style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
@@ -186,7 +187,7 @@ function LoginPageContent() {
               <input 
                 type="email" 
                 className="input login-input" 
-                placeholder="din@epost.no"
+                placeholder={t('loginPlaceholderEmail')}
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -202,7 +203,7 @@ function LoginPageContent() {
               <input 
                 type="password" 
                 className="input login-input" 
-                placeholder="••••••••"
+                placeholder={t('loginPasswordMask')}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -228,45 +229,6 @@ function LoginPageContent() {
             {loading ? t('loadingPleaseWait') : (isSignUp ? t('createAccount') : t('logIn'))}
           </button>
         </form>
-
-        <div style={{ marginTop: 'var(--space-5)', textAlign: 'center' }}>
-          <div style={{ position: 'relative', margin: 'var(--space-6) 0' }}>
-            <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)' }} />
-            <span style={{ 
-              position: 'absolute', 
-              top: '50%', 
-              left: '50%', 
-              transform: 'translate(-50%, -50%)',
-              background: 'var(--bg-card)',
-              padding: '0 12px',
-              fontSize: '0.8rem',
-              color: 'var(--text-muted)'
-            }}>{t('orDivider')}</span>
-          </div>
-
-          <button 
-            onClick={handleBankIDLogin}
-            disabled={bankIdRedirecting}
-            type="button"
-            className="button"
-            style={{ 
-              width: '100%', 
-              padding: 'var(--space-3)', 
-              background: 'var(--color-accent)',
-              border: 'none',
-              color: 'var(--text-on-dark)',
-              cursor: bankIdRedirecting ? 'wait' : 'pointer',
-              fontSize: '0.95rem',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
-          >
-            <ShieldCheck size={18} /> {bankIdRedirecting ? t('redirectingToBankID') : (isSignUp ? t('signUpWithBankID') : t('loginWithBankID'))}
-          </button>
-        </div>
 
         <div style={{ marginTop: 'var(--space-6)', textAlign: 'center', fontSize: '0.95rem' }}>
           <p style={{ color: 'var(--text-body)' }}>

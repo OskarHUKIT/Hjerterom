@@ -372,17 +372,24 @@ function MessagesContent() {
 
       const senderName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || (isKommune ? 'Kommune' : 'En utleier')
       if (effectiveReceiver) {
+        const text = content.trim()
+        const msgBody =
+          text.length > 0
+            ? `${senderName}:\n\n${text}${imageUrls.length > 0 ? '\n\n(Bilde vedlagt)' : ''}`
+            : imageUrls.length > 0
+              ? `${senderName} sendte et bilde.`
+              : `${senderName} har sendt deg en melding.`
         await supabase.from('notifications').insert({
           owner_id: effectiveReceiver,
           type: 'NEW_MESSAGE',
           title: `Ny melding fra ${senderName}`,
-          message: `${senderName} har sendt deg en melding.`,
+          message: msgBody,
           status: 'unread',
           related_user_id: currentUser.id
         })
       }
     } catch (err: any) {
-      alert('Feil ved sending: ' + (err?.message || String(err)))
+      alert(t('errSend') + (err?.message || String(err)))
     } finally {
       setSending(false)
     }
@@ -691,7 +698,7 @@ function MessagesContent() {
                         <button
                           type="button"
                           onClick={() => removePendingImage(i)}
-                          aria-label="Fjern bilde"
+                          aria-label={t('messagesRemoveImageAria')}
                           style={{ position: 'absolute', top: 2, right: 2, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
                         >
                           <X size={14} />
@@ -712,7 +719,7 @@ function MessagesContent() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    title="Legg til bilde(r)"
+                    title={t('messagesAddImagesTitle')}
                     disabled={inputDisabled || pendingImages.length >= MAX_IMAGES_PER_MESSAGE}
                     style={{
                       flexShrink: 0,
@@ -733,7 +740,7 @@ function MessagesContent() {
                   </button>
                   <input
                     className="input"
-                    placeholder="Skriv en melding..."
+                    placeholder={t('messagesPlaceholder')}
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && !inputDisabled && (e.preventDefault(), sendMessage())}

@@ -4,7 +4,7 @@ import { use, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
   Bell, CheckCircle2, Clock, MessageSquare, ShieldCheck, 
-  FileText, User, Trash2, Info, AlertTriangle, Send, Home
+  FileText, User, Trash2, Info, AlertTriangle, Send, Home, Receipt
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDateTimeNo } from '../../lib/dateFormat'
@@ -94,7 +94,7 @@ export default function NavNotifications(props: PageProps) {
       if (error) throw error
     } catch (err: any) {
       setNotifications(previous)
-      alert('Feil ved oppdatering av varsel: ' + err.message)
+      alert(t('errNotificationUpdate') + err.message)
     }
   }
 
@@ -105,6 +105,7 @@ export default function NavNotifications(props: PageProps) {
       case 'TERMS_SIGNED': return <ShieldCheck size={18} />
       case 'AGREEMENT_ENDED': return <AlertTriangle size={18} />
       case 'HOUSE_FORMIDLET': return <Home size={18} />
+      case 'FAKTURAGRUNNLAG_REQUEST': return <Receipt size={18} />
       case 'HANDOVER_REMINDER': return <AlertTriangle size={18} />
       default: return <Bell size={18} />
     }
@@ -176,7 +177,7 @@ export default function NavNotifications(props: PageProps) {
                 if (error) throw error
               } catch (err: any) {
                 setEmailNotificationsEnabled(!v)
-                alert(err?.message || 'Kunne ikke lagre innstilling')
+                alert(err?.message || t('notificationsSaveSettingError'))
               } finally {
                 setEmailPrefSaving(false)
               }
@@ -196,6 +197,7 @@ export default function NavNotifications(props: PageProps) {
         <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
           {notifications.map(notif => {
             const isFormidletNotif = (notif.type === 'HOUSE_FORMIDLET' || notif.type === 'HANDOVER_REMINDER') && notif.listing_id
+            const isInvoiceBasisNotif = notif.type === 'FAKTURAGRUNNLAG_REQUEST' && notif.listing_id
             const messageLink = notif.type === 'NEW_MESSAGE'
               ? ((role === 'kommune_ansatt' || role === 'kommune_admin') && notif.related_user_id
                 ? `/nav/messages?with=${notif.related_user_id}`
@@ -242,6 +244,18 @@ export default function NavNotifications(props: PageProps) {
                       </Link>
                     </div>
                   )}
+                  {isInvoiceBasisNotif && (
+                    <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
+                      <Link
+                        href={`/listings/${notif.listing_id}?view=owner#fakturagrunnlag`}
+                        scroll={false}
+                        className="button notif-invoice-basis-link"
+                        style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none', background: 'var(--color-royal-blue)', color: 'white', border: 'none', minHeight: 'var(--touch-target, 44px)' }}
+                      >
+                        <Receipt size={14} /> {t('invoiceBasisOpenForm')}
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -256,15 +270,15 @@ export default function NavNotifications(props: PageProps) {
                   transition: 'all 0.2s'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="notif-card-inner">
                   {messageLink && !isFormidletNotif ? (
                     <Link href={messageLink} style={{ flex: 1, minWidth: 0, textDecoration: 'none', color: 'inherit' }}>
                       {cardContent}
                     </Link>
                   ) : (
-                    <div style={{ flex: 1, minWidth: 0 }}>{cardContent}</div>
+                    <div style={{ flex: 1, minWidth: 0, width: '100%' }}>{cardContent}</div>
                   )}
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                  <div className="notif-card-actions" style={{ display: 'flex', gap: 'var(--space-2)', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                     {notif.status === 'unread' ? (
                       <button 
                         onClick={() => handleStatusChange(notif.id, 'completed')}
@@ -290,12 +304,42 @@ export default function NavNotifications(props: PageProps) {
         </div>
       ) : (
         <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-          <Info size={40} style={{ margin: '0 auto var(--space-3)', opacity: 0.3 }} />
+          <Info size={40} className="empty-state-icon" style={{ margin: '0 auto var(--space-3)' }} />
           <p>{t('noNotifications')}</p>
         </div>
       )}
 
       <style jsx>{`
+        .notif-card-inner {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: var(--space-3);
+        }
+        .notif-card-actions {
+          align-self: flex-start;
+        }
+        @media (max-width: 900px) {
+          .notif-card-inner {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .notif-card-actions {
+            align-self: stretch;
+            justify-content: stretch;
+            width: 100%;
+            margin-top: var(--space-2);
+          }
+          .notif-card-actions button {
+            flex: 1;
+            min-height: var(--touch-target, 44px);
+          }
+          .notif-invoice-basis-link {
+            width: 100%;
+            justify-content: center;
+            box-sizing: border-box;
+          }
+        }
         .notif-card.unread {
           background: rgba(59, 130, 246, 0.02);
         }
