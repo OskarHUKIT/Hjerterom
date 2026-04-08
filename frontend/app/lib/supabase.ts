@@ -38,8 +38,8 @@ async function handleInvalidRefreshToken(): Promise<void> {
   }
 }
 
-/** Samme tidsramme som innlogging — uten dette kan getSession/getUser henge uendelig og fryse «Vennligst vent…». */
-const AUTH_OPERATION_TIMEOUT_MS = 22_000
+/** Uten timeout kan getSession/getUser henge — men trege refresh-kall (mobilnett) trenger ofte >20 s. */
+const AUTH_OPERATION_TIMEOUT_MS = 30_000
 const AUTH_TIMEOUT_MESSAGE = 'AUTH_OPERATION_TIMEOUT'
 
 function isAuthOperationTimeout(err: unknown): boolean {

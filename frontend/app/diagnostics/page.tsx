@@ -35,8 +35,8 @@ export default function DiagnosticsPage() {
           measureGetSessionMs(supabase),
           new Promise<{ ms: number; session: boolean; error: string }>((resolve) =>
             setTimeout(
-              () => resolve({ ms: 25000, session: false, error: 'Avbrutt etter 25s (hengende getSession)' }),
-              25000
+              () => resolve({ ms: 35000, session: false, error: 'Avbrutt etter 35s (hengende getSession)' }),
+              35000
             )
           ),
         ])
@@ -144,14 +144,20 @@ export default function DiagnosticsPage() {
               </>
             )}
           </p>
+          {!sessionProbe.error && sessionProbe.session && sessionProbe.ms >= 12_000 && (
+            <p style={{ margin: '12px 0 0', fontSize: '0.9rem', color: 'var(--text-body)', lineHeight: 1.5 }}>
+              Du er <strong>innlogget</strong>, men <code>getSession()</code> brukte {sessionProbe.ms} ms — ofte treg{' '}
+              <strong>token-fornyelse</strong> mot Supabase (nettverk / kald start), ikke feil nøkkel. Hvis appen føles treg
+              første gang etter åpning, kan det være dette. Prøv hard oppdatering eller annen nettleser for sammenligning.
+            </p>
+          )}
           {!sessionProbe.error &&
-            sessionProbe.ms >= 21000 &&
-            sessionProbe.ms <= 24000 &&
+            sessionProbe.ms >= 28_000 &&
+            sessionProbe.ms <= 32_000 &&
             !sessionProbe.session && (
               <p style={{ margin: '12px 0 0', fontSize: '0.9rem', color: 'var(--text-body)', lineHeight: 1.5 }}>
-                Ca. 22 s betyr ofte at klientens <strong>auth-timeout</strong> slo inn (utløpt eller ødelagt refresh-token i
-                nettleseren). <strong>Auth /health er likevel OK</strong> — dette er typisk lokal lagring, ikke feil Vercel-nøkkel.
-                Prøv «Tøm lokal innlogging» under, eller tøm nettstedsdata for bolynorge.no og logg inn på nytt.
+                Ca. 30 s uten session betyr ofte at <strong>auth-timeout</strong> slo inn (utløpt eller ødelagt refresh-token).
+                <strong> Auth /health er likevel OK</strong> — typisk lokal lagring. Prøv «Tøm lokal innlogging» under.
               </p>
             )}
           <button
