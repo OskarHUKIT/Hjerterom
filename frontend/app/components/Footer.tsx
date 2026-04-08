@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Mail, Info, Shield, FileText } from 'lucide-react'
+import { Mail, Info, Shield, FileText, Activity } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
 
@@ -82,6 +82,9 @@ export default function Footer() {
               <button type="button" onClick={handleComingSoon} className="footer-link" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', font: 'inherit', color: 'inherit', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                 <Info size={16} /> {t('aboutBoly')}
               </button>
+              <Link href="/diagnostics" className="footer-link" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+                <Activity size={16} /> {t('footerDiagnostics')}
+              </Link>
             </div>
             {showComingSoon && (
               <div
