@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -41,6 +41,8 @@ export default function HomeownerManage() {
   const [pendingPwaBeforeOverview, setPendingPwaBeforeOverview] = useState(false)
   /** Nettverk/Supabase-timeout eller feil fra fetchData */
   const [fetchError, setFetchError] = useState<'timeout' | string | null>(null)
+  const pageGateRef = useRef(pageGate)
+  pageGateRef.current = pageGate
 
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
@@ -200,30 +202,24 @@ export default function HomeownerManage() {
 
   useEffect(() => {
     let cancelled = false
+    /** Må være > auth-timeout i supabase.ts (22s) og gi tid til trege spørringer. */
+    const STUCK_MS = 60000
     const stuckTimer = window.setTimeout(() => {
       if (cancelled) return
+      // Ikke vis feil mens velkomst-modal er åpen (bruker kan bruke >20s der).
+      if (pageGateRef.current === 'welcome') return
       setPageGate(g => (g === 'init' ? 'ready' : g))
       setFetchError('timeout')
       setLoading(false)
-    }, 20000)
+    }, STUCK_MS)
 
     async function bootstrap() {
       let userResp: Awaited<ReturnType<typeof supabase.auth.getUser>>
       try {
-        userResp = await Promise.race([
-          supabase.auth.getUser(),
-          new Promise<never>((_, reject) => {
-            window.setTimeout(() => reject(new Error('AUTH_TIMEOUT')), 15000)
-          }),
-        ])
+        // getUser() har egen ~22s timeout i app/lib/supabase.ts — ikke kapp den med 15s race.
+        userResp = await supabase.auth.getUser()
       } catch (e: unknown) {
         if (cancelled) return
-        if (e instanceof Error && e.message === 'AUTH_TIMEOUT') {
-          setFetchError('timeout')
-          setPageGate('ready')
-          setLoading(false)
-          return
-        }
         console.error(e)
         setFetchError(e instanceof Error ? e.message : 'error')
         setPageGate('ready')
@@ -266,7 +262,7 @@ export default function HomeownerManage() {
     const id = window.setTimeout(() => {
       setFetchError('timeout')
       setLoading(false)
-    }, 20000)
+    }, 60000)
     return () => clearTimeout(id)
   }, [loading, pageGate])
 
@@ -696,7 +692,7 @@ export default function HomeownerManage() {
                   <div className="card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
                     <Info size={36} style={{ margin: '0 auto var(--space-3)', opacity: 0.45 }} />
                     <p style={{ margin: '0 0 var(--space-4)', color: 'var(--text-body)', lineHeight: 1.55 }}>
-                      {fetchError === 'timeout' ? t('pageLoadStuck') : fetchError}
+                      {fetchError === 'timeout' ? t('manageDataLoadTimeout') : fetchError}
                     </p>
                     <button type="button" className="button" onClick={() => void fetchData()}>
                       {t('retryLoad')}
