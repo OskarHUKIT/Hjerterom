@@ -27,28 +27,35 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     const init = async () => {
       const stored = localStorage.getItem(STORAGE_KEY)
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('preferred_locale')
-          .eq('id', session.user.id)
-          .maybeSingle()
-        const meta = session.user.user_metadata?.preferred_locale
-        const fromProfile = profile?.preferred_locale && isLocale(profile.preferred_locale) ? profile.preferred_locale : null
-        const fromMeta = typeof meta === 'string' && isLocale(meta) ? meta : null
-        const resolved = fromProfile ?? fromMeta
-        if (!cancelled && resolved) {
-          setLocaleState(resolved)
-          localStorage.setItem(STORAGE_KEY, resolved)
-          setMounted(true)
-          return
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('preferred_locale')
+            .eq('id', session.user.id)
+            .maybeSingle()
+          const meta = session.user.user_metadata?.preferred_locale
+          const fromProfile = profile?.preferred_locale && isLocale(profile.preferred_locale) ? profile.preferred_locale : null
+          const fromMeta = typeof meta === 'string' && isLocale(meta) ? meta : null
+          const resolved = fromProfile ?? fromMeta
+          if (!cancelled && resolved) {
+            setLocaleState(resolved)
+            localStorage.setItem(STORAGE_KEY, resolved)
+            setMounted(true)
+            return
+          }
         }
+        if (!cancelled && stored && isLocale(stored)) {
+          setLocaleState(stored)
+        }
+      } catch {
+        if (!cancelled && stored && isLocale(stored)) {
+          setLocaleState(stored)
+        }
+      } finally {
+        if (!cancelled) setMounted(true)
       }
-      if (!cancelled && stored && isLocale(stored)) {
-        setLocaleState(stored)
-      }
-      setMounted(true)
     }
     void init()
     return () => {

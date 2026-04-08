@@ -10,9 +10,9 @@ This document matches the **BoLy** codebase (`frontend/`, `supabase/functions/`)
 2. Click your **project** (not “Organization” settings).
 3. Look at the **browser address bar**. The URL looks like:  
    `https://supabase.com/dashboard/project/abcdefghijklmnop/settings/api`  
-   The segment **`abcdefghijklmnop`** (20 lowercase letters/digits) is **`<PROJECT_REF>`**.
+   The segment **`ayddwbmkclujefnhsaqv`** (20 lowercase letters/digits) is **`<PROJECT_REF>`**.
 4. Your **API base URL** is always:  
-   `https://<PROJECT_REF>.supabase.co`  
+   `https://ayddwbmkclujefnhsaqv.supabase.co`  
    (No trailing slash when pasting into env files.)
 
 ---
@@ -76,6 +76,7 @@ From your machine (with Supabase CLI logged in and project linked):
 ```bash
 supabase secrets set SIGNICAT_SECRET_LOGIN="paste-value-here" --project-ref <PROJECT_REF>
 supabase secrets set SIGNICAT_SECRET_SIGN="paste-value-here" --project-ref <PROJECT_REF>
+supabase secrets set SIGNICAT_CLIENT_ID_SIGN="your-api-client-id" --project-ref <PROJECT_REF>
 supabase secrets set VAPID_KEY="paste-private-key" --project-ref <PROJECT_REF>
 supabase secrets set VAPID_PUBLIC_KEY="paste-public-key" --project-ref <PROJECT_REF>
 supabase secrets set RESEND_API_KEY="re_..." --project-ref <PROJECT_REF>
@@ -90,6 +91,7 @@ Repeat for any SMTP variables you use (see section 5).
 |-------------|---------|-----------|
 | `SIGNICAT_SECRET_LOGIN` | `auth-signicat` | Yes for BankID/OIDC login |
 | `SIGNICAT_SECRET_SIGN` | `sign-agreement` | Yes for document signing API |
+| `SIGNICAT_CLIENT_ID_SIGN` | `sign-agreement` | **Production:** set to the same API client’s **Client ID** as the secret (Signicat → Settings → API clients). If unset, code falls back to sandbox ID for local dev only. |
 | `VAPID_KEY` (or `VAPID_PRIVATE_KEY` or `VAPID-KEY`) | `send-push` | Yes for web push |
 | `VAPID_PUBLIC_KEY` | `send-push` | Recommended (else default in code) |
 | `RESEND_API_KEY` | `send-notification-email` | Optional if using Resend |

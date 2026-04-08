@@ -38,6 +38,32 @@ async function handleInvalidRefreshToken(): Promise<void> {
   }
 }
 
+/** Samme tidsramme som innlogging — uten dette kan getSession/getUser henge uendelig og fryse «Vennligst vent…». */
+const AUTH_OPERATION_TIMEOUT_MS = 22_000
+const AUTH_TIMEOUT_MESSAGE = 'AUTH_OPERATION_TIMEOUT'
+
+function isAuthOperationTimeout(err: unknown): boolean {
+  return err instanceof Error && err.message === AUTH_TIMEOUT_MESSAGE
+}
+
+function withAuthTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => {
+      reject(new Error(AUTH_TIMEOUT_MESSAGE))
+    }, ms)
+    promise.then(
+      (v) => {
+        clearTimeout(t)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(t)
+        reject(e)
+      }
+    )
+  })
+}
+
 if (!isSupabaseConfigured) {
   client.auth.getSession = async () =>
     ({ data: { session: null }, error: null }) as unknown as Awaited<ReturnType<typeof client.auth.getSession>>
@@ -50,12 +76,18 @@ if (!isSupabaseConfigured) {
     }) as unknown as Awaited<ReturnType<typeof client.auth.refreshSession>>
   client.auth.signOut = async () => ({ error: null }) as unknown as Awaited<ReturnType<typeof client.auth.signOut>>
 } else {
-  // Wrapper getSession – fanger ugyldig refresh token og logger ut
+  // Wrapper getSession – timeout + ugyldig refresh token
   const originalGetSession = client.auth.getSession.bind(client.auth)
   client.auth.getSession = async () => {
     try {
-      return await originalGetSession()
+      return await withAuthTimeout(originalGetSession(), AUTH_OPERATION_TIMEOUT_MS)
     } catch (e) {
+      if (isAuthOperationTimeout(e)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[BoLy] auth.getSession timed out — check network and Supabase env')
+        }
+        return { data: { session: null }, error: null } as Awaited<ReturnType<typeof originalGetSession>>
+      }
       if (isInvalidRefreshTokenError(e)) {
         await handleInvalidRefreshToken()
       }
@@ -63,12 +95,18 @@ if (!isSupabaseConfigured) {
     }
   }
 
-  // Wrapper getUser – fanger ugyldig refresh token og logger ut (getUser trigrer ofte refresh)
+  // Wrapper getUser – timeout + ugyldig refresh token
   const originalGetUser = client.auth.getUser.bind(client.auth)
   client.auth.getUser = async () => {
     try {
-      return await originalGetUser()
+      return await withAuthTimeout(originalGetUser(), AUTH_OPERATION_TIMEOUT_MS)
     } catch (e) {
+      if (isAuthOperationTimeout(e)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[BoLy] auth.getUser timed out — check network and Supabase env')
+        }
+        return { data: { user: null }, error: null } as Awaited<ReturnType<typeof originalGetUser>>
+      }
       if (isInvalidRefreshTokenError(e)) {
         await handleInvalidRefreshToken()
       }
@@ -76,12 +114,18 @@ if (!isSupabaseConfigured) {
     }
   }
 
-  // Wrapper refreshSession – fanger ugyldig refresh token (f.eks. etter BankID-retur)
+  // Wrapper refreshSession – timeout + ugyldig refresh token
   const originalRefreshSession = client.auth.refreshSession.bind(client.auth)
   client.auth.refreshSession = async () => {
     try {
-      return await originalRefreshSession()
+      return await withAuthTimeout(originalRefreshSession(), AUTH_OPERATION_TIMEOUT_MS)
     } catch (e) {
+      if (isAuthOperationTimeout(e)) {
+        return {
+          data: { session: null, user: null },
+          error: null,
+        } as Awaited<ReturnType<typeof originalRefreshSession>>
+      }
       if (isInvalidRefreshTokenError(e)) {
         await handleInvalidRefreshToken()
       }

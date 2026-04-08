@@ -6,7 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const CLIENT_ID = "sandbox-misty-angle-164"
+/** Must match the API client in Signicat Dashboard → Settings → API clients (same client as SIGNICAT_SECRET_SIGN). */
+const CLIENT_ID =
+  Deno.env.get("SIGNICAT_CLIENT_ID_SIGN")?.trim() || "sandbox-misty-angle-164"
 const CLIENT_SECRET = Deno.env.get("SIGNICAT_SECRET_SIGN")?.trim()
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "")
 
