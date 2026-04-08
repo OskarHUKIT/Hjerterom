@@ -21,6 +21,7 @@ import { appendMediationNoteToOwnerMessage, MAX_MEDIATION_NOTE_IN_NOTIFICATION }
 import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import InvoiceBasisSection from './InvoiceBasisSection'
+import { publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
 
 /** Verdier i `listings.deposit_guarantee` – må samsvare med registreringsskjema. */
 const DEPOSIT_GUARANTEE_VALUES = {
@@ -1559,7 +1560,7 @@ export default function ListingDetailsClient() {
               <p style={{ margin: '0 0 var(--space-4)', color: 'var(--text-body)', fontSize: '0.95rem', lineHeight: 1.6 }}>
                 Boligutleier har rett å få kontaktinformasjon til leietakere i boligene sine. Boligutleier skriver ut mal for kontaktinfoskjema fra bo.ly i to eksemplarer og fyller ut dette med leietaker. Boligutleier og leietaker beholder et eksemplar hver.
               </p>
-              <a href="https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/Kontaktinfoschema.pdf" download target="_blank" rel="noopener noreferrer" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}>
+              <a href={publicDocumentsFileUrl('Kontaktinfoschema.pdf')} download target="_blank" rel="noopener noreferrer" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}>
                 <FileText size={18} /> {t('downloadContactInfoPdf')}
               </a>
             </section>

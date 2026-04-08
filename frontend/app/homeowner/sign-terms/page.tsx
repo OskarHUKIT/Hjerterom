@@ -10,6 +10,7 @@ import { readPendingFirstListingDraft, insertListingFromPendingDraft } from '../
 import { formatDateNo } from '../../lib/dateFormat'
 import type { TranslationKey } from '../../../lib/translations'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import { publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
 
 type SignedTermsCard = {
   id: string
@@ -152,10 +153,7 @@ function SignTermsContent() {
   const [signedAcceptances, setSignedAcceptances] = useState<SignedTermsCard[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const fallbackTermsPdfHref =
-    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SUPABASE_URL
-      ? `${process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf`
-      : 'https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf'
+  const fallbackTermsPdfHref = publicDocumentsFileUrl('VilkarsavtaleBoligbanken.pdf')
 
   const cityParam = searchParams.get('city')?.trim() || ''
   const returnToRaw = searchParams.get('returnTo')?.trim() || ''

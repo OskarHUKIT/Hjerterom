@@ -15,10 +15,11 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "")
 function fallbackPdfUrl(): string {
   const fromEnv = Deno.env.get("TERMS_FALLBACK_PDF_URL")?.trim()
   if (fromEnv) return fromEnv
-  if (SUPABASE_URL) {
-    return `${SUPABASE_URL}/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf`
+  const base = SUPABASE_URL?.replace(/\/$/, "")
+  if (!base) {
+    throw new Error("SUPABASE_URL mangler — kan ikke hente standard vilkår-PDF fra Storage.")
   }
-  return "https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf"
+  return `${base}/storage/v1/object/public/documents/VilkarsavtaleBoligbanken.pdf`
 }
 
 serve(async (req) => {

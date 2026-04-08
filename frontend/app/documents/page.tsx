@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { Upload } from 'lucide-react'
+import { publicDocumentsFileUrl } from '../lib/storagePublicUrl'
 
 export default function Documents() {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -60,7 +61,7 @@ export default function Documents() {
             { name: 'Overtakelsesrapport', file: 'Overtakelsesrapport.pdf', desc: 'Mal for overtakelsesrapport' },
             { name: 'Kontaktinfoskjema', file: 'Kontaktinfoschema.pdf', desc: 'Skjema for kontaktinfo' }
           ].map(doc => {
-            const url = `https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/${doc.file}`
+            const url = publicDocumentsFileUrl(doc.file)
             return (
               <a
                 key={doc.file}

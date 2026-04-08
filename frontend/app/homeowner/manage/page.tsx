@@ -21,6 +21,7 @@ import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
+import { publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
@@ -792,7 +793,7 @@ export default function HomeownerManage() {
                       {getEffectiveStatus(listing) === 'Formidla' && (
                         <div onClick={e => e.stopPropagation()} style={{ padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
                           <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-                            <a href="https://ayddwbmkclujefnhsaqv.supabase.co/storage/v1/object/public/documents/Kontaktinfoschema.pdf" target="_blank" rel="noopener noreferrer" download className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}>
+                            <a href={publicDocumentsFileUrl('Kontaktinfoschema.pdf')} target="_blank" rel="noopener noreferrer" download className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}>
                               <FileText size={16} /> {t('contactInfoForm')}
                             </a>
                             <Link href={`/report/utleier/${listing.id}`} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none', background: 'var(--color-teal)', color: 'white', border: 'none' }}>
