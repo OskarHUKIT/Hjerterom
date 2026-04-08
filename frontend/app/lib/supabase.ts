@@ -86,7 +86,9 @@ if (!isSupabaseConfigured) {
         if (process.env.NODE_ENV === 'development') {
           console.warn('[BoLy] auth.getSession timed out — check network and Supabase env')
         }
-        return { data: { session: null }, error: null } as Awaited<ReturnType<typeof originalGetSession>>
+        return { data: { session: null }, error: null } as unknown as Awaited<
+          ReturnType<typeof originalGetSession>
+        >
       }
       if (isInvalidRefreshTokenError(e)) {
         await handleInvalidRefreshToken()
@@ -105,7 +107,9 @@ if (!isSupabaseConfigured) {
         if (process.env.NODE_ENV === 'development') {
           console.warn('[BoLy] auth.getUser timed out — check network and Supabase env')
         }
-        return { data: { user: null }, error: null } as Awaited<ReturnType<typeof originalGetUser>>
+        return { data: { user: null }, error: null } as unknown as Awaited<
+          ReturnType<typeof originalGetUser>
+        >
       }
       if (isInvalidRefreshTokenError(e)) {
         await handleInvalidRefreshToken()
@@ -124,7 +128,7 @@ if (!isSupabaseConfigured) {
         return {
           data: { session: null, user: null },
           error: null,
-        } as Awaited<ReturnType<typeof originalRefreshSession>>
+        } as unknown as Awaited<ReturnType<typeof originalRefreshSession>>
       }
       if (isInvalidRefreshTokenError(e)) {
         await handleInvalidRefreshToken()
