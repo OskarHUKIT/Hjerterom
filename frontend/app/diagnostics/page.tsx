@@ -116,10 +116,10 @@ export default function DiagnosticsPage() {
       {report && (
         <div className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-4)' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-            {report.summaryCode === 'ALL_OK' || report.summaryCode.startsWith('WARN:') ? (
-              <CheckCircle2 size={22} style={{ color: 'var(--color-teal)', flexShrink: 0 }} />
+            {report.steps.some(s => s.status === 'fail') ? (
+              <AlertTriangle size={22} style={{ color: '#ef4444', flexShrink: 0 }} />
             ) : (
-              <AlertTriangle size={22} style={{ color: '#f59e0b', flexShrink: 0 }} />
+              <CheckCircle2 size={22} style={{ color: 'var(--color-teal)', flexShrink: 0 }} />
             )}
             <div>
               <div style={{ fontWeight: 700, marginBottom: 4 }}>Oppsummering</div>
@@ -137,15 +137,34 @@ export default function DiagnosticsPage() {
           <strong>Ekstra: getSession()</strong>
           <p style={{ margin: '8px 0 0', fontSize: '0.95rem' }}>
             {sessionProbe.error ? (
-              <>
-                <span style={{ color: '#ef4444' }}>{sessionProbe.error}</span>
-              </>
+              <span style={{ color: '#ef4444' }}>{sessionProbe.error}</span>
             ) : (
               <>
                 {sessionProbe.ms} ms — innlogget session: {sessionProbe.session ? 'ja' : 'nei'}
               </>
             )}
           </p>
+          {!sessionProbe.error &&
+            sessionProbe.ms >= 21000 &&
+            sessionProbe.ms <= 24000 &&
+            !sessionProbe.session && (
+              <p style={{ margin: '12px 0 0', fontSize: '0.9rem', color: 'var(--text-body)', lineHeight: 1.5 }}>
+                Ca. 22 s betyr ofte at klientens <strong>auth-timeout</strong> slo inn (utløpt eller ødelagt refresh-token i
+                nettleseren). <strong>Auth /health er likevel OK</strong> — dette er typisk lokal lagring, ikke feil Vercel-nøkkel.
+                Prøv «Tøm lokal innlogging» under, eller tøm nettstedsdata for bolynorge.no og logg inn på nytt.
+              </p>
+            )}
+          <button
+            type="button"
+            className="button"
+            style={{ marginTop: 12 }}
+            onClick={async () => {
+              await supabase.auth.signOut({ scope: 'local' })
+              window.location.href = '/login'
+            }}
+          >
+            Tøm lokal innlogging og gå til logg inn
+          </button>
         </div>
       )}
 

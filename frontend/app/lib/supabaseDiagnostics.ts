@@ -230,9 +230,10 @@ export async function runSupabaseDiagnostics(): Promise<SupabaseDiagnosticReport
     push({
       id: 'jwt_ref_match',
       label: 'JWT ref ↔ URL',
-      status: 'warn',
-      detail: 'Publishable-nøkkel — automatisk ref-sjekk hoppes over (bruk samme prosjekt i Dashboard).',
-      code: 'KEY_PUBLISHABLE_NO_JWT_CROSSCHECK',
+      status: 'ok',
+      detail:
+        'Publishable-nøkkel — ingen JWT-ref å sammenligne (normalt). Verifiser heller at /auth/v1/health er OK.',
+      code: 'KEY_PUBLISHABLE_OK',
     })
   }
 
@@ -301,14 +302,30 @@ export async function runSupabaseDiagnostics(): Promise<SupabaseDiagnosticReport
       })
     } else if (res) {
       const snippet = await res.text()
-      push({
-        id: 'http_rest_root',
-        label: 'HTTP GET /rest/v1/',
-        status: res.ok || res.status === 404 ? 'ok' : 'warn',
-        detail: `HTTP ${res.status} på ${ms}ms — ${snippet.slice(0, 120)}`,
-        code: res.ok ? 'HTTP_REST_OK' : `HTTP_REST_${res.status}`,
-        ms,
-      })
+      /** Ny Data API / publishable: rot på /rest/v1/ kan svare 401 «schema forbidden» selv med gyldig nøkkel — ikke samme som tabell-kall via klient. */
+      const schemaRootBlocked =
+        res.status === 401 &&
+        /schema is forbidden|Access to schema|only allowed using a secret/i.test(snippet)
+      if (schemaRootBlocked) {
+        push({
+          id: 'http_rest_root',
+          label: 'HTTP GET /rest/v1/ (rot)',
+          status: 'ok',
+          detail:
+            `HTTP ${res.status} forventet for mange prosjekter: åpen API-rot krever ofte ikke publishable. Appen bruker supabase-js mot tabeller — ikke denne URL-en. Auth health over er det som teller.`,
+          code: 'HTTP_REST_ROOT_SCHEMA_FORBIDDEN_OK',
+          ms,
+        })
+      } else {
+        push({
+          id: 'http_rest_root',
+          label: 'HTTP GET /rest/v1/ (rot)',
+          status: res.ok || res.status === 404 ? 'ok' : 'warn',
+          detail: `HTTP ${res.status} på ${ms}ms — ${snippet.slice(0, 120)}`,
+          code: res.ok ? 'HTTP_REST_OK' : `HTTP_REST_${res.status}`,
+          ms,
+        })
+      }
     }
   }
 
