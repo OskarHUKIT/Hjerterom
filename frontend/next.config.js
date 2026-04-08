@@ -1,8 +1,13 @@
 /** @type {import('next').NextConfig} */
+const path = require('path')
 // Web/Vercel config - no static export (allows auth callback, dynamic routes)
 // Mobile builds use next.config.mobile.js via build-mobile.js
 const nextConfig = {
   reactStrictMode: true,
+  /** Unngå feil Turbopack-root når det finnes flere package-lock (repo root + frontend). */
+  turbopack: {
+    root: path.join(__dirname),
+  },
   serverExternalPackages: ['@react-pdf/renderer'],
   images: {
     unoptimized: true,

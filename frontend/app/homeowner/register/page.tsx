@@ -18,10 +18,7 @@ import {
 import { savePendingFirstListingDraft } from '../lib/pendingFirstListing'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 
-type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
-
-export default function HomeownerRegister(props: PageProps) {
-  use(props.searchParams ?? Promise.resolve({}))
+export default function HomeownerRegister() {
   const { t } = useLanguage()
   const router = useRouter()
   const [loading, setLoading] = useState(false)

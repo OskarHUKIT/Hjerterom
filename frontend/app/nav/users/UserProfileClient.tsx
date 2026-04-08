@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase'
 import { formatAuditLogDescription } from '../../lib/auditLogFormat'
 import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
+import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { useLanguage } from '../../../context/LanguageContext'
 import { parseKommuneRegions, listingCityMatchesRegions, regionsOverlap, mergeKommuneRegionSources } from '../../lib/kommuneRegions'
 import { isKommuneAdminRole, isKommuneStaffRole } from '../../lib/kommuneRoles'
@@ -186,7 +187,13 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
     })
   }, [history, historySearch, historyDateFrom, historyDateTo])
 
-  if (loading) return <div className="container" style={{ minHeight: '80vh' }} />
+  if (loading) {
+    return (
+      <main className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <LoadingPlaceholder minHeight={200} />
+      </main>
+    )
+  }
 
   if (!user) return <div className="container">{t('notFound')}</div>
 

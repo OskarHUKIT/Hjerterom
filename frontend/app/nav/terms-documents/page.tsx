@@ -14,6 +14,7 @@ import {
   kommuneRegionForTermsDocument,
 } from '../../lib/kommuneRegions'
 import { isKommuneAdminRole } from '../../lib/kommuneRoles'
+import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 
 const PDF_MAX_BYTES = 12 * 1024 * 1024
 
@@ -241,7 +242,7 @@ export default function TermsDocumentsPage() {
   if (loading || authorized === null) {
     return (
       <main className="container">
-        <div className="card" style={{ minHeight: '40vh' }} />
+        <LoadingPlaceholder minHeight={320} />
       </main>
     )
   }

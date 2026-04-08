@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -14,6 +14,7 @@ import { supabase } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
+import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { appendMediationNoteToOwnerMessage, MAX_MEDIATION_NOTE_IN_NOTIFICATION } from '../../lib/formidletNotification'
 import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
@@ -24,10 +25,7 @@ const MapView = dynamic(() => import('../../components/MapView'), {
   loading: () => <div className="card" style={{ height: '500px' }} />
 })
 
-type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
-
-export default function NavDatabase(props: PageProps) {
-  use(props.searchParams ?? Promise.resolve({}))
+export default function NavDatabase() {
   const { t, locale } = useLanguage()
   const router = useRouter()
   const [userRole, setUserRole] = useState<string | null>(null)
@@ -1172,7 +1170,7 @@ export default function NavDatabase(props: PageProps) {
 
       <div>
         {loading ? (
-          <div className="card" style={{ padding: 'var(--space-10)', minHeight: '300px' }} />
+          <LoadingPlaceholder minHeight={300} />
         ) : listings.length > 0 ? (
           viewMode === 'table' ? (
             <div className="card db-table-wrapper" style={{ padding: 0, overflow: 'hidden' }}>

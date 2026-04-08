@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { 
@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase'
 import { formatDateNo } from '../../lib/dateFormat'
 import { formatKommuneRegionsForDisplay, listingCityMatchesRegions } from '../../lib/kommuneRegions'
 import UserProfileClient from './UserProfileClient'
+import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { useLanguage } from '../../../context/LanguageContext'
 import { isKommuneAdminRole, isKommuneStaffRole, kommuneNavUsesAccountsLabel } from '../../lib/kommuneRoles'
 
@@ -287,7 +288,7 @@ function NavUsersContent() {
 
       {accountTab === 'staff' && useAccountsNavCopy === true ? (
         staffLoading ? (
-          <div className="card" style={{ padding: 'var(--space-10)', minHeight: '200px' }} />
+          <LoadingPlaceholder minHeight={200} />
         ) : staffRows.length > 0 ? (
           <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
             {staffRows.map(s => (
@@ -338,7 +339,7 @@ function NavUsersContent() {
 
       {accountTab === 'landlords' && (
         loading ? (
-        <div className="card" style={{ padding: 'var(--space-10)', minHeight: '200px' }} />
+        <LoadingPlaceholder minHeight={200} />
       ) : filteredUsers.length > 0 ? (
         <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
           {filteredUsers.map(user => (
@@ -417,10 +418,7 @@ function NavUsersContent() {
   )
 }
 
-type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
-
-export default function NavUsers(props: PageProps) {
-  use(props.searchParams ?? Promise.resolve({}))
+export default function NavUsers() {
   return (
     <Suspense fallback={<div className="container" style={{ minHeight: '80vh' }} />}>
       <NavUsersContent />

@@ -1,14 +1,11 @@
 'use client'
 
-import { use, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { LogIn, Presentation, ArrowRight, X } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 
-type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
-
-export default function Home(props: PageProps) {
-  use(props.searchParams ?? Promise.resolve({}))
+export default function Home() {
   const { t } = useLanguage()
   const [showDemoPopup, setShowDemoPopup] = useState(false)
 

@@ -7,16 +7,25 @@ const CLIENT_SECRET = Deno.env.get("SIGNICAT_SECRET_LOGIN")?.trim()
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
 
+/** Må samsvare med redirect URI registrert hos Signicat for denne OAuth-klienten. */
+function authSignicatRedirectUri(): string {
+  const base = (SUPABASE_URL || "").replace(/\/$/, "")
+  return `${base}/functions/v1/auth-signicat`
+}
+
 serve(async (req) => {
   const url = new URL(req.url)
   const code = url.searchParams.get("code")
   const state = url.searchParams.get("state") // OAuth state = return_to from callback
   const returnTo = url.searchParams.get("return_to") // From initial request
-  
-  const redirectUri = `https://ayddwbmkclujefnhsaqv.supabase.co/functions/v1/auth-signicat`
+
+  const redirectUri = authSignicatRedirectUri()
   
   if (!CLIENT_SECRET) {
     return errorPage("SIGNICAT_SECRET_LOGIN er ikke satt i Supabase. Legg til hemmeligheten under Project Settings → Edge Functions → Secrets.", state, url)
+  }
+  if (!SUPABASE_URL?.trim()) {
+    return errorPage("SUPABASE_URL mangler (reservert hemmelighet fra Supabase – sjekk at prosjektet er korrekt).", state, url)
   }
 
   if (!code) {

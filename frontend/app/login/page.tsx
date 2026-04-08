@@ -1,13 +1,33 @@
 'use client'
 
-import { use, useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '../lib/supabase'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import Link from 'next/link'
 import { Mail, Lock, UserPlus, LogIn, User, Phone } from 'lucide-react'
 import Logo from '../components/Logo'
 import { useLanguage } from '../../context/LanguageContext'
 import { isKommuneStaffRole } from '../lib/kommuneRoles'
+
+const AUTH_NETWORK_MS = 25000
+
+function withNetworkTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const id = window.setTimeout(() => {
+      reject(Object.assign(new Error('AUTH_TIMEOUT'), { name: 'AuthTimeout' }))
+    }, ms)
+    Promise.resolve(promise).then(
+      (v) => {
+        window.clearTimeout(id)
+        resolve(v)
+      },
+      (e) => {
+        window.clearTimeout(id)
+        reject(e)
+      }
+    )
+  })
+}
 
 function LoginPageContent() {
   const { t } = useLanguage()
@@ -52,39 +72,61 @@ function LoginPageContent() {
     setLoading(true)
     setMessage(null)
 
+    if (!isSupabaseConfigured) {
+      setMessage({ type: 'error', text: t('pageLoadStuck') })
+      setLoading(false)
+      return
+    }
+
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-            data: {
-              full_name: fullName.trim() || undefined,
-              contact_phone: contactPhone.trim() || undefined,
-              provider: 'email',
+        const { error } = await withNetworkTimeout(
+          supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
+              data: {
+                full_name: fullName.trim() || undefined,
+                contact_phone: contactPhone.trim() || undefined,
+                provider: 'email',
+              },
             },
-          },
-        })
+          }),
+          AUTH_NETWORK_MS
+        )
         if (error) throw error
         setMessage({ type: 'success', text: t('checkEmail') })
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
+        const { error } = await withNetworkTimeout(
+          supabase.auth.signInWithPassword({
+            email,
+            password,
+          }),
+          AUTH_NETWORK_MS
+        )
         if (error) throw error
         if (redirectTo === '/' || !redirectTo) {
-          const { data: { user } } = await supabase.auth.getUser()
-          const { data: profile } = user ? await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle() : { data: null }
+          const { data: { user } } = await withNetworkTimeout(supabase.auth.getUser(), AUTH_NETWORK_MS)
+          const { data: profile } = user
+            ? await withNetworkTimeout(
+                supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+                AUTH_NETWORK_MS
+              )
+            : { data: null }
           const r = profile?.role ?? user?.user_metadata?.role
           router.push(isKommuneStaffRole(r) ? '/nav/database' : '/homeowner/manage')
         } else {
           router.push(redirectTo)
         }
       }
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message })
+    } catch (error: unknown) {
+      const err = error as { message?: string; name?: string }
+      const text =
+        err?.name === 'AuthTimeout' || err?.message === 'AUTH_TIMEOUT'
+          ? t('loginAuthNoResponse')
+          : err?.message || t('loginAuthNoResponse')
+      setMessage({ type: 'error', text })
     } finally {
       setLoading(false)
     }
@@ -96,7 +138,13 @@ function LoginPageContent() {
     if (bankIdRedirecting) return
     setBankIdRedirecting(true)
     const returnTo = encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')
-    const url = `https://ayddwbmkclujefnhsaqv.supabase.co/functions/v1/auth-signicat?return_to=${returnTo}`
+    const base = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '')
+    if (!base) {
+      setMessage({ type: 'error', text: 'NEXT_PUBLIC_SUPABASE_URL mangler – kan ikke starte BankID.' })
+      setBankIdRedirecting(false)
+      return
+    }
+    const url = `${base}/functions/v1/auth-signicat?return_to=${returnTo}`
     window.location.assign(url)
   }
 
@@ -265,11 +313,7 @@ function LoginPageContent() {
   )
 }
 
-type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
-
-export default function LoginPage(props: PageProps) {
-  // Next.js 16: searchParams is a Promise; unwrap to avoid sync-dynamic-apis error
-  use(props.searchParams ?? Promise.resolve({}))
+export default function LoginPage() {
   return (
     <Suspense fallback={<div className="login-page" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="card" style={{ padding: 'var(--space-10)', minWidth: '360px' }} /></div>}>
       <LoginPageContent />

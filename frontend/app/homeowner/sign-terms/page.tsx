@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useRef, useEffect, Suspense } from 'react'
+import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ShieldCheck, FileText, ChevronDown, CheckCircle2, Lock, ArrowLeft, History } from 'lucide-react'
@@ -797,10 +797,7 @@ function SignTermsContent() {
   )
 }
 
-type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
-
-export default function SignTerms(props: PageProps) {
-  use(props.searchParams ?? Promise.resolve({}))
+export default function SignTerms() {
   return (
     <Suspense fallback={<div className="container" style={{ minHeight: '80vh' }} />}>
       <SignTermsContent />

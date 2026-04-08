@@ -244,6 +244,10 @@ export const translations = {
     notificationsSharedDesc: 'Delt varslingssystem for kommune-ansatte.',
     notificationsUserDesc: 'Viktige oppdateringer om ditt leieforhold.',
     loadingPleaseWait: 'Vennligst vent...',
+    pageLoadStuck: 'Kunne ikke laste innhold i tide. Sjekk nettverk og at Supabase-variabler (NEXT_PUBLIC_SUPABASE_URL og ANON_KEY) er satt, særlig ved lokal kjøring (.env.local).',
+    loginAuthNoResponse:
+      'Innloggingen fikk ikke svar i tide. Sjekk internett, VPN/brannmur og at URL og anon-nøkkel i .env.local matcher Supabase-prosjektet. Prøv igjen om et øyeblikk.',
+    retryLoad: 'Prøv igjen',
     orDivider: 'eller',
     loginWithBankID: 'Logg inn med BankID',
     signUpWithBankID: 'Registrer med BankID',
@@ -872,6 +876,10 @@ export const translations = {
     notificationsSharedDesc: 'Dahkkon doarjanguoibmimat kommuvnna bargiide.',
     notificationsUserDesc: 'Dehálaš ođasmahttit du duodji birra.',
     loadingPleaseWait: 'Veahkkelis beara',
+    pageLoadStuck: 'Sisdoallu ii sáhttán heivehuvvot oktanaga. Geahčal fierpmádatoktavuođa ja ahte Supabase-variábelat leat čadnon.',
+    loginAuthNoResponse:
+      'Sisačáliheapmi ii ožžon vástádusa oktanaga. Geahčal fierpmádat, VPN/brannmur ja ahte URL ja anon-nøkkel .env.local:s shttet Supabase-prošeavtta.',
+    retryLoad: 'Geahčal ođđasit',
     orDivider: 'dahje',
     loginWithBankID: 'Sisa BankID:in',
     signUpWithBankID: 'Registrere BankID:in',
@@ -1498,6 +1506,10 @@ export const translations = {
     notificationsSharedDesc: 'Shared notification system for municipality staff.',
     notificationsUserDesc: 'Important updates about your tenancy.',
     loadingPleaseWait: 'Please wait...',
+    pageLoadStuck: 'Content is taking too long to load. Check your network and that NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set (e.g. in .env.local for local dev).',
+    loginAuthNoResponse:
+      'Sign-in did not get a response in time. Check your connection, VPN/firewall, and that your .env.local URL and anon key match your Supabase project.',
+    retryLoad: 'Try again',
     orDivider: 'or',
     loginWithBankID: 'Log in with BankID',
     signUpWithBankID: 'Sign up with BankID',

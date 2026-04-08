@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { 
   Bell, CheckCircle2, Clock, MessageSquare, ShieldCheck, 
@@ -13,11 +13,9 @@ import { useLanguage } from '../../../context/LanguageContext'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
 import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
+import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 
-type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
-
-export default function NavNotifications(props: PageProps) {
-  use(props.searchParams ?? Promise.resolve({}))
+export default function NavNotifications() {
   const { t } = useLanguage()
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -192,7 +190,7 @@ export default function NavNotifications(props: PageProps) {
       </div>
 
       {loading ? (
-        <div className="card" style={{ padding: 'var(--space-10)', minHeight: '200px' }} />
+        <LoadingPlaceholder minHeight={200} />
       ) : notifications.length > 0 ? (
         <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
           {notifications.map(notif => {

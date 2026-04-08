@@ -1,16 +1,13 @@
 'use client'
 
-import { use, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { supabase } from '../../../lib/supabase'
 import HandoverReport from '../../../components/HandoverReport'
 
-type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
-
-export default function ReportLeietakerPage(props: PageProps) {
-  use(props.searchParams ?? Promise.resolve({}))
+export default function ReportLeietakerPage() {
   const params = useParams()
   const tokenRaw = params.token
   const token = Array.isArray(tokenRaw) ? tokenRaw[0] : tokenRaw

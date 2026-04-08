@@ -138,8 +138,16 @@ export default function Header() {
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
+    setIsMenuOpen(false)
+    closeMobileNav()
+    try {
+      // Global signOut() can hang on slow/unreachable API; local clears session immediately.
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch (e) {
+      console.error('signOut:', e)
+    }
+    // Full navigation so logout works even if client router or auth listeners are stuck.
+    window.location.assign('/')
   }
 
   const closeMobileNav = () => setIsMobileNavOpen(false)
@@ -289,7 +297,8 @@ export default function Header() {
                   <div style={{ height: '1px', background: 'var(--border-subtle)', margin: 'var(--space-2) 0' }}></div>
 
                   <button 
-                    onClick={() => { handleLogout(); closeMobileNav(); }}
+                    type="button"
+                    onClick={() => void handleLogout()}
                     style={{ 
                       display: 'flex', 
                       alignItems: 'center', 

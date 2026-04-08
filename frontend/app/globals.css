@@ -401,6 +401,16 @@ a {
   box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
 }
 
+@keyframes boly-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.boly-spin {
+  animation: boly-spin 0.85s linear infinite;
+}
+
 @keyframes pwa-overlay-in {
   from { opacity: 0; }
   to { opacity: 1; }

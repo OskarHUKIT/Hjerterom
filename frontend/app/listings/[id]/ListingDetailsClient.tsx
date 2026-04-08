@@ -33,6 +33,31 @@ function hasDepositGuarantee(arr: unknown, key: keyof typeof DEPOSIT_GUARANTEE_V
   return Array.isArray(arr) && arr.includes(DEPOSIT_GUARANTEE_VALUES[key])
 }
 
+/** image_urls kan komme som jsonb-array eller (sjeldent) serialisert JSON-streng fra API. */
+function normalizeListingImageUrls(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    const t = raw.trim()
+    if (t.startsWith('[')) {
+      try {
+        const p = JSON.parse(t)
+        if (Array.isArray(p)) return p.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+      } catch {
+        /* enkelt URL-streng */
+      }
+    }
+    return [t]
+  }
+  return []
+}
+
+/** True om boligen er markert formidlet (rad i listing_availability eller status på listing). */
+function listingHasFormidlaPeriod(avail: { status?: string }[] | null | undefined): boolean {
+  return !!(avail?.some((p) => p.status === 'Formidla'))
+}
+
 export default function ListingDetailsClient() {
   const { id } = useParams()
   const router = useRouter()
@@ -90,7 +115,15 @@ export default function ListingDetailsClient() {
 
   const isOwner = currentUser?.id === listing?.owner_id
 
-  const allImages = listing?.image_urls || (listing?.image_url ? [listing.image_url] : [])
+  const normalizedImageUrls = normalizeListingImageUrls(listing?.image_urls)
+  const allImages =
+    normalizedImageUrls.length > 0
+      ? normalizedImageUrls
+      : listing?.image_url && String(listing.image_url).trim()
+        ? [String(listing.image_url).trim()]
+        : []
+
+  const showGalleryFormidlet = listing?.status === 'Formidla' || listingHasFormidlaPeriod(availability)
 
   const translateType = (type: string) => {
     if (!type) return ''
@@ -570,12 +603,16 @@ export default function ListingDetailsClient() {
         setHandoverReports(reportsData || [])
 
         // Fetch or create tenant report token only for kommune (lenken vises bare for kommuneansatte)
-        const today = new Date().toISOString().slice(0, 10)
-        const isFormidlet = data?.status === 'Formidla' || (availData && availData.some((p: any) => p.status === 'Formidla' && p.start_date <= today && p.end_date >= today))
+        // Merk: «formidlet» = status Formidla ELLER minst én Formidla-periode (ikke bare «i dag» i perioden),
+        // ellers mangler lenke ved avvik mellom dato/tidssone eller når perioden ble lagt inn.
+        const isFormidlet =
+          data?.status === 'Formidla' || listingHasFormidlaPeriod(availData as { status?: string }[] | null | undefined)
         if (user && isNavView && isFormidlet && !ownerTerm) {
           let tokenData = await supabase.from('listing_tenant_tokens').select('token').eq('listing_id', id).maybeSingle()
-          if (!tokenData.data) {
-            await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
+          if (tokenData.error) console.warn('[listing_tenant_tokens] select:', tokenData.error.message)
+          if (!tokenData.data?.token) {
+            const up = await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
+            if (up.error) console.warn('[listing_tenant_tokens] upsert:', up.error.message)
             tokenData = await supabase.from('listing_tenant_tokens').select('token').eq('listing_id', id).maybeSingle()
           }
           setTenantReportToken(tokenData.data?.token || null)
@@ -1676,8 +1713,8 @@ export default function ListingDetailsClient() {
                 }) : <p className="text-sm italic" style={{ color: 'var(--text-muted)' }}>Ingen overtakelsesrapporter er registrert ennå.</p>}
               </div>
               {(() => {
-                const today = new Date().toISOString().slice(0, 10)
-                const isFormidlet = listing?.status === 'Formidla' || (Array.isArray(availability) && availability.some((p: any) => p.status === 'Formidla' && p.start_date <= today && p.end_date >= today))
+                const isFormidlet =
+                  listing?.status === 'Formidla' || listingHasFormidlaPeriod(availability)
                 const showTenantLink = isNavView && isFormidlet && !ownerAgreementTerminated
                 if (!showTenantLink) return null
                 return (
@@ -1773,9 +1810,26 @@ export default function ListingDetailsClient() {
               </label>
             )}
 
-            <div style={{ position: 'absolute', top: 20, left: 20, padding: '6px 16px', borderRadius: '20px', background: listing.status === 'Tilgjengelig' ? 'var(--color-teal)' : 
-                          listing.status === 'Formidla' ? 'var(--color-sky-blue)' : '#ef4444', color: 'white', fontWeight: 800, fontSize: '0.8rem', textTransform: listing.status === 'Formidla' ? 'none' : 'uppercase', zIndex: 5 }}>
-              {listing.status === 'Formidla' ? 'Formidlet' : listing.status}
+            <div
+              style={{
+                position: 'absolute',
+                top: 20,
+                left: 20,
+                padding: '6px 16px',
+                borderRadius: '20px',
+                background: showGalleryFormidlet
+                  ? 'var(--color-sky-blue)'
+                  : listing?.status === 'Tilgjengelig'
+                    ? 'var(--color-teal)'
+                    : '#ef4444',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                textTransform: showGalleryFormidlet ? 'none' : 'uppercase',
+                zIndex: 5,
+              }}
+            >
+              {showGalleryFormidlet ? 'Formidlet' : listing?.status ?? ''}
             </div>
           </div>
 

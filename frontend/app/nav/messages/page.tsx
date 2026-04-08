@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useEffect, useRef, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { 
@@ -13,6 +13,7 @@ import { listingCityMatchesRegions, mergeKommuneRegionSources, parseKommuneRegio
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
 import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
+import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 
 const CHAT_IMAGES_BUCKET = 'chat-images'
 const MAX_IMAGES_PER_MESSAGE = 4
@@ -398,7 +399,7 @@ function MessagesContent() {
   if (!currentUser) {
     return (
       <main className="container">
-        <div className="card" style={{ minHeight: '400px' }} />
+        <LoadingPlaceholder minHeight={400} />
       </main>
     )
   }
@@ -772,10 +773,7 @@ function MessagesContent() {
   )
 }
 
-type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
-
-export default function MessagesPage(props: PageProps) {
-  use(props.searchParams ?? Promise.resolve({}))
+export default function MessagesPage() {
   return (
     <Suspense fallback={<div className="container" style={{ minHeight: '80vh' }} />}>
       <MessagesContent />

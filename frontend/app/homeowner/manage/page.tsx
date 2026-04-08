@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
@@ -20,11 +20,9 @@ import {
 import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
+import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 
-type PageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> }
-
-export default function HomeownerManage(props: PageProps) {
-  use(props.searchParams ?? Promise.resolve({}))
+export default function HomeownerManage() {
   const { t } = useLanguage()
   const router = useRouter()
   const [myListings, setMyListings] = useState<any[]>([])
@@ -41,6 +39,8 @@ export default function HomeownerManage(props: PageProps) {
   /** PWA etter at velkomst-modalet er lukket (samme økt som første gang på siden). */
   const [pendingPwaAfterWelcome, setPendingPwaAfterWelcome] = useState(false)
   const [pendingPwaBeforeOverview, setPendingPwaBeforeOverview] = useState(false)
+  /** Nettverk/Supabase-timeout eller feil fra fetchData */
+  const [fetchError, setFetchError] = useState<'timeout' | string | null>(null)
 
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
@@ -51,6 +51,7 @@ export default function HomeownerManage(props: PageProps) {
 
   const fetchData = async () => {
     setLoading(true)
+    setFetchError(null)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -138,6 +139,7 @@ export default function HomeownerManage(props: PageProps) {
 
     } catch (err: any) {
       console.error('Unexpected error:', err)
+      setFetchError(err?.message || 'error')
     } finally {
       setLoading(false)
     }
@@ -197,29 +199,76 @@ export default function HomeownerManage(props: PageProps) {
   }
 
   useEffect(() => {
+    let cancelled = false
+    const stuckTimer = window.setTimeout(() => {
+      if (cancelled) return
+      setPageGate(g => (g === 'init' ? 'ready' : g))
+      setFetchError('timeout')
+      setLoading(false)
+    }, 20000)
+
     async function bootstrap() {
-      const { data: { user } } = await supabase.auth.getUser()
+      let userResp: Awaited<ReturnType<typeof supabase.auth.getUser>>
+      try {
+        userResp = await Promise.race([
+          supabase.auth.getUser(),
+          new Promise<never>((_, reject) => {
+            window.setTimeout(() => reject(new Error('AUTH_TIMEOUT')), 15000)
+          }),
+        ])
+      } catch (e: unknown) {
+        if (cancelled) return
+        if (e instanceof Error && e.message === 'AUTH_TIMEOUT') {
+          setFetchError('timeout')
+          setPageGate('ready')
+          setLoading(false)
+          return
+        }
+        console.error(e)
+        setFetchError(e instanceof Error ? e.message : 'error')
+        setPageGate('ready')
+        setLoading(false)
+        return
+      }
+      const { data: { user } } = userResp
       if (!user) {
-        router.push('/login')
+        if (!cancelled) router.push('/login')
         return
       }
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
       if (isKommuneStaffRole(profile?.role)) {
-        router.replace('/nav/database')
+        if (!cancelled) router.replace('/nav/database')
         return
       }
       const dismissed =
         typeof window !== 'undefined' &&
         localStorage.getItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.welcome, user.id))
       if (!dismissed) {
-        setPageGate('welcome')
+        if (!cancelled) setPageGate('welcome')
         return
       }
-      setPageGate('ready')
+      if (!cancelled) setPageGate('ready')
       await fetchData()
     }
-    bootstrap()
+
+    void bootstrap().finally(() => {
+      if (!cancelled) window.clearTimeout(stuckTimer)
+    })
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(stuckTimer)
+    }
   }, [])
+
+  useEffect(() => {
+    if (pageGate !== 'ready' || !loading) return
+    const id = window.setTimeout(() => {
+      setFetchError('timeout')
+      setLoading(false)
+    }, 20000)
+    return () => clearTimeout(id)
+  }, [loading, pageGate])
 
   const setStatus = async (id: string, newStatus: 'Tilgjengelig' | 'Utilgjengelig') => {
     const listing = myListings.find(l => l.id === id)
@@ -361,7 +410,7 @@ export default function HomeownerManage(props: PageProps) {
   if (pageGate === 'init') {
     return (
       <main className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: 'var(--text-muted)' }}>…</div>
+        <LoadingPlaceholder minHeight={160} />
       </main>
     )
   }
@@ -642,7 +691,17 @@ export default function HomeownerManage(props: PageProps) {
 
               <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
                 {loading ? (
-                  <div className="card" style={{ padding: 'var(--space-10)', minHeight: '120px' }} />
+                  <LoadingPlaceholder minHeight={120} />
+                ) : fetchError ? (
+                  <div className="card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
+                    <Info size={36} style={{ margin: '0 auto var(--space-3)', opacity: 0.45 }} />
+                    <p style={{ margin: '0 0 var(--space-4)', color: 'var(--text-body)', lineHeight: 1.55 }}>
+                      {fetchError === 'timeout' ? t('pageLoadStuck') : fetchError}
+                    </p>
+                    <button type="button" className="button" onClick={() => void fetchData()}>
+                      {t('retryLoad')}
+                    </button>
+                  </div>
                 ) : filteredListings.length > 0 ? (
                   filteredListings.map((listing) => (
                     <div 
