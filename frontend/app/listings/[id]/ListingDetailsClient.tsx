@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -43,7 +44,6 @@ import {
   Lock,
 } from 'lucide-react'
 
-import HandoverReport from '../../components/HandoverReport'
 import { Button } from '../../components/ui/Button'
 import { OptimizedPublicStorageImage } from '../../components/OptimizedPublicStorageImage'
 import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
@@ -55,8 +55,32 @@ import {
 } from '../../lib/formidletNotification'
 import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
-import InvoiceBasisSection from './InvoiceBasisSection'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
+
+/** Synlig plassholder mens tyngre chunk lastes (unngår «tom side» / opplevd feil). */
+function DeferredChunkPlaceholder({ minHeight }: { minHeight: number }) {
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      style={{
+        minHeight,
+        borderRadius: 20,
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-subtle)',
+      }}
+    />
+  )
+}
+
+const HandoverReport = dynamic(() => import('../../components/HandoverReport'), {
+  ssr: false,
+  loading: () => <DeferredChunkPlaceholder minHeight={140} />,
+})
+const InvoiceBasisSection = dynamic(() => import('./InvoiceBasisSection'), {
+  ssr: false,
+  loading: () => <DeferredChunkPlaceholder minHeight={96} />,
+})
 
 /** Verdier i `listings.deposit_guarantee` – må samsvare med registreringsskjema. */
 const DEPOSIT_GUARANTEE_VALUES = {

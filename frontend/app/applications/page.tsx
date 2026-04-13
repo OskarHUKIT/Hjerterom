@@ -9,18 +9,8 @@ export default function Applications() {
 
   return (
     <main className="container">
-      <div style={{ marginBottom: 'var(--space-8)' }}>
-        <Link
-          href="/"
-          className="nav-link"
-          style={{
-            marginLeft: '-1rem',
-            marginBottom: 'var(--space-2)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
+      <div className="page-hero applications-page-intro">
+        <Link href="/" className="nav-link page-hero-back applications-page-back">
           <ArrowLeft size={18} /> Oversikt
         </Link>
         <h1 style={{ fontSize: '2.75rem' }}>Boligsøknader</h1>

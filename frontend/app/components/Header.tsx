@@ -76,7 +76,9 @@ export default function Header() {
       if (isKommuneStaffRole(userRole) || agreementRes.data) {
         setLandlordBootstrapHref('/homeowner/manage')
       } else {
-        const href = await getLandlordPostLoginHref(supabase, userId, email ?? null)
+        const href = await getLandlordPostLoginHref(supabase, userId, email ?? null, {
+          reuseProfileRole: userRole,
+        })
         setLandlordBootstrapHref(href)
       }
 

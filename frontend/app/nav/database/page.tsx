@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   useCallback,
   useRef,
+  useTransition,
   type ReactNode,
 } from 'react'
 import Link from 'next/link'
@@ -70,6 +71,16 @@ const MapView = dynamic(() => import('../../components/MapView'), {
 export default function NavDatabase() {
   const { t, locale } = useLanguage()
   const router = useRouter()
+  const [, startViewTransition] = useTransition()
+  const prefetchedListingIdsRef = useRef(new Set<string>())
+  const prefetchListingDetail = useCallback(
+    (id: string) => {
+      if (!id?.trim() || prefetchedListingIdsRef.current.has(id)) return
+      prefetchedListingIdsRef.current.add(id)
+      void router.prefetch(`/listings/${id}?view=nav`)
+    },
+    [router]
+  )
   const [userRole, setUserRole] = useState<string | null>(null)
   const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
   const [kommuneRegion, setKommuneRegion] = useState<string | string[] | null>(null)
@@ -1011,7 +1022,7 @@ export default function NavDatabase() {
           <div className="db-view-btns" style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <button
               type="button"
-              onClick={() => setViewMode('table')}
+              onClick={() => startViewTransition(() => setViewMode('table'))}
               style={{
                 padding: 'var(--space-3)',
                 borderRadius: '10px',
@@ -1026,7 +1037,7 @@ export default function NavDatabase() {
             </button>
             <button
               type="button"
-              onClick={() => setViewMode('map')}
+              onClick={() => startViewTransition(() => setViewMode('map'))}
               style={{
                 padding: 'var(--space-3)',
                 borderRadius: '10px',
@@ -1041,7 +1052,7 @@ export default function NavDatabase() {
             </button>
             <button
               type="button"
-              onClick={() => setViewMode('timeline')}
+              onClick={() => startViewTransition(() => setViewMode('timeline'))}
               style={{
                 padding: 'var(--space-3)',
                 borderRadius: '10px',
@@ -1064,8 +1075,10 @@ export default function NavDatabase() {
             <button
               type="button"
               onClick={() => {
-                setViewMode('list')
-                persistMobileDbView('list')
+                startViewTransition(() => {
+                  setViewMode('list')
+                  persistMobileDbView('list')
+                })
               }}
               style={{
                 padding: 'var(--space-3)',
@@ -1086,8 +1099,10 @@ export default function NavDatabase() {
             <button
               type="button"
               onClick={() => {
-                setViewMode('map')
-                persistMobileDbView('map')
+                startViewTransition(() => {
+                  setViewMode('map')
+                  persistMobileDbView('map')
+                })
               }}
               style={{
                 padding: 'var(--space-3)',
@@ -1109,8 +1124,10 @@ export default function NavDatabase() {
               <button
                 type="button"
                 onClick={() => {
-                  setViewMode('timeline')
-                  persistMobileDbView('timeline')
+                  startViewTransition(() => {
+                    setViewMode('timeline')
+                    persistMobileDbView('timeline')
+                  })
                 }}
                 style={{
                   padding: 'var(--space-3)',
@@ -1994,9 +2011,10 @@ export default function NavDatabase() {
                           cursor: 'pointer',
                           transition: 'background 0.2s',
                         }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)')
-                        }
+                        onMouseEnter={(e) => {
+                          prefetchListingDetail(l.id)
+                          e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'
+                        }}
                         onMouseLeave={(e) =>
                           (e.currentTarget.style.background =
                             i % 2 === 0 ? 'transparent' : 'rgba(59, 130, 246, 0.04)')
@@ -2111,6 +2129,8 @@ export default function NavDatabase() {
                         router.push(`/listings/${l.id}?view=nav`)
                       }
                     }}
+                    onMouseEnter={() => prefetchListingDetail(l.id)}
+                    onFocus={() => prefetchListingDetail(l.id)}
                     style={{ cursor: 'pointer' }}
                   >
                     <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
@@ -2586,6 +2606,7 @@ export default function NavDatabase() {
                       >
                         <div
                           onClick={() => router.push(`/listings/${l.id}?view=nav`)}
+                          onMouseEnter={() => prefetchListingDetail(l.id)}
                           style={{
                             width: '200px',
                             fontSize: '0.7rem',

@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Sans, Fraunces } from 'next/font/google'
 import './globals.css'
-import 'leaflet/dist/leaflet.css'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import PushSubscription from './components/PushSubscription'
@@ -44,7 +43,20 @@ export const metadata: Metadata = {
   },
 }
 
+/** Raskere første kontakt med Auth/REST (TLS + DNS) – ingen endring i app-logikk. */
+function supabaseOriginForHints(): string | null {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  if (!raw) return null
+  try {
+    return new URL(raw).origin
+  } catch {
+    return null
+  }
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const supabaseOrigin = supabaseOriginForHints()
+
   return (
     <html
       lang="nb"
@@ -52,6 +64,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${fontSans.variable} ${fontDisplay.variable}`}
     >
       <head>
+        {supabaseOrigin ? (
+          <>
+            <link rel="preconnect" href={supabaseOrigin} crossOrigin="anonymous" />
+            <link rel="dns-prefetch" href={supabaseOrigin} />
+          </>
+        ) : null}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){document.documentElement.setAttribute('data-theme','dark');})();`,

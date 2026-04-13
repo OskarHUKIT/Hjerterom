@@ -102,7 +102,9 @@ function MessagesContent() {
         if (!cancelled) setLandlordNavGateReady(true)
         return
       }
-      const href = await getLandlordPostLoginHref(supabase, user.id, user.email)
+      const href = await getLandlordPostLoginHref(supabase, user.id, user.email, {
+        reuseProfileRole: r ?? null,
+      })
       if (cancelled) return
       if (href !== '/homeowner/manage') {
         router.replace(href)

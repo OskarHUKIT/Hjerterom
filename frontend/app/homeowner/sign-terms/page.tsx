@@ -196,6 +196,9 @@ function SignTermsContent() {
     const checkAgreement = async () => {
       setPageReady(false)
       const signedParam = searchParams.get('signed')
+      // Etter Signicat: ofte tokens i sessionStorage. setSession() er nok da — ekstra refreshSession()
+      // er et nytt kall til Auth (kan ta mange sekunder på treg linje / lang geografisk avstand).
+      let sessionReadyFromStorage = false
       if (signedParam != null && typeof window !== 'undefined') {
         try {
           const bankIdStorage = window.sessionStorage.getItem('supabase-auth-bankid')
@@ -205,11 +208,17 @@ function SignTermsContent() {
             const access_token = session?.access_token
             const refresh_token = session?.refresh_token
             if (access_token && refresh_token) {
-              await supabase.auth.setSession({ access_token, refresh_token })
+              const { data: sessData, error: sessErr } = await supabase.auth.setSession({
+                access_token,
+                refresh_token,
+              })
+              sessionReadyFromStorage = !sessErr && !!sessData.session
             }
           }
         } catch (_) {}
-        await supabase.auth.refreshSession()
+        if (!sessionReadyFromStorage) {
+          await supabase.auth.refreshSession()
+        }
       }
       const {
         data: { user },
@@ -219,77 +228,93 @@ function SignTermsContent() {
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle()
+      const listingPromise = cityParam
+        ? Promise.resolve({ data: null as { city?: string | null } | null, error: null })
+        : supabase
+            .from('listings')
+            .select('city')
+            .eq('owner_id', user.id)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle()
+
+      const [{ data: profile }, { data: ua }, listingRes] = await Promise.all([
+        supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+        supabase.from('user_agreements').select('*').eq('user_id', user.id).maybeSingle(),
+        listingPromise,
+      ])
       if (isKommuneStaffRole(profile?.role)) {
         router.replace('/nav/database')
         return
       }
 
-      const { data: uaGate } = await supabase
-        .from('user_agreements')
-        .select('is_terminated, terminated_by_kommune')
-        .eq('user_id', user.id)
-        .maybeSingle()
-      if (uaGate?.is_terminated && uaGate?.terminated_by_kommune) {
+      if (ua?.is_terminated && ua?.terminated_by_kommune) {
         router.replace('/homeowner/kommune-terminated')
         return
       }
 
-      const { data, error } = await supabase
-        .from('user_agreements')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_terminated', false)
-        .maybeSingle()
-
-      setIsSigned(!!data)
+      const isActiveAgreement = !!ua && !ua.is_terminated
+      setIsSigned(isActiveAgreement)
 
       let effectiveCity = cityParam
       if (!effectiveCity) {
-        const { data: firstListing } = await supabase
-          .from('listings')
-          .select('city')
-          .eq('owner_id', user.id)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle()
-        effectiveCity = firstListing?.city?.trim() || ''
+        effectiveCity = listingRes.data?.city?.trim() || ''
       }
       setSignCity(effectiveCity)
 
-      const { data: docRows, error: docErr } = await supabase.rpc('get_terms_document_for_signing', {
+      const docRpc = supabase.rpc('get_terms_document_for_signing', {
         p_user_id: user.id,
         p_city: effectiveCity.trim() || null,
       })
-      if (!docErr && docRows && Array.isArray(docRows) && docRows[0]) {
-        setTermsDoc(
-          docRows[0] as {
+
+      type DocRow = {
+        id: string
+        title: string
+        body: string | null
+        version: number
+        pdf_bucket?: string | null
+        pdf_storage_path?: string | null
+      }
+
+      let docRows: unknown
+      let docErr: { message: string } | null = null
+      let accRows:
+        | {
             id: string
-            title: string
-            body: string | null
-            version: number
-            pdf_bucket?: string | null
-            pdf_storage_path?: string | null
-          }
-        )
+            signed_at: string
+            status: string
+            terms_documents: unknown
+          }[]
+        | null = null
+
+      if (isActiveAgreement) {
+        const [docResult, accResult] = await Promise.all([
+          docRpc,
+          supabase
+            .from('user_terms_acceptances')
+            .select(
+              'id, signed_at, status, terms_documents ( title, version, pdf_bucket, pdf_storage_path, kommune_region )'
+            )
+            .eq('user_id', user.id)
+            .in('status', ['active', 'superseded'])
+            .order('signed_at', { ascending: false }),
+        ])
+        docRows = docResult.data
+        docErr = docResult.error
+        accRows = accResult.data
+      } else {
+        const docResult = await docRpc
+        docRows = docResult.data
+        docErr = docResult.error
+      }
+
+      if (!docErr && docRows && Array.isArray(docRows) && docRows[0]) {
+        setTermsDoc(docRows[0] as DocRow)
       } else {
         setTermsDoc(null)
       }
 
-      if (data) {
-        const { data: accRows } = await supabase
-          .from('user_terms_acceptances')
-          .select(
-            'id, signed_at, status, terms_documents ( title, version, pdf_bucket, pdf_storage_path, kommune_region )'
-          )
-          .eq('user_id', user.id)
-          .in('status', ['active', 'superseded'])
-          .order('signed_at', { ascending: false })
-
+      if (isActiveAgreement) {
         const cards: SignedTermsCard[] = []
         for (const row of accRows || []) {
           const rawTd = row.terms_documents as

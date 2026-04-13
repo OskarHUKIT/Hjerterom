@@ -36,6 +36,9 @@ function storageRemotePatterns() {
 // Mobile builds use next.config.mobile.js via build-mobile.js (static export → images.unoptimized)
 const nextConfig = {
   reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
   /** Unngå feil Turbopack-root når det finnes flere package-lock (repo root + frontend). */
   turbopack: {
     root: path.join(__dirname),

@@ -34,7 +34,6 @@ import {
 } from '../../lib/geocoding'
 import { savePendingFirstListingDraft } from '../lib/pendingFirstListing'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
-import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
 
 export default function HomeownerRegister() {
   const { t } = useLanguage()
@@ -94,34 +93,24 @@ export default function HomeownerRegister() {
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle()
+      const [{ data: profile }, { data: ua }] = await Promise.all([
+        supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+        supabase.from('user_agreements').select('*').eq('user_id', user.id).maybeSingle(),
+      ])
       if (isKommuneStaffRole(profile?.role)) {
         router.replace('/nav/database')
         return
       }
 
-      const gateHref = await getLandlordPostLoginHref(supabase, user.id, user.email)
-      if (gateHref !== '/homeowner/register') {
-        router.replace(gateHref)
+      // Ikke bruk getLandlordPostLoginHref her: den sender alle med aktiv avtale til «Mine boliger»,
+      // og utleiere kan da aldri åpne denne siden for å registrere bolig nr. 2+.
+
+      if (ua?.is_terminated && ua?.terminated_by_kommune) {
+        router.replace('/homeowner/kommune-terminated')
         return
       }
 
-      const { data, error } = await supabase
-        .from('user_agreements')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_terminated', false)
-        .maybeSingle()
-
-      if (!data) {
-        setHasSignedTerms(false)
-      } else {
-        setHasSignedTerms(true)
-      }
+      setHasSignedTerms(!!ua && !ua.is_terminated)
     }
     checkTerms()
   }, [router])

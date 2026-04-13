@@ -1,5 +1,6 @@
 'use client'
 
+import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { useRouter } from 'next/navigation'

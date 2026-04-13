@@ -15,6 +15,7 @@ function bad(msg: string, status: number) {
 }
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const tStart = performance.now()
   const requestId = req.headers.get('x-request-id')?.trim() || crypto.randomUUID()
   const { id: listingId } = await context.params
   if (!listingId) return bad('Mangler bolig-ID', 400)
@@ -35,22 +36,28 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
 
   const { data: userData, error: userErr } = await supabase.auth.getUser(token)
   if (userErr || !userData?.user) return bad('Ugyldig sesjon', 401)
+  const tAfterAuth = performance.now()
 
-  const { data: listing, error: listErr } = await supabase
-    .from('listings')
-    .select('address, city, postal_code, owner_name')
-    .eq('id', listingId)
-    .maybeSingle()
+  const [listingRes, basisRes] = await Promise.all([
+    supabase
+      .from('listings')
+      .select('address, city, postal_code, owner_name')
+      .eq('id', listingId)
+      .maybeSingle(),
+    supabase
+      .from('listing_invoice_basis')
+      .select('signature_confirmed_at, account_number, amount_nok, listing_availability_id')
+      .eq('listing_id', listingId)
+      .maybeSingle(),
+  ])
+
+  const { data: listing, error: listErr } = listingRes
+  const { data: basis, error: basisErr } = basisRes
 
   if (listErr || !listing) return bad('Fant ikke boligen', 404)
 
-  const { data: basis, error: basisErr } = await supabase
-    .from('listing_invoice_basis')
-    .select('signature_confirmed_at, account_number, amount_nok, listing_availability_id')
-    .eq('listing_id', listingId)
-    .maybeSingle()
-
   if (basisErr) return bad(basisErr.message, 500)
+  const tAfterDb = performance.now()
 
   const b = basis as {
     signature_confirmed_at?: string | null
@@ -90,12 +97,17 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const doc = React.createElement(InvoiceBasisDocument, { data: payload })
     const blob = await pdf(doc as React.ReactElement).toBlob()
     const buf = Buffer.from(await blob.arrayBuffer())
+    const tAfterPdf = performance.now()
     const safeName = `fakturagrunnlag-${listingId.slice(0, 8)}.pdf`
     console.log(
       JSON.stringify({
         msg: 'invoice-basis-pdf ok',
         requestId,
         listingId,
+        msTotal: Math.round(tAfterPdf - tStart),
+        msAuth: Math.round(tAfterAuth - tStart),
+        msDb: Math.round(tAfterDb - tAfterAuth),
+        msPdf: Math.round(tAfterPdf - tAfterDb),
       }),
     )
     return new NextResponse(buf, {

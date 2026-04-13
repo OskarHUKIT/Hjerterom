@@ -26,17 +26,8 @@ export default function Training() {
 
   return (
     <main className="container">
-      <div style={{ marginBottom: '2rem' }}>
-        <Link
-          href="/"
-          className="nav-link"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '1rem',
-          }}
-        >
+      <div className="page-hero">
+        <Link href="/" className="nav-link page-hero-back">
           ← Tilbake til forsiden
         </Link>
         <h1

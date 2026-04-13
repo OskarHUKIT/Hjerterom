@@ -93,7 +93,9 @@ export default function HomeownerManage() {
         return
       }
 
-      const gateHref = await getLandlordPostLoginHref(supabase, user.id, user.email)
+      const gateHref = await getLandlordPostLoginHref(supabase, user.id, user.email, {
+        reuseProfileRole: profile?.role ?? null,
+      })
       if (gateHref !== '/homeowner/manage') {
         router.replace(gateHref)
         return
