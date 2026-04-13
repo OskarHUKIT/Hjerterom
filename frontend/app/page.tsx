@@ -12,12 +12,13 @@ export default function Home() {
 
   return (
     <main className="home-landing container">
-      <div className="hero-section">
-        <h1 className="animate-delay-1 hero-title">{t('heroTitle')}</h1>
-        <p className="animate-delay-2 hero-lead">{t('heroDesc')}</p>
-      </div>
+      <div className="home-landing-layout">
+        <div className="hero-section">
+          <h1 className="animate-delay-1 hero-title">{t('heroTitle')}</h1>
+          <p className="animate-delay-2 hero-lead">{t('heroDesc')}</p>
+        </div>
 
-      <div className="grid-portal animate-delay-3">
+        <div className="grid-portal animate-delay-3">
         {/* Logg inn */}
         <div
           className="card portal-card portal-card-align-buttons"
@@ -95,6 +96,7 @@ export default function Home() {
               </Button>
             </div>
           </div>
+        </div>
         </div>
       </div>
 

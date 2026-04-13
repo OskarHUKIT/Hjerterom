@@ -53,9 +53,15 @@ function getStatusForToday(
 interface MapViewProps {
   listings: any[]
   availability?: Record<string, any[]>
+  /** Når satt: vis kun denne boligen (én markør) og zoom inn — f.eks. fra detaljside. */
+  focusListingId?: string | null
 }
 
-export default function MapView({ listings, availability = {} }: MapViewProps) {
+export default function MapView({
+  listings,
+  availability = {},
+  focusListingId = null,
+}: MapViewProps) {
   const router = useRouter()
   const { t } = useLanguage()
   const mapRef = useRef<L.Map | null>(null)
@@ -73,7 +79,11 @@ export default function MapView({ listings, availability = {} }: MapViewProps) {
     }).addTo(map)
 
     const boundsPoints: L.LatLngTuple[] = []
-    listings.forEach((l) => {
+    const focusId = focusListingId?.trim() || ''
+    const sourceList =
+      focusId.length > 0 ? listings.filter((l) => String(l.id) === focusId) : listings
+    const markersById: Record<string, L.Marker> = {}
+    sourceList.forEach((l) => {
       const lat = parseFloat(l.latitude)
       const lon = parseFloat(l.longitude)
 
@@ -124,6 +134,7 @@ export default function MapView({ listings, availability = {} }: MapViewProps) {
         popupContent.appendChild(btn)
 
         marker.bindPopup(popupContent)
+        markersById[String(l.id)] = marker
 
         // Håndter klikk på knappen i popupen
         marker.on('popupopen', () => {
@@ -133,6 +144,10 @@ export default function MapView({ listings, availability = {} }: MapViewProps) {
         })
       }
     })
+
+    if (focusId && markersById[focusId]) {
+      markersById[focusId].openPopup()
+    }
 
     if (boundsPoints.length === 1) {
       map.setView(boundsPoints[0], 14)
@@ -149,7 +164,7 @@ export default function MapView({ listings, availability = {} }: MapViewProps) {
         mapRef.current = null
       }
     }
-  }, [listings, availability, router, t])
+  }, [listings, availability, router, t, focusListingId])
 
   return (
     <div

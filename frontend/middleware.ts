@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /** Ruter som krever innlogget bruker (JWT i cookie, synk med createBrowserClient). */
-const PROTECTED_PREFIXES = ['/homeowner', '/nav', '/applications', '/documents'] as const
+const PROTECTED_PREFIXES = ['/homeowner', '/nav', '/documents'] as const
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))

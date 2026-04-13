@@ -459,14 +459,19 @@ serve(async (req) => {
     const host = Deno.env.get("SMTP_HOSTNAME")
     const smtpUser = Deno.env.get("SMTP_USERNAME")
     const smtpPass = Deno.env.get("SMTP_PASSWORD")
-    const fromAddr = Deno.env.get("SMTP_FROM") ?? Deno.env.get("RESEND_FROM")
+    /** Prefer dedicated notification sender (e.g. notifikasjon@boly.no) — must be verified in Resend / SMTP. */
+    const fromAddr =
+      Deno.env.get("NOTIFICATION_FROM_EMAIL")?.trim() ||
+      Deno.env.get("SMTP_FROM")?.trim() ||
+      Deno.env.get("RESEND_FROM")?.trim() ||
+      null
 
     const hasResend = !!resendKey && !!fromAddr
     const hasSmtp = !!(host && smtpUser && smtpPass && fromAddr)
 
     if (!hasResend && !hasSmtp) {
       console.warn(
-        "send-notification-email: set RESEND_API_KEY + SMTP_FROM (or RESEND_FROM), or full SMTP_* secrets"
+        "send-notification-email: set RESEND_API_KEY + NOTIFICATION_FROM_EMAIL (or SMTP_FROM / RESEND_FROM), or full SMTP_* secrets"
       )
       return new Response(
         JSON.stringify({

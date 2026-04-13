@@ -39,13 +39,19 @@ export default function Logo() {
         </div>
       ) : (
         <Image
+          className="header-logo-wrap"
           src={logoSrc}
           alt="Boly"
-          width={140}
-          height={60}
-          className="logo"
-          style={{ height: '60px', width: 'auto', objectFit: 'contain' }}
+          width={320}
+          height={96}
           priority
+          sizes="(max-width: 480px) 42vw, 200px"
+          style={{
+            height: '60px',
+            width: 'auto',
+            maxWidth: 'clamp(100px, 28vw, 200px)',
+            objectFit: 'contain',
+          }}
           onError={() => setLogoError(true)}
         />
       )}

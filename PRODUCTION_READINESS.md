@@ -13,7 +13,7 @@ Dette dokumentet lukker den strukturerte **production-readiness**-gjennomgangen 
 ### Implementasjon (kort)
 
 - **Edge Functions:** delt `safeRedirect` / logging; Zod der innført; rate limit på `sign-agreement`; validering av webhooks; `CRON_SECRET` for `remind-handover-report` når satt.
-- **Next:** Zod på PDF-route; `next/image` + `OptimizedPublicStorageImage` der det gir mening; `remotePatterns` inkl. lagring fra env; **`middleware.ts`** med cookie-basert auth og beskyttelse av `/homeowner`, `/nav`, `/applications`, `/documents`; browser-klient via **`createBrowserClient`**.
+- **Next:** Zod på PDF-route; `next/image` + `OptimizedPublicStorageImage` der det gir mening; `remotePatterns` inkl. lagring fra env; **`middleware.ts`** med cookie-basert auth og beskyttelse av `/homeowner`, `/nav`, `/documents`; browser-klient via **`createBrowserClient`**.
 - **Kvalitet:** ESLint 9 flat config, `lint` med `--max-warnings 0`, målrettede a11y/typing-forbedringer; **typer** for listing-detalj og nav-database (`app/lib/listingUiTypes.ts`).
 - **Avhengigheter:** Next.js **16.2.3+**, axios **1.15+**; `npm audit --omit=dev` = 0 ved siste kjøring i `frontend/`.
 

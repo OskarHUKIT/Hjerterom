@@ -15,7 +15,6 @@ boligbanken-app/
 ## Features
 
 - User management
-- Loan/mortgage applications
 - Terms and conditions management
 - Document handling
 - Training/knowledge base

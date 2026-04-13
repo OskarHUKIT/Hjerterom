@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
   Search,
@@ -52,6 +52,7 @@ import {
 } from '../../lib/formidletNotification'
 import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import { getOverviewBackLink } from '../../lib/overviewBackNav'
 import type { PostgrestError } from '@supabase/supabase-js'
 
 function navDbErrMessage(err: unknown): string {
@@ -71,6 +72,9 @@ const MapView = dynamic(() => import('../../components/MapView'), {
 export default function NavDatabase() {
   const { t, locale } = useLanguage()
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const focusListingId = searchParams.get('focusListing')?.trim() || ''
   const [, startViewTransition] = useTransition()
   const prefetchedListingIdsRef = useRef(new Set<string>())
   const prefetchListingDetail = useCallback(
@@ -81,6 +85,16 @@ export default function NavDatabase() {
     },
     [router]
   )
+
+  /** Fjern ?focusListing= så kartet blir «vanlig» igjen når man går til tabell/liste eller tidslinje. */
+  const clearFocusListingFromUrl = useCallback(() => {
+    if (!searchParams.get('focusListing')?.trim()) return
+    const next = new URLSearchParams(searchParams.toString())
+    next.delete('focusListing')
+    const q = next.toString()
+    void router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false })
+  }, [router, pathname, searchParams])
+
   const [userRole, setUserRole] = useState<string | null>(null)
   const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
   const [kommuneRegion, setKommuneRegion] = useState<string | string[] | null>(null)
@@ -157,7 +171,10 @@ export default function NavDatabase() {
   const [activeTab, setActiveTab] = useState<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'>(
     'Tilgjengelig'
   )
-  const [viewMode, setViewMode] = useState<NavDbViewMode>('timeline')
+  const [viewMode, setViewMode] = useState<NavDbViewMode>(() => {
+    if (typeof window === 'undefined') return 'timeline'
+    return new URLSearchParams(window.location.search).get('focusListing')?.trim() ? 'map' : 'timeline'
+  })
   const [isMobile, setIsMobile] = useState(false)
   /** ≤480px: skjul tidslinje (for kompleks horisontal UI). */
   const [isNarrow, setIsNarrow] = useState(false)
@@ -284,6 +301,15 @@ export default function NavDatabase() {
     if (mobileViewInitRef.current) return
     mobileViewInitRef.current = true
     try {
+      if (new URLSearchParams(window.location.search).get('focusListing')?.trim()) {
+        setViewMode('map')
+        try {
+          localStorage.setItem(MOBILE_DB_VIEW_KEY, 'map')
+        } catch {
+          /* ignore */
+        }
+        return
+      }
       const narrow = window.matchMedia('(max-width: 480px)').matches
       const s = localStorage.getItem(MOBILE_DB_VIEW_KEY)
       let next: NavDbViewMode = 'list'
@@ -314,6 +340,13 @@ export default function NavDatabase() {
       /* ignore */
     }
   }, [])
+
+  /** Kart med én bolig markert: Next hydrering ga ofte «timeline» (tilgjengelighetskalender) trass ?focusListing=. */
+  useEffect(() => {
+    if (!focusListingId) return
+    setViewMode('map')
+    if (isMobile) persistMobileDbView('map')
+  }, [focusListingId, isMobile, persistMobileDbView])
 
   useEffect(() => {
     if (isMobile && viewMode === 'table') {
@@ -965,6 +998,7 @@ export default function NavDatabase() {
   }
 
   const dateLocaleTag = locale === 'no' ? 'nb-NO' : locale === 'se' ? 'se' : 'en-GB'
+  const overviewBack = getOverviewBackLink(pathname, userRole, t)
 
   return (
     <main className="db-main-shell container">
@@ -994,20 +1028,22 @@ export default function NavDatabase() {
         }}
       >
         <div style={{ minWidth: 0 }}>
-          <Link
-            href="/"
-            className="nav-link"
-            style={{
-              marginLeft: '-1rem',
-              marginBottom: isMobile ? 0 : 'var(--space-2)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-              fontSize: isMobile ? '0.85rem' : undefined,
-            }}
-          >
-            ← {t('overview')}
-          </Link>
+          {overviewBack && (
+            <Link
+              href={overviewBack.href}
+              className="nav-link"
+              style={{
+                marginLeft: '-1rem',
+                marginBottom: isMobile ? 0 : 'var(--space-2)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                fontSize: isMobile ? '0.85rem' : undefined,
+              }}
+            >
+              ← {overviewBack.label}
+            </Link>
+          )}
           <h1
             style={{
               fontSize: isMobile ? 'clamp(1.35rem, 5vw, 1.75rem)' : 'clamp(1.5rem, 5vw, 2.75rem)',
@@ -1022,7 +1058,12 @@ export default function NavDatabase() {
           <div className="db-view-btns" style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <button
               type="button"
-              onClick={() => startViewTransition(() => setViewMode('table'))}
+              onClick={() =>
+                startViewTransition(() => {
+                  clearFocusListingFromUrl()
+                  setViewMode('table')
+                })
+              }
               style={{
                 padding: 'var(--space-3)',
                 borderRadius: '10px',
@@ -1052,7 +1093,12 @@ export default function NavDatabase() {
             </button>
             <button
               type="button"
-              onClick={() => startViewTransition(() => setViewMode('timeline'))}
+              onClick={() =>
+                startViewTransition(() => {
+                  clearFocusListingFromUrl()
+                  setViewMode('timeline')
+                })
+              }
               style={{
                 padding: 'var(--space-3)',
                 borderRadius: '10px',
@@ -1076,6 +1122,7 @@ export default function NavDatabase() {
               type="button"
               onClick={() => {
                 startViewTransition(() => {
+                  clearFocusListingFromUrl()
                   setViewMode('list')
                   persistMobileDbView('list')
                 })
@@ -1125,6 +1172,7 @@ export default function NavDatabase() {
                 type="button"
                 onClick={() => {
                   startViewTransition(() => {
+                    clearFocusListingFromUrl()
                     setViewMode('timeline')
                     persistMobileDbView('timeline')
                   })
@@ -2275,6 +2323,7 @@ export default function NavDatabase() {
           ) : viewMode === 'map' ? (
             <MapView
               listings={listings.filter((l) => {
+                if (focusListingId && l.id === focusListingId) return true
                 const s = getStatusForToday(l.id, availability)
                 const status: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' =
                   s === 'Formidla'
@@ -2285,6 +2334,7 @@ export default function NavDatabase() {
                 return mapStatusFilter.includes(status)
               })}
               availability={availability}
+              focusListingId={focusListingId || null}
             />
           ) : (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>

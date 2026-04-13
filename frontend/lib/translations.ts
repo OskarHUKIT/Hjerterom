@@ -783,6 +783,17 @@ export const translations = {
     placeholderCount: 'Antall',
     placeholderPetDetail: 'F.eks. kun små hunder, ikke katter …',
     placeholderParking: 'F.eks. Garasje',
+    regValidationRequiredFields: 'Fyll ut alle obligatoriske felt (kontakt, adresse, poststed og postnummer) før du går videre.',
+    regValidationGeocode:
+      'Velg og bekreft adressen (kartposisjon) slik at boligen får koordinater — uten dette kan ikke boligen vises riktig for kommunen.',
+    regValidationInsurance: 'Du må bekrefte at du har bolig- og innboforsikring før publisering.',
+    regValidationPrice: 'Oppgi minst én pris (døgn, uke eller måned) som er større enn null.',
+    regValidationSizeOccupants: 'Fyll ut areal (m²), antall soverom og maks antall personer.',
+    signTermsPendingDraftLost:
+      'Vi fant ikke lagret boligskjema etter signering (f.eks. annen nettleser eller tømt lagring). Fyll ut skjemaet på nytt og prøv igjen.',
+    listingMapPinShowOnMap: 'Vis boligen på kartet',
+    messagesKommuneContacts: 'Saksbehandlere i din kommune',
+    messagesKommuneBroadcast: 'Melding til kommunen (felles)',
   },
   se: {
     // Header & nav – Northern Sami (Davvisámegiella)
@@ -1542,6 +1553,18 @@ export const translations = {
     placeholderCount: 'Mearri',
     placeholderPetDetail: 'Ovd. dušše smávit beatnagat, ii čáhcelottit …',
     placeholderParking: 'Ovd. Garasje',
+    regValidationRequiredFields:
+      'Dievtte buot báhkkeduvvon dieđuid ovdal go joatkkat (oktavuohta, čujuhus, báikegoddi ja poastanummir).',
+    regValidationGeocode:
+      'Vállje ja dohkke čujuhusa (kárta) nu ahte dávviris leat koordináhtat.',
+    regValidationInsurance: 'Don fertet dohkkehit ahte dus leat dávvir- ja siskkobealiforsikering.',
+    regValidationPrice: 'Čále ummáseamet okta haddi ( beaivi, vahkku dahje mánotbadji ) mii lea stuorit go nolla.',
+    regValidationSizeOccupants: 'Dievtte areála (m²), oktavuođaid ja máksimum olbmu.',
+    signTermsPendingDraftLost:
+      'Mii eat gávdnan vurken dávvirskema BankID-almmus (eará neahttanlávvir dahje gurren vurkengieddi). Dievtte skema ođđasit.',
+    listingMapPinShowOnMap: 'Čájet dávvira kártas',
+    messagesKommuneContacts: 'Gieđahallit du kommuvnnas',
+    messagesKommuneBroadcast: 'Sáhcastat kommuvdnii (oktasaš)',
   },
   en: {
     // Header & nav
@@ -2311,6 +2334,18 @@ export const translations = {
     placeholderCount: 'Count',
     placeholderPetDetail: 'e.g. small dogs only, no cats…',
     placeholderParking: 'e.g. Garage',
+    regValidationRequiredFields:
+      'Fill in all required fields (contact, address, city and postal code) before continuing.',
+    regValidationGeocode:
+      'Confirm the address on the map so the listing has coordinates — without them the municipality cannot see it correctly.',
+    regValidationInsurance: 'You must confirm building and contents insurance before publishing.',
+    regValidationPrice: 'Enter at least one price (daily, weekly or monthly) greater than zero.',
+    regValidationSizeOccupants: 'Fill in floor area (m²), bedrooms and maximum occupants.',
+    signTermsPendingDraftLost:
+      'We could not find your saved listing form after signing (e.g. different browser or cleared storage). Please complete the form again.',
+    listingMapPinShowOnMap: 'Show listing on map',
+    messagesKommuneContacts: 'Caseworkers in your municipality',
+    messagesKommuneBroadcast: 'Message to municipality (shared inbox)',
   },
 } as const
 

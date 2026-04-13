@@ -12,12 +12,7 @@ This document outlines the requirements for the Boligbanken (Housing Bank) appli
 
 ## Features to Implement
 
-### 1. Application Management
-- Create and manage loan/mortgage applications
-- Track application status
-- Store application data
-
-### 2. Terms and Conditions
+### 1. Terms and Conditions
 - Display and manage terms and conditions
 - Version control for terms
 - User acceptance tracking
@@ -27,7 +22,7 @@ This document outlines the requirements for the Boligbanken (Housing Bank) appli
 - Document categorization
 - Document retrieval and viewing
 
-### 4. IT Training/Knowledge Base
+### 3. IT Training/Knowledge Base
 - Training modules based on requirements document
 - Knowledge base articles
 - Progress tracking

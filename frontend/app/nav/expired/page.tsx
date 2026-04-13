@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { History, UserX, Home, ChevronRight, ShieldCheck } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDateNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
+import { getOverviewBackLink } from '../../lib/overviewBackNav'
 
 export default function NavExpired() {
   const { t } = useLanguage()
   const router = useRouter()
+  const pathname = usePathname()
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [expiredListings, setExpiredListings] = useState<any[]>([])
   const [terminatedUsers, setTerminatedUsers] = useState<any[]>([])
@@ -117,22 +119,26 @@ export default function NavExpired() {
     return <div className="container" style={{ minHeight: '80vh' }} />
   }
 
+  const overviewBack = getOverviewBackLink(pathname, 'kommune_ansatt', t)
+
   return (
     <main className="container">
       <div style={{ marginBottom: 'var(--space-8)' }}>
-        <Link
-          href="/"
-          className="nav-link"
-          style={{
-            marginLeft: '-1rem',
-            marginBottom: 'var(--space-2)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
-          ← {t('overview')}
-        </Link>
+        {overviewBack && (
+          <Link
+            href={overviewBack.href}
+            className="nav-link"
+            style={{
+              marginLeft: '-1rem',
+              marginBottom: 'var(--space-2)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+            }}
+          >
+            ← {overviewBack.label}
+          </Link>
+        )}
         <h1 style={{ fontSize: '2.75rem' }}>{t('expiredAndInactive')}</h1>
         <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>{t('expiredDesc')}</p>
       </div>

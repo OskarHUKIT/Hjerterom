@@ -290,6 +290,48 @@ export default function HomeownerRegister() {
       } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      const req = (s: string | undefined | null) => String(s ?? '').trim().length > 0
+      const fd = formRef.current
+      if (
+        !req(fd.owner_name) ||
+        !req(fd.contact_phone) ||
+        !req(fd.address) ||
+        !req(fd.city) ||
+        !req(fd.postal_code)
+      ) {
+        alert(t('regValidationRequiredFields'))
+        setLoading(false)
+        return
+      }
+      if (fd.latitude == null || fd.longitude == null || Number.isNaN(Number(fd.latitude))) {
+        alert(t('regValidationGeocode'))
+        setLoading(false)
+        return
+      }
+      if (!fd.has_insurance) {
+        alert(t('regValidationInsurance'))
+        setLoading(false)
+        return
+      }
+      const priceMinSum =
+        (parseFloat(String(fd.price_daily)) || 0) +
+        (parseFloat(String(fd.price_weekly)) || 0) +
+        (parseFloat(String(fd.price_monthly_short)) || 0) +
+        (parseFloat(String(fd.price_monthly_long)) || 0)
+      if (priceMinSum <= 0) {
+        alert(t('regValidationPrice'))
+        setLoading(false)
+        return
+      }
+      const sizeSqmCheck = parseFloat(String(fd.size_sqm)) || 0
+      const bedroomsCheck = parseInt(String(fd.bedrooms), 10)
+      const maxOccCheck = parseInt(String(fd.max_occupants), 10)
+      if (sizeSqmCheck <= 0 || Number.isNaN(bedroomsCheck) || bedroomsCheck < 0 || maxOccCheck < 1) {
+        alert(t('regValidationSizeOccupants'))
+        setLoading(false)
+        return
+      }
+
       const { count: existingCount } = await supabase
         .from('listings')
         .select('id', { count: 'exact', head: true })

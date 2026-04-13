@@ -53,7 +53,11 @@ export default function LandlordOnboardingModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 'var(--space-4)',
+        padding:
+          'max(var(--space-4), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-6), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left))',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        boxSizing: 'border-box',
       }}
     >
       <div
@@ -64,6 +68,11 @@ export default function LandlordOnboardingModal({
           padding: 'var(--space-8)',
           border: '1px solid var(--border-subtle)',
           boxShadow: '0 24px 48px rgba(0,0,0,0.25)',
+          maxHeight: 'min(92dvh, 720px)',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          boxSizing: 'border-box',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -73,6 +82,7 @@ export default function LandlordOnboardingModal({
             alignItems: 'center',
             gap: 'var(--space-3)',
             marginBottom: 'var(--space-4)',
+            flexShrink: 0,
           }}
         >
           <div
@@ -97,7 +107,17 @@ export default function LandlordOnboardingModal({
             {title}
           </h1>
         </div>
-        {children}
+        <div
+          style={{
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            marginBottom: 'var(--space-3)',
+          }}
+        >
+          {children}
+        </div>
         <button
           type="button"
           className="button"
@@ -105,7 +125,7 @@ export default function LandlordOnboardingModal({
             width: '100%',
             padding: 'var(--space-4)',
             fontSize: '1.05rem',
-            marginTop: 'var(--space-2)',
+            flexShrink: 0,
           }}
           onClick={onDismiss}
         >

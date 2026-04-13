@@ -35,20 +35,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Boligbank API is running' });
 });
 
-// Applications routes
-app.get('/api/applications', (req, res) => {
-  res.json({
-    message: 'Applications endpoint',
-    data: []
-  });
-});
-
-app.post('/api/applications', (_req, res) => {
-  res.status(501).json({
-    message: 'Stub: ikke implementert — BoLy bruker Supabase. Body ekkoeres ikke (sikkerhet).',
-  });
-});
-
 // Terms routes
 app.get('/api/terms', (req, res) => {
   res.json({

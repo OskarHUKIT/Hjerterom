@@ -50,10 +50,12 @@ export default function Footer() {
                       alt="Game Changing"
                       width={360}
                       height={120}
+                      sizes="(max-width: 480px) 90vw, 360px"
                       style={{
                         height: '100px',
                         width: 'auto',
                         maxWidth: '100%',
+                        maxHeight: '100%',
                         objectFit: 'contain',
                       }}
                       onError={() => setGameChangingFailed(true)}
@@ -79,10 +81,12 @@ export default function Footer() {
                       alt="Narvik kommune"
                       width={400}
                       height={160}
+                      sizes="(max-width: 480px) 90vw, 400px"
                       style={{
                         height: '140px',
                         width: 'auto',
                         maxWidth: '100%',
+                        maxHeight: '100%',
                         objectFit: 'contain',
                       }}
                       onError={() => setNarvikLogoFailed(true)}

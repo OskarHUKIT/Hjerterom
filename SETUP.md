@@ -31,7 +31,6 @@ Cursor.test/
 ├── frontend/                 # Next.js frontend application
 │   ├── app/                 # Next.js app directory
 │   │   ├── page.tsx         # Home page
-│   │   ├── applications/    # Applications page
 │   │   ├── terms/          # Terms and conditions page
 │   │   ├── documents/      # Documents page
 │   │   └── training/       # Training page

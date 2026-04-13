@@ -17,6 +17,7 @@ import { useLanguage } from '../../../context/LanguageContext'
 import {
   readPendingFirstListingDraft,
   insertListingFromPendingDraft,
+  EXPECT_PENDING_LISTING_AFTER_SIGN_KEY,
 } from '../lib/pendingFirstListing'
 import { formatDateNo } from '../../lib/dateFormat'
 import type { TranslationKey } from '../../../lib/translations'
@@ -363,6 +364,16 @@ function SignTermsContent() {
         setSignedAcceptances([])
       }
 
+      if (typeof window !== 'undefined' && searchParams.get('signed') !== 'true') {
+        try {
+          if (!readPendingFirstListingDraft()) {
+            sessionStorage.removeItem(EXPECT_PENDING_LISTING_AFTER_SIGN_KEY)
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
       setPageReady(true)
     }
     checkAgreement()
@@ -394,6 +405,27 @@ function SignTermsContent() {
         sessionStorage.removeItem(lockKey)
       }
     })()
+  }, [searchParams, router, t])
+
+  /** Etter BankID: utkast til bolig kan mangle (annen nettleser / tømt lagring) — ikke la brukeren tro at boligen er registrert. */
+  useEffect(() => {
+    const signedParam = searchParams.get('signed')
+    if (signedParam !== 'true' || typeof window === 'undefined') return
+    if (readPendingFirstListingDraft()) return
+    let expect: string | null = null
+    try {
+      expect = sessionStorage.getItem(EXPECT_PENDING_LISTING_AFTER_SIGN_KEY)
+    } catch {
+      return
+    }
+    if (expect !== '1') return
+    try {
+      sessionStorage.removeItem(EXPECT_PENDING_LISTING_AFTER_SIGN_KEY)
+    } catch {
+      /* ignore */
+    }
+    alert(t('signTermsPendingDraftLost'))
+    router.replace('/homeowner/register')
   }, [searchParams, router, t])
 
   useEffect(() => {

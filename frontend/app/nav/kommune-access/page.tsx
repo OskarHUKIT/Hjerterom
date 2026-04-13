@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { ShieldCheck, Plus, Trash2, Mail, MapPin } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
+import { getOverviewBackLink } from '../../lib/overviewBackNav'
 
 export default function KommuneAccessPage() {
   const { t } = useLanguage()
   const router = useRouter()
+  const pathname = usePathname()
   const [entries, setEntries] = useState<
     { id: string; email: string; region: string; is_active: boolean }[]
   >([])
@@ -131,22 +133,26 @@ export default function KommuneAccessPage() {
     )
   }
 
+  const overviewBack = getOverviewBackLink(pathname, 'kommune_ansatt', t)
+
   return (
     <main className="container">
       <div style={{ marginBottom: 'var(--space-8)' }}>
-        <Link
-          href="/"
-          className="nav-link"
-          style={{
-            marginLeft: '-1rem',
-            marginBottom: 'var(--space-2)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
-          ← {t('overview')}
-        </Link>
+        {overviewBack && (
+          <Link
+            href={overviewBack.href}
+            className="nav-link"
+            style={{
+              marginLeft: '-1rem',
+              marginBottom: 'var(--space-2)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+            }}
+          >
+            ← {overviewBack.label}
+          </Link>
+        )}
         <h1 style={{ fontSize: '2rem' }}>{t('kommuneAccess')}</h1>
         <p style={{ fontSize: '1rem', opacity: 0.8 }}>{t('kommuneAccessDesc')}</p>
       </div>

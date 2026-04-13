@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import {
   User,
   Search,
@@ -27,10 +27,12 @@ import {
   isKommuneStaffRole,
   kommuneNavUsesAccountsLabel,
 } from '../../lib/kommuneRoles'
+import { getOverviewBackLink } from '../../lib/overviewBackNav'
 
 function NavUsersContent() {
   const { t } = useLanguage()
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const userId = searchParams.get('id')
   const [users, setUsers] = useState<any[]>([])
@@ -52,6 +54,7 @@ function NavUsersContent() {
     }[]
   >([])
   const [staffLoading, setStaffLoading] = useState(false)
+  const [viewerRole, setViewerRole] = useState<string | null>(null)
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -71,6 +74,7 @@ function NavUsersContent() {
         .eq('id', user.id)
         .maybeSingle()
       const userRole = currentProfile?.role || metadataRole
+      setViewerRole(userRole ?? null)
       let kommuneRegion: string | string[] | null = currentProfile?.kommune_region ?? null
       if ((kommuneRegion == null || String(kommuneRegion).trim() === '') && user.email) {
         const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', {
@@ -268,22 +272,26 @@ function NavUsersContent() {
     return <UserProfileClient overrideId={userId} />
   }
 
+  const overviewBack = getOverviewBackLink(pathname, viewerRole, t)
+
   return (
     <main className="container">
       <div style={{ marginBottom: 'var(--space-8)' }}>
-        <Link
-          href="/"
-          className="nav-link"
-          style={{
-            marginLeft: '-1rem',
-            marginBottom: 'var(--space-2)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
-          ← {t('overview')}
-        </Link>
+        {overviewBack && (
+          <Link
+            href={overviewBack.href}
+            className="nav-link"
+            style={{
+              marginLeft: '-1rem',
+              marginBottom: 'var(--space-2)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+            }}
+          >
+            ← {overviewBack.label}
+          </Link>
+        )}
         <h1 style={{ fontSize: '2.75rem', minHeight: '1.15em' }}>
           {useAccountsNavCopy === null ? (
             <span

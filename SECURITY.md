@@ -38,7 +38,7 @@ BankID (`auth-signicat`) og signering (`sign-callback`) godtar bare redirect til
 ## Next.js middleware (`frontend/middleware.ts`)
 
 - Kaller `supabase.auth.getUser()` med server-klient og **oppdaterer auth-cookies** ved behov (Supabase SSR-mønster).
-- **Omdirigerer** uautentiserte forespørsler til `/login?redirect=…` for prefiksene **`/homeowner`**, **`/nav`**, **`/applications`**, **`/documents`**.
+- **Omdirigerer** uautentiserte forespørsler til `/login?redirect=…` for prefiksene **`/homeowner`**, **`/nav`**, **`/documents`**.
 - Offentlige ruter (f.eks. `/`, `/login`, `/listings/…`, rapporter med token) er **unntatt**. **RLS** er fortsatt det autoritative tilgangslaget; middleware er et ekstra lag mot direkte URL-tilgang uten gyldig JWT i cookie.
 
 ## Viktige overflater

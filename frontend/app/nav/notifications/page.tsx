@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   Bell,
   CheckCircle2,
@@ -23,6 +23,7 @@ import { formatDateTimeNo } from '../../lib/dateFormat'
 import PushPermissionCard from '../../components/PushPermissionCard'
 import { useLanguage } from '../../../context/LanguageContext'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import { getOverviewBackLink } from '../../lib/overviewBackNav'
 import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
 import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
@@ -31,6 +32,7 @@ import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 export default function NavNotifications() {
   const { t } = useLanguage()
   const router = useRouter()
+  const pathname = usePathname()
   const [landlordNavGateReady, setLandlordNavGateReady] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -200,6 +202,8 @@ export default function NavNotifications() {
     )
   }
 
+  const overviewBack = getOverviewBackLink(pathname, role, t)
+
   return (
     <main className="container">
       <LandlordOnboardingModal
@@ -271,19 +275,21 @@ export default function NavNotifications() {
           paddingRight: 'max(0px, env(safe-area-inset-right))',
         }}
       >
-        <Link
-          href="/"
-          className="nav-link"
-          style={{
-            marginLeft: '-1rem',
-            marginBottom: 'var(--space-2)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
-          ← {t('overview')}
-        </Link>
+        {overviewBack && (
+          <Link
+            href={overviewBack.href}
+            className="nav-link"
+            style={{
+              marginLeft: '-1rem',
+              marginBottom: 'var(--space-2)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+            }}
+          >
+            ← {overviewBack.label}
+          </Link>
+        )}
         <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)' }}>{t('notifications')}</h1>
         <p style={{ fontSize: 'clamp(0.95rem, 3vw, 1.125rem)', opacity: 0.8, lineHeight: 1.5 }}>
           {role === 'kommune_ansatt' || role === 'kommune_admin'

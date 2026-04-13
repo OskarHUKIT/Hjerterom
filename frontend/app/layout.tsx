@@ -76,12 +76,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <body className="site-body">
         <Providers>
           <PushSubscription />
           <PWAInstallPrompt />
           <Header />
-          <div style={{ flex: 1 }}>{children}</div>
+          <div className="site-main">{children}</div>
           <Footer />
         </Providers>
       </body>

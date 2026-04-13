@@ -1260,11 +1260,61 @@ export default function ListingDetailsClient() {
                 fontSize: '1rem',
               }}
             >
-              <MapPin
-                size={18}
-                style={{ color: 'var(--color-royal-blue)', flexShrink: 0 }}
-                aria-hidden
-              />
+              {isNavView && listing.id ? (
+                <Link
+                  href={`/nav/database?focusListing=${listing.id}`}
+                  prefetch={false}
+                  title={t('listingMapPinShowOnMap')}
+                  aria-label={t('listingMapPinShowOnMap')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: 'inherit',
+                    flexShrink: 0,
+                  }}
+                >
+                  <MapPin
+                    size={18}
+                    style={{ color: 'var(--color-royal-blue)', flexShrink: 0 }}
+                    aria-hidden
+                  />
+                </Link>
+              ) : (() => {
+                  const lat = parseFloat(String(listing.latitude ?? ''))
+                  const lon = parseFloat(String(listing.longitude ?? ''))
+                  const hasCoords = !Number.isNaN(lat) && !Number.isNaN(lon)
+                  if (!hasCoords) {
+                    return (
+                      <MapPin
+                        size={18}
+                        style={{ color: 'var(--color-royal-blue)', flexShrink: 0 }}
+                        aria-hidden
+                      />
+                    )
+                  }
+                  const osm = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`
+                  return (
+                    <a
+                      href={osm}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={t('listingMapPinShowOnMap')}
+                      aria-label={t('listingMapPinShowOnMap')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: 'inherit',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <MapPin
+                        size={18}
+                        style={{ color: 'var(--color-royal-blue)', flexShrink: 0 }}
+                        aria-hidden
+                      />
+                    </a>
+                  )
+                })()}
               {isOwner && !isNavView ? (
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <input

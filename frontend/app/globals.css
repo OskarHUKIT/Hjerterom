@@ -49,6 +49,9 @@
   --space-8: 64px;
   --space-10: 80px;
 
+  /* Layout: høyde ca. sticky header (logo + padding) — brukes til min-hovedflate */
+  --site-header-estimate: 5.5rem;
+
   /* Elevation */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
@@ -160,6 +163,41 @@ a {
   text-decoration: none;
 }
 
+/* Kolonne: header → hovedinnhold (min. én skjerm minus header) → footer under fold ved kort innhold */
+.site-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  min-height: 100vh; /* fallback */
+}
+
+.site-main {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: calc(100vh - var(--site-header-estimate));
+}
+
+@supports (height: 100dvh) {
+  .site-main {
+    min-height: calc(100dvh - var(--site-header-estimate));
+  }
+}
+
+/* Forside: fyll site-main slik at kort kan sentreres vertikalt mot fold (footer under scroll) */
+.site-main > main.home-landing {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-self: stretch;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --site-header-estimate: 6rem;
+  }
+}
+
 .container {
   max-width: 1280px;
   margin: 0 auto;
@@ -209,8 +247,9 @@ a {
 }
 
 @media (max-width: 480px) {
-  .header .logo {
-    max-height: 48px !important;
+  .header .header-logo-wrap {
+    height: 48px !important;
+    max-height: 48px;
     width: auto !important;
   }
 }
@@ -740,7 +779,7 @@ p {
   border-top: 1px solid var(--border-subtle);
   backdrop-filter: blur(16px);
   width: 100%;
-  margin-top: auto;
+  flex-shrink: 0;
 }
 
 [data-theme='light'] .footer {
@@ -905,7 +944,7 @@ select optgroup {
   gap: var(--space-5);
 }
 
-/* Forside: alltid sentrert (venstre kun unødvendig her); mer luft under header på brede skjermer */
+/* Forside: hero øverst; kort sentrert i rommet ned til bunn av første skjerm (footer under scroll) */
 .home-landing {
   width: 100%;
   max-width: 100%;
@@ -913,22 +952,34 @@ select optgroup {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding-top: clamp(var(--space-6), 8vh, 7.5rem);
-  padding-bottom: var(--space-8);
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-top: clamp(1.25rem, 4vmin, 2.75rem);
+  padding-bottom: var(--space-6);
+}
+
+.home-landing-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-items: stretch;
 }
 
 .home-landing .hero-section {
-  text-align: center;
+  text-align: left;
   width: 100%;
-  max-width: min(100%, 52rem);
+  /* Samme maksbredde som .grid-portal — hero og kort (Logg inn) deler vertikal linje */
+  max-width: min(100%, 56rem);
   margin-left: auto;
   margin-right: auto;
-  margin-bottom: var(--space-6);
-  padding-top: clamp(var(--space-2), 2vw, var(--space-4));
-  padding-bottom: clamp(var(--space-4), 3vw, var(--space-8));
-  padding-left: max(var(--space-2), env(safe-area-inset-left));
-  padding-right: max(var(--space-2), env(safe-area-inset-right));
+  margin-bottom: 0;
+  padding-top: clamp(var(--space-4), 2.5dvh, var(--space-6));
+  padding-bottom: clamp(var(--space-2), 1.5dvh, var(--space-4));
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .home-landing .hero-title {
@@ -938,15 +989,15 @@ select optgroup {
   letter-spacing: -0.03em;
   word-break: break-word;
   overflow-wrap: anywhere;
-  font-size: clamp(1.625rem, 4vw + 0.65rem, 3.35rem) !important;
+  font-size: clamp(1.5rem, 3.4vw + 0.55rem, 2.95rem) !important;
 }
 
 .home-landing .hero-lead {
-  margin: 0 auto clamp(var(--space-6), 5vw, var(--space-8));
-  max-width: min(100%, 42rem);
+  margin: 0;
+  max-width: none;
   color: var(--text-body);
-  line-height: 1.55;
-  font-size: clamp(0.9375rem, 1.35vw + 0.7rem, 1.25rem);
+  line-height: 1.5;
+  font-size: clamp(0.92rem, 1.15vw + 0.72rem, 1.15rem);
 }
 
 .home-landing .grid-portal {
@@ -955,6 +1006,13 @@ select optgroup {
   min-width: 0;
   margin-left: auto;
   margin-right: auto;
+  margin-top: 0;
+  gap: var(--space-4);
+}
+
+/* Vertikal senter i området under hero (ned mot bunn av første skjerm) */
+.home-landing-layout .grid-portal {
+  align-self: center;
 }
 
 .home-landing .grid-portal > * {
@@ -972,17 +1030,41 @@ select optgroup {
 
 @media (min-width: 768px) {
   .home-landing {
-    padding-top: clamp(3rem, 11vh, 7.5rem);
-    padding-bottom: var(--space-10);
+    padding-top: clamp(1.5rem, 5dvh, 3.25rem);
+    padding-bottom: var(--space-8);
   }
 
   .home-landing .hero-section {
-    margin-bottom: var(--space-8);
+    padding-top: clamp(var(--space-5), 3dvh, var(--space-6));
   }
 
   .home-landing .grid-portal {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Lave vinduer: fortsatt litt luft øverst; ikke lim alt til kanten */
+@media (max-height: 780px) {
+  .home-landing {
+    padding-top: clamp(1.5rem, 5dvh, 3rem);
+    padding-bottom: var(--space-5);
+  }
+
+  .home-landing .hero-section {
+    padding-top: clamp(var(--space-4), 2dvh, var(--space-5));
+    padding-bottom: var(--space-2);
+  }
+
+  .home-landing .hero-title {
+    margin-bottom: var(--space-3);
+    font-size: clamp(1.4rem, 3.2vw, 2.5rem) !important;
+  }
+
+  .home-landing .hero-lead {
+    line-height: 1.45;
+    font-size: 0.96rem;
+  }
+
 }
 
 @media (max-width: 480px) {
@@ -1003,18 +1085,9 @@ select optgroup {
   margin-bottom: var(--space-4);
 }
 
-.applications-page-back {
-  margin-left: -1rem;
-}
-
 @media (min-width: 768px) {
-  .page-hero,
-  .applications-page-intro {
+  .page-hero {
     text-align: center;
-  }
-
-  .applications-page-back {
-    margin-left: 0;
   }
 }
 

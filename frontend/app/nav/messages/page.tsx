@@ -64,6 +64,8 @@ function MessagesContent() {
   const [peerRole, setPeerRole] = useState<string | null>(null)
   const [colleagues, setColleagues] = useState<{ id: string; name: string }[]>([])
   const [landlordAccounts, setLandlordAccounts] = useState<{ id: string; name: string }[]>([])
+  /** Utleiere: saksbehandlere i kommuner der brukeren har bolig — for nye DM-tråder. */
+  const [kommuneContacts, setKommuneContacts] = useState<{ id: string; name: string }[]>([])
   const [showLandlordMessagesIntro, setShowLandlordMessagesIntro] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const messagesScrollRef = useRef<HTMLDivElement>(null)
@@ -267,6 +269,48 @@ function MessagesContent() {
   }, [currentUser, isKommune, kommuneCanEdit, myKommuneRegion])
 
   useEffect(() => {
+    if (!currentUser || isKommune || !profileResolved) return
+    let cancelled = false
+    void (async () => {
+      const { data: listings } = await supabase
+        .from('listings')
+        .select('city')
+        .eq('owner_id', currentUser.id)
+      if (cancelled) return
+      const cities = [
+        ...new Set(
+          (listings || [])
+            .map((l) => (l.city || '').trim().toLowerCase())
+            .filter(Boolean)
+        ),
+      ]
+      if (cities.length === 0) {
+        setKommuneContacts([])
+        return
+      }
+      const { data: staff } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, kommune_region, role')
+        .in('role', ['kommune_ansatt', 'kommune_admin'])
+      if (cancelled) return
+      const list = (staff || [])
+        .filter((p) => {
+          const regs = parseKommuneRegions(p.kommune_region)
+          return regs.some((r) => cities.includes(r))
+        })
+        .map((p) => ({
+          id: p.id,
+          name: p.full_name?.trim() || p.email?.split('@')[0] || 'Ukjent',
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, 'nb'))
+      setKommuneContacts(list)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [currentUser, isKommune, profileResolved])
+
+  useEffect(() => {
     if (!currentUser || loading) return
     if (role == null) return
     if (isKommuneStaffRole(role)) return
@@ -278,7 +322,7 @@ function MessagesContent() {
   useEffect(() => {
     if (!profileResolved || !currentUser) return
 
-    const fetchConversations = async () => {
+    const fetchConversationsKommune = async () => {
       const { data: msgs } = await supabase
         .from('chat_messages')
         .select('sender_id, receiver_id, content, created_at, image_urls')
@@ -314,11 +358,62 @@ function MessagesContent() {
       setConversations(peers.sort((a, b) => (b.lastAt > a.lastAt ? 1 : -1)))
     }
 
-    if (isKommune) {
-      void fetchConversations()
+    const fetchConversationsLandlord = async () => {
+      const BROADCAST_KEY = ''
+      const { data: msgs } = await supabase
+        .from('chat_messages')
+        .select('sender_id, receiver_id, content, created_at, image_urls')
+        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+        .order('created_at', { ascending: false })
+
+      if (!msgs?.length) {
+        setConversations([])
+        return
+      }
+
+      const peerMeta = new Map<
+        string,
+        { lastAt: string; lastMessage: string }
+      >()
+
+      for (const m of msgs) {
+        const peerKey: string =
+          m.sender_id === currentUser.id ? m.receiver_id || BROADCAST_KEY : m.sender_id
+        const t = m.created_at || ''
+        const snippet =
+          (m.content?.trim()?.slice(0, 40) || (m.image_urls?.length ? '[Bilde]' : '')) +
+          ((m.content?.length ?? 0) > 40 ? '...' : '')
+        const prev = peerMeta.get(peerKey)
+        if (!prev || t > prev.lastAt) {
+          peerMeta.set(peerKey, { lastAt: t, lastMessage: snippet })
+        }
+      }
+
+      const entries = await Promise.all(
+        Array.from(peerMeta.entries()).map(async ([peerKey, meta]) => {
+          const name =
+            peerKey === BROADCAST_KEY
+              ? t('messagesKommuneBroadcast')
+              : ((
+                  await supabase.rpc('get_user_display_name', { p_user_id: peerKey })
+                ).data as string | null) ?? 'Ukjent bruker'
+          return {
+            userId: peerKey,
+            name,
+            lastMessage: meta.lastMessage,
+            lastAt: meta.lastAt,
+          }
+        })
+      )
+      setConversations(entries.sort((a, b) => (b.lastAt > a.lastAt ? 1 : -1)))
     }
-    setLoading(false)
-  }, [profileResolved, currentUser, isKommune, withUserId, kommuneCanEdit])
+
+    void (async () => {
+      if (isKommune) await fetchConversationsKommune()
+      else await fetchConversationsLandlord()
+      setLoading(false)
+    })()
+  }, [profileResolved, currentUser, isKommune, withUserId, kommuneCanEdit, t])
 
   useEffect(() => {
     if (!profileResolved || !currentUser) return
@@ -338,16 +433,30 @@ function MessagesContent() {
         setOtherUser({ id: withUserId, name: name ?? 'Ukjent bruker' })
       }
       loadOtherUser()
+    } else if (withUserId) {
+      const loadPeer = async () => {
+        const { data: name } = await supabase.rpc('get_user_display_name', {
+          p_user_id: withUserId,
+        })
+        setOtherUser({ id: withUserId, name: name ?? 'Ukjent bruker' })
+      }
+      loadPeer()
     } else {
-      setOtherUser({ id: null, name: 'Kommune' })
+      setOtherUser({ id: null, name: t('messagesKommuneBroadcast') })
     }
 
     const fetchMessages = async () => {
       let query = supabase.from('chat_messages').select('*')
       if (isHomeownerChat) {
-        query = query.or(
-          `and(sender_id.eq.${currentUser.id},receiver_id.is.null),receiver_id.eq.${currentUser.id}`
-        )
+        if (withUserId) {
+          query = query.or(
+            `and(sender_id.eq.${currentUser.id},receiver_id.eq.${withUserId}),and(sender_id.eq.${withUserId},receiver_id.eq.${currentUser.id})`
+          )
+        } else {
+          query = query.or(
+            `and(sender_id.eq.${currentUser.id},receiver_id.is.null),receiver_id.eq.${currentUser.id}`
+          )
+        }
       } else {
         query = query.or(
           `and(sender_id.eq.${currentUser.id},receiver_id.eq.${withUserId}),and(sender_id.eq.${withUserId},receiver_id.eq.${currentUser.id}),and(sender_id.eq.${withUserId},receiver_id.is.null)`
@@ -359,7 +468,7 @@ function MessagesContent() {
     fetchMessages()
 
     const channelId = isHomeownerChat
-      ? `chat:${currentUser.id}:kommune`
+      ? `chat:${currentUser.id}:kommune:${withUserId || 'all'}`
       : `chat:${currentUser.id}:${withUserId}`
     const sub = supabase
       .channel(channelId)
@@ -371,7 +480,7 @@ function MessagesContent() {
     return () => {
       sub.unsubscribe()
     }
-  }, [profileResolved, currentUser, withUserId, isKommune])
+  }, [profileResolved, currentUser, withUserId, isKommune, t])
 
   useEffect(() => {
     if (!currentUser) return
@@ -424,7 +533,7 @@ function MessagesContent() {
     if ((!content && !hasImages) || !currentUser) return
     if (readonlyBlocksReply) return
     setSending(true)
-    const effectiveReceiver = isKommune ? withUserId : null
+    const effectiveReceiver = withUserId ?? null
     try {
       let imageUrls: string[] = []
       if (pendingImages.length > 0) {
@@ -637,6 +746,149 @@ function MessagesContent() {
         <h1 style={{ fontSize: '2rem', marginTop: 'var(--space-2)' }}>{t('messages')}</h1>
       </div>
 
+      {!isKommune && (kommuneContacts.length > 0 || conversations.length > 0) && (
+        <div
+          className="card"
+          style={{
+            marginBottom: 'var(--space-6)',
+            maxHeight: 'min(42vh, 380px)',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            padding: 'var(--space-4)',
+          }}
+        >
+          {kommuneContacts.length > 0 && (
+            <>
+              <h3 style={{ margin: '0 0 var(--space-3)', fontSize: '1rem' }}>
+                {t('messagesKommuneContacts')}
+              </h3>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-2)',
+                  marginBottom: conversations.length > 0 ? 'var(--space-5)' : 0,
+                }}
+              >
+                {kommuneContacts.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/nav/messages?with=${c.id}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-3)',
+                      padding: 'var(--space-3)',
+                      borderRadius: '10px',
+                      background:
+                        withUserId === c.id
+                          ? 'rgba(59, 130, 246, 0.15)'
+                          : 'rgba(255,255,255,0.03)',
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      minWidth: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        flexShrink: 0,
+                        borderRadius: '50%',
+                        background: 'rgba(59, 130, 246, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <User size={16} />
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        flex: 1,
+                      }}
+                    >
+                      {c.name}
+                    </div>
+                    <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+          {conversations.length > 0 && (
+            <>
+              <h3 style={{ margin: '0 0 var(--space-3)', fontSize: '1rem' }}>{t('conversations')}</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {conversations.map((c) => (
+                  <Link
+                    key={c.userId || 'broadcast'}
+                    href={c.userId ? `/nav/messages?with=${c.userId}` : '/nav/messages'}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-3)',
+                      padding: 'var(--space-3)',
+                      borderRadius: '10px',
+                      background:
+                        (withUserId || '') === (c.userId || '')
+                          ? 'rgba(59, 130, 246, 0.15)'
+                          : 'rgba(255,255,255,0.03)',
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      minWidth: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        flexShrink: 0,
+                        borderRadius: '50%',
+                        background: 'rgba(34, 197, 94, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <User size={16} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {c.name}
+                      </div>
+                      <div
+                        className="text-sm"
+                        style={{
+                          opacity: 0.6,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {c.lastMessage}
+                      </div>
+                    </div>
+                    <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <div
         style={{
           display: 'grid',
@@ -691,7 +943,7 @@ function MessagesContent() {
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 'var(--space-2)',
-                      maxHeight: '220px',
+                      maxHeight: 'min(42vh, 360px)',
                       overflow: 'auto',
                     }}
                   >
@@ -769,7 +1021,7 @@ function MessagesContent() {
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 'var(--space-2)',
-                      maxHeight: '220px',
+                      maxHeight: 'min(42vh, 360px)',
                       overflow: 'auto',
                     }}
                   >
@@ -940,7 +1192,9 @@ function MessagesContent() {
                     ? otherUser
                       ? `Chat med ${otherUser.name}`
                       : 'Chat'
-                    : 'Chat med Kommune'}
+                    : otherUser
+                      ? `${otherUser.name}`
+                      : t('messagesKommuneBroadcast')}
                 </span>
               </div>
               {showReadonlyBanner && (

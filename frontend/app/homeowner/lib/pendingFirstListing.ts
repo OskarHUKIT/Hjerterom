@@ -1,6 +1,8 @@
 import { supabase } from '../../lib/supabase'
 
 export const PENDING_FIRST_LISTING_KEY = 'boly_pending_first_listing_v1'
+/** Satt når bruker sendes til BankID med utkast — brukes til å oppdage mistet sessionStorage etter signering. */
+export const EXPECT_PENDING_LISTING_AFTER_SIGN_KEY = 'boly_expect_pending_listing_v1'
 
 export type PendingFirstListingDraftV1 = {
   v: 1
@@ -25,6 +27,7 @@ export function clearPendingFirstListingDraft(): void {
   if (typeof window === 'undefined') return
   try {
     sessionStorage.removeItem(PENDING_FIRST_LISTING_KEY)
+    sessionStorage.removeItem(EXPECT_PENDING_LISTING_AFTER_SIGN_KEY)
   } catch {
     /* ignore */
   }
@@ -34,6 +37,11 @@ export function savePendingFirstListingDraft(row: Record<string, unknown>): void
   if (typeof window === 'undefined') return
   const draft: PendingFirstListingDraftV1 = { v: 1, row }
   sessionStorage.setItem(PENDING_FIRST_LISTING_KEY, JSON.stringify(draft))
+  try {
+    sessionStorage.setItem(EXPECT_PENDING_LISTING_AFTER_SIGN_KEY, '1')
+  } catch {
+    /* ignore */
+  }
 }
 
 /**
