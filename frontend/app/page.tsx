@@ -12,36 +12,9 @@ export default function Home() {
 
   return (
     <main className="home-landing container">
-      <div
-        className="hero-section"
-        style={{
-          padding: 'var(--space-10) 0',
-          maxWidth: '800px',
-          textAlign: 'left',
-          paddingLeft: 'max(0px, env(safe-area-inset-left))',
-          paddingRight: 'max(0px, env(safe-area-inset-right))',
-        }}
-      >
-        <h1
-          className="animate-delay-1 hero-title"
-          style={{
-            fontSize: 'clamp(2.5rem, 6vw, 3.75rem)',
-            marginBottom: 'var(--space-4)',
-          }}
-        >
-          {t('heroTitle')}
-        </h1>
-        <p
-          className="animate-delay-2"
-          style={{
-            fontSize: '1.25rem',
-            marginBottom: 'var(--space-8)',
-            maxWidth: '640px',
-            color: 'var(--text-body)',
-          }}
-        >
-          {t('heroDesc')}
-        </p>
+      <div className="hero-section">
+        <h1 className="animate-delay-1 hero-title">{t('heroTitle')}</h1>
+        <p className="animate-delay-2 hero-lead">{t('heroDesc')}</p>
       </div>
 
       <div className="grid-portal animate-delay-3">

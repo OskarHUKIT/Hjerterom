@@ -39,11 +39,30 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
+
   if (!user && isProtectedPath(pathname)) {
     const loginUrl = new URL('/login', request.url)
     const returnPath = `${pathname}${request.nextUrl.search}`
     loginUrl.searchParams.set('redirect', returnPath)
     return NextResponse.redirect(loginUrl)
+  }
+
+  /** Krever bekreftet e-post for beskyttede ruter (Supabase «Confirm email» + defense in depth). */
+  const emailRegisteredButUnconfirmed =
+    !!user?.email && user.email_confirmed_at == null
+  if (user && emailRegisteredButUnconfirmed && isProtectedPath(pathname)) {
+    await supabase.auth.signOut()
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('reason', 'email_not_confirmed')
+    const returnPath = `${pathname}${request.nextUrl.search}`
+    if (returnPath !== '/' && !returnPath.startsWith('/login')) {
+      loginUrl.searchParams.set('redirect', returnPath)
+    }
+    const redirectResponse = NextResponse.redirect(loginUrl)
+    response.cookies.getAll().forEach((c) => {
+      redirectResponse.cookies.set(c.name, c.value)
+    })
+    return redirectResponse
   }
 
   return response

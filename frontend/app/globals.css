@@ -905,11 +905,63 @@ select optgroup {
   gap: var(--space-5);
 }
 
+/* Forside: typografi og layout styres her (unngå inline min-font som brøt smal skjerm) */
+.home-landing {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.home-landing .hero-section {
+  text-align: left;
+  max-width: min(100%, 50rem);
+  margin-bottom: var(--space-6);
+  padding-top: clamp(var(--space-4), 4vw, var(--space-10));
+  padding-bottom: clamp(var(--space-4), 3vw, var(--space-8));
+  padding-left: max(0px, env(safe-area-inset-left));
+  padding-right: max(0px, env(safe-area-inset-right));
+}
+
+.home-landing .hero-title {
+  margin-bottom: var(--space-4);
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  /* Glatter skalering: lav min — ingen «død sone» 480–700px */
+  font-size: clamp(1.625rem, 4vw + 0.65rem, 3.35rem) !important;
+}
+
+.home-landing .hero-lead {
+  margin: 0 0 clamp(var(--space-6), 5vw, var(--space-8));
+  max-width: min(100%, 40rem);
+  color: var(--text-body);
+  line-height: 1.55;
+  font-size: clamp(0.9375rem, 1.35vw + 0.7rem, 1.25rem);
+}
+
+.home-landing .grid-portal {
+  width: 100%;
+  min-width: 0;
+}
+
+.home-landing .grid-portal > * {
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .home-landing .portal-card.card {
+    padding: var(--space-4);
+  }
+}
+
 /* Forside: litt asymmetri og luft på store skjermer */
 @media (min-width: 1024px) {
   .home-landing .hero-section {
     max-width: 52rem;
-    padding-left: clamp(var(--space-4), 5vw, var(--space-10)) !important;
+    padding-left: clamp(var(--space-4), 5vw, var(--space-10));
   }
 
   .home-landing .grid-portal {
@@ -1235,21 +1287,6 @@ select optgroup {
 }
 
 /* Hero section: less padding on mobile */
-@media (max-width: 768px) {
-  .hero-section {
-    padding: var(--space-6) 0 !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero-section {
-    padding: var(--space-4) 0 !important;
-  }
-  .hero-title {
-    font-size: clamp(1.75rem, 8vw, 2.5rem) !important;
-  }
-}
-
 .tabs-scroll::-webkit-scrollbar {
   height: 4px;
 }

@@ -234,6 +234,8 @@ export const translations = {
     loginWithEmail: 'Logg inn med e-post',
     createWithEmail: 'Opprett konto med e-post',
     checkEmail: 'Sjekk e-posten din for bekreftelseslenke!',
+    loginEmailNotConfirmed:
+      'Bekreft e-postadressen din via lenken vi sendte før du logger inn. Sjekk innboks og søppelpost.',
     backToProperties: '← Mine boliger',
     notFound: 'Bruker ikke funnet',
     registeredProperties: 'Registrerte boliger',
@@ -1007,6 +1009,8 @@ export const translations = {
     loginWithEmail: 'Sisa e-poasttain',
     createWithEmail: 'Ráhkat kontu e-poasttain',
     checkEmail: 'Geahčal e-poasttadusat dovddus liŋkka!',
+    loginEmailNotConfirmed:
+      'Dovdde e-poastačujuhusa liŋkain maid sáddejin ovdal go sisa logget. Geahčal sisačujuhusa ja suohpánbáikái.',
     backToProperties: '← Mu dávvirat',
     notFound: 'Bruhkki eai gávdnan',
     registeredProperties: 'Registrereduvvon dávirat',
@@ -1765,6 +1769,8 @@ export const translations = {
     loginWithEmail: 'Log in with email',
     createWithEmail: 'Create account with email',
     checkEmail: 'Check your email for the confirmation link!',
+    loginEmailNotConfirmed:
+      'Confirm your email using the link we sent before signing in. Check your inbox and spam folder.',
     backToProperties: '← My properties',
     notFound: 'User not found',
     registeredProperties: 'Registered properties',

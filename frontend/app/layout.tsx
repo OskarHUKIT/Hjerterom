@@ -38,7 +38,10 @@ export const metadata: Metadata = {
   description: 'Boly – formidling av bolig mellom kommune og private utleiere',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, title: 'Boly' },
-  icons: { apple: '/icon-512x512.png' },
+  icons: {
+    icon: [{ url: '/BolyMobilIcon.png', sizes: '1024x1024', type: 'image/png' }],
+    apple: '/BolyMobilIcon.png',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

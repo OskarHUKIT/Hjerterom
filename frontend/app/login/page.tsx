@@ -53,6 +53,7 @@ function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/'
+  const emailNotConfirmedReason = searchParams.get('reason') === 'email_not_confirmed'
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
@@ -63,12 +64,25 @@ function LoginPageContent() {
   const [bankIdRedirecting, setBankIdRedirecting] = useState(false)
 
   useEffect(() => {
+    if (emailNotConfirmedReason) {
+      setMessage({ type: 'error', text: t('loginEmailNotConfirmed') })
+    }
+  }, [emailNotConfirmedReason, t])
+
+  useEffect(() => {
     let cancelled = false
     const run = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession()
       if (!session?.user || cancelled) return
+      if (session.user.email && session.user.email_confirmed_at == null) {
+        await supabase.auth.signOut({ scope: 'local' })
+        if (!cancelled) {
+          setMessage({ type: 'error', text: t('loginEmailNotConfirmed') })
+        }
+        return
+      }
       const raw = redirectTo
       const safeRedirect =
         typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') ? raw : null
@@ -161,7 +175,16 @@ function LoginPageContent() {
         }
         text = t('loginAuthNetworkFailed')
       } else {
-        text = err?.message || t('loginAuthNoResponse')
+        const raw = (err?.message || '').toLowerCase()
+        if (
+          raw.includes('email not confirmed') ||
+          raw.includes('not confirmed') ||
+          raw.includes('email_not_confirmed')
+        ) {
+          text = t('loginEmailNotConfirmed')
+        } else {
+          text = err?.message || t('loginAuthNoResponse')
+        }
       }
       setMessage({ type: 'error', text })
     } finally {
