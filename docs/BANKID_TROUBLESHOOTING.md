@@ -1,6 +1,6 @@
 # BankID-feilsøking
 
-Det er to BankID-fløyer i Bo.ly:
+Det er to BankID-fløyer i Boly:
 
 1. **Logg inn med BankID** – innlogging (auth-signicat)
 2. **Signer vilkårsavtale** – signering av dokument (sign-agreement)

@@ -37,6 +37,11 @@ function periodLabel(p: FormidlaRow) {
   return `${formatDateNo(p.start_date)} – ${formatDateNo(p.end_date)}`
 }
 
+/** Sammenlign kontonummer uavhengig av mellomrom og punktum (f.eks. 1234 56 78901 vs 1234.56.78901). */
+function normalizeAccountNumberInput(s: string): string {
+  return s.replace(/\D/g, '')
+}
+
 /** Supabase/PostgREST-feil er ofte plain objects, ikke Error – unngår «[object Object]» i UI */
 function formatErrorMessage(e: unknown): string {
   if (e instanceof Error) return e.message
@@ -106,9 +111,14 @@ export default function InvoiceBasisSection(props: {
     account_number: '',
     amount_nok: '',
   })
+  const [accountNumberRepeat, setAccountNumberRepeat] = useState('')
+  const [confirmAccountCorrect, setConfirmAccountCorrect] = useState(false)
   const [confirmSign, setConfirmSign] = useState(false)
   const [loadedSignatureAt, setLoadedSignatureAt] = useState<string | null>(null)
-  const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [saveFeedback, setSaveFeedback] = useState<{
+    type: 'success' | 'error'
+    message: string
+  } | null>(null)
 
   const load = useCallback(async () => {
     if (!isKonto || (!isOwner && !isNavView)) return
@@ -121,13 +131,24 @@ export default function InvoiceBasisSection(props: {
           .eq('listing_id', listingId)
           .eq('status', 'Formidla')
           .order('start_date', { ascending: false }),
-        supabase.from('listing_invoice_basis').select('*').eq('listing_id', listingId).maybeSingle(),
+        supabase
+          .from('listing_invoice_basis')
+          .select('*')
+          .eq('listing_id', listingId)
+          .maybeSingle(),
       ])
       if (availRes.error) throw availRes.error
       if (basisRes.error) throw basisRes.error
 
-      const periods = ((availRes.data || []) as { id: string; start_date: string; end_date: string; status: string }[])
-        .filter(p => p.status === 'Formidla')
+      const periods = (
+        (availRes.data || []) as {
+          id: string
+          start_date: string
+          end_date: string
+          status: string
+        }[]
+      )
+        .filter((p) => p.status === 'Formidla')
         .map(({ id, start_date, end_date }) => ({ id, start_date, end_date }))
       setFormidlaPeriods(periods)
 
@@ -140,8 +161,10 @@ export default function InvoiceBasisSection(props: {
           account_number: row.account_number ?? '',
           amount_nok: row.amount_nok != null ? String(row.amount_nok) : '',
         })
+        setAccountNumberRepeat('')
+        setConfirmAccountCorrect(false)
         const saved = row.listing_availability_id?.trim() ?? ''
-        if (saved && periods.some(p => p.id === saved)) {
+        if (saved && periods.some((p) => p.id === saved)) {
           setMediationPeriodId(saved)
         } else if (periods.length === 1) {
           setMediationPeriodId(periods[0].id)
@@ -151,6 +174,8 @@ export default function InvoiceBasisSection(props: {
       } else {
         setLoadedSignatureAt(null)
         setConfirmSign(false)
+        setAccountNumberRepeat('')
+        setConfirmAccountCorrect(false)
         setMediationPeriodId(periods.length === 1 ? periods[0].id : '')
       }
     } catch (e) {
@@ -167,7 +192,8 @@ export default function InvoiceBasisSection(props: {
   if (!isKonto || (!isOwner && !isNavView)) return null
 
   const buildPayload = () => {
-    const amountParsed = form.amount_nok.trim() === '' ? null : parseFloat(form.amount_nok.replace(',', '.'))
+    const amountParsed =
+      form.amount_nok.trim() === '' ? null : parseFloat(form.amount_nok.replace(',', '.'))
     return {
       listing_id: listingId,
       listing_availability_id: mediationPeriodId.trim() || null,
@@ -193,10 +219,23 @@ export default function InvoiceBasisSection(props: {
       setSaveFeedback({ type: 'error', message: t('invoiceMediationPeriodRequired') })
       return
     }
+    const accNorm = normalizeAccountNumberInput(form.account_number)
+    if (accNorm.length > 0) {
+      if (normalizeAccountNumberInput(accountNumberRepeat) !== accNorm) {
+        setSaveFeedback({ type: 'error', message: t('invoiceAccountMismatch') })
+        return
+      }
+      if (!confirmAccountCorrect) {
+        setSaveFeedback({ type: 'error', message: t('invoiceAccountConfirmRequired') })
+        return
+      }
+    }
     setSaveFeedback(null)
     setSaving(true)
     try {
-      const { error } = await supabase.from('listing_invoice_basis').upsert(buildPayload(), { onConflict: 'listing_id' })
+      const { error } = await supabase
+        .from('listing_invoice_basis')
+        .upsert(buildPayload(), { onConflict: 'listing_id' })
       if (error) throw error
       setSaveFeedback({ type: 'success', message: t('invoiceBasisSaved') })
       await load()
@@ -283,11 +322,11 @@ export default function InvoiceBasisSection(props: {
   }
 
   const spinStyle: CSSProperties = {
-    animation: 'boly-spin 0.9s linear infinite',
+    animation: 'app-spin 0.9s linear infinite',
     display: 'inline-block',
   }
 
-  const selectedPeriod = formidlaPeriods.find(p => p.id === mediationPeriodId)
+  const selectedPeriod = formidlaPeriods.find((p) => p.id === mediationPeriodId)
 
   if (loading) {
     return (
@@ -297,13 +336,21 @@ export default function InvoiceBasisSection(props: {
         style={{ padding: 'var(--space-8)', scrollMarginTop: '88px' }}
       >
         <style jsx global>{`
-          @keyframes boly-spin {
+          @keyframes app-spin {
             to {
               transform: rotate(360deg);
             }
           }
         `}</style>
-        <p style={{ margin: 0, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <p
+          style={{
+            margin: 0,
+            color: 'var(--text-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
           <Loader2 size={18} style={spinStyle} /> {t('loadingPleaseWait')}
         </p>
       </section>
@@ -317,22 +364,52 @@ export default function InvoiceBasisSection(props: {
       style={{ padding: 'var(--space-8)', scrollMarginTop: '88px' }}
     >
       <style jsx global>{`
-        @keyframes boly-spin {
+        @keyframes app-spin {
           to {
             transform: rotate(360deg);
           }
         }
       `}</style>
-      <h3 style={{ margin: '0 0 var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
+      <h3
+        style={{
+          margin: '0 0 var(--space-4)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          color: 'var(--text-main)',
+        }}
+      >
         <FileText size={20} style={{ color: 'var(--color-accent)' }} /> {t('invoiceBasisTitle')}
       </h3>
-      <p style={{ margin: '0 0 var(--space-4)', color: 'var(--text-body)', fontSize: '0.95rem', lineHeight: 1.6 }}>{t('invoiceBasisDesc')}</p>
+      <p
+        style={{
+          margin: '0 0 var(--space-4)',
+          color: 'var(--text-body)',
+          fontSize: '0.95rem',
+          lineHeight: 1.6,
+        }}
+      >
+        {t('invoiceBasisDesc')}
+      </p>
 
       {isNavView && (
-        <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('invoiceBasisKommuneHint')}</p>
+        <p
+          style={{ margin: '0 0 var(--space-4)', fontSize: '0.85rem', color: 'var(--text-muted)' }}
+        >
+          {t('invoiceBasisKommuneHint')}
+        </p>
       )}
       {isNavView && ownerAgreementTerminated && (
-        <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.9rem', color: 'var(--text-body)', lineHeight: 1.55 }}>{t('expiredOwnerNoMediationNav')}</p>
+        <p
+          style={{
+            margin: '0 0 var(--space-4)',
+            fontSize: '0.9rem',
+            color: 'var(--text-body)',
+            lineHeight: 1.55,
+          }}
+        >
+          {t('expiredOwnerNoMediationNav')}
+        </p>
       )}
 
       <div
@@ -345,21 +422,42 @@ export default function InvoiceBasisSection(props: {
         }}
       >
         <div style={{ marginBottom: 14 }}>
-          <span className="label" style={{ display: 'block', marginBottom: 4 }}>{t('invoiceListingAddressLabel')}</span>
-          <p style={{ margin: 0, whiteSpace: 'pre-line', fontWeight: 600, color: 'var(--text-main)' }}>
+          <span className="label" style={{ display: 'block', marginBottom: 4 }}>
+            {t('invoiceListingAddressLabel')}
+          </span>
+          <p
+            style={{
+              margin: 0,
+              whiteSpace: 'pre-line',
+              fontWeight: 600,
+              color: 'var(--text-main)',
+            }}
+          >
             {formatListingAddressLine({ listingAddress, listingCity, listingPostalCode }) || '—'}
           </p>
-          <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('invoiceAutoFromListing')}</p>
+          <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            {t('invoiceAutoFromListing')}
+          </p>
         </div>
         <div style={{ marginBottom: selectedPeriod ? 14 : 0 }}>
-          <span className="label" style={{ display: 'block', marginBottom: 4 }}>{t('invoiceListingOwnerLabel')}</span>
-          <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>{(ownerName ?? '').trim() || '—'}</p>
+          <span className="label" style={{ display: 'block', marginBottom: 4 }}>
+            {t('invoiceListingOwnerLabel')}
+          </span>
+          <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>
+            {(ownerName ?? '').trim() || '—'}
+          </p>
         </div>
         {selectedPeriod ? (
           <div>
-            <span className="label" style={{ display: 'block', marginBottom: 4 }}>{t('invoiceMediationPeriod')}</span>
-            <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>{periodLabel(selectedPeriod)}</p>
-            <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('invoiceMediationPeriodHint')}</p>
+            <span className="label" style={{ display: 'block', marginBottom: 4 }}>
+              {t('invoiceMediationPeriod')}
+            </span>
+            <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>
+              {periodLabel(selectedPeriod)}
+            </p>
+            <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              {t('invoiceMediationPeriodHint')}
+            </p>
           </div>
         ) : null}
       </div>
@@ -369,16 +467,18 @@ export default function InvoiceBasisSection(props: {
           <label className="label">{t('invoiceMediationPeriod')}</label>
           {isOwner && !isNavView ? (
             formidlaPeriods.length === 0 ? (
-              <p style={{ margin: '8px 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>{t('invoiceNoFormidlaPeriodYet')}</p>
+              <p style={{ margin: '8px 0 0', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                {t('invoiceNoFormidlaPeriodYet')}
+              </p>
             ) : (
               <select
                 className="input"
                 value={mediationPeriodId}
-                onChange={e => setMediationPeriodId(e.target.value)}
+                onChange={(e) => setMediationPeriodId(e.target.value)}
                 style={{ width: '100%', marginTop: 4 }}
               >
                 <option value="">{t('invoiceSelectMediationPeriod')}</option>
-                {formidlaPeriods.map(p => (
+                {formidlaPeriods.map((p) => (
                   <option key={p.id} value={p.id}>
                     {periodLabel(p)}
                   </option>
@@ -387,10 +487,16 @@ export default function InvoiceBasisSection(props: {
             )
           ) : (
             <p style={{ margin: '8px 0 0', fontWeight: 600, color: 'var(--text-main)' }}>
-              {selectedPeriod ? periodLabel(selectedPeriod) : formidlaPeriods.length === 0 ? '—' : t('invoiceSelectMediationPeriod')}
+              {selectedPeriod
+                ? periodLabel(selectedPeriod)
+                : formidlaPeriods.length === 0
+                  ? '—'
+                  : t('invoiceSelectMediationPeriod')}
             </p>
           )}
-          <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('invoiceMediationPeriodHint')}</p>
+          <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            {t('invoiceMediationPeriodHint')}
+          </p>
         </div>
 
         <div>
@@ -398,10 +504,32 @@ export default function InvoiceBasisSection(props: {
           <input
             className="input"
             value={form.account_number}
-            onChange={e => setForm(f => ({ ...f, account_number: e.target.value }))}
+            onChange={(e) => {
+              const v = e.target.value
+              setForm((f) => ({ ...f, account_number: v }))
+              setConfirmAccountCorrect(false)
+            }}
             disabled={!isOwner || isNavView}
+            autoComplete="off"
             style={{ width: '100%', marginTop: 4 }}
           />
+          {isOwner && !isNavView ? (
+            <>
+              <label className="label" style={{ marginTop: 'var(--space-3)' }}>
+                {t('invoiceAccountRepeat')}
+              </label>
+              <input
+                className="input"
+                value={accountNumberRepeat}
+                onChange={(e) => setAccountNumberRepeat(e.target.value)}
+                autoComplete="off"
+                style={{ width: '100%', marginTop: 4 }}
+              />
+              <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                {t('invoiceAccountDoubleEntryHint')}
+              </p>
+            </>
+          ) : null}
         </div>
         <div>
           <label className="label">{t('invoiceAmount')}</label>
@@ -410,7 +538,7 @@ export default function InvoiceBasisSection(props: {
             type="text"
             inputMode="decimal"
             value={form.amount_nok}
-            onChange={e => setForm(f => ({ ...f, amount_nok: e.target.value }))}
+            onChange={(e) => setForm((f) => ({ ...f, amount_nok: e.target.value }))}
             disabled={!isOwner || isNavView}
             style={{ width: '100%', marginTop: 4 }}
           />
@@ -418,9 +546,43 @@ export default function InvoiceBasisSection(props: {
       </div>
 
       {isOwner && !isNavView && (
-        <div style={{ marginTop: 'var(--space-4)', maxWidth: 520 }}>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: '0.92rem', lineHeight: 1.55, color: 'var(--text-body)' }}>
-            <input type="checkbox" checked={confirmSign} onChange={e => setConfirmSign(e.target.checked)} style={{ marginTop: 3, flexShrink: 0 }} />
+        <div style={{ marginTop: 'var(--space-4)', maxWidth: 520, display: 'grid', gap: 14 }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              cursor: 'pointer',
+              fontSize: '0.92rem',
+              lineHeight: 1.55,
+              color: 'var(--text-body)',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={confirmAccountCorrect}
+              onChange={(e) => setConfirmAccountCorrect(e.target.checked)}
+              style={{ marginTop: 3, flexShrink: 0 }}
+            />
+            <span>{t('invoiceAccountCorrectConfirmLabel')}</span>
+          </label>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              cursor: 'pointer',
+              fontSize: '0.92rem',
+              lineHeight: 1.55,
+              color: 'var(--text-body)',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={confirmSign}
+              onChange={(e) => setConfirmSign(e.target.checked)}
+              style={{ marginTop: 3, flexShrink: 0 }}
+            />
             <span>{t('invoiceSignatureConfirmLabel')}</span>
           </label>
           {confirmSign && loadedSignatureAt ? (
@@ -440,7 +602,10 @@ export default function InvoiceBasisSection(props: {
             padding: 'var(--space-3)',
             borderRadius: 8,
             border: `1px solid ${saveFeedback.type === 'success' ? '#15803d' : '#b91c1c'}`,
-            background: saveFeedback.type === 'success' ? 'rgba(21, 128, 61, 0.09)' : 'rgba(185, 28, 28, 0.08)',
+            background:
+              saveFeedback.type === 'success'
+                ? 'rgba(21, 128, 61, 0.09)'
+                : 'rgba(185, 28, 28, 0.08)',
             color: 'var(--text-main)',
             fontSize: '0.95rem',
           }}
@@ -449,9 +614,22 @@ export default function InvoiceBasisSection(props: {
         </div>
       ) : null}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', marginTop: 'var(--space-6)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 'var(--space-3)',
+          marginTop: 'var(--space-6)',
+        }}
+      >
         {isOwner && !isNavView && (
-          <button type="button" className="button" onClick={() => void handleSave()} disabled={saving} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            className="button"
+            onClick={() => void handleSave()}
+            disabled={saving}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+          >
             {saving ? <Loader2 size={18} style={spinStyle} /> : <FileText size={18} />}
             {saving ? t('invoiceSaving') : t('invoiceSave')}
           </button>
@@ -462,7 +640,14 @@ export default function InvoiceBasisSection(props: {
             className="button"
             onClick={() => void downloadPdf()}
             disabled={pdfLoading}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--color-teal)', color: 'white', border: 'none' }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'var(--color-teal)',
+              color: 'white',
+              border: 'none',
+            }}
           >
             {pdfLoading ? <Loader2 size={18} /> : <Download size={18} />}
             {pdfLoading ? t('invoicePdfPreparing') : t('invoiceDownloadPdf')}

@@ -4,56 +4,80 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { LogIn, Presentation, ArrowRight, X } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
+import { Button, buttonClassName } from './components/ui/Button'
 
 export default function Home() {
   const { t } = useLanguage()
   const [showDemoPopup, setShowDemoPopup] = useState(false)
 
   return (
-    <main className="container">
-      <div className="hero-section" style={{ 
-        padding: 'var(--space-10) 0', 
-        maxWidth: '800px',
-        textAlign: 'left',
-        paddingLeft: 'max(0px, env(safe-area-inset-left))',
-        paddingRight: 'max(0px, env(safe-area-inset-right))'
-      }}>
-        <h1 className="animate-delay-1 hero-title" style={{ 
-          fontSize: 'clamp(2.5rem, 6vw, 3.75rem)', 
-          marginBottom: 'var(--space-4)'
-        }}>
+    <main className="home-landing container">
+      <div
+        className="hero-section"
+        style={{
+          padding: 'var(--space-10) 0',
+          maxWidth: '800px',
+          textAlign: 'left',
+          paddingLeft: 'max(0px, env(safe-area-inset-left))',
+          paddingRight: 'max(0px, env(safe-area-inset-right))',
+        }}
+      >
+        <h1
+          className="animate-delay-1 hero-title"
+          style={{
+            fontSize: 'clamp(2.5rem, 6vw, 3.75rem)',
+            marginBottom: 'var(--space-4)',
+          }}
+        >
           {t('heroTitle')}
         </h1>
-        <p className="animate-delay-2" style={{ 
-          fontSize: '1.25rem', 
-          marginBottom: 'var(--space-8)', 
-          maxWidth: '640px', 
-          color: 'var(--text-body)'
-        }}>
+        <p
+          className="animate-delay-2"
+          style={{
+            fontSize: '1.25rem',
+            marginBottom: 'var(--space-8)',
+            maxWidth: '640px',
+            color: 'var(--text-body)',
+          }}
+        >
           {t('heroDesc')}
         </p>
       </div>
 
       <div className="grid-portal animate-delay-3">
         {/* Logg inn */}
-        <div className="card portal-card portal-card-align-buttons" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', backdropFilter: 'blur(8px)' }}>
-          <div style={{ 
-            width: '56px', 
-            height: '56px', 
-            borderRadius: '12px', 
-            background: 'rgba(45, 212, 191, 0.1)',
+        <div
+          className="card portal-card portal-card-align-buttons"
+          style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 'var(--space-2)',
-            color: 'var(--color-teal)'
-          }}>
+            flexDirection: 'column',
+            gap: 'var(--space-4)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <div
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(59, 130, 246, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 'var(--space-2)',
+              color: 'var(--color-royal-blue)',
+            }}
+          >
             <LogIn size={28} />
           </div>
           <div className="portal-card-body">
             <h2>{t('homeLoginCardTitle')}</h2>
             <div className="portal-card-cta">
-              <Link href="/login" className="button button-accent" style={{ width: '100%', padding: 'var(--space-4)' }}>
+              <Link
+                href="/login"
+                className={buttonClassName('accent')}
+                style={{ width: '100%', padding: 'var(--space-4)' }}
+              >
                 {t('homeLoginCardCta')} <ArrowRight size={18} />
               </Link>
             </div>
@@ -61,31 +85,41 @@ export default function Home() {
         </div>
 
         {/* Be om demo */}
-        <div className="card portal-card portal-card-align-buttons" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', backdropFilter: 'blur(8px)' }}>
-          <div style={{ 
-            width: '56px', 
-            height: '56px', 
-            borderRadius: '12px', 
-            background: 'rgba(59, 130, 246, 0.1)',
+        <div
+          className="card portal-card portal-card-align-buttons"
+          style={{
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 'var(--space-2)',
-            color: 'var(--color-royal-blue)'
-          }}>
+            flexDirection: 'column',
+            gap: 'var(--space-4)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <div
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(59, 130, 246, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 'var(--space-2)',
+              color: 'var(--color-royal-blue)',
+            }}
+          >
             <Presentation size={28} />
           </div>
           <div className="portal-card-body">
             <h2>{t('homeDemoCardTitle')}</h2>
             <div className="portal-card-cta">
-              <button
+              <Button
                 type="button"
+                variant="primary"
                 onClick={() => setShowDemoPopup(true)}
-                className="button"
                 style={{ width: '100%', padding: 'var(--space-4)' }}
               >
                 {t('homeDemoCardCta')} <ArrowRight size={18} />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -118,33 +152,62 @@ export default function Home() {
               background: 'var(--bg-card)',
               border: '1px solid var(--border-subtle)',
             }}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
-              <h3 id="demo-popup-title" style={{ margin: 0, fontSize: '1.25rem' }}>{t('homeDemoCardTitle')}</h3>
-              <button
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 'var(--space-4)',
+              }}
+            >
+              <h3 id="demo-popup-title" style={{ margin: 0, fontSize: '1.25rem' }}>
+                {t('homeDemoCardTitle')}
+              </h3>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setShowDemoPopup(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-muted)', display: 'flex' }}
+                style={{
+                  minHeight: 'auto',
+                  padding: 4,
+                  display: 'flex',
+                }}
                 aria-label={t('close')}
               >
                 <X size={20} />
-              </button>
+              </Button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', fontSize: '0.95rem', marginTop: 'var(--space-2)' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-3)',
+                fontSize: '0.95rem',
+                marginTop: 'var(--space-2)',
+              }}
+            >
               <div>
-                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Tina Olsen, NAV Narvik</div>
-                <a href="mailto:Tina.Olsen@nav.no" style={{ color: 'var(--color-accent)' }}>Tina.Olsen@nav.no</a>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                  Tina Olsen, NAV Narvik
+                </div>
+                <a href="mailto:Tina.Olsen@nav.no" style={{ color: 'var(--color-accent)' }}>
+                  Tina.Olsen@nav.no
+                </a>
               </div>
               <div>
-                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>Lars Utstøl, GAMECHANGING</div>
-                <a href="mailto:utstol@gamechanging.no" style={{ color: 'var(--color-accent)' }}>utstol@gamechanging.no</a>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                  Lars Utstøl, GAMECHANGING
+                </div>
+                <a href="mailto:utstol@gamechanging.no" style={{ color: 'var(--color-accent)' }}>
+                  utstol@gamechanging.no
+                </a>
               </div>
             </div>
           </div>
         </div>
       )}
-
     </main>
   )
 }

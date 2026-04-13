@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { edgeLog } from "../_shared/edgeLog.ts"
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
@@ -14,8 +15,29 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders })
   }
 
+  const cronSecret = Deno.env.get("CRON_SECRET")?.trim()
+  if (cronSecret) {
+    const bearer = req.headers.get("authorization")
+    const headerOk = bearer === `Bearer ${cronSecret}`
+    const alt = req.headers.get("x-cron-secret") === cronSecret
+    if (!headerOk && !alt) {
+      edgeLog("warn", "remind-handover-report unauthorized", {})
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+  }
+
   try {
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!)
+    if (!SUPABASE_URL?.trim() || !SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+      return new Response(JSON.stringify({ error: "Missing Supabase configuration" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     // Tomorrow in Europe/Oslo (Norwegian timezone)
     const now = new Date()
@@ -106,7 +128,9 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     )
   } catch (err: unknown) {
-    console.error("remind-handover-report error:", err)
+    edgeLog("error", "remind-handover-report", {
+      message: err instanceof Error ? err.message : String(err),
+    })
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

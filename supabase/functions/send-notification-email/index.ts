@@ -1,13 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import nodemailer from "npm:nodemailer@6.9.10"
+import { edgeLog } from "../_shared/edgeLog.ts"
+import { notificationWebhookPayloadSchema } from "../_shared/webhookSchemas.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
-interface NotificationRecord {
+type NotificationRecord = {
   id: string
   owner_id: string
   type?: string
@@ -16,14 +18,6 @@ interface NotificationRecord {
   status?: string
   listing_id?: string
   related_user_id?: string
-}
-
-interface WebhookPayload {
-  type: "INSERT" | "UPDATE" | "DELETE"
-  table: string
-  schema: string
-  record: NotificationRecord
-  old_record: NotificationRecord | null
 }
 
 function escapeHtml(s: string): string {
@@ -94,7 +88,7 @@ function truncateBody(s: string): string {
 type EmailStrings = {
   introOther: string
   listingLabel: string
-  openInBoLy: string
+  openInBoly: string
   linkPlain: string
   footer: string
   greetingWord: string
@@ -106,34 +100,34 @@ const EMAIL_COPY: Record<EmailLocale, EmailStrings> = {
   no: {
     introOther: "Her er innholdet i varselet.",
     listingLabel: "Bolig",
-    openInBoLy: "Åpne i BoLy",
+    openInBoly: "Åpne i Boly",
     linkPlain: "Lenke:",
     footer:
-      "Du får denne e-posten fordi e-postvarsler er på i BoLy (Varsler). Slå av i appen om du ikke vil ha dem.",
+      "Du får denne e-posten fordi e-postvarsler er på i Boly (Varsler). Slå av i appen om du ikke vil ha dem.",
     greetingWord: "Hei",
     allNotifications: "Alle varsler",
-    preheaderSuffix: "— BoLy",
+    preheaderSuffix: "— Boly",
   },
   se: {
     introOther: "Dás lea dieđu sisdoallu.",
     listingLabel: "Dávir",
-    openInBoLy: "Raba BoLy:s",
+    openInBoly: "Raba Bolys",
     linkPlain: "Liŋka:",
     footer:
-      "Oaččut dán go e-poasta-dieđut leat čállon BoLy:s. Sáhttát heaitit appas.",
+      "Oaččut dán go e-poasta-dieđut leat čállon Bolys. Sáhttát heaitit appas.",
     greetingWord: "Bures",
     allNotifications: "Buot dieđut",
-    preheaderSuffix: "— BoLy",
+    preheaderSuffix: "— Boly",
   },
   en: {
     introOther: "Here’s what the notification says.",
     listingLabel: "Property",
-    openInBoLy: "Open in BoLy",
+    openInBoly: "Open in Boly",
     linkPlain: "Link:",
-    footer: "You’re getting this because email notifications are on in BoLy. Turn them off under Notifications if you prefer.",
+    footer: "You’re getting this because email notifications are on in Boly. Turn them off under Notifications if you prefer.",
     greetingWord: "Hi",
     allNotifications: "All notifications",
-    preheaderSuffix: "— BoLy",
+    preheaderSuffix: "— Boly",
   },
 }
 
@@ -214,8 +208,8 @@ function localizeMessageBaseOnly(s: string, locale: EmailLocale): string {
       "Your property at $1 has been marked as mediated for the period $2–$3. Submit a handover report on takeover – click to open the form."
     )
     x = x.replace(
-      /^Du valgte utbetaling til konto for boligen i (.+?)\. Fyll ut fakturagrunnlaget i BoLy slik at kommunen kan behandle utbetalingen\. Bruk knappen under for å åpne skjemaet\.$/m,
-      "You chose payment to account for the property at $1. Fill in the invoice basis in BoLy so the municipality can process the payment. Use the button below to open the form."
+      /^Du valgte utbetaling til konto for boligen i (.+?)\. Fyll ut fakturagrunnlaget i Boly slik at kommunen kan behandle utbetalingen\. Bruk knappen under for å åpne skjemaet\.$/m,
+      "You chose payment to account for the property at $1. Fill in the invoice basis in Boly so the municipality can process the payment. Use the button below to open the form."
     )
     x = x.replace(
       /^BOLIGEN BLIR FORMIDLET I MORGEN\. Du må levere overtakelsesrapport for (.+?) før overtakelsen starter\.$/m,
@@ -253,8 +247,8 @@ function localizeMessageBaseOnly(s: string, locale: EmailLocale): string {
     "Du dávir $1:s lea merken formidleren áigodagas $2–$3. Buovdde overtakelsesraporta go lea áigi – deaddil rabastit skovváža."
   )
   x = x.replace(
-    /^Du valgte utbetaling til konto for boligen i (.+?)\. Fyll ut fakturagrunnlaget i BoLy slik at kommunen kan behandle utbetalingen\. Bruk knappen under for å åpne skjemaet\.$/m,
-    "Válljet máksima kontoi dávirii $1:s. Dievát fakturagrunnlag BoLy:s vai kommuvdna sáhttá gieđahallat máksima. Geavat boksa vuolležis rabastit skovváža."
+    /^Du valgte utbetaling til konto for boligen i (.+?)\. Fyll ut fakturagrunnlaget i Boly slik at kommunen kan behandle utbetalingen\. Bruk knappen under for å åpne skjemaet\.$/m,
+    "Válljet máksima kontoi dávirii $1:s. Dievát fakturagrunnlag Bolys vai kommuvdna sáhttá gieđahallat máksima. Geavat boksa vuolležis rabastit skovváža."
   )
   x = x.replace(
     /^BOLIGEN BLIR FORMIDLET I MORGEN\. Du må levere overtakelsesrapport for (.+?) før overtakelsen starter\.$/m,
@@ -304,7 +298,7 @@ function buildEmailContent(args: {
   const isMsg = isMessageNotificationType(notifType)
   const body = truncateBody((message || "").trim() || "—")
   const msgHtml = escapeHtml(body).replace(/\n/g, "<br/>")
-  const subject = `BoLy: ${title}`.slice(0, 200)
+  const subject = `Boly: ${title}`.slice(0, 200)
   const preheader = `${title} ${c.preheaderSuffix}`.slice(0, 140)
   const lang = locale === "en" ? "en" : locale === "se" ? "se" : "nb"
 
@@ -320,7 +314,7 @@ function buildEmailContent(args: {
     textLines.push(`${c.listingLabel}: ${listingLine}`, "")
   }
   textLines.push(
-    `${c.openInBoLy}: ${link}`,
+    `${c.openInBoly}: ${link}`,
     "",
     `${c.allNotifications}: ${appBase}/nav/notifications`,
     "",
@@ -343,14 +337,14 @@ function buildEmailContent(args: {
   <div style="display:none;max-height:0;overflow:hidden;">${escapeHtml(preheader)}</div>
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #d8dee6;border-radius:4px;">
     <tr><td style="padding:22px 22px 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-      <p style="margin:0 0 6px;font-size:13px;color:#64748b;">BoLy</p>
+      <p style="margin:0 0 6px;font-size:13px;color:#64748b;">Boly</p>
       <h1 style="margin:0 0 14px;font-size:18px;font-weight:600;color:#0f172a;line-height:1.3;">${escapeHtml(title)}</h1>
       <p style="margin:0 0 14px;font-size:15px;color:#334155;">${escapeHtml(c.greetingWord)} ${escapeHtml(recipientFirstName)},</p>
       ${introHtml}
       <div style="padding:12px 14px;background:#f8fafc;border-left:3px solid #94a3b8;margin:0 0 16px;font-size:15px;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">${msgHtml}</div>
       ${listingHtml}
       <p style="margin:20px 0 12px;font-size:15px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-        <a href="${encodeURI(link)}" style="color:#0f766e;font-weight:600;">${escapeHtml(c.openInBoLy)}</a>
+        <a href="${encodeURI(link)}" style="color:#0f766e;font-weight:600;">${escapeHtml(c.openInBoly)}</a>
       </p>
       <p style="margin:0 0 18px;font-size:12px;word-break:break-all;color:#64748b;font-family:ui-monospace,Menlo,Consolas,monospace;">${escapeHtml(c.linkPlain)} ${escapeHtml(link)}</p>
       <p style="margin:0;font-size:12px;line-height:1.5;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
@@ -372,29 +366,44 @@ serve(async (req) => {
   }
 
   try {
-    let payload: WebhookPayload
+    let raw: unknown
     try {
-      payload = (await req.json()) as WebhookPayload
+      raw = await req.json()
     } catch (e) {
-      console.error("send-notification-email invalid JSON:", e instanceof Error ? e.message : String(e))
+      edgeLog("warn", "send-notification-email invalid JSON", {
+        message: e instanceof Error ? e.message : String(e),
+      })
       return new Response(
         JSON.stringify({ error: "Invalid JSON body. Use Content-Type: application/json and valid JSON." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
 
+    const parsed = notificationWebhookPayloadSchema.safeParse(raw)
+    if (!parsed.success) {
+      edgeLog("warn", "send-notification-email validation", { issues: parsed.error.flatten() })
+      return new Response(
+        JSON.stringify({ error: "Invalid webhook payload", issues: parsed.error.flatten() }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
+    const payload = parsed.data
+
     const evtType = typeof payload.type === "string" ? payload.type.toUpperCase() : ""
     const tbl = payload.table
-    console.log(
-      "send-notification-email received:",
-      JSON.stringify({ method: req.method, table: tbl, type: payload.type, normalizedType: evtType })
-    )
+    edgeLog("info", "send-notification-email received", {
+      method: req.method,
+      table: tbl,
+      type: payload.type,
+      normalizedType: evtType,
+    })
 
     if (tbl !== "notifications" || evtType !== "INSERT") {
-      console.log(
-        "send-notification-email skip:",
-        JSON.stringify({ reason: "not a notification INSERT", table: tbl, type: payload.type })
-      )
+      edgeLog("info", "send-notification-email skip", {
+        reason: "not a notification INSERT",
+        table: tbl,
+        type: payload.type,
+      })
       return new Response(
         JSON.stringify({ ok: true, skipped: "not a notification insert" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -468,10 +477,10 @@ serve(async (req) => {
       )
     }
 
-    const fromName = (Deno.env.get("NOTIFICATION_FROM_NAME") ?? "BoLy").replace(/"/g, "'")
+    const fromName = (Deno.env.get("NOTIFICATION_FROM_NAME") ?? "Boly").replace(/"/g, "'")
     const appBase = (Deno.env.get("NOTIFICATION_APP_BASE_URL") ?? "https://bolynorge.no").replace(/\/$/, "")
 
-    const title = record.title || "BoLy"
+    const title = record.title || "Boly"
     const message = record.message || ""
     const path = record.listing_id ? `/listings/${record.listing_id}` : "/nav/notifications"
     const link = `${appBase}${path}`

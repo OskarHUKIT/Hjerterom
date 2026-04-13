@@ -39,7 +39,9 @@ export function savePendingFirstListingDraft(row: Record<string, unknown>): void
 /**
  * Fullfør første bolig etter BankID-signering (kalles fra sign-terms når signed=true).
  */
-export async function insertListingFromPendingDraft(userId: string): Promise<{ listingId: string } | null> {
+export async function insertListingFromPendingDraft(
+  userId: string
+): Promise<{ listingId: string } | null> {
   const draft = readPendingFirstListingDraft()
   if (!draft) return null
 
@@ -83,9 +85,7 @@ export async function insertListingFromPendingDraft(userId: string): Promise<{ l
 
   const { data: userData } = await supabase.auth.getUser()
   const userName =
-    userData.user?.user_metadata?.full_name ||
-    userData.user?.email?.split('@')[0] ||
-    'En utleier'
+    userData.user?.user_metadata?.full_name || userData.user?.email?.split('@')[0] || 'En utleier'
 
   const { data: kommuneProfiles } = await supabase
     .from('profiles')

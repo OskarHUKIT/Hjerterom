@@ -46,7 +46,11 @@ type PwaInstallPromptDialogProps = {
 }
 
 /** Kontrollert variant – brukes bl.a. på Mine boliger før velkomst/oversikt. */
-export function PwaInstallPromptDialog({ open, onDismiss, overlayClassName }: PwaInstallPromptDialogProps) {
+export function PwaInstallPromptDialog({
+  open,
+  onDismiss,
+  overlayClassName,
+}: PwaInstallPromptDialogProps) {
   const { t } = useLanguage()
   const [isIOS, setIsIOS] = useState(false)
   const [isAndroid, setIsAndroid] = useState(false)
@@ -67,7 +71,7 @@ export function PwaInstallPromptDialog({ open, onDismiss, overlayClassName }: Pw
       className={overlayClassName || 'pwa-prompt-overlay'}
       onClick={() => onDismiss(false)}
     >
-      <div className="pwa-prompt-card" onClick={e => e.stopPropagation()}>
+      <div className="pwa-prompt-card" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           onClick={() => onDismiss(false)}
@@ -86,7 +90,14 @@ export function PwaInstallPromptDialog({ open, onDismiss, overlayClassName }: Pw
           <X size={20} />
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-3)',
+            marginBottom: 'var(--space-4)',
+          }}
+        >
           <div
             style={{
               width: 48,
@@ -101,12 +112,24 @@ export function PwaInstallPromptDialog({ open, onDismiss, overlayClassName }: Pw
           >
             <Smartphone size={24} />
           </div>
-          <h2 id="pwa-prompt-title" style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>
+          <h2
+            id="pwa-prompt-title"
+            style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}
+          >
             {t('pwaInstallTitle')}
           </h2>
         </div>
 
-        <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.95rem', color: 'var(--text-body)', lineHeight: 1.5 }}>{t('pwaInstallLead')}</p>
+        <p
+          style={{
+            margin: '0 0 var(--space-4)',
+            fontSize: '0.95rem',
+            color: 'var(--text-body)',
+            lineHeight: 1.5,
+          }}
+        >
+          {t('pwaInstallLead')}
+        </p>
 
         {isIOS && (
           <div
@@ -131,7 +154,9 @@ export function PwaInstallPromptDialog({ open, onDismiss, overlayClassName }: Pw
             >
               <Share size={18} /> {t('pwaInstallIOSLabel')}
             </p>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}>{t('pwaInstallIOSBody')}</p>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}>
+              {t('pwaInstallIOSBody')}
+            </p>
           </div>
         )}
 
@@ -158,12 +183,18 @@ export function PwaInstallPromptDialog({ open, onDismiss, overlayClassName }: Pw
             >
               <Plus size={18} /> {t('pwaInstallAndroidLabel')}
             </p>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}>{t('pwaInstallAndroidBody')}</p>
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}>
+              {t('pwaInstallAndroidBody')}
+            </p>
           </div>
         )}
 
         {!isIOS && !isAndroid && (
-          <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.85rem', color: 'var(--text-body)' }}>{t('pwaInstallGeneric')}</p>
+          <p
+            style={{ margin: '0 0 var(--space-4)', fontSize: '0.85rem', color: 'var(--text-body)' }}
+          >
+            {t('pwaInstallGeneric')}
+          </p>
         )}
 
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
@@ -182,7 +213,12 @@ export function PwaInstallPromptDialog({ open, onDismiss, overlayClassName }: Pw
           >
             {t('pwaDontShowAgain')}
           </button>
-          <button type="button" onClick={() => onDismiss(false)} className="button" style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem' }}>
+          <button
+            type="button"
+            onClick={() => onDismiss(false)}
+            className="button"
+            style={{ padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem' }}
+          >
             {t('pwaClose')}
           </button>
         </div>
@@ -231,7 +267,7 @@ export default function PWAInstallPrompt() {
   return (
     <PwaInstallPromptDialog
       open={show}
-      onDismiss={remember => {
+      onDismiss={(remember) => {
         setShow(false)
         try {
           if (remember) localStorage.setItem(PWA_PROMPT_DISMISSED_KEY, '1')

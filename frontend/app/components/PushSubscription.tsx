@@ -9,9 +9,16 @@ export default function PushSubscription() {
     let cancelled = false
 
     async function syncExisting() {
-      if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) return
+      if (
+        typeof window === 'undefined' ||
+        !('serviceWorker' in navigator) ||
+        !('PushManager' in window)
+      )
+        return
 
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user || cancelled) return
 
       try {
@@ -25,7 +32,9 @@ export default function PushSubscription() {
     }
 
     syncExisting()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return null

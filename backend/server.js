@@ -1,3 +1,7 @@
+/**
+ * Legacy / lokal stub — ikke produksjons-BFF for BoLy (kjernelogikk: Supabase + Next.js).
+ * Ikke eksponer mot åpent internett uten auth, rate limit og begrenset CORS.
+ */
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -12,10 +16,19 @@ try {
 const app = express();
 const PORT = process.env.PORT || 3003;
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Middleware — begrens CORS til lokale dev-origins (unngå åpen reflektor)
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
+};
+app.use(cors(corsOptions));
+app.use(bodyParser.json({ limit: '100kb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '100kb' }));
 
 // Routes
 app.get('/api/health', (req, res) => {
@@ -30,10 +43,9 @@ app.get('/api/applications', (req, res) => {
   });
 });
 
-app.post('/api/applications', (req, res) => {
-  res.json({
-    message: 'Application created',
-    data: req.body
+app.post('/api/applications', (_req, res) => {
+  res.status(501).json({
+    message: 'Stub: ikke implementert — BoLy bruker Supabase. Body ekkoeres ikke (sikkerhet).',
   });
 });
 

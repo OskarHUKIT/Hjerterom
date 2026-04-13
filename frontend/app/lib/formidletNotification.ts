@@ -8,8 +8,9 @@ export function appendMediationNoteToOwnerMessage(
 ): string {
   const trimmed = (note ?? '').trim()
   if (!includeInNotification || !trimmed) return baseMessage
-  const slice = trimmed.length > MAX_MEDIATION_NOTE_IN_NOTIFICATION
-    ? `${trimmed.slice(0, MAX_MEDIATION_NOTE_IN_NOTIFICATION)}…`
-    : trimmed
+  const slice =
+    trimmed.length > MAX_MEDIATION_NOTE_IN_NOTIFICATION
+      ? `${trimmed.slice(0, MAX_MEDIATION_NOTE_IN_NOTIFICATION)}…`
+      : trimmed
   return `${baseMessage}\n\nMelding fra kommunen:\n${slice}`
 }

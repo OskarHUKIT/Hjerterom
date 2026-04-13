@@ -28,7 +28,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       const stored = localStorage.getItem(STORAGE_KEY)
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
         if (session?.user) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -36,7 +38,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
             .eq('id', session.user.id)
             .maybeSingle()
           const meta = session.user.user_metadata?.preferred_locale
-          const fromProfile = profile?.preferred_locale && isLocale(profile.preferred_locale) ? profile.preferred_locale : null
+          const fromProfile =
+            profile?.preferred_locale && isLocale(profile.preferred_locale)
+              ? profile.preferred_locale
+              : null
           const fromMeta = typeof meta === 'string' && isLocale(meta) ? meta : null
           const resolved = fromProfile ?? fromMeta
           if (!cancelled && resolved) {
@@ -87,7 +92,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       document.documentElement.lang = l === 'no' ? 'nb' : l === 'se' ? 'se' : 'en'
     }
     void (async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) return
       await supabase.from('profiles').update({ preferred_locale: l }).eq('id', user.id)
       await supabase.auth.updateUser({ data: { preferred_locale: l } })
@@ -100,12 +107,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   }, [locale, mounted])
 
-  const t = (key: TranslationKey): string => translations[locale][key] ?? translations.no[key] ?? key
+  const t = (key: TranslationKey): string =>
+    translations[locale][key] ?? translations.no[key] ?? key
 
   return (
-    <LanguageContext.Provider value={{ locale, setLocale, t }}>
-      {children}
-    </LanguageContext.Provider>
+    <LanguageContext.Provider value={{ locale, setLocale, t }}>{children}</LanguageContext.Provider>
   )
 }
 

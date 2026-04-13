@@ -11,7 +11,7 @@ export async function notifyLandlordInvoiceBasisIfKonto(
       owner_id: opts.ownerId,
       type: 'FAKTURAGRUNNLAG_REQUEST',
       title: 'Fyll ut fakturagrunnlag',
-      message: `Du valgte utbetaling til konto for boligen i ${opts.address}. Fyll ut fakturagrunnlaget i BoLy slik at kommunen kan behandle utbetalingen. Bruk knappen under for å åpne skjemaet.`,
+      message: `Du valgte utbetaling til konto for boligen i ${opts.address}. Fyll ut fakturagrunnlaget i Boly slik at kommunen kan behandle utbetalingen. Bruk knappen under for å åpne skjemaet.`,
       listing_id: opts.listingId,
     },
   ])

@@ -27,7 +27,7 @@ export default function LoadingPlaceholder({ minHeight = 120, className }: Props
       aria-live="polite"
       aria-busy="true"
     >
-      <Loader2 size={24} className="boly-spin" aria-hidden />
+      <Loader2 size={24} className="app-spin" aria-hidden />
       <span>{t('loadingPleaseWait')}</span>
     </div>
   )

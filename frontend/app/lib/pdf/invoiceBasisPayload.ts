@@ -39,7 +39,7 @@ export function buildInvoiceBasisPdfPayload(input: {
   if (input.signatureConfirmedAt) {
     const when = formatDateTimeNo(input.signatureConfirmedAt)
     stedDatoLine = when || formatDateNo(input.signatureConfirmedAt)
-    signaturLine = `Signert i Bo.ly${when ? `, ${when}` : ''}`
+    signaturLine = `Signert i Boly${when ? `, ${when}` : ''}`
   }
 
   return {

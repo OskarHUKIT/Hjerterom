@@ -37,7 +37,12 @@ function regionPathSegment(region: string): string {
 function displayRegionList(regionsLower: string[]): string {
   if (regionsLower.length === 0) return ''
   return regionsLower
-    .map(r => r.split(/[\s-]+/).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' '))
+    .map((r) =>
+      r
+        .split(/[\s-]+/)
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join(' ')
+    )
     .join(', ')
 }
 
@@ -53,9 +58,7 @@ type TermsRow = {
   pdf_storage_path: string | null
 }
 
-type ListRow =
-  | { kind: 'storage_default' }
-  | { kind: 'db'; row: TermsRow }
+type ListRow = { kind: 'storage_default' } | { kind: 'db'; row: TermsRow }
 
 export default function TermsDocumentsPage() {
   const { t } = useLanguage()
@@ -69,7 +72,7 @@ export default function TermsDocumentsPage() {
   const [region, setRegion] = useState('')
   /** For kommune_admin: which assigned areas this PDF applies to (multi-select when len > 1). */
   const [adminSelectedRegions, setAdminSelectedRegions] = useState<string[]>([])
-  const [title, setTitle] = useState('Vilkår for bruk av Boligbank')
+  const [title, setTitle] = useState('Vilkår for bruk av Boly')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -78,12 +81,18 @@ export default function TermsDocumentsPage() {
 
   useEffect(() => {
     ;(async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
         return
       }
-      const { data: profile } = await supabase.from('profiles').select('role, kommune_can_edit, kommune_region').eq('id', user.id).maybeSingle()
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, kommune_can_edit, kommune_region')
+        .eq('id', user.id)
+        .maybeSingle()
       const role = user.user_metadata?.role || profile?.role
       if (!isKommuneAdminRole(role)) {
         setAuthorized(false)
@@ -97,10 +106,20 @@ export default function TermsDocumentsPage() {
       let regionRaw: string | string[] | null = profile?.kommune_region ?? null
       if ((regionRaw == null || String(regionRaw).trim() === '') && user.email) {
         const rpcRes = await supabase.rpc('get_whitelist_region_for_email', { p_email: user.email })
-        const fromRpc = typeof rpcRes.data === 'string' ? rpcRes.data : (Array.isArray(rpcRes.data) && rpcRes.data?.length ? rpcRes.data[0] : null)
+        const fromRpc =
+          typeof rpcRes.data === 'string'
+            ? rpcRes.data
+            : Array.isArray(rpcRes.data) && rpcRes.data?.length
+              ? rpcRes.data[0]
+              : null
         if (fromRpc && String(fromRpc).trim()) regionRaw = fromRpc
         else {
-          const tableRes = await supabase.from('kommune_access_list').select('region').ilike('email', user.email).eq('is_active', true).limit(1)
+          const tableRes = await supabase
+            .from('kommune_access_list')
+            .select('region')
+            .ilike('email', user.email)
+            .eq('is_active', true)
+            .limit(1)
           const fromTable = tableRes.data?.[0]?.region
           if (fromTable && String(fromTable).trim()) regionRaw = fromTable
         }
@@ -116,9 +135,9 @@ export default function TermsDocumentsPage() {
     if (myRegions.length === 1) {
       setAdminSelectedRegions([myRegions[0]])
     } else if (myRegions.length > 1) {
-      setAdminSelectedRegions(prev => {
+      setAdminSelectedRegions((prev) => {
         if (prev.length === 0) return [...myRegions]
-        const kept = prev.filter(p => myRegions.includes(p))
+        const kept = prev.filter((p) => myRegions.includes(p))
         return kept.length > 0 ? kept : [...myRegions]
       })
     } else {
@@ -129,7 +148,9 @@ export default function TermsDocumentsPage() {
   const fetchRows = async () => {
     const { data, error: err } = await supabase
       .from('terms_documents')
-      .select('id, title, body, version, kommune_region, effective_from, created_at, pdf_bucket, pdf_storage_path')
+      .select(
+        'id, title, body, version, kommune_region, effective_from, created_at, pdf_bucket, pdf_storage_path'
+      )
       .order('kommune_region', { ascending: true, nullsFirst: false })
       .order('version', { ascending: false })
     if (err) {
@@ -149,7 +170,7 @@ export default function TermsDocumentsPage() {
   }, [])
 
   const visibleDbRows = useMemo(() => {
-    return rows.filter(r => {
+    return rows.filter((r) => {
       const kr = r.kommune_region
       if (kr == null || !String(kr).trim()) return true
       const docRegs = parseTermsRegionField(kr)
@@ -181,7 +202,7 @@ export default function TermsDocumentsPage() {
         setError(t('termsAdminRegionRequired'))
         return
       }
-      const invalid = adminSelectedRegions.some(r => !myRegions.includes(r))
+      const invalid = adminSelectedRegions.some((r) => !myRegions.includes(r))
       if (myRegions.length > 0 && invalid) {
         setError(t('termsAdminRegionInvalid'))
         return
@@ -197,8 +218,14 @@ export default function TermsDocumentsPage() {
     }
     setSaving(true)
     setError(null)
-    const kommuneRegion = isAdmin ? kommuneRegionForTermsDocument(adminSelectedRegions) : region.trim() || null
-    let maxQ = supabase.from('terms_documents').select('version').order('version', { ascending: false }).limit(1)
+    const kommuneRegion = isAdmin
+      ? kommuneRegionForTermsDocument(adminSelectedRegions)
+      : region.trim() || null
+    let maxQ = supabase
+      .from('terms_documents')
+      .select('version')
+      .order('version', { ascending: false })
+      .limit(1)
     if (kommuneRegion) maxQ = maxQ.eq('kommune_region', kommuneRegion)
     else maxQ = maxQ.is('kommune_region', null)
     const { data: maxRow } = await maxQ.maybeSingle()
@@ -260,36 +287,74 @@ export default function TermsDocumentsPage() {
 
   return (
     <main className="container" style={{ maxWidth: 900 }}>
-      <Link href="/nav/database" className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      <Link
+        href="/nav/database"
+        className="nav-link"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16 }}
+      >
         <ArrowLeft size={18} /> {t('back')}
       </Link>
       <h1 style={{ fontSize: '2rem', marginBottom: 8 }}>{t('termsDocumentsTitle')}</h1>
       <p style={{ color: 'var(--text-body)', marginBottom: 24, lineHeight: 1.5 }}>{desc}</p>
 
       {!kommuneCanEdit ? (
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('formidlingManagedByCaseworker')}</p>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          {t('formidlingManagedByCaseworker')}
+        </p>
       ) : (
-        <form className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-6)' }} onSubmit={handlePublish}>
-          <h2 style={{ fontSize: '1.1rem', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <form
+          className="card"
+          style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-6)' }}
+          onSubmit={handlePublish}
+        >
+          <h2
+            style={{
+              fontSize: '1.1rem',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
             <Plus size={20} /> {t('termsPublish')}
           </h2>
           {error && <p style={{ color: '#f87171', marginBottom: 12 }}>{error}</p>}
           {isAdmin && myRegions.length === 0 && (
-            <p style={{ color: '#fbbf24', marginBottom: 12, fontSize: '0.95rem' }}>{t('termsAdminNoRegions')}</p>
+            <p style={{ color: '#fbbf24', marginBottom: 12, fontSize: '0.95rem' }}>
+              {t('termsAdminNoRegions')}
+            </p>
           )}
-          <label className="label">{isAdmin ? t('termsRegionLabelAdmin') : t('termsRegionLabel')}</label>
+          <label className="label">
+            {isAdmin ? t('termsRegionLabelAdmin') : t('termsRegionLabel')}
+          </label>
           {isAdmin ? (
             myRegions.length === 0 ? (
-              <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 12 }}>—</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 12 }}>
+                —
+              </p>
             ) : myRegions.length === 1 ? (
-              <p className="input" style={{ marginBottom: 12, background: 'var(--bg-app)' }}>{displayRegionList(myRegions)}</p>
+              <p className="input" style={{ marginBottom: 12, background: 'var(--bg-app)' }}>
+                {displayRegionList(myRegions)}
+              </p>
             ) : (
               <div style={{ marginBottom: 12 }}>
-                <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.45 }}>
+                <p
+                  className="text-sm"
+                  style={{ color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.45 }}
+                >
                   {t('termsRegionMultiHint')}
                 </p>
-                <fieldset style={{ border: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {myRegions.map(r => (
+                <fieldset
+                  style={{
+                    border: 'none',
+                    padding: 0,
+                    margin: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  {myRegions.map((r) => (
                     <label
                       key={r}
                       style={{
@@ -304,8 +369,8 @@ export default function TermsDocumentsPage() {
                         type="checkbox"
                         checked={adminSelectedRegions.includes(r)}
                         onChange={() => {
-                          setAdminSelectedRegions(prev =>
-                            prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]
+                          setAdminSelectedRegions((prev) =>
+                            prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
                           )
                         }}
                       />
@@ -319,21 +384,28 @@ export default function TermsDocumentsPage() {
             <input
               className="input"
               value={region}
-              onChange={e => setRegion(e.target.value)}
+              onChange={(e) => setRegion(e.target.value)}
               placeholder={t('regionPlaceholder')}
               style={{ marginBottom: 12 }}
             />
           )}
           <label className="label">{t('termsTitleLabel')}</label>
-          <input className="input" value={title} onChange={e => setTitle(e.target.value)} style={{ marginBottom: 12 }} />
+          <input
+            className="input"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            style={{ marginBottom: 12 }}
+          />
           <label className="label">{t('termsPdfLabel')}</label>
-          <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 8 }}>{t('termsPdfHint')}</p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 8 }}>
+            {t('termsPdfHint')}
+          </p>
           <input
             type="file"
             accept="application/pdf"
             className="input"
             style={{ marginBottom: 16, padding: '8px 0' }}
-            onChange={e => setPdfFile(e.target.files?.[0] ?? null)}
+            onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
           />
           <button
             type="submit"
@@ -350,23 +422,39 @@ export default function TermsDocumentsPage() {
       )}
 
       <h2 style={{ fontSize: '1.15rem', marginBottom: 12 }}>{t('termsListHeading')}</h2>
-      <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}>
+      <p
+        className="text-sm"
+        style={{ color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}
+      >
         <Info size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
         {t('termsSigningPriorityHint')}
       </p>
       {listRows.length === 0 ? (
         <p style={{ color: 'var(--text-muted)' }}>{t('termsEmpty')}</p>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {listRows.map(item => {
+        <ul
+          style={{
+            listStyle: 'none',
+            padding: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}
+        >
+          {listRows.map((item) => {
             if (item.kind === 'storage_default') {
               return (
                 <li key="storage-default" className="card" style={{ padding: 'var(--space-4)' }}>
-                  <div style={{ fontWeight: 700, marginBottom: 4 }}>{t('termsDefaultStorageTitle')}</div>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                    {t('termsDefaultStorageTitle')}
+                  </div>
                   <div className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 8 }}>
                     {t('termsScopeGlobal')}
                   </div>
-                  <p className="text-sm" style={{ color: 'var(--text-body)', marginBottom: 12, lineHeight: 1.5 }}>
+                  <p
+                    className="text-sm"
+                    style={{ color: 'var(--text-body)', marginBottom: 12, lineHeight: 1.5 }}
+                  >
                     {t('termsSigningInfoStorageDefault')}
                   </p>
                   <a
@@ -393,7 +481,10 @@ export default function TermsDocumentsPage() {
             if (globalDb) {
               signingInfo = t('termsSigningInfoGlobal')
             } else {
-              signingInfo = t('termsSigningInfoRegional').replace('{regions}', displayRegionList(docRegs))
+              signingInfo = t('termsSigningInfoRegional').replace(
+                '{regions}',
+                displayRegionList(docRegs)
+              )
             }
 
             return (
@@ -404,19 +495,40 @@ export default function TermsDocumentsPage() {
                   {` · ${scopeLabel}`}
                   {r.effective_from ? ` · ${formatDateTimeNo(r.effective_from)}` : ''}
                 </div>
-                <p className="text-sm" style={{ color: 'var(--text-body)', marginBottom: 12, lineHeight: 1.5 }}>
+                <p
+                  className="text-sm"
+                  style={{ color: 'var(--text-body)', marginBottom: 12, lineHeight: 1.5 }}
+                >
                   {signingInfo}
                 </p>
                 {pdfUrl ? (
-                  <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <a
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="nav-link"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
                     <ExternalLink size={16} /> {t('termsOpenPdf')}
                   </a>
                 ) : r.body ? (
-                  <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.9rem', maxHeight: 160, overflow: 'auto', color: 'var(--text-body)' }}>
+                  <pre
+                    style={{
+                      margin: 0,
+                      whiteSpace: 'pre-wrap',
+                      fontFamily: 'inherit',
+                      fontSize: '0.9rem',
+                      maxHeight: 160,
+                      overflow: 'auto',
+                      color: 'var(--text-body)',
+                    }}
+                  >
                     {r.body.length > 600 ? `${r.body.slice(0, 600)}…` : r.body}
                   </pre>
                 ) : (
-                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('termsNoPdfOrText')}</p>
+                  <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                    {t('termsNoPdfOrText')}
+                  </p>
                 )}
               </li>
             )

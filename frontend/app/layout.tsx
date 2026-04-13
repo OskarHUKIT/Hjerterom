@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { DM_Sans, Fraunces } from 'next/font/google'
 import './globals.css'
 import 'leaflet/dist/leaflet.css'
 import Header from './components/Header'
@@ -6,6 +7,20 @@ import Footer from './components/Footer'
 import PushSubscription from './components/PushSubscription'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import { Providers } from './providers'
+
+const fontSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+})
+
+const fontDisplay = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  weight: ['400', '600', '700'],
+})
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -19,20 +34,20 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Bo.ly - Boligbank',
-  description: 'Bo.ly Housing Bank Application',
+  title: 'Boly',
+  description: 'Boly – formidling av bolig mellom kommune og private utleiere',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, title: 'boly' },
+  appleWebApp: { capable: true, title: 'Boly' },
   icons: { apple: '/icon-512x512.png' },
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="nb" suppressHydrationWarning>
+    <html
+      lang="nb"
+      suppressHydrationWarning
+      className={`${fontSans.variable} ${fontDisplay.variable}`}
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -45,18 +60,10 @@ export default function RootLayout({
           <PushSubscription />
           <PWAInstallPrompt />
           <Header />
-          <div style={{ flex: 1 }}>
-            {children}
-          </div>
+          <div style={{ flex: 1 }}>{children}</div>
           <Footer />
         </Providers>
       </body>
     </html>
   )
 }
-
-
-
-
-
-

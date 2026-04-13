@@ -79,7 +79,7 @@ Når en bruker har slått på **«Send også varsler på e-post»** under Varsle
 | `SMTP_USERNAME` | Full e-postadresse som sender (f.eks. `noreply@bolynorge.no`) |
 | `SMTP_PASSWORD` | [App-passord](https://support.google.com/accounts/answer/185833) (Google krever 2-trinns) |
 | `SMTP_FROM` | Avsenderadresse (ofte samme som `SMTP_USERNAME`) |
-| `NOTIFICATION_FROM_NAME` | Valgfritt visningsnavn, standard `BoLy` |
+| `NOTIFICATION_FROM_NAME` | Valgfritt visningsnavn, standard `Boly` |
 | `NOTIFICATION_APP_BASE_URL` | Valgfritt: produksjons-URL uten trailing slash (f.eks. `https://bolynorge.no`) for lenke i e-posten |
 
 Uten SMTP *eller* Resend (se under) returnerer funksjonen «skipped».

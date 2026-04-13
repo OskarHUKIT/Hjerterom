@@ -1,29 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import webpush from "npm:web-push@3.6.7"
+import { edgeLog } from "../_shared/edgeLog.ts"
+import { notificationWebhookPayloadSchema } from "../_shared/webhookSchemas.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-}
-
-interface NotificationRecord {
-  id: string
-  owner_id: string
-  type?: string
-  title: string
-  message: string
-  status?: string
-  listing_id?: string
-  related_user_id?: string
-}
-
-interface WebhookPayload {
-  type: "INSERT" | "UPDATE" | "DELETE"
-  table: string
-  schema: string
-  record: NotificationRecord
-  old_record: NotificationRecord | null
 }
 
 serve(async (req) => {
@@ -32,7 +15,25 @@ serve(async (req) => {
   }
 
   try {
-    const payload: WebhookPayload = await req.json()
+    let raw: unknown
+    try {
+      raw = await req.json()
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    const parsed = notificationWebhookPayloadSchema.safeParse(raw)
+    if (!parsed.success) {
+      edgeLog("warn", "send-push validation", { issues: parsed.error.flatten() })
+      return new Response(
+        JSON.stringify({ error: "Invalid webhook payload", issues: parsed.error.flatten() }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
+    }
+    const payload = parsed.data
 
     if (payload.table !== "notifications" || payload.type !== "INSERT") {
       return new Response(
@@ -41,7 +42,7 @@ serve(async (req) => {
       )
     }
 
-    const record = payload.record as NotificationRecord
+    const record = payload.record
     const ownerId = record.owner_id
     const title = record.title || "Boligbank"
     const message = record.message || ""
@@ -122,7 +123,7 @@ serve(async (req) => {
     )
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error("send-push error:", msg)
+    edgeLog("error", "send-push", { message: msg })
     return new Response(
       JSON.stringify({ error: msg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

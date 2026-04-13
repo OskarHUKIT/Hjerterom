@@ -8,6 +8,9 @@ export const LANDLORD_ONBOARDING_PREFIX = {
   notifications: 'boly_landlord_notifications_intro_v1',
 } as const
 
-export function landlordOnboardingKey(prefix: (typeof LANDLORD_ONBOARDING_PREFIX)[keyof typeof LANDLORD_ONBOARDING_PREFIX], userId: string): string {
+export function landlordOnboardingKey(
+  prefix: (typeof LANDLORD_ONBOARDING_PREFIX)[keyof typeof LANDLORD_ONBOARDING_PREFIX],
+  userId: string
+): string {
   return `${prefix}_${userId}`
 }

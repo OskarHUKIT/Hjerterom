@@ -1,27 +1,62 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import type { User as AuthUser } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
-import { 
-  MapPin, Bed, Users, ShieldCheck, ArrowLeft, Calendar, Info, 
-  Phone, User, Home as HomeIcon, CheckCircle2, 
-  Ruler, Building, Tag, Wifi, Zap, Tv, Clipboard, 
-  MessageSquare, Send, Trash2, Clock, ChevronLeft, ChevronRight, ChevronDown,
-  Maximize2, X, Plus, Camera, Edit3, FileText, RotateCcw, RefreshCw, Lock
+import {
+  MapPin,
+  Bed,
+  Users,
+  ShieldCheck,
+  ArrowLeft,
+  Calendar,
+  Info,
+  Phone,
+  User,
+  Home as HomeIcon,
+  CheckCircle2,
+  Ruler,
+  Building,
+  Tag,
+  Wifi,
+  Zap,
+  Tv,
+  Clipboard,
+  MessageSquare,
+  Send,
+  Trash2,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Maximize2,
+  X,
+  Plus,
+  Camera,
+  Edit3,
+  FileText,
+  RotateCcw,
+  RefreshCw,
+  Lock,
 } from 'lucide-react'
 
 import HandoverReport from '../../components/HandoverReport'
+import { Button } from '../../components/ui/Button'
+import { OptimizedPublicStorageImage } from '../../components/OptimizedPublicStorageImage'
 import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
 import { geocodeAddressBestEffort } from '../../lib/geocoding'
 import { DateInput } from '../../components/DateInput'
-import { appendMediationNoteToOwnerMessage, MAX_MEDIATION_NOTE_IN_NOTIFICATION } from '../../lib/formidletNotification'
+import {
+  appendMediationNoteToOwnerMessage,
+  MAX_MEDIATION_NOTE_IN_NOTIFICATION,
+} from '../../lib/formidletNotification'
 import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import InvoiceBasisSection from './InvoiceBasisSection'
-import { publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
+import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
 
 /** Verdier i `listings.deposit_guarantee` – må samsvare med registreringsskjema. */
 const DEPOSIT_GUARANTEE_VALUES = {
@@ -44,7 +79,8 @@ function normalizeListingImageUrls(raw: unknown): string[] {
     if (t.startsWith('[')) {
       try {
         const p = JSON.parse(t)
-        if (Array.isArray(p)) return p.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
+        if (Array.isArray(p))
+          return p.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
       } catch {
         /* enkelt URL-streng */
       }
@@ -56,24 +92,29 @@ function normalizeListingImageUrls(raw: unknown): string[] {
 
 /** True om boligen er markert formidlet (rad i listing_availability eller status på listing). */
 function listingHasFormidlaPeriod(avail: { status?: string }[] | null | undefined): boolean {
-  return !!(avail?.some((p) => p.status === 'Formidla'))
+  return !!avail?.some((p) => p.status === 'Formidla')
+}
+
+function errMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 export default function ListingDetailsClient() {
-  const { id } = useParams()
+  const { id: idParam } = useParams()
+  const id = typeof idParam === 'string' ? idParam : idParam?.[0] ?? ''
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useLanguage()
   const viewMode = searchParams.get('view') // 'nav' eller 'owner'
   const isNavView = viewMode === 'nav'
-  
+
   const [listing, setListing] = useState<any>(null)
   const [availability, setAvailability] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [navNotes, setNavNotes] = useState<any[]>([])
   const [newNote, setNewNote] = useState('')
   const [copyFeedback, setCopyFeedback] = useState(false)
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [handoverReports, setHandoverReports] = useState<any[]>([])
   const [showHandoverForm, setShowHandoverForm] = useState(false)
   const [tenantReportToken, setTenantReportToken] = useState<string | null>(null)
@@ -92,8 +133,11 @@ export default function ListingDetailsClient() {
   const [viewerIsKommuneStaff, setViewerIsKommuneStaff] = useState(false)
   /** Utleierens user_agreements.is_terminated – blokkerer formidling og melding i NAV-visning */
   const [ownerAgreementTerminated, setOwnerAgreementTerminated] = useState(false)
-  const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{ id: string; status: string } | null>(null)
-  
+  const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{
+    id: string
+    status: string
+  } | null>(null)
+
   // Gallery state
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -105,8 +149,11 @@ export default function ListingDetailsClient() {
   const [formidletEnd, setFormidletEnd] = useState('')
   const [formidletSending, setFormidletSending] = useState(false)
   const [formidletMediationNote, setFormidletMediationNote] = useState('')
-  const [formidletIncludeNoteInNotification, setFormidletIncludeNoteInNotification] = useState(false)
-  const [mediationReservation, setMediationReservation] = useState<(Record<string, any> & { reserved_by_name?: string }) | null>(null)
+  const [formidletIncludeNoteInNotification, setFormidletIncludeNoteInNotification] =
+    useState(false)
+  const [mediationReservation, setMediationReservation] = useState<
+    (Record<string, any> & { reserved_by_name?: string }) | null
+  >(null)
   const [reservationNote, setReservationNote] = useState('')
   const [reservationLoading, setReservationLoading] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(() => {
@@ -124,26 +171,29 @@ export default function ListingDetailsClient() {
         ? [String(listing.image_url).trim()]
         : []
 
-  const showGalleryFormidlet = listing?.status === 'Formidla' || listingHasFormidlaPeriod(availability)
+  const showGalleryFormidlet =
+    listing?.status === 'Formidla' || listingHasFormidlaPeriod(availability)
 
   const translateType = (type: string) => {
     if (!type) return ''
     const mapping: Record<string, string> = {
       'Short-term': 'Korttid',
       'Long-term': 'Langtid',
-      'Apartment': 'Leilighet',
-      'House': 'Enebolig',
-      'Shared': 'Bofelleskap'
+      Apartment: 'Leilighet',
+      House: 'Enebolig',
+      Shared: 'Bofelleskap',
     }
     return mapping[type] || type
   }
 
-  const handleUpdateField = async (field: string, value: any) => {
-    if (!listing || !isOwner || isNavView) return
-    
+  const handleUpdateField = async (field: string, value: unknown) => {
+    if (!listing || !currentUser || !isOwner || isNavView) return
+
     if (!hasActiveAgreement) {
       alert(t('signAgreementToEdit'))
-      router.push(`/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`)
+      router.push(
+        `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
+      )
       return
     }
 
@@ -163,7 +213,7 @@ export default function ListingDetailsClient() {
         const hit = await geocodeAddressBestEffort({
           address: String(nextListing.address || ''),
           postal_code: String(nextListing.postal_code || ''),
-          city: String(nextListing.city || '')
+          city: String(nextListing.city || ''),
         })
         if (hit && Number.isFinite(hit.lat) && Number.isFinite(hit.lon)) {
           const { error: geoErr } = await supabase
@@ -175,17 +225,19 @@ export default function ListingDetailsClient() {
           }
         }
       }
-      
+
       // Log event
-      await supabase.from('audit_logs').insert([{
-        user_id: currentUser.id,
-        action_type: 'UPDATE_FIELD',
-        listing_id: id,
-        listing_address: nextListing.address,
-        details: { field, value }
-      }])
-    } catch (err: any) {
-      alert(t('errorSaving') + err.message)
+      await supabase.from('audit_logs').insert([
+        {
+          user_id: currentUser.id,
+          action_type: 'UPDATE_FIELD',
+          listing_id: id,
+          listing_address: nextListing.address,
+          details: { field, value },
+        },
+      ])
+    } catch (err: unknown) {
+      alert(t('errorSaving') + errMessage(err))
     } finally {
       setIsSaving(null)
     }
@@ -196,10 +248,12 @@ export default function ListingDetailsClient() {
     if (!listing || !isOwner || isNavView) return
     if (!hasActiveAgreement) {
       alert(t('signAgreementToEdit'))
-      router.push(`/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`)
+      router.push(
+        `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
+      )
       return
     }
-    const nextDetail = v === 'Enkelte dyr er tillatt' ? (listing.pet_policy_detail || '') : ''
+    const nextDetail = v === 'Enkelte dyr er tillatt' ? listing.pet_policy_detail || '' : ''
     const nextListing = { ...listing, pet_policy: v, pet_policy_detail: nextDetail }
     const previous = listing
     setListing(nextListing)
@@ -210,22 +264,24 @@ export default function ListingDetailsClient() {
         .update({ pet_policy: v, pet_policy_detail: nextDetail })
         .eq('id', id)
       if (error) throw error
-      await supabase.from('audit_logs').insert([{
-        user_id: currentUser?.id,
-        action_type: 'UPDATE_FIELD',
-        listing_id: id,
-        listing_address: nextListing.address,
-        details: { field: 'pet_policy', value: v, pet_policy_detail: nextDetail }
-      }])
-    } catch (err: any) {
-      alert(t('errorSaving') + err.message)
+      await supabase.from('audit_logs').insert([
+        {
+          user_id: currentUser?.id,
+          action_type: 'UPDATE_FIELD',
+          listing_id: id,
+          listing_address: nextListing.address,
+          details: { field: 'pet_policy', value: v, pet_policy_detail: nextDetail },
+        },
+      ])
+    } catch (err: unknown) {
+      alert(t('errorSaving') + errMessage(err))
       setListing(previous)
     } finally {
       setIsSaving(null)
     }
   }
 
-  const loadMediationReservation = async () => {
+  const loadMediationReservation = useCallback(async () => {
     if (!id || !isNavView) return
     await supabase.rpc('expire_stale_mediation_reservations')
     const { data: resRow } = await supabase
@@ -238,9 +294,11 @@ export default function ListingDetailsClient() {
       setMediationReservation(null)
       return
     }
-    const { data: n } = await supabase.rpc('get_user_display_name', { p_user_id: resRow.reserved_by })
+    const { data: n } = await supabase.rpc('get_user_display_name', {
+      p_user_id: resRow.reserved_by,
+    })
     setMediationReservation({ ...resRow, reserved_by_name: typeof n === 'string' ? n : '…' })
-  }
+  }, [id, isNavView])
 
   const handleReserveMediation = async () => {
     if (!listing || !isNavView || !kommuneCanEdit) return
@@ -252,13 +310,14 @@ export default function ListingDetailsClient() {
     try {
       const { error } = await supabase.rpc('reserve_listing_mediation', {
         p_listing_id: id,
-        p_note: reservationNote.trim() || null
+        p_note: reservationNote.trim() || null,
       })
       if (error) throw error
       await loadMediationReservation()
       setReservationNote('')
-    } catch (e: any) {
-      alert(t('mediationReserveError') + (e?.message ? `: ${e.message}` : ''))
+    } catch (e: unknown) {
+      const m = errMessage(e)
+      alert(t('mediationReserveError') + (m ? `: ${m}` : ''))
     } finally {
       setReservationLoading(false)
     }
@@ -275,8 +334,9 @@ export default function ListingDetailsClient() {
       const { error } = await supabase.rpc('release_listing_mediation', { p_listing_id: id })
       if (error) throw error
       await loadMediationReservation()
-    } catch (e: any) {
-      alert(t('mediationReserveError') + (e?.message ? `: ${e.message}` : ''))
+    } catch (e: unknown) {
+      const m = errMessage(e)
+      alert(t('mediationReserveError') + (m ? `: ${m}` : ''))
     } finally {
       setReservationLoading(false)
     }
@@ -314,31 +374,44 @@ export default function ListingDetailsClient() {
       end_date: end,
       status: 'Formidla',
       mediation_note: noteTrimmed || null,
-      include_note_in_owner_notification: includeNote
+      include_note_in_owner_notification: includeNote,
     }
     setListing({ ...listing, status: 'Formidla', is_available: false })
-    setAvailability(prev => [...prev.filter(p => p.status !== 'Formidla'), newPeriod].sort((a, b) => (a.start_date > b.start_date ? 1 : -1)))
+    setAvailability((prev) =>
+      [...prev.filter((p) => p.status !== 'Formidla'), newPeriod].sort((a, b) =>
+        a.start_date > b.start_date ? 1 : -1
+      )
+    )
     setFormidletStart('')
     setFormidletEnd('')
     setFormidletMediationNote('')
     setFormidletIncludeNoteInNotification(false)
     try {
-      const { error: availError } = await supabase
-        .from('listing_availability')
-        .insert([{
+      const { error: availError } = await supabase.from('listing_availability').insert([
+        {
           listing_id: id,
           start_date: start,
           end_date: end,
           status: 'Formidla',
           mediation_note: noteTrimmed || null,
-          include_note_in_owner_notification: includeNote
-        }])
+          include_note_in_owner_notification: includeNote,
+        },
+      ])
       if (availError) throw availError
-      const { error } = await supabase.from('listings').update({ status: 'Formidla', is_available: false }).eq('id', id)
+      const { error } = await supabase
+        .from('listings')
+        .update({ status: 'Formidla', is_available: false })
+        .eq('id', id)
       if (error) throw error
-      const { data: availData } = await supabase.from('listing_availability').select('*').eq('listing_id', id).order('start_date')
+      const { data: availData } = await supabase
+        .from('listing_availability')
+        .select('*')
+        .eq('listing_id', id)
+        .order('start_date')
       if (availData) setAvailability(availData)
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (listing?.owner_id) {
         await supabase.from('audit_logs').insert([
           {
@@ -357,25 +430,37 @@ export default function ListingDetailsClient() {
         ])
       }
       if (listing?.owner_id) {
-        await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
+        await supabase
+          .from('listing_tenant_tokens')
+          .upsert([{ listing_id: id }], { onConflict: 'listing_id' })
         const baseMsg = `Boligen din i ${listing.address} er markert som formidlet for perioden ${start}–${end}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`
         const message = appendMediationNoteToOwnerMessage(baseMsg, noteTrimmed, includeNote)
-        await supabase.from('notifications').insert([{ owner_id: listing.owner_id, type: 'HOUSE_FORMIDLET', title: 'Bolig formidlet', message, listing_id: id }])
+        await supabase
+          .from('notifications')
+          .insert([
+            {
+              owner_id: listing.owner_id,
+              type: 'HOUSE_FORMIDLET',
+              title: 'Bolig formidlet',
+              message,
+              listing_id: id,
+            },
+          ])
         await notifyLandlordInvoiceBasisIfKonto(supabase, {
           ownerId: listing.owner_id,
           listingId: String(id),
           address: listing.address,
-          paymentMethod: listing.payment_method
+          paymentMethod: listing.payment_method,
         })
       }
-    } catch (err: any) {
+    } catch (rollbackErr: unknown) {
       setListing({ ...listing, status: listing.status, is_available: listing.is_available })
       setAvailability(availability)
       setFormidletStart(start)
       setFormidletEnd(end)
       setFormidletMediationNote(savedNote)
       setFormidletIncludeNoteInNotification(savedInclude)
-      alert(t('errorPrefix') + err.message)
+      alert(t('errorPrefix') + errMessage(rollbackErr))
     } finally {
       setFormidletSending(false)
     }
@@ -385,14 +470,14 @@ export default function ListingDetailsClient() {
   const getStatusForDate = (date: Date) => {
     const ymd = (d: Date) => d.toISOString().slice(0, 10)
     const t = ymd(date)
-    const hits = availability.filter(p => t >= p.start_date && t <= p.end_date)
+    const hits = availability.filter((p) => t >= p.start_date && t <= p.end_date)
     if (hits.length === 0) return null
-    if (hits.some(h => h.status === 'Formidla')) return 'Formidla'
+    if (hits.some((h) => h.status === 'Formidla')) return 'Formidla'
     if (hits.length > 1) {
-      const statuses = new Set(hits.map(h => h.status))
+      const statuses = new Set(hits.map((h) => h.status))
       if (statuses.size > 1) return 'Konflikt'
     }
-    if (hits.some(h => h.status === 'Utilgjengelig')) return 'Utilgjengelig'
+    if (hits.some((h) => h.status === 'Utilgjengelig')) return 'Utilgjengelig'
     return hits[0]?.status ?? null
   }
 
@@ -402,21 +487,26 @@ export default function ListingDetailsClient() {
       return
     }
     const prevAvailability = [...availability]
-    setAvailability(prev => prev.filter(x => x.id !== period.id))
+    setAvailability((prev) => prev.filter((x) => x.id !== period.id))
     setPendingDeletePeriod(null)
     try {
       const { error } = await supabase.from('listing_availability').delete().eq('id', period.id)
       if (error) throw error
       if (period.status === 'Formidla') {
-        const remainingFormidla = availability.filter(p => p.id !== period.id && p.status === 'Formidla')
+        const remainingFormidla = availability.filter(
+          (p) => p.id !== period.id && p.status === 'Formidla'
+        )
         if (remainingFormidla.length === 0 && listing) {
           setListing({ ...listing, status: 'Tilgjengelig', is_available: true })
-          await supabase.from('listings').update({ status: 'Tilgjengelig', is_available: true }).eq('id', id)
+          await supabase
+            .from('listings')
+            .update({ status: 'Tilgjengelig', is_available: true })
+            .eq('id', id)
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setAvailability(prevAvailability)
-      alert(t('errorPrefix') + err.message)
+      alert(t('errorPrefix') + errMessage(err))
     }
   }
 
@@ -430,13 +520,22 @@ export default function ListingDetailsClient() {
     const prevListing = listing
     const prevAvailability = availability
     setListing({ ...listing, status: 'Tilgjengelig', is_available: true })
-    setAvailability(availability.filter(p => p.status !== 'Formidla'))
+    setAvailability(availability.filter((p) => p.status !== 'Formidla'))
     try {
-      const { error: delError } = await supabase.from('listing_availability').delete().eq('listing_id', id).eq('status', 'Formidla')
+      const { error: delError } = await supabase
+        .from('listing_availability')
+        .delete()
+        .eq('listing_id', id)
+        .eq('status', 'Formidla')
       if (delError) throw delError
-      const { error } = await supabase.from('listings').update({ status: 'Tilgjengelig', is_available: true }).eq('id', id)
+      const { error } = await supabase
+        .from('listings')
+        .update({ status: 'Tilgjengelig', is_available: true })
+        .eq('id', id)
       if (error) throw error
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (listing?.owner_id) {
         await supabase.from('audit_logs').insert([
           {
@@ -448,10 +547,10 @@ export default function ListingDetailsClient() {
           },
         ])
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setListing(prevListing)
       setAvailability(prevAvailability)
-      alert(t('errorPrefix') + err.message)
+      alert(t('errorPrefix') + errMessage(err))
     }
   }
 
@@ -465,11 +564,13 @@ export default function ListingDetailsClient() {
     setTenantLinkRegenerating(true)
     try {
       const newToken = crypto.randomUUID()
-      const { error } = await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id, token: newToken }], { onConflict: 'listing_id' })
+      const { error } = await supabase
+        .from('listing_tenant_tokens')
+        .upsert([{ listing_id: id, token: newToken }], { onConflict: 'listing_id' })
       if (error) throw error
       setTenantReportToken(newToken)
-    } catch (err: any) {
-      alert(t('couldNotGenerateLink') + (err?.message || ''))
+    } catch (err: unknown) {
+      alert(t('couldNotGenerateLink') + errMessage(err))
     } finally {
       setTenantLinkRegenerating(false)
     }
@@ -480,10 +581,16 @@ export default function ListingDetailsClient() {
     async function fetchData() {
       setOwnerAgreementTerminated(false)
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
         setCurrentUser(user)
         if (user) {
-          const { data: roleProfile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+          const { data: roleProfile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle()
           const role = user.user_metadata?.role || roleProfile?.role
           setViewerIsKommuneStaff(isKommuneStaffRole(role))
         } else {
@@ -493,16 +600,37 @@ export default function ListingDetailsClient() {
         // Sjekk tilgang hvis NAV-visning (kommune må ha rolle og tillatelse til boligens kommune)
         let profileKommuneRegion: string | null = null
         if (isNavView && user) {
-          const { data: profile } = await supabase.from('profiles').select('role, kommune_region, kommune_can_edit').eq('id', user.id).maybeSingle()
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role, kommune_region, kommune_can_edit')
+            .eq('id', user.id)
+            .maybeSingle()
           const role = user.user_metadata?.role || profile?.role
           profileKommuneRegion = profile?.kommune_region ?? null
-          setKommuneCanEdit(profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false)
-          if ((profileKommuneRegion == null || String(profileKommuneRegion).trim() === '') && user.email) {
-            const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', { p_email: user.email })
-            const fromRpc = typeof rpcRegion === 'string' ? rpcRegion : (Array.isArray(rpcRegion) && rpcRegion?.length ? rpcRegion[0] : null)
+          setKommuneCanEdit(
+            profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false
+          )
+          if (
+            (profileKommuneRegion == null || String(profileKommuneRegion).trim() === '') &&
+            user.email
+          ) {
+            const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', {
+              p_email: user.email,
+            })
+            const fromRpc =
+              typeof rpcRegion === 'string'
+                ? rpcRegion
+                : Array.isArray(rpcRegion) && rpcRegion?.length
+                  ? rpcRegion[0]
+                  : null
             if (fromRpc && String(fromRpc).trim()) profileKommuneRegion = fromRpc
             else {
-              const { data: whitelistRows } = await supabase.from('kommune_access_list').select('region').ilike('email', user.email).eq('is_active', true).limit(1)
+              const { data: whitelistRows } = await supabase
+                .from('kommune_access_list')
+                .select('region')
+                .ilike('email', user.email)
+                .eq('is_active', true)
+                .limit(1)
               const fromTable = whitelistRows?.[0]?.region
               if (fromTable && String(fromTable).trim()) profileKommuneRegion = fromTable
             }
@@ -556,17 +684,33 @@ export default function ListingDetailsClient() {
         if (isNavView && data) {
           const raw = profileKommuneRegion
           let regions: string[] = []
-          if (Array.isArray(raw)) regions = raw.map((r: any) => String(r).trim().toLowerCase()).filter(Boolean)
+          if (Array.isArray(raw))
+            regions = raw.map((r: any) => String(r).trim().toLowerCase()).filter(Boolean)
           else if (raw != null && String(raw).trim()) {
-            let s = String(raw).trim().replace(/^["\\]+|["\\]+$/g, '').trim()
+            let s = String(raw)
+              .trim()
+              .replace(/^["\\]+|["\\]+$/g, '')
+              .trim()
             if (s.startsWith('[')) {
               try {
                 const arr = JSON.parse(s)
-                regions = Array.isArray(arr) ? arr.map((r: any) => String(r).trim().toLowerCase()).filter(Boolean) : []
-              } catch { regions = [] }
+                regions = Array.isArray(arr)
+                  ? arr.map((r: any) => String(r).trim().toLowerCase()).filter(Boolean)
+                  : []
+              } catch {
+                regions = []
+              }
             } else {
               const regionStr = s.replace(/\s+og\s+/gi, ',').replace(/[,;\n]+/g, ',')
-              regions = regionStr.split(',').map((r: string) => r.replace(/^["'\s\\]+|["'\s\\]+$/g, '').trim().toLowerCase()).filter(Boolean)
+              regions = regionStr
+                .split(',')
+                .map((r: string) =>
+                  r
+                    .replace(/^["'\s\\]+|["'\s\\]+$/g, '')
+                    .trim()
+                    .toLowerCase()
+                )
+                .filter(Boolean)
             }
           }
           const listingCity = (data.city || '').trim().toLowerCase()
@@ -607,14 +751,26 @@ export default function ListingDetailsClient() {
         // Merk: «formidlet» = status Formidla ELLER minst én Formidla-periode (ikke bare «i dag» i perioden),
         // ellers mangler lenke ved avvik mellom dato/tidssone eller når perioden ble lagt inn.
         const isFormidlet =
-          data?.status === 'Formidla' || listingHasFormidlaPeriod(availData as { status?: string }[] | null | undefined)
+          data?.status === 'Formidla' ||
+          listingHasFormidlaPeriod(availData as { status?: string }[] | null | undefined)
         if (user && isNavView && isFormidlet && !ownerTerm) {
-          let tokenData = await supabase.from('listing_tenant_tokens').select('token').eq('listing_id', id).maybeSingle()
-          if (tokenData.error) console.warn('[listing_tenant_tokens] select:', tokenData.error.message)
+          let tokenData = await supabase
+            .from('listing_tenant_tokens')
+            .select('token')
+            .eq('listing_id', id)
+            .maybeSingle()
+          if (tokenData.error)
+            console.warn('[listing_tenant_tokens] select:', tokenData.error.message)
           if (!tokenData.data?.token) {
-            const up = await supabase.from('listing_tenant_tokens').upsert([{ listing_id: id }], { onConflict: 'listing_id' })
+            const up = await supabase
+              .from('listing_tenant_tokens')
+              .upsert([{ listing_id: id }], { onConflict: 'listing_id' })
             if (up.error) console.warn('[listing_tenant_tokens] upsert:', up.error.message)
-            tokenData = await supabase.from('listing_tenant_tokens').select('token').eq('listing_id', id).maybeSingle()
+            tokenData = await supabase
+              .from('listing_tenant_tokens')
+              .select('token')
+              .eq('listing_id', id)
+              .maybeSingle()
           }
           setTenantReportToken(tokenData.data?.token || null)
         } else {
@@ -628,7 +784,7 @@ export default function ListingDetailsClient() {
     }
 
     if (id) fetchData()
-  }, [id, isNavView])
+  }, [id, isNavView, loadMediationReservation, router])
 
   /** App Router / klientnavigasjon scroller ikke alltid til #anker (f.eks. varsel «Åpne fakturagrunnlag»). */
   useEffect(() => {
@@ -655,14 +811,16 @@ export default function ListingDetailsClient() {
       cancelled = true
       window.clearInterval(timer)
     }
-  }, [loading, listing?.id, id])
+  }, [loading, listing, id])
 
   const handleUploadMore = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
-    
+
     if (!hasActiveAgreement) {
       alert(t('signAgreementToUpload'))
-      router.push(`/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`)
+      router.push(
+        `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
+      )
       return
     }
 
@@ -670,7 +828,7 @@ export default function ListingDetailsClient() {
     try {
       const files = Array.from(e.target.files)
       const newUrls = []
-      
+
       for (const file of files) {
         const fileExt = file.name.split('.').pop()
         const fileName = `${Math.random()}.${fileExt}`
@@ -682,20 +840,20 @@ export default function ListingDetailsClient() {
 
         if (uploadError) throw uploadError
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('listings')
-          .getPublicUrl(filePath)
-        
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('listings').getPublicUrl(filePath)
+
         newUrls.push(publicUrl)
       }
 
       const updatedImageUrls = [...allImages, ...newUrls]
-      
+
       const { error: updateError } = await supabase
         .from('listings')
-        .update({ 
+        .update({
           image_urls: updatedImageUrls,
-          image_url: updatedImageUrls[0] // Ensure we have a main thumbnail
+          image_url: updatedImageUrls[0], // Ensure we have a main thumbnail
         })
         .eq('id', id)
 
@@ -704,8 +862,8 @@ export default function ListingDetailsClient() {
       setListing({ ...listing, image_urls: updatedImageUrls, image_url: updatedImageUrls[0] })
       setCurrentImageIndex(updatedImageUrls.length - 1)
       alert(t('imagesAdded'))
-    } catch (err: any) {
-      alert(t('errorUploading') + err.message)
+    } catch (err: unknown) {
+      alert(t('errorUploading') + errMessage(err))
     } finally {
       setUploading(false)
     }
@@ -716,25 +874,29 @@ export default function ListingDetailsClient() {
     if (!newNote.trim()) return
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) return
 
       const { data, error } = await supabase
         .from('nav_notes')
-        .insert([{
-          listing_id: id,
-          note_text: newNote,
-          created_by: user.id
-        }])
+        .insert([
+          {
+            listing_id: id,
+            note_text: newNote,
+            created_by: user.id,
+          },
+        ])
         .select()
         .single()
 
       if (error) throw error
-      
+
       setNavNotes([data, ...navNotes])
       setNewNote('')
-    } catch (err: any) {
-      alert(t('errorSavingNote') + err.message)
+    } catch (err: unknown) {
+      alert(t('errorSavingNote') + errMessage(err))
     }
   }
 
@@ -748,22 +910,32 @@ export default function ListingDetailsClient() {
 
   const refetchHandoverReports = () => {
     if (!id) return
-    supabase.from('handover_reports').select('*').eq('listing_id', id).order('created_at', { ascending: false }).then(({ data }) => setHandoverReports(data || []))
+    supabase
+      .from('handover_reports')
+      .select('*')
+      .eq('listing_id', id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setHandoverReports(data || []))
   }
 
   const handleApproveReport = async (reportId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) return
-      const { error } = await supabase.from('handover_reports').update({
-        approval_status: 'approved',
-        approved_at: new Date().toISOString(),
-        approved_by: user.id
-      }).eq('id', reportId)
+      const { error } = await supabase
+        .from('handover_reports')
+        .update({
+          approval_status: 'approved',
+          approved_at: new Date().toISOString(),
+          approved_by: user.id,
+        })
+        .eq('id', reportId)
       if (error) throw error
       refetchHandoverReports()
-    } catch (err: any) {
-      alert(t('errApprove') + err?.message)
+    } catch (err: unknown) {
+      alert(t('errApprove') + errMessage(err))
     }
   }
 
@@ -771,18 +943,22 @@ export default function ListingDetailsClient() {
     if (!requestChangeReport || !currentUser || !listing?.owner_id) return
     setRequestChangeSending(true)
     try {
-      const comment = requestChangeComment.trim() || 'Kommunen ber om at du sender inn en ny overtakelsesrapport.'
-      const { error: updateErr } = await supabase.from('handover_reports').update({
-        approval_status: 'rejected',
-        request_change_comment: comment
-      }).eq('id', requestChangeReport.id)
+      const comment =
+        requestChangeComment.trim() || 'Kommunen ber om at du sender inn en ny overtakelsesrapport.'
+      const { error: updateErr } = await supabase
+        .from('handover_reports')
+        .update({
+          approval_status: 'rejected',
+          request_change_comment: comment,
+        })
+        .eq('id', requestChangeReport.id)
       if (updateErr) throw updateErr
 
       const messageContent = `Kommunen ber om endring i overtakelsesrapporten for ${listing.address}. ${comment}\n\nVennligst send inn en ny overtakelsesrapport.`
       await supabase.from('chat_messages').insert({
         sender_id: currentUser.id,
         receiver_id: listing.owner_id,
-        content: messageContent
+        content: messageContent,
       })
       await supabase.from('notifications').insert({
         owner_id: listing.owner_id,
@@ -794,13 +970,13 @@ export default function ListingDetailsClient() {
             ? `Kommunen: ${comment.trim()}`
             : 'Kommunen har bedt om ny overtakelsesrapport. Se meldinger.',
         status: 'unread',
-        related_user_id: currentUser.id
+        related_user_id: currentUser.id,
       })
       refetchHandoverReports()
       setRequestChangeReport(null)
       setRequestChangeComment('')
-    } catch (err: any) {
-      alert(t('errSend') + err?.message)
+    } catch (err: unknown) {
+      alert(t('errSend') + errMessage(err))
     } finally {
       setRequestChangeSending(false)
     }
@@ -809,8 +985,9 @@ export default function ListingDetailsClient() {
   const filteredHandoverReports = (() => {
     if (reportTimeFilter === 'all') return handoverReports
     const now = Date.now()
-    const cut = reportTimeFilter === '7d' ? now - 7 * 24 * 60 * 60 * 1000 : now - 30 * 24 * 60 * 60 * 1000
-    return handoverReports.filter(r => new Date(r.created_at).getTime() >= cut)
+    const cut =
+      reportTimeFilter === '7d' ? now - 7 * 24 * 60 * 60 * 1000 : now - 30 * 24 * 60 * 60 * 1000
+    return handoverReports.filter((r) => new Date(r.created_at).getTime() >= cut)
   })()
 
   if (loading) {
@@ -821,7 +998,11 @@ export default function ListingDetailsClient() {
     return (
       <div className="container" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
         <h2 style={{ color: 'var(--text-main)' }}>Boligen ble ikke funnet</h2>
-        <Link href={isNavView ? '/nav/database' : '/homeowner/manage'} className="button" style={{ marginTop: 'var(--space-4)' }}>
+        <Link
+          href={isNavView ? '/nav/database' : '/homeowner/manage'}
+          className="button"
+          style={{ marginTop: 'var(--space-4)' }}
+        >
           {isNavView ? t('backToHousingBank') : t('backToMyProperties')}
         </Link>
       </div>
@@ -830,12 +1011,26 @@ export default function ListingDetailsClient() {
 
   if (regionAccessDenied) {
     return (
-      <div className="container" style={{ textAlign: 'center', padding: 'var(--space-10)', maxWidth: '480px', margin: '0 auto' }}>
-        <h2 style={{ color: 'var(--text-main)', marginBottom: 'var(--space-3)' }}>{t('noAccessThisListing')}</h2>
+      <div
+        className="container"
+        style={{
+          textAlign: 'center',
+          padding: 'var(--space-10)',
+          maxWidth: '480px',
+          margin: '0 auto',
+        }}
+      >
+        <h2 style={{ color: 'var(--text-main)', marginBottom: 'var(--space-3)' }}>
+          {t('noAccessThisListing')}
+        </h2>
         <p style={{ color: 'var(--text-body)', marginBottom: 'var(--space-6)' }}>
           {t('listingInRegionDesc').replace('{city}', listing?.city ?? '')}
         </p>
-        <Link href="/nav/database" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+        <Link
+          href="/nav/database"
+          className="button"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+        >
           <ArrowLeft size={18} /> {t('backToHousingBank')}
         </Link>
       </div>
@@ -868,35 +1063,55 @@ export default function ListingDetailsClient() {
               padding: 'var(--space-6)',
               boxShadow: 'var(--shadow-lg, 0 10px 40px rgba(0,0,0,0.2))',
             }}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
-            <p id="confirm-remove-period-title" style={{ margin: '0 0 var(--space-4)', fontSize: '1rem' }}>
+            <p
+              id="confirm-remove-period-title"
+              style={{ margin: '0 0 var(--space-4)', fontSize: '1rem' }}
+            >
               {t('confirmRemovePeriod')}
             </p>
             <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <button
+              <Button
                 type="button"
-                className="button"
-                style={{ background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}
+                variant="secondary"
                 onClick={() => setPendingDeletePeriod(null)}
               >
                 {t('cancel')}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="button"
-                style={{ background: '#dc2626', color: 'white', border: 'none' }}
+                variant="danger"
                 onClick={() => pendingDeletePeriod && handleRemovePeriod(pendingDeletePeriod)}
               >
                 {t('remove')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="listing-details-header" style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-        <Link href={isNavView ? "/nav/database" : "/homeowner/manage"} className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: '-1rem' }}>
+      <div
+        className="listing-details-header"
+        style={{
+          marginBottom: 'var(--space-6)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 'var(--space-4)',
+        }}
+      >
+        <Link
+          href={isNavView ? '/nav/database' : '/homeowner/manage'}
+          className="nav-link"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            marginLeft: '-1rem',
+          }}
+        >
           <ArrowLeft size={18} /> {isNavView ? t('backToHousingBank') : t('backToMyProperties')}
         </Link>
       </div>
@@ -911,19 +1126,34 @@ export default function ListingDetailsClient() {
             background: 'rgba(245, 158, 11, 0.08)',
           }}
         >
-          <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-body)', lineHeight: 1.55 }}>{t('expiredOwnerNoMediationNav')}</p>
+          <p
+            style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-body)', lineHeight: 1.55 }}
+          >
+            {t('expiredOwnerNoMediationNav')}
+          </p>
         </div>
       )}
 
-      <div className="listing-details-grid" style={{ display: 'grid', gridTemplateColumns: isNavView ? '1.5fr 1fr' : '1fr', gap: 'var(--space-8)', alignItems: 'start' }}>
+      <div
+        className="listing-details-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isNavView ? '1.5fr 1fr' : '1fr',
+          gap: 'var(--space-8)',
+          alignItems: 'start',
+        }}
+      >
         {/* Left Column – rekkefølge: adresse, boliginfo, prisnivåer, ledige perioder, deretter kontaktinfo, overtakelsesrapport, bilder */}
         <div style={{ display: 'grid', gap: 'var(--space-6)' }}>
           {/* 1. Adresse øverst */}
-          <section className="card listing-detail-card" style={{ padding: 'var(--space-6)', position: 'relative' }}>
+          <section
+            className="card listing-detail-card"
+            style={{ padding: 'var(--space-6)', position: 'relative' }}
+          >
             {isNavView && (
               <button
                 type="button"
-                onClick={() => setShowNavNotes(prev => !prev)}
+                onClick={() => setShowNavNotes((prev) => !prev)}
                 title={showNavNotes ? t('hideNoteCaseworker') : t('showNoteCaseworker')}
                 style={{
                   position: 'absolute',
@@ -943,20 +1173,58 @@ export default function ListingDetailsClient() {
               >
                 <MessageSquare size={18} />
                 {navNotes.length > 0 && (
-                  <span style={{ position: 'absolute', top: '-4px', right: '-4px', minWidth: '18px', height: '18px', borderRadius: '9px', background: 'var(--color-teal)', color: 'white', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{navNotes.length}</span>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-4px',
+                      right: '-4px',
+                      minWidth: '18px',
+                      height: '18px',
+                      borderRadius: '9px',
+                      background: 'var(--color-teal)',
+                      color: 'white',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 4px',
+                    }}
+                  >
+                    {navNotes.length}
+                  </span>
                 )}
               </button>
             )}
             {isOwner && !isNavView ? (
-              <input 
-                value={listing.address} 
-                onChange={e => setListing({...listing, address: e.target.value})}
-                onBlur={e => handleUpdateField('address', e.target.value)}
-                style={{ fontSize: '2rem', fontWeight: 800, marginBottom: 'var(--space-2)', color: 'var(--text-main)', border: 'none', background: 'none', width: '100%', padding: 0, outline: 'none' }}
+              <input
+                value={listing.address}
+                onChange={(e) => setListing({ ...listing, address: e.target.value })}
+                onBlur={(e) => handleUpdateField('address', e.target.value)}
+                style={{
+                  fontSize: '2rem',
+                  fontWeight: 800,
+                  marginBottom: 'var(--space-2)',
+                  color: 'var(--text-main)',
+                  border: 'none',
+                  background: 'none',
+                  width: '100%',
+                  padding: 0,
+                  outline: 'none',
+                }}
                 className="editable-h1"
               />
             ) : (
-              <h2 style={{ fontSize: '2rem', marginBottom: 'var(--space-2)', color: 'var(--text-main)', paddingRight: isNavView ? '48px' : 0 }}>{listing.address}</h2>
+              <h2
+                style={{
+                  fontSize: '2rem',
+                  marginBottom: 'var(--space-2)',
+                  color: 'var(--text-main)',
+                  paddingRight: isNavView ? '48px' : 0,
+                }}
+              >
+                {listing.address}
+              </h2>
             )}
             <div
               className="listing-city-line"
@@ -968,13 +1236,17 @@ export default function ListingDetailsClient() {
                 fontSize: '1rem',
               }}
             >
-              <MapPin size={18} style={{ color: 'var(--color-royal-blue)', flexShrink: 0 }} aria-hidden />
+              <MapPin
+                size={18}
+                style={{ color: 'var(--color-royal-blue)', flexShrink: 0 }}
+                aria-hidden
+              />
               {isOwner && !isNavView ? (
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <input
                     value={listing.city}
-                    onChange={e => setListing({ ...listing, city: e.target.value })}
-                    onBlur={e => handleUpdateField('city', e.target.value)}
+                    onChange={(e) => setListing({ ...listing, city: e.target.value })}
+                    onBlur={(e) => handleUpdateField('city', e.target.value)}
                     style={{
                       fontWeight: 600,
                       color: 'var(--color-royal-blue)',
@@ -988,8 +1260,8 @@ export default function ListingDetailsClient() {
                   />
                   <input
                     value={listing.postal_code}
-                    onChange={e => setListing({ ...listing, postal_code: e.target.value })}
-                    onBlur={e => handleUpdateField('postal_code', e.target.value)}
+                    onChange={(e) => setListing({ ...listing, postal_code: e.target.value })}
+                    onBlur={(e) => handleUpdateField('postal_code', e.target.value)}
                     style={{
                       fontWeight: 600,
                       color: 'var(--color-royal-blue)',
@@ -1012,35 +1284,100 @@ export default function ListingDetailsClient() {
 
           {/* Interne notater (kommune) – vises når man trykker på notat-ikonet */}
           {isNavView && showNavNotes && (
-            <section className="card" style={{ padding: 'var(--space-6)', border: '1px solid var(--color-sky-blue)', background: 'rgba(59, 130, 246, 0.03)' }}>
-              <h3 style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
-                <MessageSquare size={20} style={{ color: 'var(--color-accent)' }} /> {t('noteForCaseworker')}
+            <section
+              className="card"
+              style={{
+                padding: 'var(--space-6)',
+                border: '1px solid var(--color-sky-blue)',
+                background: 'rgba(59, 130, 246, 0.03)',
+              }}
+            >
+              <h3
+                style={{
+                  marginBottom: 'var(--space-4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  color: 'var(--text-main)',
+                }}
+              >
+                <MessageSquare size={20} style={{ color: 'var(--color-accent)' }} />{' '}
+                {t('noteForCaseworker')}
               </h3>
               <form onSubmit={handleAddNote} style={{ marginBottom: 'var(--space-6)' }}>
                 <div style={{ position: 'relative' }}>
-                  <textarea 
-                    className="input" 
+                  <textarea
+                    className="input"
                     placeholder={t('addInternalNotePlaceholder')}
                     value={newNote}
-                    onChange={e => setNewNote(e.target.value)}
-                    style={{ minHeight: '100px', paddingRight: 'var(--space-10)', color: 'var(--text-main)' }}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    style={{
+                      minHeight: '100px',
+                      paddingRight: 'var(--space-10)',
+                      color: 'var(--text-main)',
+                    }}
                   />
-                  <button type="submit" style={{ position: 'absolute', bottom: '15px', right: '15px', background: 'var(--color-accent)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-on-dark)', cursor: 'pointer' }}>
+                  <button
+                    type="submit"
+                    style={{
+                      position: 'absolute',
+                      bottom: '15px',
+                      right: '15px',
+                      background: 'var(--color-accent)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '40px',
+                      height: '40px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--text-on-dark)',
+                      cursor: 'pointer',
+                    }}
+                  >
                     <Send size={18} />
                   </button>
                 </div>
-                <p className="text-sm" style={{ marginTop: 'var(--space-2)', color: 'var(--text-muted)' }}>{t('onlyVisibleCaseworker')}</p>
+                <p
+                  className="text-sm"
+                  style={{ marginTop: 'var(--space-2)', color: 'var(--text-muted)' }}
+                >
+                  {t('onlyVisibleCaseworker')}
+                </p>
               </form>
               <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-                {navNotes.length > 0 ? navNotes.map(note => (
-                  <div key={note.id} style={{ padding: 'var(--space-4)', background: 'var(--bg-card)', borderRadius: '12px', borderLeft: '4px solid var(--color-accent)' }}>
-                    <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-body)' }}>{note.note_text}</p>
-                    <div style={{ marginTop: 'var(--space-2)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {formatDateTimeNo(note.created_at)}
+                {navNotes.length > 0 ? (
+                  navNotes.map((note) => (
+                    <div
+                      key={note.id}
+                      style={{
+                        padding: 'var(--space-4)',
+                        background: 'var(--bg-card)',
+                        borderRadius: '12px',
+                        borderLeft: '4px solid var(--color-accent)',
+                      }}
+                    >
+                      <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-body)' }}>
+                        {note.note_text}
+                      </p>
+                      <div
+                        style={{
+                          marginTop: 'var(--space-2)',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        {formatDateTimeNo(note.created_at)}
+                      </div>
                     </div>
-                  </div>
-                )) : (
-                  <p className="text-sm" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('noNotesYet')}</p>
+                  ))
+                ) : (
+                  <p
+                    className="text-sm"
+                    style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}
+                  >
+                    {t('noNotesYet')}
+                  </p>
                 )}
               </div>
             </section>
@@ -1048,15 +1385,41 @@ export default function ListingDetailsClient() {
 
           {/* 2. Boliginformasjon (type, størrelse, boliginfo, inkludert, beskrivelse) */}
           <section className="card listing-detail-card" style={{ padding: 'var(--space-8)' }}>
-            <div className="listing-metrics-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-4)', padding: 'var(--space-6) 0', borderTop: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--space-6)' }}>
+            <div
+              className="listing-metrics-row"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: 'var(--space-4)',
+                padding: 'var(--space-6) 0',
+                borderTop: '1px solid var(--border-subtle)',
+                borderBottom: '1px solid var(--border-subtle)',
+                marginBottom: 'var(--space-6)',
+              }}
+            >
               <div className="listing-metric-cell" style={{ textAlign: 'center' }}>
-                <Building size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
+                <Building
+                  size={20}
+                  style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }}
+                />
                 {isOwner && !isNavView ? (
-                  <select 
-                    value={listing.type} 
-                    onChange={e => { setListing({...listing, type: e.target.value}); handleUpdateField('type', e.target.value); }}
+                  <select
+                    value={listing.type}
+                    onChange={(e) => {
+                      setListing({ ...listing, type: e.target.value })
+                      handleUpdateField('type', e.target.value)
+                    }}
                     className="listing-metric-select"
-                    style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'center', width: '100%', fontSize: '0.9rem', cursor: 'pointer' }}
+                    style={{
+                      fontWeight: 700,
+                      color: 'var(--text-main)',
+                      border: 'none',
+                      background: 'none',
+                      textAlign: 'center',
+                      width: '100%',
+                      fontSize: '0.9rem',
+                      cursor: 'pointer',
+                    }}
                   >
                     <option value="Short-term">Korttid</option>
                     <option value="Long-term">Langtid</option>
@@ -1065,47 +1428,142 @@ export default function ListingDetailsClient() {
                     <option value="Shared">Bofelleskap</option>
                   </select>
                 ) : (
-                  <div className="listing-metric-value" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{translateType(listing.type)}</div>
+                  <div
+                    className="listing-metric-value"
+                    style={{ fontWeight: 700, color: 'var(--text-main)' }}
+                  >
+                    {translateType(listing.type)}
+                  </div>
                 )}
-                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>TYPE</div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>
+                  TYPE
+                </div>
               </div>
               <div className="listing-metric-cell" style={{ textAlign: 'center' }}>
-                <Ruler size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
+                <Ruler
+                  size={20}
+                  style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }}
+                />
                 {isOwner && !isNavView ? (
-                  <div className="listing-metric-size-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                    <input type="number" value={listing.size_sqm} onChange={e => setListing({...listing, size_sqm: e.target.value})} onBlur={e => handleUpdateField('size_sqm', e.target.value)} style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'right', width: '40px', padding: 0, outline: 'none' }} />
+                  <div
+                    className="listing-metric-size-input"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '2px',
+                    }}
+                  >
+                    <input
+                      type="number"
+                      value={listing.size_sqm}
+                      onChange={(e) => setListing({ ...listing, size_sqm: e.target.value })}
+                      onBlur={(e) => handleUpdateField('size_sqm', e.target.value)}
+                      style={{
+                        fontWeight: 700,
+                        color: 'var(--text-main)',
+                        border: 'none',
+                        background: 'none',
+                        textAlign: 'right',
+                        width: '40px',
+                        padding: 0,
+                        outline: 'none',
+                      }}
+                    />
                     <span style={{ fontWeight: 700, color: 'var(--text-main)' }}>m²</span>
                   </div>
                 ) : (
-                  <div className="listing-metric-value" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.size_sqm} m²</div>
+                  <div
+                    className="listing-metric-value"
+                    style={{ fontWeight: 700, color: 'var(--text-main)' }}
+                  >
+                    {listing.size_sqm} m²
+                  </div>
                 )}
-                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>STØRRELSE</div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>
+                  STØRRELSE
+                </div>
               </div>
               <div className="listing-metric-cell" style={{ textAlign: 'center' }}>
                 <Bed size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
                 {isOwner && !isNavView ? (
-                  <input type="number" value={listing.bedrooms} onChange={e => setListing({...listing, bedrooms: e.target.value})} onBlur={e => handleUpdateField('bedrooms', e.target.value)} style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'center', width: '100%', padding: 0, outline: 'none' }} />
+                  <input
+                    type="number"
+                    value={listing.bedrooms}
+                    onChange={(e) => setListing({ ...listing, bedrooms: e.target.value })}
+                    onBlur={(e) => handleUpdateField('bedrooms', e.target.value)}
+                    style={{
+                      fontWeight: 700,
+                      color: 'var(--text-main)',
+                      border: 'none',
+                      background: 'none',
+                      textAlign: 'center',
+                      width: '100%',
+                      padding: 0,
+                      outline: 'none',
+                    }}
+                  />
                 ) : (
-                  <div className="listing-metric-value" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.bedrooms}</div>
+                  <div
+                    className="listing-metric-value"
+                    style={{ fontWeight: 700, color: 'var(--text-main)' }}
+                  >
+                    {listing.bedrooms}
+                  </div>
                 )}
-                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>SOVEROM</div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>
+                  SOVEROM
+                </div>
               </div>
               <div className="listing-metric-cell" style={{ textAlign: 'center' }}>
-                <Users size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
+                <Users
+                  size={20}
+                  style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }}
+                />
                 {isOwner && !isNavView ? (
-                  <input type="number" value={listing.max_occupants} onChange={e => setListing({...listing, max_occupants: e.target.value})} onBlur={e => handleUpdateField('max_occupants', e.target.value)} style={{ fontWeight: 700, color: 'var(--text-main)', border: 'none', background: 'none', textAlign: 'center', width: '100%', padding: 0, outline: 'none' }} />
+                  <input
+                    type="number"
+                    value={listing.max_occupants}
+                    onChange={(e) => setListing({ ...listing, max_occupants: e.target.value })}
+                    onBlur={(e) => handleUpdateField('max_occupants', e.target.value)}
+                    style={{
+                      fontWeight: 700,
+                      color: 'var(--text-main)',
+                      border: 'none',
+                      background: 'none',
+                      textAlign: 'center',
+                      width: '100%',
+                      padding: 0,
+                      outline: 'none',
+                    }}
+                  />
                 ) : (
-                  <div className="listing-metric-value" style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.max_occupants}</div>
+                  <div
+                    className="listing-metric-value"
+                    style={{ fontWeight: 700, color: 'var(--text-main)' }}
+                  >
+                    {listing.max_occupants}
+                  </div>
                 )}
-                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>MAKS PERS</div>
+                <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>
+                  MAKS PERS
+                </div>
               </div>
             </div>
-            <div style={{ marginTop: 'var(--space-5)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 6 }}>{t('paymentMethodLabel')}</div>
+            <div
+              style={{
+                marginTop: 'var(--space-5)',
+                paddingTop: 'var(--space-4)',
+                borderTop: '1px solid var(--border-subtle)',
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 6 }}>
+                {t('paymentMethodLabel')}
+              </div>
               {isOwner && !isNavView ? (
                 <select
                   value={listing.payment_method === 'konto' ? 'konto' : 'faktura'}
-                  onChange={e => {
+                  onChange={(e) => {
                     const v = e.target.value === 'konto' ? 'konto' : 'faktura'
                     setListing({ ...listing, payment_method: v })
                     void handleUpdateField('payment_method', v)
@@ -1118,30 +1576,81 @@ export default function ListingDetailsClient() {
                 </select>
               ) : (
                 <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }}>
-                  {listing.payment_method === 'konto' ? t('paymentMethodKonto') : t('paymentMethodFaktura')}
+                  {listing.payment_method === 'konto'
+                    ? t('paymentMethodKonto')
+                    : t('paymentMethodFaktura')}
                 </div>
               )}
             </div>
-            <div className="listing-detail-two-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}>
+            <div
+              className="listing-detail-two-col"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}
+            >
               <div>
-                <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Boliginformasjon</h3>
+                <h3
+                  style={{
+                    marginBottom: 'var(--space-4)',
+                    fontSize: '1.1rem',
+                    color: 'var(--text-main)',
+                  }}
+                >
+                  Boliginformasjon
+                </h3>
                 <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
-                    <strong>Etasje:</strong> {isOwner && !isNavView ? (
-                      <input value={listing.floor_number} onChange={e => setListing({...listing, floor_number: e.target.value})} onBlur={e => handleUpdateField('floor_number', e.target.value)} className="listing-inline-input" style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', width: '80px', outline: 'none', color: 'var(--text-main)' }} />
-                    ) : listing.floor_number}
+                    <strong>Etasje:</strong>{' '}
+                    {isOwner && !isNavView ? (
+                      <input
+                        value={listing.floor_number}
+                        onChange={(e) => setListing({ ...listing, floor_number: e.target.value })}
+                        onBlur={(e) => handleUpdateField('floor_number', e.target.value)}
+                        className="listing-inline-input"
+                        style={{
+                          border: 'none',
+                          background: 'var(--listing-field-bg)',
+                          borderRadius: '4px',
+                          padding: '2px 6px',
+                          width: '80px',
+                          outline: 'none',
+                          color: 'var(--text-main)',
+                        }}
+                      />
+                    ) : (
+                      listing.floor_number
+                    )}
                   </div>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
-                    <strong>Møblering:</strong> {isOwner && !isNavView ? (
-                      <select value={listing.furnishing} onChange={e => { setListing({...listing, furnishing: e.target.value}); handleUpdateField('furnishing', e.target.value); }} className="listing-inline-input" style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', outline: 'none', color: 'var(--text-main)' }}>
+                    <strong>Møblering:</strong>{' '}
+                    {isOwner && !isNavView ? (
+                      <select
+                        value={listing.furnishing}
+                        onChange={(e) => {
+                          setListing({ ...listing, furnishing: e.target.value })
+                          handleUpdateField('furnishing', e.target.value)
+                        }}
+                        className="listing-inline-input"
+                        style={{
+                          border: 'none',
+                          background: 'var(--listing-field-bg)',
+                          borderRadius: '4px',
+                          padding: '2px 6px',
+                          outline: 'none',
+                          color: 'var(--text-main)',
+                        }}
+                      >
                         <option>Umøblert</option>
                         <option>Kun hvitevarer</option>
                         <option>Delvis møblert</option>
                         <option>Fullt møblert</option>
-                        <option>Fullt møblert og boligen har alt nødvendig inventar for matlaging og overnatting.</option>
+                        <option>
+                          Fullt møblert og boligen har alt nødvendig inventar for matlaging og
+                          overnatting.
+                        </option>
                         <option>Møblert m/utstyr</option>
                       </select>
-                    ) : listing.furnishing}
+                    ) : (
+                      listing.furnishing
+                    )}
                   </div>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
                     <strong>Mulighet for husdyr:</strong>{' '}
@@ -1149,11 +1658,18 @@ export default function ListingDetailsClient() {
                       <>
                         <select
                           value={listing.pet_policy || 'Ingen dyr tillatt'}
-                          onChange={e => {
+                          onChange={(e) => {
                             void handlePetPolicyChange(e.target.value)
                           }}
                           className="listing-inline-input"
-                          style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', outline: 'none', color: 'var(--text-main)' }}
+                          style={{
+                            border: 'none',
+                            background: 'var(--listing-field-bg)',
+                            borderRadius: '4px',
+                            padding: '2px 6px',
+                            outline: 'none',
+                            color: 'var(--text-main)',
+                          }}
                         >
                           <option value="Tillatt">Tillatt</option>
                           <option value="Ingen dyr tillatt">Ingen dyr tillatt</option>
@@ -1161,157 +1677,542 @@ export default function ListingDetailsClient() {
                         </select>
                         {(listing.pet_policy || '') === 'Enkelte dyr er tillatt' && (
                           <div style={{ marginTop: 6 }}>
-                            <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>Utdyp svaret ditt: </span>
+                            <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>
+                              Utdyp svaret ditt:{' '}
+                            </span>
                             <input
                               value={listing.pet_policy_detail || ''}
-                              onChange={e => setListing({ ...listing, pet_policy_detail: e.target.value })}
-                              onBlur={e => handleUpdateField('pet_policy_detail', e.target.value)}
+                              onChange={(e) =>
+                                setListing({ ...listing, pet_policy_detail: e.target.value })
+                              }
+                              onBlur={(e) => handleUpdateField('pet_policy_detail', e.target.value)}
                               className="listing-inline-input"
-                              style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '4px 8px', width: 'min(100%, 280px)', outline: 'none', color: 'var(--text-main)' }}
-                        />
+                              style={{
+                                border: 'none',
+                                background: 'var(--listing-field-bg)',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                width: 'min(100%, 280px)',
+                                outline: 'none',
+                                color: 'var(--text-main)',
+                              }}
+                            />
                           </div>
                         )}
                       </>
                     ) : (
                       <>
                         {listing.pet_policy || '—'}
-                        {(listing.pet_policy || '') === 'Enkelte dyr er tillatt' && listing.pet_policy_detail ? (
-                          <span style={{ display: 'block', fontSize: '0.85rem', marginTop: 4 }}>{listing.pet_policy_detail}</span>
+                        {(listing.pet_policy || '') === 'Enkelte dyr er tillatt' &&
+                        listing.pet_policy_detail ? (
+                          <span style={{ display: 'block', fontSize: '0.85rem', marginTop: 4 }}>
+                            {listing.pet_policy_detail}
+                          </span>
                         ) : null}
                       </>
                     )}
                   </div>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
-                    <strong>Parkering:</strong> {isOwner && !isNavView ? (
-                      <input value={listing.parking_info} onChange={e => setListing({...listing, parking_info: e.target.value})} onBlur={e => handleUpdateField('parking_info', e.target.value)} className="listing-inline-input" style={{ border: 'none', background: 'var(--listing-field-bg)', borderRadius: '4px', padding: '2px 6px', width: '150px', outline: 'none', color: 'var(--text-main)' }} />
-                    ) : listing.parking_info}
+                    <strong>Parkering:</strong>{' '}
+                    {isOwner && !isNavView ? (
+                      <input
+                        value={listing.parking_info}
+                        onChange={(e) => setListing({ ...listing, parking_info: e.target.value })}
+                        onBlur={(e) => handleUpdateField('parking_info', e.target.value)}
+                        className="listing-inline-input"
+                        style={{
+                          border: 'none',
+                          background: 'var(--listing-field-bg)',
+                          borderRadius: '4px',
+                          padding: '2px 6px',
+                          width: '150px',
+                          outline: 'none',
+                          color: 'var(--text-main)',
+                        }}
+                      />
+                    ) : (
+                      listing.parking_info
+                    )}
                   </div>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
-                    <strong>Fysisk tilrettelegging:</strong> {isOwner && !isNavView ? (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
-                        {['Alt på ett plan', 'Heis i bygget', 'Terskelfritt', 'Universell utforming', 'Omsorgsboligstandard'].map(acc => {
-                          const isActive = listing.accessibility?.includes(acc);
+                    <strong>Fysisk tilrettelegging:</strong>{' '}
+                    {isOwner && !isNavView ? (
+                      <div
+                        style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}
+                      >
+                        {[
+                          'Alt på ett plan',
+                          'Heis i bygget',
+                          'Terskelfritt',
+                          'Universell utforming',
+                          'Omsorgsboligstandard',
+                        ].map((acc) => {
+                          const isActive = listing.accessibility?.includes(acc)
                           return (
-                            <button key={acc} onClick={() => { const newAcc = isActive ? listing.accessibility.filter((a: string) => a !== acc) : [...(listing.accessibility || []), acc]; setListing({...listing, accessibility: newAcc}); handleUpdateField('accessibility', newAcc); }} className="listing-tag listing-tag-accessibility" style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '0.75rem', cursor: 'pointer', background: isActive ? 'var(--color-royal-blue)' : 'var(--listing-tag-bg)', border: '1px solid ' + (isActive ? 'var(--color-royal-blue)' : 'var(--border-subtle)'), color: isActive ? 'white' : 'var(--text-muted)' }}>{acc}</button>
-                          );
+                            <button
+                              key={acc}
+                              onClick={() => {
+                                const newAcc = isActive
+                                  ? listing.accessibility.filter((a: string) => a !== acc)
+                                  : [...(listing.accessibility || []), acc]
+                                setListing({ ...listing, accessibility: newAcc })
+                                handleUpdateField('accessibility', newAcc)
+                              }}
+                              className="listing-tag listing-tag-accessibility"
+                              style={{
+                                padding: '2px 8px',
+                                borderRadius: '10px',
+                                fontSize: '0.75rem',
+                                cursor: 'pointer',
+                                background: isActive
+                                  ? 'var(--color-royal-blue)'
+                                  : 'var(--listing-tag-bg)',
+                                border:
+                                  '1px solid ' +
+                                  (isActive ? 'var(--color-royal-blue)' : 'var(--border-subtle)'),
+                                color: isActive ? 'white' : 'var(--text-muted)',
+                              }}
+                            >
+                              {acc}
+                            </button>
+                          )
                         })}
                       </div>
-                    ) : (listing.accessibility?.join(', ') || 'Ingen')}
+                    ) : (
+                      listing.accessibility?.join(', ') || 'Ingen'
+                    )}
                   </div>
                 </div>
               </div>
               <div>
-                <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Inkludert i leie</h3>
+                <h3
+                  style={{
+                    marginBottom: 'var(--space-4)',
+                    fontSize: '1.1rem',
+                    color: 'var(--text-main)',
+                  }}
+                >
+                  Inkludert i leie
+                </h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
                   {isOwner && !isNavView ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                      {['Strøm', 'Internett', 'Kommunale avgifter', 'Vaktmestertjenester', 'Parkering'].map(inc => {
-                        const isActive = listing.includes?.includes(inc);
+                      {[
+                        'Strøm',
+                        'Internett',
+                        'Kommunale avgifter',
+                        'Vaktmestertjenester',
+                        'Parkering',
+                      ].map((inc) => {
+                        const isActive = listing.includes?.includes(inc)
                         return (
-                          <button key={inc} onClick={() => { const newInc = isActive ? listing.includes.filter((i: string) => i !== inc) : [...(listing.includes || []), inc]; setListing({...listing, includes: newInc}); handleUpdateField('includes', newInc); }} className="listing-tag listing-tag-includes" style={{ padding: '4px 12px', borderRadius: '14px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', background: isActive ? 'var(--listing-tag-includes-active-bg)' : 'transparent', color: isActive ? 'var(--text-main)' : 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}>{inc}</button>
-                        );
+                          <button
+                            key={inc}
+                            onClick={() => {
+                              const newInc = isActive
+                                ? listing.includes.filter((i: string) => i !== inc)
+                                : [...(listing.includes || []), inc]
+                              setListing({ ...listing, includes: newInc })
+                              handleUpdateField('includes', newInc)
+                            }}
+                            className="listing-tag listing-tag-includes"
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: '14px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              background: isActive
+                                ? 'var(--listing-tag-includes-active-bg)'
+                                : 'transparent',
+                              color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
+                              border: '1px solid var(--border-subtle)',
+                            }}
+                          >
+                            {inc}
+                          </button>
+                        )
                       })}
                     </div>
                   ) : (
                     <>
                       {listing.includes?.map((i: string) => (
-                        <span key={i} className="listing-tag listing-tag-includes-static" style={{ padding: '4px 12px', borderRadius: '14px', background: 'var(--listing-tag-includes-active-bg)', color: 'var(--text-main)', fontSize: '0.75rem', fontWeight: 600, border: '1px solid var(--border-subtle)' }}>{i}</span>
+                        <span
+                          key={i}
+                          className="listing-tag listing-tag-includes-static"
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: '14px',
+                            background: 'var(--listing-tag-includes-active-bg)',
+                            color: 'var(--text-main)',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            border: '1px solid var(--border-subtle)',
+                          }}
+                        >
+                          {i}
+                        </span>
                       ))}
-                      {(!listing.includes || listing.includes.length === 0) && <span className="text-sm" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Ingenting inkludert</span>}
+                      {(!listing.includes || listing.includes.length === 0) && (
+                        <span
+                          className="text-sm"
+                          style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}
+                        >
+                          Ingenting inkludert
+                        </span>
+                      )}
                     </>
                   )}
                 </div>
               </div>
             </div>
             <div style={{ marginTop: 'var(--space-8)' }}>
-              <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)' }}>Beskrivelse</h3>
+              <h3
+                style={{
+                  marginBottom: 'var(--space-4)',
+                  fontSize: '1.1rem',
+                  color: 'var(--text-main)',
+                }}
+              >
+                Beskrivelse
+              </h3>
               {isOwner && !isNavView ? (
-                <textarea value={listing.additional_info} onChange={e => setListing({...listing, additional_info: e.target.value})} onBlur={e => handleUpdateField('additional_info', e.target.value)} className="listing-textarea" style={{ width: '100%', minHeight: '150px', fontSize: '1rem', lineHeight: '1.6', color: 'var(--text-body)', border: '1px solid var(--border-subtle)', background: 'var(--bg-card)', borderRadius: '8px', padding: 'var(--space-4)', outline: 'none' }} />
+                <textarea
+                  value={listing.additional_info}
+                  onChange={(e) => setListing({ ...listing, additional_info: e.target.value })}
+                  onBlur={(e) => handleUpdateField('additional_info', e.target.value)}
+                  className="listing-textarea"
+                  style={{
+                    width: '100%',
+                    minHeight: '150px',
+                    fontSize: '1rem',
+                    lineHeight: '1.6',
+                    color: 'var(--text-body)',
+                    border: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-card)',
+                    borderRadius: '8px',
+                    padding: 'var(--space-4)',
+                    outline: 'none',
+                  }}
+                />
               ) : (
-                <p style={{ whiteSpace: 'pre-wrap', fontSize: '1rem', lineHeight: '1.6', color: 'var(--text-body)' }}>{listing.additional_info || 'Ingen ytterligere beskrivelse.'}</p>
+                <p
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    fontSize: '1rem',
+                    lineHeight: '1.6',
+                    color: 'var(--text-body)',
+                  }}
+                >
+                  {listing.additional_info || 'Ingen ytterligere beskrivelse.'}
+                </p>
               )}
             </div>
           </section>
 
           {/* 3. Prisnivåer */}
           <section className="card listing-detail-card" style={{ padding: 'var(--space-6)' }}>
-            <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3
+              style={{
+                marginBottom: 'var(--space-4)',
+                fontSize: '1.1rem',
+                color: 'var(--text-main)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <Tag size={20} style={{ color: 'var(--color-accent)' }} /> Prisnivåer
             </h3>
             {isOwner && !isNavView ? (
-              <div style={{ padding: 'var(--space-4)', background: 'var(--color-dark-navy)', borderRadius: '16px', color: 'white' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)' }}>
+              <div
+                style={{
+                  padding: 'var(--space-4)',
+                  background: 'var(--color-dark-navy)',
+                  borderRadius: '16px',
+                  color: 'white',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: 'var(--space-6)',
+                  }}
+                >
                   <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>DØGNPRIS</label>
+                    <label
+                      className="label"
+                      style={{
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: '0.75rem',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      DØGNPRIS
+                    </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input type="number" value={listing.price_daily} onChange={e => setListing({...listing, price_daily: e.target.value})} onBlur={e => handleUpdateField('price_daily', e.target.value)} style={{ fontSize: '1.5rem', fontWeight: 800, background: 'none', border: 'none', color: 'white', width: '100px', outline: 'none' }} />
+                      <input
+                        type="number"
+                        value={listing.price_daily}
+                        onChange={(e) => setListing({ ...listing, price_daily: e.target.value })}
+                        onBlur={(e) => handleUpdateField('price_daily', e.target.value)}
+                        style={{
+                          fontSize: '1.5rem',
+                          fontWeight: 800,
+                          background: 'none',
+                          border: 'none',
+                          color: 'white',
+                          width: '100px',
+                          outline: 'none',
+                        }}
+                      />
                       <span style={{ fontSize: '1.2rem', fontWeight: 700 }}>,-</span>
                     </div>
                   </div>
                   <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>UKESPRIS</label>
+                    <label
+                      className="label"
+                      style={{
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: '0.75rem',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      UKESPRIS
+                    </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input type="number" value={listing.price_weekly} onChange={e => setListing({...listing, price_weekly: e.target.value})} onBlur={e => handleUpdateField('price_weekly', e.target.value)} style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }} />
+                      <input
+                        type="number"
+                        value={listing.price_weekly}
+                        onChange={(e) => setListing({ ...listing, price_weekly: e.target.value })}
+                        onBlur={(e) => handleUpdateField('price_weekly', e.target.value)}
+                        style={{
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                          background: 'none',
+                          border: 'none',
+                          color: 'white',
+                          width: '80px',
+                          outline: 'none',
+                        }}
+                      />
                       <span>,-</span>
                     </div>
                   </div>
                   <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>MÅNEDSLEIE (KORTTID)</label>
+                    <label
+                      className="label"
+                      style={{
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: '0.75rem',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      MÅNEDSLEIE (KORTTID)
+                    </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input type="number" value={listing.price_monthly_short} onChange={e => setListing({...listing, price_monthly_short: e.target.value})} onBlur={e => handleUpdateField('price_monthly_short', e.target.value)} style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }} />
+                      <input
+                        type="number"
+                        value={listing.price_monthly_short}
+                        onChange={(e) =>
+                          setListing({ ...listing, price_monthly_short: e.target.value })
+                        }
+                        onBlur={(e) => handleUpdateField('price_monthly_short', e.target.value)}
+                        style={{
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                          background: 'none',
+                          border: 'none',
+                          color: 'white',
+                          width: '80px',
+                          outline: 'none',
+                        }}
+                      />
                       <span>,-</span>
                     </div>
                   </div>
                   <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>LANGTIDSLEIE (PER MND)</label>
+                    <label
+                      className="label"
+                      style={{
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: '0.75rem',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      LANGTIDSLEIE (PER MND)
+                    </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input type="number" value={listing.price_monthly_long} onChange={e => setListing({...listing, price_monthly_long: e.target.value})} onBlur={e => handleUpdateField('price_monthly_long', e.target.value)} style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }} />
+                      <input
+                        type="number"
+                        value={listing.price_monthly_long}
+                        onChange={(e) =>
+                          setListing({ ...listing, price_monthly_long: e.target.value })
+                        }
+                        onBlur={(e) => handleUpdateField('price_monthly_long', e.target.value)}
+                        style={{
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                          background: 'none',
+                          border: 'none',
+                          color: 'white',
+                          width: '80px',
+                          outline: 'none',
+                        }}
+                      />
                       <span>,-</span>
                     </div>
                   </div>
                   <div>
-                    <label className="label" style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', marginBottom: '4px' }}>DEPOSITUM</label>
+                    <label
+                      className="label"
+                      style={{
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: '0.75rem',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      DEPOSITUM
+                    </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input type="number" value={listing.deposit_amount} onChange={e => setListing({...listing, deposit_amount: e.target.value})} onBlur={e => handleUpdateField('deposit_amount', e.target.value)} style={{ fontSize: '1.1rem', fontWeight: 700, background: 'none', border: 'none', color: 'white', width: '80px', outline: 'none' }} />
+                      <input
+                        type="number"
+                        value={listing.deposit_amount}
+                        onChange={(e) => setListing({ ...listing, deposit_amount: e.target.value })}
+                        onBlur={(e) => handleUpdateField('deposit_amount', e.target.value)}
+                        style={{
+                          fontSize: '1.1rem',
+                          fontWeight: 700,
+                          background: 'none',
+                          border: 'none',
+                          color: 'white',
+                          width: '80px',
+                          outline: 'none',
+                        }}
+                      />
                       <span>,-</span>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-4)', color: 'var(--text-body)' }}>
-                <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Døgnpris</span><div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.price_daily != null ? `${listing.price_daily},-` : '–'}</div></div>
-                <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ukespris</span><div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.price_weekly != null ? `${listing.price_weekly},-` : '–'}</div></div>
-                <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mnd (korttid)</span><div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.price_monthly_short != null ? `${listing.price_monthly_short},-` : '–'}</div></div>
-                <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mnd (langtid)</span><div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.price_monthly_long != null ? `${listing.price_monthly_long},-` : '–'}</div></div>
-                <div><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Depositum</span><div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.deposit_amount != null ? `${listing.deposit_amount},-` : '–'}</div></div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: 'var(--space-4)',
+                  color: 'var(--text-body)',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Døgnpris</span>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                    {listing.price_daily != null ? `${listing.price_daily},-` : '–'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ukespris</span>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                    {listing.price_weekly != null ? `${listing.price_weekly},-` : '–'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Mnd (korttid)
+                  </span>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                    {listing.price_monthly_short != null ? `${listing.price_monthly_short},-` : '–'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Mnd (langtid)
+                  </span>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                    {listing.price_monthly_long != null ? `${listing.price_monthly_long},-` : '–'}
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Depositum</span>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                    {listing.deposit_amount != null ? `${listing.deposit_amount},-` : '–'}
+                  </div>
+                </div>
               </div>
             )}
           </section>
 
           {/* Utleier: synlig for alle som ikke er eier når man ikke er i nav-høyrekolonne (kart, view=owner, osv.) */}
           {!isOwner && !isNavView && (
-            <section className="card listing-detail-card" id="kontaktinfo" style={{ padding: 'var(--space-6)' }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
+            <section
+              className="card listing-detail-card"
+              id="kontaktinfo"
+              style={{ padding: 'var(--space-6)' }}
+            >
+              <h3
+                style={{
+                  fontSize: '1rem',
+                  marginBottom: 'var(--space-4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  color: 'var(--text-main)',
+                }}
+              >
                 <User size={18} style={{ color: 'var(--text-main)' }} /> {t('landlord')}
               </h3>
               <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.owner_name?.trim() || '–'}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.9rem', color: 'var(--text-body)' }}>
-                  <Phone size={14} style={{ color: 'var(--color-accent)' }} /> {listing.contact_phone?.trim() || '–'}
+                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                  {listing.owner_name?.trim() || '–'}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    fontSize: '0.9rem',
+                    color: 'var(--text-body)',
+                  }}
+                >
+                  <Phone size={14} style={{ color: 'var(--color-accent)' }} />{' '}
+                  {listing.contact_phone?.trim() || '–'}
                 </div>
                 {viewerIsKommuneStaff && listing.owner_id && !ownerAgreementTerminated && (
                   <Link
                     href={`/nav/messages?with=${listing.owner_id}`}
                     className="button button-secondary"
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', textDecoration: 'none', marginTop: 'var(--space-1)', width: 'fit-content' }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 'var(--space-2)',
+                      padding: 'var(--space-2) var(--space-4)',
+                      fontSize: '0.9rem',
+                      textDecoration: 'none',
+                      marginTop: 'var(--space-1)',
+                      width: 'fit-content',
+                    }}
                   >
                     <MessageSquare size={18} /> {t('message')}
                   </Link>
                 )}
                 {listing.last_verified && (
-                  <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-3)', background: 'rgba(45, 212, 191, 0.12)', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--color-teal)', border: '1px solid rgba(45, 212, 191, 0.3)' }}>
-                    <ShieldCheck size={14} style={{ display: 'inline', marginRight: '6px', color: 'var(--color-teal)' }} />
+                  <div
+                    style={{
+                      marginTop: 'var(--space-2)',
+                      padding: 'var(--space-3)',
+                      background: 'rgba(45, 212, 191, 0.12)',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      color: 'var(--color-teal)',
+                      border: '1px solid rgba(45, 212, 191, 0.3)',
+                    }}
+                  >
+                    <ShieldCheck
+                      size={14}
+                      style={{ display: 'inline', marginRight: '6px', color: 'var(--color-teal)' }}
+                    />
                     Vilkår signert: {formatDateNo(listing.last_verified)}
                   </div>
                 )}
@@ -1320,165 +2221,393 @@ export default function ListingDetailsClient() {
           )}
 
           {/* 4. Ledige perioder og kalender */}
-          <div className="listing-availability-box" style={{ padding: 'var(--space-6)', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-              <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Clock size={20} style={{ color: 'var(--color-royal-blue)' }} /> Ledige perioder for utleie
-              </h3>
-              {availability.length > 0 ? (
-                <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
-                  {availability.map(p => {
-                    const canDelete =
-                      (isOwner && !isNavView && p.status !== 'Formidla') ||
-                      (isNavView && kommuneCanEdit && !ownerAgreementTerminated)
-                    return (
-                      <div key={p.id} className="listing-availability-item" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)', background: 'var(--listing-availability-item-bg)', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                        <Calendar size={16} style={{ color: p.status === 'Formidla' ? 'var(--color-royal-blue)' : p.status === 'Utilgjengelig' ? '#ef4444' : 'var(--color-teal)' }} />
-                        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                          {formatDateNo(p.start_date)} - {formatDateNo(p.end_date)}
-                        </span>
-                        <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: p.status === 'Formidla' ? 'var(--color-royal-blue)' : p.status === 'Utilgjengelig' ? '#ef4444' : 'var(--color-teal)', background: p.status === 'Formidla' ? 'rgba(59, 130, 246, 0.1)' : p.status === 'Utilgjengelig' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(32, 187, 175, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-                          {p.status === 'Formidla' ? t('formidlet') : p.status === 'Utilgjengelig' ? t('unavailable') : t('available')}
-                        </span>
-                        {canDelete && (
-                          <button
-                            type="button"
-                            onClick={() => setPendingDeletePeriod(p)}
-                            title={t('remove')}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-muted)', opacity: 0.7, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            aria-label={t('remove')}
-                          >
-                            <X size={16} />
-                          </button>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Ingen spesifikke ledige perioder er lagt til for denne boligen.</p>
-              )}
-              {(isNavView || availability.length > 0) && (
-                <div style={{ marginTop: 'var(--space-6)' }}>
-                  <h4 style={{ marginBottom: 'var(--space-3)', fontSize: '0.95rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Calendar size={18} style={{ color: 'var(--color-royal-blue)' }} /> {t('calendar')}
-                  </h4>
-                  <div style={{ background: 'var(--listing-availability-item-bg)', borderRadius: '12px', border: '1px solid var(--border-subtle)', padding: 'var(--space-4)', maxWidth: '340px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
-                      <button type="button" onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', color: 'var(--text-body)' }}><ChevronLeft size={20} /></button>
-                      <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }}>{calendarMonth.toLocaleDateString('no-NO', { month: 'long', year: 'numeric' })}</span>
-                      <button type="button" onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', color: 'var(--text-body)' }}><ChevronRight size={20} /></button>
+          <div
+            className="listing-availability-box"
+            style={{
+              padding: 'var(--space-6)',
+              background: 'var(--bg-card)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-subtle)',
+            }}
+          >
+            <h3
+              style={{
+                marginBottom: 'var(--space-4)',
+                fontSize: '1.1rem',
+                color: 'var(--text-main)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <Clock size={20} style={{ color: 'var(--color-royal-blue)' }} /> Ledige perioder for
+              utleie
+            </h3>
+            {availability.length > 0 ? (
+              <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+                {availability.map((p) => {
+                  const canDelete =
+                    (isOwner && !isNavView && p.status !== 'Formidla') ||
+                    (isNavView && kommuneCanEdit && !ownerAgreementTerminated)
+                  return (
+                    <div
+                      key={p.id}
+                      className="listing-availability-item"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-3)',
+                        padding: 'var(--space-3)',
+                        background: 'var(--listing-availability-item-bg)',
+                        borderRadius: '10px',
+                        border: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <Calendar
+                        size={16}
+                        style={{
+                          color:
+                            p.status === 'Formidla'
+                              ? 'var(--color-royal-blue)'
+                              : p.status === 'Utilgjengelig'
+                                ? '#ef4444'
+                                : 'var(--color-teal)',
+                        }}
+                      />
+                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                        {formatDateNo(p.start_date)} - {formatDateNo(p.end_date)}
+                      </span>
+                      <span
+                        style={{
+                          marginLeft: 'auto',
+                          fontSize: '0.75rem',
+                          color:
+                            p.status === 'Formidla'
+                              ? 'var(--color-royal-blue)'
+                              : p.status === 'Utilgjengelig'
+                                ? '#ef4444'
+                                : 'var(--color-teal)',
+                          background:
+                            p.status === 'Formidla'
+                              ? 'rgba(59, 130, 246, 0.1)'
+                              : p.status === 'Utilgjengelig'
+                                ? 'rgba(239, 68, 68, 0.1)'
+                                : 'rgba(32, 187, 175, 0.1)',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        {p.status === 'Formidla'
+                          ? t('formidlet')
+                          : p.status === 'Utilgjengelig'
+                            ? t('unavailable')
+                            : t('available')}
+                      </span>
+                      {canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingDeletePeriod(p)}
+                          title={t('remove')}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            color: 'var(--text-muted)',
+                            opacity: 0.7,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          aria-label={t('remove')}
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', fontSize: '0.75rem' }}>
-                      {['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'].map(day => (
-                        <div key={day} style={{ textAlign: 'center', fontWeight: 600, color: 'var(--text-muted)', padding: '4px 0' }}>{day}</div>
-                      ))}
-                      {(() => {
-                        const year = calendarMonth.getFullYear(), month = calendarMonth.getMonth(), first = new Date(year, month, 1), last = new Date(year, month + 1, 0), startPad = (first.getDay() + 6) % 7, daysInMonth = last.getDate()
-                        const cells: React.ReactNode[] = []
-                        for (let i = 0; i < startPad; i++) cells.push(<div key={`pad-${i}`} style={{ minHeight: '32px' }} />)
-                        for (let d = 1; d <= daysInMonth; d++) {
-                          const date = new Date(year, month, d), status = getStatusForDate(date)
-                          const isInFormidletRange = formidletStart && formidletEnd && (() => { const t = date.toISOString().slice(0, 10); return t >= formidletStart && t <= formidletEnd })()
-                          let bg = 'var(--listing-calendar-cell-bg)'
-                          if (isInFormidletRange) bg = 'var(--calendar-formidlet-range-bg)'
-                          else if (status === 'Konflikt') bg = '#991b1b'
-                          else if (status === 'Formidla') bg = 'var(--calendar-formidlet-bg)'
-                          else if (status === 'Tilgjengelig') bg = 'var(--calendar-tilgjengelig-bg)'
-                          else if (status === 'Utilgjengelig') bg = 'var(--calendar-utilgjengelig-bg)'
-                          cells.push(<div key={d} title={status ? `${d}. ${status}` : `${d}`} style={{ minHeight: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', background: bg, color: status === 'Konflikt' ? '#fff' : status || isInFormidletRange ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: 500 }}>{d}</div>)
-                        }
-                        return cells
-                      })()}
-                    </div>
-                    <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-3)', fontSize: '0.7rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('calendarLegendFormidletInfo')}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-formidlet-bg)' }} /> {t('formidlet')}</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('calendarLegendAvailableInfo')}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-tilgjengelig-bg)' }} /> {t('available')}</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('calendarLegendUnavailableInfo')}><span style={{ width: 10, height: 10, borderRadius: 4, background: 'var(--calendar-utilgjengelig-bg)' }} /> {t('unavailable')}</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={t('calendarLegendConflictInfo')}><span style={{ width: 10, height: 10, borderRadius: 4, background: '#991b1b' }} /> Konflikt</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {isNavView && kommuneCanEdit && !ownerAgreementTerminated && (
-                <div
+                  )
+                })}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                Ingen spesifikke ledige perioder er lagt til for denne boligen.
+              </p>
+            )}
+            {(isNavView || availability.length > 0) && (
+              <div style={{ marginTop: 'var(--space-6)' }}>
+                <h4
                   style={{
-                    marginTop: 'var(--space-6)',
-                    padding: 'var(--space-4)',
-                    background: 'rgba(245, 158, 11, 0.08)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(245, 158, 11, 0.4)'
+                    marginBottom: 'var(--space-3)',
+                    fontSize: '0.95rem',
+                    color: 'var(--text-main)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
                   }}
                 >
-                  <h4 style={{ marginBottom: 'var(--space-2)', fontSize: '0.95rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Lock size={18} style={{ opacity: 0.9 }} /> {t('mediationReserveTitle')}
-                  </h4>
-                  <p className="text-sm" style={{ margin: '0 0 var(--space-3)', color: 'var(--text-body)', lineHeight: 1.5 }}>{t('mediationReserveHint')}</p>
-                  {mediationReservation ? (
-                    mediationReservation.reserved_by === currentUser?.id ? (
-                      <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                        <p className="text-sm" style={{ margin: 0, color: 'var(--text-main)' }}>
-                          {t('mediationReservedByYou').replace(
-                            '{expires}',
-                            mediationReservation.expires_at ? formatDateTimeNo(mediationReservation.expires_at) : '—'
-                          )}
-                        </p>
-                        {mediationReservation.internal_note ? (
-                          <p className="text-sm" style={{ margin: 0, opacity: 0.85 }}>
-                            <strong>{t('mediationInternalNote')}:</strong> {mediationReservation.internal_note}
-                          </p>
-                        ) : null}
-                        <label className="label" style={{ fontSize: '0.7rem' }}>{t('mediationInternalNote')}</label>
-                        <textarea
-                          className="input"
-                          rows={2}
-                          value={reservationNote}
-                          onChange={e => setReservationNote(e.target.value)}
-                          placeholder={t('mediationInternalNote')}
-                          style={{ marginBottom: 0, resize: 'vertical', minHeight: '56px' }}
-                        />
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-                          <button
-                            type="button"
-                            onClick={handleReserveMediation}
-                            disabled={reservationLoading}
-                            className="button"
-                            style={{ padding: '8px 16px', fontSize: '0.85rem' }}
-                          >
-                            <Clock size={14} /> {t('mediationReserveButton')}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleReleaseMediation}
-                            disabled={reservationLoading}
-                            className="button"
-                            style={{ padding: '8px 16px', fontSize: '0.85rem', background: 'var(--bg-subtle)' }}
-                          >
-                            {t('mediationRelease')}
-                          </button>
-                        </div>
+                  <Calendar size={18} style={{ color: 'var(--color-royal-blue)' }} />{' '}
+                  {t('calendar')}
+                </h4>
+                <div
+                  style={{
+                    background: 'var(--listing-availability-item-bg)',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-subtle)',
+                    padding: 'var(--space-4)',
+                    maxWidth: '340px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 'var(--space-3)',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCalendarMonth(
+                          (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+                        )
+                      }
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                        color: 'var(--text-body)',
+                      }}
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <span
+                      style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }}
+                    >
+                      {calendarMonth.toLocaleDateString('no-NO', {
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCalendarMonth(
+                          (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+                        )
+                      }
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                        color: 'var(--text-body)',
+                      }}
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(7, 1fr)',
+                      gap: '2px',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    {['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'].map((day) => (
+                      <div
+                        key={day}
+                        style={{
+                          textAlign: 'center',
+                          fontWeight: 600,
+                          color: 'var(--text-muted)',
+                          padding: '4px 0',
+                        }}
+                      >
+                        {day}
                       </div>
-                    ) : (
-                      <p className="text-sm" style={{ margin: 0, color: 'var(--text-body)' }}>
-                        {t('mediationReservedByOther')
-                          .replace('{name}', mediationReservation.reserved_by_name || '…')
-                          .replace(
-                            '{expires}',
-                            mediationReservation.expires_at ? formatDateTimeNo(mediationReservation.expires_at) : '—'
-                          )}
-                      </p>
-                    )
-                  ) : (
+                    ))}
+                    {(() => {
+                      const year = calendarMonth.getFullYear(),
+                        month = calendarMonth.getMonth(),
+                        first = new Date(year, month, 1),
+                        last = new Date(year, month + 1, 0),
+                        startPad = (first.getDay() + 6) % 7,
+                        daysInMonth = last.getDate()
+                      const cells: React.ReactNode[] = []
+                      for (let i = 0; i < startPad; i++)
+                        cells.push(<div key={`pad-${i}`} style={{ minHeight: '32px' }} />)
+                      for (let d = 1; d <= daysInMonth; d++) {
+                        const date = new Date(year, month, d),
+                          status = getStatusForDate(date)
+                        const isInFormidletRange =
+                          formidletStart &&
+                          formidletEnd &&
+                          (() => {
+                            const t = date.toISOString().slice(0, 10)
+                            return t >= formidletStart && t <= formidletEnd
+                          })()
+                        let bg = 'var(--listing-calendar-cell-bg)'
+                        if (isInFormidletRange) bg = 'var(--calendar-formidlet-range-bg)'
+                        else if (status === 'Konflikt') bg = '#991b1b'
+                        else if (status === 'Formidla') bg = 'var(--calendar-formidlet-bg)'
+                        else if (status === 'Tilgjengelig') bg = 'var(--calendar-tilgjengelig-bg)'
+                        else if (status === 'Utilgjengelig') bg = 'var(--calendar-utilgjengelig-bg)'
+                        cells.push(
+                          <div
+                            key={d}
+                            title={status ? `${d}. ${status}` : `${d}`}
+                            style={{
+                              minHeight: '32px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: '6px',
+                              background: bg,
+                              color:
+                                status === 'Konflikt'
+                                  ? '#fff'
+                                  : status || isInFormidletRange
+                                    ? 'var(--text-main)'
+                                    : 'var(--text-muted)',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {d}
+                          </div>
+                        )
+                      }
+                      return cells
+                    })()}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 'var(--space-4)',
+                      marginTop: 'var(--space-3)',
+                      fontSize: '0.7rem',
+                      color: 'var(--text-muted)',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      title={t('calendarLegendFormidletInfo')}
+                    >
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 4,
+                          background: 'var(--calendar-formidlet-bg)',
+                        }}
+                      />{' '}
+                      {t('formidlet')}
+                    </span>
+                    <span
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      title={t('calendarLegendAvailableInfo')}
+                    >
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 4,
+                          background: 'var(--calendar-tilgjengelig-bg)',
+                        }}
+                      />{' '}
+                      {t('available')}
+                    </span>
+                    <span
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      title={t('calendarLegendUnavailableInfo')}
+                    >
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 4,
+                          background: 'var(--calendar-utilgjengelig-bg)',
+                        }}
+                      />{' '}
+                      {t('unavailable')}
+                    </span>
+                    <span
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                      title={t('calendarLegendConflictInfo')}
+                    >
+                      <span
+                        style={{ width: 10, height: 10, borderRadius: 4, background: '#991b1b' }}
+                      />{' '}
+                      Konflikt
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {isNavView && kommuneCanEdit && !ownerAgreementTerminated && (
+              <div
+                style={{
+                  marginTop: 'var(--space-6)',
+                  padding: 'var(--space-4)',
+                  background: 'rgba(245, 158, 11, 0.08)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(245, 158, 11, 0.4)',
+                }}
+              >
+                <h4
+                  style={{
+                    marginBottom: 'var(--space-2)',
+                    fontSize: '0.95rem',
+                    color: 'var(--text-main)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <Lock size={18} style={{ opacity: 0.9 }} /> {t('mediationReserveTitle')}
+                </h4>
+                <p
+                  className="text-sm"
+                  style={{
+                    margin: '0 0 var(--space-3)',
+                    color: 'var(--text-body)',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {t('mediationReserveHint')}
+                </p>
+                {mediationReservation ? (
+                  mediationReservation.reserved_by === currentUser?.id ? (
                     <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                      <label className="label" style={{ fontSize: '0.7rem' }}>{t('mediationInternalNote')}</label>
+                      <p className="text-sm" style={{ margin: 0, color: 'var(--text-main)' }}>
+                        {t('mediationReservedByYou').replace(
+                          '{expires}',
+                          mediationReservation.expires_at
+                            ? formatDateTimeNo(mediationReservation.expires_at)
+                            : '—'
+                        )}
+                      </p>
+                      {mediationReservation.internal_note ? (
+                        <p className="text-sm" style={{ margin: 0, opacity: 0.85 }}>
+                          <strong>{t('mediationInternalNote')}:</strong>{' '}
+                          {mediationReservation.internal_note}
+                        </p>
+                      ) : null}
+                      <label className="label" style={{ fontSize: '0.7rem' }}>
+                        {t('mediationInternalNote')}
+                      </label>
                       <textarea
                         className="input"
                         rows={2}
                         value={reservationNote}
-                        onChange={e => setReservationNote(e.target.value)}
+                        onChange={(e) => setReservationNote(e.target.value)}
                         placeholder={t('mediationInternalNote')}
                         style={{ marginBottom: 0, resize: 'vertical', minHeight: '56px' }}
                       />
-                      <div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
                         <button
                           type="button"
                           onClick={handleReserveMediation}
@@ -1486,84 +2615,338 @@ export default function ListingDetailsClient() {
                           className="button"
                           style={{ padding: '8px 16px', fontSize: '0.85rem' }}
                         >
-                          <Lock size={14} /> {t('mediationReserveButton')}
+                          <Clock size={14} /> {t('mediationReserveButton')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleReleaseMediation}
+                          disabled={reservationLoading}
+                          className="button"
+                          style={{
+                            padding: '8px 16px',
+                            fontSize: '0.85rem',
+                            background: 'var(--bg-subtle)',
+                          }}
+                        >
+                          {t('mediationRelease')}
                         </button>
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
-              {isNavView && !ownerAgreementTerminated && (
-                <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.4)' }}>
-                  <h4 style={{ marginBottom: 'var(--space-3)', fontSize: '0.95rem', color: 'var(--text-main)' }}>{t('formidling')}</h4>
-                  {!kommuneCanEdit ? (
-                    <p className="text-sm" style={{ color: 'var(--text-body)' }}>{t('formidlingManagedByCaseworker')}</p>
-                  ) : listing?.status === 'Formidla' ? (
-                    <div>
-                      <p className="text-sm" style={{ color: 'var(--text-body)', marginBottom: 'var(--space-3)' }}>{t('thisPropertyMarkedFormidlet')}</p>
-                      <button onClick={handleRemoveFormidlet} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', background: 'rgba(239, 68, 68, 0.9)' }}><RotateCcw size={14} /> {t('removeFormidling')}</button>
-                    </div>
                   ) : (
-                    <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                      <label className="label" style={{ fontSize: '0.7rem', color: 'var(--color-accent)' }}>{t('periodDateRange')}</label>
-                      <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                        <div style={{ flex: 1, minWidth: '120px' }}>
-                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>{t('from')}</span>
-                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)', opacity: mediationReservation && mediationReservation.reserved_by !== currentUser?.id ? 0.55 : 1 }} value={formidletStart} onChange={setFormidletStart} max={formidletEnd || undefined} placeholder={t('dateInputPlaceholder')} disabled={!!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: '120px' }}>
-                          <span className="text-sm" style={{ display: 'block', marginBottom: '4px', color: 'var(--text-body)', fontSize: '0.75rem' }}>{t('to')}</span>
-                          <DateInput showCalendar className="input" style={{ marginBottom: 0, fontSize: '0.9rem', background: 'var(--listing-field-bg)', color: 'var(--text-main)', borderColor: 'rgba(59, 130, 246, 0.5)', opacity: mediationReservation && mediationReservation.reserved_by !== currentUser?.id ? 0.55 : 1 }} value={formidletEnd} onChange={setFormidletEnd} min={formidletStart || undefined} placeholder={t('dateInputPlaceholder')} disabled={!!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} />
-                        </div>
-                        <button onClick={handleAddFormidletPeriod} disabled={formidletSending || !!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)} className="button" style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}><ShieldCheck size={14} /> {t('addSubmit')}</button>
-                      </div>
-                      <details style={{ fontSize: '0.8rem', marginTop: 'var(--space-1)' }}>
-                        <summary style={{ cursor: 'pointer', color: 'var(--text-muted)', userSelect: 'none' }}>{t('mediationNoteOptional')}</summary>
-                        <div style={{ marginTop: 'var(--space-2)', display: 'grid', gap: 'var(--space-2)', paddingTop: 'var(--space-2)' }}>
-                          <textarea
-                            className="input"
-                            rows={2}
-                            maxLength={MAX_MEDIATION_NOTE_IN_NOTIFICATION}
-                            value={formidletMediationNote}
-                            onChange={e => {
-                              const v = e.target.value
-                              setFormidletMediationNote(v)
-                              if (!v.trim()) setFormidletIncludeNoteInNotification(false)
-                            }}
-                            placeholder={t('mediationNotePlaceholder')}
-                            disabled={!!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)}
-                            style={{ marginBottom: 0, fontSize: '0.85rem', resize: 'vertical', minHeight: '48px', maxHeight: '120px' }}
-                          />
-                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)', cursor: formidletMediationNote.trim() ? 'pointer' : 'default', color: 'var(--text-body)' }}>
-                            <input
-                              type="checkbox"
-                              checked={formidletIncludeNoteInNotification}
-                              onChange={e => setFormidletIncludeNoteInNotification(e.target.checked)}
-                              disabled={!formidletMediationNote.trim() || !!(mediationReservation && mediationReservation.reserved_by !== currentUser?.id)}
-                              style={{ marginTop: '2px' }}
-                            />
-                            <span>{t('includeMediationNoteInNotification')}</span>
-                          </label>
-                        </div>
-                      </details>
+                    <p className="text-sm" style={{ margin: 0, color: 'var(--text-body)' }}>
+                      {t('mediationReservedByOther')
+                        .replace('{name}', mediationReservation.reserved_by_name || '…')
+                        .replace(
+                          '{expires}',
+                          mediationReservation.expires_at
+                            ? formatDateTimeNo(mediationReservation.expires_at)
+                            : '—'
+                        )}
+                    </p>
+                  )
+                ) : (
+                  <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                    <label className="label" style={{ fontSize: '0.7rem' }}>
+                      {t('mediationInternalNote')}
+                    </label>
+                    <textarea
+                      className="input"
+                      rows={2}
+                      value={reservationNote}
+                      onChange={(e) => setReservationNote(e.target.value)}
+                      placeholder={t('mediationInternalNote')}
+                      style={{ marginBottom: 0, resize: 'vertical', minHeight: '56px' }}
+                    />
+                    <div>
+                      <button
+                        type="button"
+                        onClick={handleReserveMediation}
+                        disabled={reservationLoading}
+                        className="button"
+                        style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+                      >
+                        <Lock size={14} /> {t('mediationReserveButton')}
+                      </button>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {isNavView && !ownerAgreementTerminated && (
+              <div
+                style={{
+                  marginTop: 'var(--space-6)',
+                  padding: 'var(--space-4)',
+                  background: 'rgba(59, 130, 246, 0.08)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                }}
+              >
+                <h4
+                  style={{
+                    marginBottom: 'var(--space-3)',
+                    fontSize: '0.95rem',
+                    color: 'var(--text-main)',
+                  }}
+                >
+                  {t('formidling')}
+                </h4>
+                {!kommuneCanEdit ? (
+                  <p className="text-sm" style={{ color: 'var(--text-body)' }}>
+                    {t('formidlingManagedByCaseworker')}
+                  </p>
+                ) : listing?.status === 'Formidla' ? (
+                  <div>
+                    <p
+                      className="text-sm"
+                      style={{ color: 'var(--text-body)', marginBottom: 'var(--space-3)' }}
+                    >
+                      {t('thisPropertyMarkedFormidlet')}
+                    </p>
+                    <button
+                      onClick={handleRemoveFormidlet}
+                      className="button"
+                      style={{
+                        padding: '8px 16px',
+                        fontSize: '0.85rem',
+                        background: 'rgba(239, 68, 68, 0.9)',
+                      }}
+                    >
+                      <RotateCcw size={14} /> {t('removeFormidling')}
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                    <label
+                      className="label"
+                      style={{ fontSize: '0.7rem', color: 'var(--color-accent)' }}
+                    >
+                      {t('periodDateRange')}
+                    </label>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: 'var(--space-2)',
+                        alignItems: 'flex-end',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: '120px' }}>
+                        <span
+                          className="text-sm"
+                          style={{
+                            display: 'block',
+                            marginBottom: '4px',
+                            color: 'var(--text-body)',
+                            fontSize: '0.75rem',
+                          }}
+                        >
+                          {t('from')}
+                        </span>
+                        <DateInput
+                          showCalendar
+                          className="input"
+                          style={{
+                            marginBottom: 0,
+                            fontSize: '0.9rem',
+                            background: 'var(--listing-field-bg)',
+                            color: 'var(--text-main)',
+                            borderColor: 'rgba(59, 130, 246, 0.5)',
+                            opacity:
+                              mediationReservation &&
+                              mediationReservation.reserved_by !== currentUser?.id
+                                ? 0.55
+                                : 1,
+                          }}
+                          value={formidletStart}
+                          onChange={setFormidletStart}
+                          max={formidletEnd || undefined}
+                          placeholder={t('dateInputPlaceholder')}
+                          disabled={
+                            !!(
+                              mediationReservation &&
+                              mediationReservation.reserved_by !== currentUser?.id
+                            )
+                          }
+                        />
+                      </div>
+                      <div style={{ flex: 1, minWidth: '120px' }}>
+                        <span
+                          className="text-sm"
+                          style={{
+                            display: 'block',
+                            marginBottom: '4px',
+                            color: 'var(--text-body)',
+                            fontSize: '0.75rem',
+                          }}
+                        >
+                          {t('to')}
+                        </span>
+                        <DateInput
+                          showCalendar
+                          className="input"
+                          style={{
+                            marginBottom: 0,
+                            fontSize: '0.9rem',
+                            background: 'var(--listing-field-bg)',
+                            color: 'var(--text-main)',
+                            borderColor: 'rgba(59, 130, 246, 0.5)',
+                            opacity:
+                              mediationReservation &&
+                              mediationReservation.reserved_by !== currentUser?.id
+                                ? 0.55
+                                : 1,
+                          }}
+                          value={formidletEnd}
+                          onChange={setFormidletEnd}
+                          min={formidletStart || undefined}
+                          placeholder={t('dateInputPlaceholder')}
+                          disabled={
+                            !!(
+                              mediationReservation &&
+                              mediationReservation.reserved_by !== currentUser?.id
+                            )
+                          }
+                        />
+                      </div>
+                      <button
+                        onClick={handleAddFormidletPeriod}
+                        disabled={
+                          formidletSending ||
+                          !!(
+                            mediationReservation &&
+                            mediationReservation.reserved_by !== currentUser?.id
+                          )
+                        }
+                        className="button"
+                        style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}
+                      >
+                        <ShieldCheck size={14} /> {t('addSubmit')}
+                      </button>
+                    </div>
+                    <details style={{ fontSize: '0.8rem', marginTop: 'var(--space-1)' }}>
+                      <summary
+                        style={{
+                          cursor: 'pointer',
+                          color: 'var(--text-muted)',
+                          userSelect: 'none',
+                        }}
+                      >
+                        {t('mediationNoteOptional')}
+                      </summary>
+                      <div
+                        style={{
+                          marginTop: 'var(--space-2)',
+                          display: 'grid',
+                          gap: 'var(--space-2)',
+                          paddingTop: 'var(--space-2)',
+                        }}
+                      >
+                        <textarea
+                          className="input"
+                          rows={2}
+                          maxLength={MAX_MEDIATION_NOTE_IN_NOTIFICATION}
+                          value={formidletMediationNote}
+                          onChange={(e) => {
+                            const v = e.target.value
+                            setFormidletMediationNote(v)
+                            if (!v.trim()) setFormidletIncludeNoteInNotification(false)
+                          }}
+                          placeholder={t('mediationNotePlaceholder')}
+                          disabled={
+                            !!(
+                              mediationReservation &&
+                              mediationReservation.reserved_by !== currentUser?.id
+                            )
+                          }
+                          style={{
+                            marginBottom: 0,
+                            fontSize: '0.85rem',
+                            resize: 'vertical',
+                            minHeight: '48px',
+                            maxHeight: '120px',
+                          }}
+                        />
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 'var(--space-2)',
+                            cursor: formidletMediationNote.trim() ? 'pointer' : 'default',
+                            color: 'var(--text-body)',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formidletIncludeNoteInNotification}
+                            onChange={(e) =>
+                              setFormidletIncludeNoteInNotification(e.target.checked)
+                            }
+                            disabled={
+                              !formidletMediationNote.trim() ||
+                              !!(
+                                mediationReservation &&
+                                mediationReservation.reserved_by !== currentUser?.id
+                              )
+                            }
+                            style={{ marginTop: '2px' }}
+                          />
+                          <span>{t('includeMediationNoteInNotification')}</span>
+                        </label>
+                      </div>
+                    </details>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* 3. Kontaktinfo for formidling */}
-          <section id="kontaktinfo" className="card no-hover listing-detail-card" style={{ padding: 'var(--space-8)' }}>
-              <h3 style={{ margin: '0 0 var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
-                <User size={20} style={{ color: 'var(--color-accent)' }} /> {t('contactInfoForFormidling')}
-              </h3>
-              <p style={{ margin: '0 0 var(--space-4)', color: 'var(--text-body)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-                Boligutleier har rett å få kontaktinformasjon til leietakere i boligene sine. Boligutleier skriver ut mal for kontaktinfoskjema fra bo.ly i to eksemplarer og fyller ut dette med leietaker. Boligutleier og leietaker beholder et eksemplar hver.
-              </p>
-              <a href={publicDocumentsFileUrl('Kontaktinfoschema.pdf')} download target="_blank" rel="noopener noreferrer" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', textDecoration: 'none' }}>
-                <FileText size={18} /> {t('downloadContactInfoPdf')}
-              </a>
-            </section>
+          <section
+            id="kontaktinfo"
+            className="card no-hover listing-detail-card"
+            style={{ padding: 'var(--space-8)' }}
+          >
+            <h3
+              style={{
+                margin: '0 0 var(--space-4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                color: 'var(--text-main)',
+              }}
+            >
+              <User size={20} style={{ color: 'var(--color-accent)' }} />{' '}
+              {t('contactInfoForFormidling')}
+            </h3>
+            <p
+              style={{
+                margin: '0 0 var(--space-4)',
+                color: 'var(--text-body)',
+                fontSize: '0.95rem',
+                lineHeight: 1.6,
+              }}
+            >
+              Boligutleier har rett å få kontaktinformasjon til leietakere i boligene sine.
+              Boligutleier skriver ut mal for kontaktinfoskjema fra Boly i to eksemplarer og fyller
+              ut dette med leietaker. Boligutleier og leietaker beholder et eksemplar hver.
+            </p>
+            <a
+              href={publicContactInfoFormPdfUrl()}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                textDecoration: 'none',
+              }}
+            >
+              <FileText size={18} /> {t('downloadContactInfoPdf')}
+            </a>
+          </section>
 
           <InvoiceBasisSection
             listingId={String(id)}
@@ -1585,156 +2968,451 @@ export default function ListingDetailsClient() {
           />
 
           {/* 4. Overtakelsesrapporter */}
-          <section id="overtakelsesrapport" className="card no-hover listing-detail-card" style={{ padding: 'var(--space-8)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
-                  <FileText size={20} style={{ color: 'var(--color-accent)' }} /> {t('handoverReports')}
-                </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-                  {handoverReports.length > 0 && (
-                    <div style={{ position: 'relative' }}>
-                      <button
-                        type="button"
-                        onClick={() => setReportTimeFilterOpen(prev => !prev)}
+          <section
+            id="overtakelsesrapport"
+            className="card no-hover listing-detail-card"
+            style={{ padding: 'var(--space-8)' }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 'var(--space-4)',
+                marginBottom: 'var(--space-4)',
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  color: 'var(--text-main)',
+                }}
+              >
+                <FileText size={20} style={{ color: 'var(--color-accent)' }} />{' '}
+                {t('handoverReports')}
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                {handoverReports.length > 0 && (
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      onClick={() => setReportTimeFilterOpen((prev) => !prev)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 14px',
+                        fontSize: '0.875rem',
+                        minWidth: '140px',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-main)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>
+                        {reportTimeFilter === 'all'
+                          ? 'Alle'
+                          : reportTimeFilter === '7d'
+                            ? 'Siste 7 dager'
+                            : 'Siste 30 dager'}
+                      </span>
+                      <ChevronDown
+                        size={16}
                         style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          padding: '8px 14px',
-                          fontSize: '0.875rem',
-                          minWidth: '140px',
-                          background: 'var(--bg-card)',
-                          color: 'var(--text-main)',
-                          border: '1px solid var(--border-subtle)',
-                          borderRadius: '10px',
-                          cursor: 'pointer',
-                          justifyContent: 'space-between'
+                          transform: reportTimeFilterOpen ? 'rotate(180deg)' : 'none',
+                          transition: 'transform 0.2s',
+                          flexShrink: 0,
                         }}
-                      >
-                        <span>{reportTimeFilter === 'all' ? 'Alle' : reportTimeFilter === '7d' ? 'Siste 7 dager' : 'Siste 30 dager'}</span>
-                        <ChevronDown size={16} style={{ transform: reportTimeFilterOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
-                      </button>
-                      {reportTimeFilterOpen && (
-                        <>
-                          <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setReportTimeFilterOpen(false)} aria-hidden="true" />
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: 0,
-                              marginTop: '4px',
-                              minWidth: '100%',
-                              background: 'var(--bg-card)',
-                              border: '1px solid var(--border-subtle)',
-                              borderRadius: '10px',
-                              boxShadow: 'var(--shadow-lg)',
-                              zIndex: 11,
-                              overflow: 'hidden'
-                            }}
-                          >
-                            {(['all', '7d', '30d'] as const).map(value => (
-                              <button
-                                key={value}
-                                type="button"
-                                onClick={() => { setReportTimeFilter(value); setReportTimeFilterOpen(false) }}
-                                className="report-filter-option"
-                                data-selected={reportTimeFilter === value}
-                                style={{
-                                  display: 'block',
-                                  width: '100%',
-                                  padding: '10px 14px',
-                                  textAlign: 'left',
-                                  fontSize: '0.875rem',
-                                  background: reportTimeFilter === value ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-                                  color: reportTimeFilter === value ? 'var(--color-sky-blue)' : 'var(--text-main)',
-                                  border: 'none',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                {value === 'all' ? 'Alle' : value === '7d' ? 'Siste 7 dager' : 'Siste 30 dager'}
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {!isNavView && !showHandoverForm && (
-                    <button onClick={() => setShowHandoverForm(true)} className="button" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>Ny rapport</button>
-                  )}
-                </div>
+                      />
+                    </button>
+                    {reportTimeFilterOpen && (
+                      <>
+                        <div
+                          style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                          onClick={() => setReportTimeFilterOpen(false)}
+                          aria-hidden="true"
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            marginTop: '4px',
+                            minWidth: '100%',
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: '10px',
+                            boxShadow: 'var(--shadow-lg)',
+                            zIndex: 11,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {(['all', '7d', '30d'] as const).map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => {
+                                setReportTimeFilter(value)
+                                setReportTimeFilterOpen(false)
+                              }}
+                              className="report-filter-option"
+                              data-selected={reportTimeFilter === value}
+                              style={{
+                                display: 'block',
+                                width: '100%',
+                                padding: '10px 14px',
+                                textAlign: 'left',
+                                fontSize: '0.875rem',
+                                background:
+                                  reportTimeFilter === value
+                                    ? 'rgba(59, 130, 246, 0.2)'
+                                    : 'transparent',
+                                color:
+                                  reportTimeFilter === value
+                                    ? 'var(--color-sky-blue)'
+                                    : 'var(--text-main)',
+                                border: 'none',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {value === 'all'
+                                ? 'Alle'
+                                : value === '7d'
+                                  ? 'Siste 7 dager'
+                                  : 'Siste 30 dager'}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+                {!isNavView && !showHandoverForm && (
+                  <button
+                    onClick={() => setShowHandoverForm(true)}
+                    className="button"
+                    style={{ padding: '8px 16px', fontSize: '0.9rem' }}
+                  >
+                    Ny rapport
+                  </button>
+                )}
               </div>
-              {showHandoverForm ? (
-                <div style={{ marginBottom: 'var(--space-8)' }}>
-                  <HandoverReport listingId={id as string} listingAddress={listing.address} ownerName={listing.owner_name} reporterType="homeowner" onSaved={() => { setShowHandoverForm(false); refetchHandoverReports() }} />
-                  <button onClick={() => setShowHandoverForm(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginTop: 'var(--space-2)' }}>{t('cancel')}</button>
-                </div>
-              ) : null}
-              <div style={{ maxHeight: '420px', overflowY: 'auto', display: 'grid', gap: 'var(--space-4)', paddingRight: 'var(--space-2)' }}>
-                {filteredHandoverReports.length > 0 ? filteredHandoverReports.map(report => {
+            </div>
+            {showHandoverForm ? (
+              <div style={{ marginBottom: 'var(--space-8)' }}>
+                <HandoverReport
+                  listingId={id as string}
+                  listingAddress={listing.address}
+                  ownerName={listing.owner_name}
+                  reporterType="homeowner"
+                  onSaved={() => {
+                    setShowHandoverForm(false)
+                    refetchHandoverReports()
+                  }}
+                />
+                <button
+                  onClick={() => setShowHandoverForm(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    marginTop: 'var(--space-2)',
+                  }}
+                >
+                  {t('cancel')}
+                </button>
+              </div>
+            ) : null}
+            <div
+              style={{
+                maxHeight: '420px',
+                overflowY: 'auto',
+                display: 'grid',
+                gap: 'var(--space-4)',
+                paddingRight: 'var(--space-2)',
+              }}
+            >
+              {filteredHandoverReports.length > 0 ? (
+                filteredHandoverReports.map((report) => {
                   const isExpanded = expandedReportId === report.id
                   const status = report.approval_status || 'pending'
                   const isPending = status === 'pending'
                   return (
-                    <div key={report.id} style={{ padding: 'var(--space-4)', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                    <div
+                      key={report.id}
+                      style={{
+                        padding: 'var(--space-4)',
+                        background: 'var(--bg-card)',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          flexWrap: 'wrap',
+                          gap: 'var(--space-2)',
+                        }}
+                      >
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: 'var(--text-main)',
+                              fontSize: '0.95rem',
+                            }}
+                          >
                             {report.reporter_type === 'homeowner' ? t('landlord') : t('tenant')}
-                            {report.content?.pdf_url ? ' – PDF lastet opp' : ` – ${(report.content?.condition_description || report.content?.general_condition || 'Rapport').toString().slice(0, 60)}${((report.content?.condition_description || report.content?.general_condition || '')?.toString().length > 60 ? '…' : '')}`}
-                            {report.content?.photo_urls?.length ? ` · ${report.content.photo_urls.length} bilder vedlagt` : ''}
+                            {report.content?.pdf_url
+                              ? ' – PDF lastet opp'
+                              : ` – ${(report.content?.tenant_comment || report.content?.condition_description || report.content?.general_condition || 'Rapport').toString().slice(0, 60)}${(report.content?.tenant_comment || report.content?.condition_description || report.content?.general_condition || '')?.toString().length > 60 ? '…' : ''}`}
+                            {report.content?.photo_urls?.length
+                              ? ` · ${report.content.photo_urls.length} bilder vedlagt`
+                              : ''}
                           </div>
-                          <div style={{ marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          <div
+                            style={{
+                              marginTop: '4px',
+                              fontSize: '0.8rem',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
                             {formatDateNo(report.created_at)}
                             {report.reporter_type !== 'tenant' && status !== 'pending' && (
-                              <span style={{ marginLeft: '8px', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, background: status === 'approved' ? 'rgba(45, 212, 191, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: status === 'approved' ? 'var(--color-teal)' : '#ef4444' }}>
+                              <span
+                                style={{
+                                  marginLeft: '8px',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                  background:
+                                    status === 'approved'
+                                      ? 'rgba(45, 212, 191, 0.2)'
+                                      : 'rgba(239, 68, 68, 0.2)',
+                                  color: status === 'approved' ? 'var(--color-teal)' : '#ef4444',
+                                }}
+                              >
                                 {status === 'approved' ? 'Godkjent' : 'Ikke godkjent'}
                               </span>
                             )}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                          {report.content?.pdf_url && <a href={report.content.pdf_url} target="_blank" rel="noopener noreferrer" className="button" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>Se PDF</a>}
-                          <button type="button" onClick={() => setExpandedReportId(report.id)} style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: '6px', color: 'var(--text-body)', cursor: 'pointer' }}>
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                        >
+                          {report.content?.pdf_url && (
+                            <a
+                              href={report.content.pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="button"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                            >
+                              Se PDF
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setExpandedReportId(report.id)}
+                            style={{
+                              padding: '4px 10px',
+                              fontSize: '0.75rem',
+                              background: 'var(--bg-app)',
+                              border: '1px solid var(--border-subtle)',
+                              borderRadius: '6px',
+                              color: 'var(--text-body)',
+                              cursor: 'pointer',
+                            }}
+                          >
                             Se rapport
                           </button>
                         </div>
                       </div>
-                      {report.content?.condition_description && expandedReportId !== report.id && (
-                        <div style={{ marginTop: 'var(--space-2)', fontSize: '0.85rem', color: 'var(--text-body)' }}>{(report.content.condition_description || '').toString().slice(0, 120)}{(report.content.condition_description?.toString().length > 120 ? '…' : '')}</div>
-                      )}
+                      {(report.content?.tenant_comment || report.content?.condition_description) &&
+                        expandedReportId !== report.id && (
+                          <div
+                            style={{
+                              marginTop: 'var(--space-2)',
+                              fontSize: '0.85rem',
+                              color: 'var(--text-body)',
+                            }}
+                          >
+                            {(
+                              report.content.tenant_comment ||
+                              report.content.condition_description ||
+                              ''
+                            )
+                              .toString()
+                              .slice(0, 120)}
+                            {((
+                              report.content.tenant_comment || report.content.condition_description
+                            )?.toString().length ?? 0) > 120
+                              ? '…'
+                              : ''}
+                          </div>
+                        )}
                       {isNavView && isPending && report.reporter_type !== 'tenant' && (
-                        <div style={{ marginTop: 'var(--space-4)', display: 'flex', gap: 'var(--space-2)' }}>
-                          <button type="button" onClick={() => handleApproveReport(report.id)} className="button" style={{ padding: '6px 14px', fontSize: '0.8rem' }}>Godkjenn</button>
-                          <button type="button" onClick={() => { setRequestChangeReport(report); setRequestChangeComment('') }} className="button" style={{ padding: '6px 14px', fontSize: '0.8rem', background: 'transparent', border: '1px solid rgba(249, 115, 22, 0.6)', color: '#f97316' }}>Be om endring</button>
+                        <div
+                          style={{
+                            marginTop: 'var(--space-4)',
+                            display: 'flex',
+                            gap: 'var(--space-2)',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleApproveReport(report.id)}
+                            className="button"
+                            style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+                          >
+                            Godkjenn
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRequestChangeReport(report)
+                              setRequestChangeComment('')
+                            }}
+                            className="button"
+                            style={{
+                              padding: '6px 14px',
+                              fontSize: '0.8rem',
+                              background: 'transparent',
+                              border: '1px solid rgba(249, 115, 22, 0.6)',
+                              color: '#f97316',
+                            }}
+                          >
+                            Be om endring
+                          </button>
                         </div>
                       )}
                     </div>
                   )
-                }) : <p className="text-sm italic" style={{ color: 'var(--text-muted)' }}>Ingen overtakelsesrapporter er registrert ennå.</p>}
-              </div>
-              {(() => {
-                const isFormidlet =
-                  listing?.status === 'Formidla' || listingHasFormidlaPeriod(availability)
-                const showTenantLink = isNavView && isFormidlet && !ownerAgreementTerminated
-                if (!showTenantLink) return null
-                return (
-                  <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', border: '2px dashed rgba(59, 130, 246, 0.5)' }}>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}><strong style={{ color: 'var(--text-main)' }}>{t('linkForTenant')}</strong> {t('linkForTenantDesc')}</p>
-                    {tenantReportToken ? (
-                      <div style={{ marginTop: 'var(--space-2)' }}>
-                        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
-                          <code className="listing-code" style={{ padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', wordBreak: 'break-all', flex: 1, minWidth: 0 }}>{typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantReportToken}` : ''}</code>
-                          <button type="button" onClick={() => { const url = typeof window !== 'undefined' ? `${window.location.origin}/report/leietaker/${tenantReportToken}` : ''; navigator.clipboard?.writeText(url).then(() => setCopyFeedback(true)); setTimeout(() => setCopyFeedback(false), 2000) }} className="button" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>{copyFeedback ? <CheckCircle2 size={14} /> : <Clipboard size={14} />}{copyFeedback ? ' Kopiert!' : ' Kopier'}</button>
-                          <button type="button" onClick={handleRegenerateTenantLink} disabled={tenantLinkRegenerating} className="button button-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }} title={t('listingRegenerateLinkTitle')}>{tenantLinkRegenerating ? <RefreshCw size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> : <RefreshCw size={14} />}{tenantLinkRegenerating ? ` ${t('listingRegenerating')}` : ` ${t('listingNewLink')}`}</button>
-                        </div>
-                        <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bruk «Ny lenke» hvis leietaker sier at lenken er ugyldig – send deretter den nye lenken.</p>
+                })
+              ) : (
+                <p className="text-sm italic" style={{ color: 'var(--text-muted)' }}>
+                  Ingen overtakelsesrapporter er registrert ennå.
+                </p>
+              )}
+            </div>
+            {(() => {
+              const isFormidlet =
+                listing?.status === 'Formidla' || listingHasFormidlaPeriod(availability)
+              const showTenantLink = isNavView && isFormidlet && !ownerAgreementTerminated
+              if (!showTenantLink) return null
+              return (
+                <div
+                  style={{
+                    marginTop: 'var(--space-6)',
+                    padding: 'var(--space-4)',
+                    background: 'rgba(59, 130, 246, 0.08)',
+                    borderRadius: '12px',
+                    border: '2px dashed rgba(59, 130, 246, 0.5)',
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-body)' }}>
+                    <strong style={{ color: 'var(--text-main)' }}>{t('linkForTenant')}</strong>{' '}
+                    {t('linkForTenantDesc')}
+                  </p>
+                  {tenantReportToken ? (
+                    <div style={{ marginTop: 'var(--space-2)' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 'var(--space-2)',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <code
+                          className="listing-code"
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            wordBreak: 'break-all',
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          {typeof window !== 'undefined'
+                            ? `${window.location.origin}/report/leietaker/${tenantReportToken}`
+                            : ''}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const url =
+                              typeof window !== 'undefined'
+                                ? `${window.location.origin}/report/leietaker/${tenantReportToken}`
+                                : ''
+                            navigator.clipboard?.writeText(url).then(() => setCopyFeedback(true))
+                            setTimeout(() => setCopyFeedback(false), 2000)
+                          }}
+                          className="button"
+                          style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                        >
+                          {copyFeedback ? <CheckCircle2 size={14} /> : <Clipboard size={14} />}
+                          {copyFeedback ? ' Kopiert!' : ' Kopier'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRegenerateTenantLink}
+                          disabled={tenantLinkRegenerating}
+                          className="button button-secondary"
+                          style={{ padding: '6px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                          title={t('listingRegenerateLinkTitle')}
+                        >
+                          {tenantLinkRegenerating ? (
+                            <RefreshCw
+                              size={14}
+                              style={{ animation: 'spin 0.8s linear infinite' }}
+                            />
+                          ) : (
+                            <RefreshCw size={14} />
+                          )}
+                          {tenantLinkRegenerating
+                            ? ` ${t('listingRegenerating')}`
+                            : ` ${t('listingNewLink')}`}
+                        </button>
                       </div>
-                    ) : <p style={{ margin: 'var(--space-2) 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('linkGeneratedWhenFormidlet')}</p>}
-                  </div>
-                )
-              })()}
-            </section>
+                      <p
+                        style={{
+                          margin: 'var(--space-2) 0 0',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                        }}
+                      >
+                        Bruk «Ny lenke» hvis leietaker sier at lenken er ugyldig – send deretter den
+                        nye lenken.
+                      </p>
+                    </div>
+                  ) : (
+                    <p
+                      style={{
+                        margin: 'var(--space-2) 0 0',
+                        fontSize: '0.8rem',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      {t('linkGeneratedWhenFormidlet')}
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
+          </section>
 
           {/* 5. Bilder */}
           <div
@@ -1750,35 +3428,135 @@ export default function ListingDetailsClient() {
           >
             {allImages.length > 0 ? (
               <>
-                <img 
-                  src={allImages[currentImageIndex]} 
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setIsFullscreen(true)}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'all 0.3s' }} 
-                />
-                
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setIsFullscreen(true)
+                    }
+                  }}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    cursor: 'pointer',
+                  }}
+                  aria-label={t('listingFullscreen')}
+                >
+                  <OptimizedPublicStorageImage
+                    key={allImages[currentImageIndex]}
+                    variant="fill"
+                    src={allImages[currentImageIndex]}
+                    alt={
+                      listing?.address
+                        ? `${listing.address} — bilde ${currentImageIndex + 1} av ${allImages.length}`
+                        : `Boligbilde ${currentImageIndex + 1} av ${allImages.length}`
+                    }
+                    sizes="(max-width: 768px) 100vw, min(960px, 90vw)"
+                    priority={currentImageIndex === 0}
+                    style={{
+                      objectFit: 'cover',
+                      transition: 'all 0.3s',
+                    }}
+                  />
+                </div>
+
                 {allImages.length > 1 && (
                   <>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev - 1 + allImages.length) % allImages.length) }}
-                      style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', zIndex: 5 }}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setCurrentImageIndex(
+                          (prev) => (prev - 1 + allImages.length) % allImages.length
+                        )
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: '15px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'rgba(0,0,0,0.5)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        cursor: 'pointer',
+                        zIndex: 5,
+                      }}
                     >
                       <ChevronLeft size={24} />
                     </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev + 1) % allImages.length) }}
-                      style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', zIndex: 5 }}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '15px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'rgba(0,0,0,0.5)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        cursor: 'pointer',
+                        zIndex: 5,
+                      }}
                     >
                       <ChevronRight size={24} />
                     </button>
-                    <div style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.6)', padding: '4px 12px', borderRadius: '20px', color: 'white', fontSize: '0.8rem', fontWeight: 600, zIndex: 5 }}>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '20px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'rgba(0,0,0,0.6)',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        color: 'white',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        zIndex: 5,
+                      }}
+                    >
                       {currentImageIndex + 1} / {allImages.length}
                     </div>
                   </>
                 )}
 
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setIsFullscreen(true) }}
-                  style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '8px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer', zIndex: 5 }}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsFullscreen(true)
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '20px',
+                    right: '20px',
+                    background: 'rgba(0,0,0,0.5)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    cursor: 'pointer',
+                    zIndex: 5,
+                  }}
                   title={t('listingFullscreen')}
                 >
                   <Maximize2 size={20} />
@@ -1786,11 +3564,24 @@ export default function ListingDetailsClient() {
               </>
             ) : (
               <label
-                className={`listing-image-placeholder${isOwner ? ' is-clickable' : ''}`}
+                className={`listing-image-placeholder${isOwner ? 'is-clickable' : ''}`}
                 style={{ width: '100%', height: '100%' }}
               >
-                {isOwner && <input type="file" multiple accept="image/*" onChange={handleUploadMore} style={{ display: 'none' }} />}
-                <HomeIcon size={88} strokeWidth={1.15} className="listing-image-placeholder-icon" aria-hidden />
+                {isOwner && (
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleUploadMore}
+                    style={{ display: 'none' }}
+                  />
+                )}
+                <HomeIcon
+                  size={88}
+                  strokeWidth={1.15}
+                  className="listing-image-placeholder-icon"
+                  aria-hidden
+                />
                 <p className="listing-image-placeholder-text">
                   {isOwner ? 'Klikk for å legge til bilder' : 'Ingen bilder lagt til'}
                 </p>
@@ -1798,14 +3589,31 @@ export default function ListingDetailsClient() {
             )}
 
             {isOwner && (
-              <label style={{ 
-                position: 'absolute', bottom: '20px', right: '20px', 
-                background: 'var(--color-royal-blue)', color: 'white', 
-                padding: '10px 20px', borderRadius: '12px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)', zIndex: 6
-              }}>
-                <input type="file" multiple accept="image/*" onChange={handleUploadMore} style={{ display: 'none' }} />
+              <label
+                style={{
+                  position: 'absolute',
+                  bottom: '20px',
+                  right: '20px',
+                  background: 'var(--color-royal-blue)',
+                  color: 'white',
+                  padding: '10px 20px',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  zIndex: 6,
+                }}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleUploadMore}
+                  style={{ display: 'none' }}
+                />
                 {uploading ? <Camera size={18} style={{ opacity: 0.5 }} /> : <Camera size={18} />}
                 {uploading ? 'Laster opp...' : 'Legg til bilder'}
               </label>
@@ -1830,40 +3638,115 @@ export default function ListingDetailsClient() {
                 zIndex: 5,
               }}
             >
-              {showGalleryFormidlet ? 'Formidlet' : listing?.status ?? ''}
+              {showGalleryFormidlet ? 'Formidlet' : (listing?.status ?? '')}
             </div>
           </div>
 
           {/* Fullscreen Overlay */}
           {isFullscreen && allImages.length > 0 && (
-            <div 
-              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.95)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0,0,0,0.95)',
+                zIndex: 9999,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
               onClick={() => setIsFullscreen(false)}
             >
-              <button 
+              <button
                 onClick={() => setIsFullscreen(false)}
-                style={{ position: 'absolute', top: '30px', right: '30px', background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '10px' }}
+                style={{
+                  position: 'absolute',
+                  top: '30px',
+                  right: '30px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '10px',
+                }}
               >
                 <X size={40} />
               </button>
-              
-              <img 
-                src={allImages[currentImageIndex]} 
-                style={{ maxWidth: '95vw', maxHeight: '90vh', objectFit: 'contain' }} 
+
+              <div
+                style={{
+                  position: 'relative',
+                  width: 'min(95vw, 1400px)',
+                  height: 'min(90vh, 900px)',
+                  maxHeight: '90vh',
+                }}
                 onClick={(e) => e.stopPropagation()}
-              />
+              >
+                <OptimizedPublicStorageImage
+                  key={`fs-${allImages[currentImageIndex]}`}
+                  variant="fill"
+                  src={allImages[currentImageIndex]}
+                  alt={
+                    listing?.address
+                      ? `${listing.address} — bilde ${currentImageIndex + 1} av ${allImages.length}`
+                      : `Boligbilde ${currentImageIndex + 1} av ${allImages.length}`
+                  }
+                  sizes="100vw"
+                  style={{ objectFit: 'contain' }}
+                />
+              </div>
 
               {allImages.length > 1 && (
                 <>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev - 1 + allImages.length) % allImages.length) }}
-                    style={{ position: 'absolute', left: '30px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer' }}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCurrentImageIndex(
+                        (prev) => (prev - 1 + allImages.length) % allImages.length
+                      )
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: '30px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '60px',
+                      height: '60px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      cursor: 'pointer',
+                    }}
                   >
                     <ChevronLeft size={40} />
                   </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev + 1) % allImages.length) }}
-                    style={{ position: 'absolute', right: '30px', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer' }}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
+                    }}
+                    style={{
+                      position: 'absolute',
+                      right: '30px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'rgba(255,255,255,0.1)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '60px',
+                      height: '60px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      cursor: 'pointer',
+                    }}
                   >
                     <ChevronRight size={40} />
                   </button>
@@ -1875,7 +3758,16 @@ export default function ListingDetailsClient() {
           {/* 6. Administrer (eier) – kun synlig for eier som ikke er i nav-visning */}
           {!isNavView && isOwner && (
             <section className="card listing-detail-card" style={{ padding: 'var(--space-6)' }}>
-              <Link href={`/homeowner/manage`} className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px' }}>
+              <Link
+                href={`/homeowner/manage`}
+                className="button"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 24px',
+                }}
+              >
                 <Edit3 size={18} /> Administrer denne boligen
               </Link>
             </section>
@@ -1883,22 +3775,26 @@ export default function ListingDetailsClient() {
 
           <style jsx>{`
             .editable-h1:hover {
-              background: rgba(0,0,0,0.02) !important;
+              background: rgba(0, 0, 0, 0.02) !important;
             }
             .editable-h1:focus {
               background: rgba(59, 130, 246, 0.05) !important;
               border-bottom: 2px solid var(--color-sky-blue) !important;
             }
-            input:focus, select:focus, textarea:focus {
+            input:focus,
+            select:focus,
+            textarea:focus {
               background: rgba(59, 130, 246, 0.05) !important;
               outline: none !important;
             }
-            input, select, textarea {
+            input,
+            select,
+            textarea {
               transition: all 0.2s;
               border-radius: 4px;
             }
-            input[type="number"]::-webkit-inner-spin-button,
-            input[type="number"]::-webkit-outer-spin-button {
+            input[type='number']::-webkit-inner-spin-button,
+            input[type='number']::-webkit-outer-spin-button {
               -webkit-appearance: none;
               margin: 0;
             }
@@ -1908,28 +3804,73 @@ export default function ListingDetailsClient() {
         {/* Right Column */}
         {isNavView && (
           <div style={{ position: 'sticky', top: '20px' }}>
-            <div className="card" style={{ padding: 'var(--space-8)', border: '1px solid var(--color-royal-blue)', background: 'var(--color-dark-navy)' }}>
+            <div
+              className="card"
+              style={{
+                padding: 'var(--space-8)',
+                border: '1px solid var(--color-royal-blue)',
+                background: 'var(--color-dark-navy)',
+              }}
+            >
               <div style={{ marginBottom: 'var(--space-6)' }}>
-                <div style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.6, marginBottom: '4px', color: 'white' }}>Døgnpris</div>
-                <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'white' }}>{listing.price_daily},-</span>
+                <div
+                  style={{
+                    fontSize: '0.85rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    opacity: 0.6,
+                    marginBottom: '4px',
+                    color: 'white',
+                  }}
+                >
+                  Døgnpris
+                </div>
+                <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'white' }}>
+                  {listing.price_daily},-
+                </span>
               </div>
 
-              <div style={{ display: 'grid', gap: 'var(--space-3)', marginBottom: 'var(--space-8)' }}>
+              <div
+                style={{ display: 'grid', gap: 'var(--space-3)', marginBottom: 'var(--space-8)' }}
+              >
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="text-sm opacity-70" style={{ color: 'white' }}>Ukespris:</span>
-                  <span className="text-sm font-bold" style={{ color: 'white' }}>{listing.price_weekly},-</span>
+                  <span className="text-sm opacity-70" style={{ color: 'white' }}>
+                    Ukespris:
+                  </span>
+                  <span className="text-sm font-bold" style={{ color: 'white' }}>
+                    {listing.price_weekly},-
+                  </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="text-sm opacity-70" style={{ color: 'white' }}>Månedsleie (korttid):</span>
-                  <span className="text-sm font-bold" style={{ color: 'white' }}>{listing.price_monthly_short},-</span>
+                  <span className="text-sm opacity-70" style={{ color: 'white' }}>
+                    Månedsleie (korttid):
+                  </span>
+                  <span className="text-sm font-bold" style={{ color: 'white' }}>
+                    {listing.price_monthly_short},-
+                  </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
-                  <span className="text-sm opacity-70" style={{ color: 'white' }}>Langtidsleie (per mnd):</span>
-                  <span className="text-sm font-bold" style={{ color: 'white' }}>{listing.price_monthly_long},-</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    borderTop: '1px solid var(--border-subtle)',
+                    paddingTop: 'var(--space-3)',
+                  }}
+                >
+                  <span className="text-sm opacity-70" style={{ color: 'white' }}>
+                    Langtidsleie (per mnd):
+                  </span>
+                  <span className="text-sm font-bold" style={{ color: 'white' }}>
+                    {listing.price_monthly_long},-
+                  </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="text-sm opacity-70" style={{ color: 'white' }}>Depositum:</span>
-                  <span className="text-sm font-bold" style={{ color: 'white' }}>{listing.deposit_amount},-</span>
+                  <span className="text-sm opacity-70" style={{ color: 'white' }}>
+                    Depositum:
+                  </span>
+                  <span className="text-sm font-bold" style={{ color: 'white' }}>
+                    {listing.deposit_amount},-
+                  </span>
                 </div>
               </div>
 
@@ -1955,18 +3896,23 @@ export default function ListingDetailsClient() {
                   {t('depositGuaranteeHeading')}
                 </div>
                 {listing.deposit_guarantee == null ? (
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.45 }}>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '0.85rem',
+                      color: 'rgba(255,255,255,0.75)',
+                      lineHeight: 1.45,
+                    }}
+                  >
                     {t('depositGuaranteeNotSpecified')}
                   </p>
                 ) : (
                   <div style={{ display: 'grid', gap: '8px' }}>
-                    {(
-                      [
-                        ['nav', 'depositGuaranteeRowNav'] as const,
-                        ['other', 'depositGuaranteeRowOther'] as const,
-                        ['ordinary', 'depositGuaranteeRowOrdinary'] as const,
-                      ]
-                    ).map(([key, labelKey]) => (
+                    {[
+                      ['nav', 'depositGuaranteeRowNav'] as const,
+                      ['other', 'depositGuaranteeRowOther'] as const,
+                      ['ordinary', 'depositGuaranteeRowOrdinary'] as const,
+                    ].map(([key, labelKey]) => (
                       <div
                         key={key}
                         style={{
@@ -1980,7 +3926,9 @@ export default function ListingDetailsClient() {
                       >
                         <span style={{ flex: 1, lineHeight: 1.4 }}>{t(labelKey)}</span>
                         <span style={{ fontWeight: 700, flexShrink: 0, opacity: 0.95 }}>
-                          {hasDepositGuarantee(listing.deposit_guarantee, key) ? t('depositGuaranteeYes') : t('depositGuaranteeNo')}
+                          {hasDepositGuarantee(listing.deposit_guarantee, key)
+                            ? t('depositGuaranteeYes')
+                            : t('depositGuaranteeNo')}
                         </span>
                       </div>
                     ))}
@@ -1989,24 +3937,76 @@ export default function ListingDetailsClient() {
               </div>
 
               {ownerAgreementTerminated ? (
-                <div style={{ padding: 'var(--space-3)', background: 'rgba(255,255,255,0.08)', borderRadius: '8px', marginBottom: 'var(--space-4)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>
+                <div
+                  style={{
+                    padding: 'var(--space-3)',
+                    background: 'rgba(255,255,255,0.08)',
+                    borderRadius: '8px',
+                    marginBottom: 'var(--space-4)',
+                    fontSize: '0.9rem',
+                    color: 'rgba(255,255,255,0.9)',
+                  }}
+                >
                   {t('expiredOwnerNoMediationShort')}
                 </div>
               ) : !kommuneCanEdit ? (
-                <div style={{ padding: 'var(--space-3)', background: 'rgba(255,255,255,0.08)', borderRadius: '8px', marginBottom: 'var(--space-4)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>
+                <div
+                  style={{
+                    padding: 'var(--space-3)',
+                    background: 'rgba(255,255,255,0.08)',
+                    borderRadius: '8px',
+                    marginBottom: 'var(--space-4)',
+                    fontSize: '0.9rem',
+                    color: 'rgba(255,255,255,0.9)',
+                  }}
+                >
                   {t('formidlingManagedByCaseworkerShort')}
                 </div>
               ) : listing?.status === 'Formidla' ? (
-                <div style={{ padding: 'var(--space-3)', background: 'rgba(59, 130, 246, 0.2)', borderRadius: '8px', marginBottom: 'var(--space-4)', fontSize: '0.9rem', color: 'white' }}>
+                <div
+                  style={{
+                    padding: 'var(--space-3)',
+                    background: 'rgba(59, 130, 246, 0.2)',
+                    borderRadius: '8px',
+                    marginBottom: 'var(--space-4)',
+                    fontSize: '0.9rem',
+                    color: 'white',
+                  }}
+                >
                   {t('formidletUseRemoveBelow')}
                 </div>
               ) : (
                 <>
                   <div style={{ marginBottom: 'var(--space-4)' }}>
-                    <label className="label" style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', marginBottom: 'var(--space-2)', display: 'block' }}>{t('tidsspannFormidling')}</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+                    <label
+                      className="label"
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'rgba(255,255,255,0.7)',
+                        marginBottom: 'var(--space-2)',
+                        display: 'block',
+                      }}
+                    >
+                      {t('tidsspannFormidling')}
+                    </label>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: 'var(--space-2)',
+                      }}
+                    >
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>{t('from')}</span>
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            color: 'rgba(255,255,255,0.6)',
+                            display: 'block',
+                            marginBottom: '4px',
+                          }}
+                        >
+                          {t('from')}
+                        </span>
                         <DateInput
                           showCalendar
                           className="input"
@@ -2014,11 +4014,29 @@ export default function ListingDetailsClient() {
                           onChange={setFormidletStart}
                           max={formidletEnd || undefined}
                           placeholder={t('dateInputPlaceholder')}
-                          style={{ padding: 'var(--space-2)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', marginBottom: 0, width: '100%' }}
+                          style={{
+                            padding: 'var(--space-2)',
+                            fontSize: '0.85rem',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            color: 'white',
+                            borderRadius: '8px',
+                            marginBottom: 0,
+                            width: '100%',
+                          }}
                         />
                       </div>
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '4px' }}>{t('to')}</span>
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            color: 'rgba(255,255,255,0.6)',
+                            display: 'block',
+                            marginBottom: '4px',
+                          }}
+                        >
+                          {t('to')}
+                        </span>
                         <DateInput
                           showCalendar
                           className="input"
@@ -2026,20 +4044,43 @@ export default function ListingDetailsClient() {
                           onChange={setFormidletEnd}
                           min={formidletStart || undefined}
                           placeholder={t('dateInputPlaceholder')}
-                          style={{ padding: 'var(--space-2)', fontSize: '0.85rem', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', marginBottom: 0, width: '100%' }}
+                          style={{
+                            padding: 'var(--space-2)',
+                            fontSize: '0.85rem',
+                            background: 'rgba(255,255,255,0.1)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            color: 'white',
+                            borderRadius: '8px',
+                            marginBottom: 0,
+                            width: '100%',
+                          }}
                         />
                       </div>
                     </div>
                   </div>
-                  <details style={{ fontSize: '0.75rem', marginBottom: 'var(--space-3)', color: 'rgba(255,255,255,0.75)' }}>
-                    <summary style={{ cursor: 'pointer', userSelect: 'none' }}>{t('mediationNoteOptional')}</summary>
-                    <div style={{ marginTop: 'var(--space-2)', display: 'grid', gap: 'var(--space-2)' }}>
+                  <details
+                    style={{
+                      fontSize: '0.75rem',
+                      marginBottom: 'var(--space-3)',
+                      color: 'rgba(255,255,255,0.75)',
+                    }}
+                  >
+                    <summary style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      {t('mediationNoteOptional')}
+                    </summary>
+                    <div
+                      style={{
+                        marginTop: 'var(--space-2)',
+                        display: 'grid',
+                        gap: 'var(--space-2)',
+                      }}
+                    >
                       <textarea
                         className="input"
                         rows={2}
                         maxLength={MAX_MEDIATION_NOTE_IN_NOTIFICATION}
                         value={formidletMediationNote}
-                        onChange={e => {
+                        onChange={(e) => {
                           const v = e.target.value
                           setFormidletMediationNote(v)
                           if (!v.trim()) setFormidletIncludeNoteInNotification(false)
@@ -2053,14 +4094,22 @@ export default function ListingDetailsClient() {
                           maxHeight: '120px',
                           background: 'rgba(255,255,255,0.1)',
                           border: '1px solid rgba(255,255,255,0.2)',
-                          color: 'white'
+                          color: 'white',
                         }}
                       />
-                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)', cursor: formidletMediationNote.trim() ? 'pointer' : 'default', color: 'rgba(255,255,255,0.9)' }}>
+                      <label
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 'var(--space-2)',
+                          cursor: formidletMediationNote.trim() ? 'pointer' : 'default',
+                          color: 'rgba(255,255,255,0.9)',
+                        }}
+                      >
                         <input
                           type="checkbox"
                           checked={formidletIncludeNoteInNotification}
-                          onChange={e => setFormidletIncludeNoteInNotification(e.target.checked)}
+                          onChange={(e) => setFormidletIncludeNoteInNotification(e.target.checked)}
                           disabled={!formidletMediationNote.trim()}
                           style={{ marginTop: '2px' }}
                         />
@@ -2078,39 +4127,94 @@ export default function ListingDetailsClient() {
                       padding: 'var(--space-4)',
                       fontSize: '1.1rem',
                       marginBottom: 'var(--space-4)',
-                      opacity: (formidletSending || !formidletStart || !formidletEnd) ? 0.6 : 1,
-                      cursor: (formidletSending || !formidletStart || !formidletEnd) ? 'not-allowed' : 'pointer'
+                      opacity: formidletSending || !formidletStart || !formidletEnd ? 0.6 : 1,
+                      cursor:
+                        formidletSending || !formidletStart || !formidletEnd
+                          ? 'not-allowed'
+                          : 'pointer',
                     }}
                   >
                     {formidletSending ? t('startingFormidling') : t('startFormidling')}
                   </button>
                 </>
               )}
-              <div style={{ textAlign: 'center', fontSize: '0.8rem', opacity: 0.6, color: 'white' }}>
+              <div
+                style={{ textAlign: 'center', fontSize: '0.8rem', opacity: 0.6, color: 'white' }}
+              >
                 {t('agreementHistoryLogged')}
               </div>
             </div>
 
-            <div className="card" style={{ marginTop: 'var(--space-6)', padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: 'var(--text-main)' }}>
+            <div
+              className="card"
+              style={{
+                marginTop: 'var(--space-6)',
+                padding: 'var(--space-6)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-subtle)',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: '1rem',
+                  marginBottom: 'var(--space-4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  color: 'var(--text-main)',
+                }}
+              >
                 <User size={18} style={{ color: 'var(--text-main)' }} /> {t('landlord')}
               </h3>
               <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{listing.owner_name}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '0.9rem', color: 'var(--text-body)' }}>
-                  <Phone size={14} style={{ color: 'var(--color-accent)' }} /> {listing.contact_phone}
+                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
+                  {listing.owner_name}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    fontSize: '0.9rem',
+                    color: 'var(--text-body)',
+                  }}
+                >
+                  <Phone size={14} style={{ color: 'var(--color-accent)' }} />{' '}
+                  {listing.contact_phone}
                 </div>
                 {listing.owner_id && !ownerAgreementTerminated && (
                   <Link
                     href={`/nav/messages?with=${listing.owner_id}`}
                     className="button button-secondary"
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-4)', fontSize: '0.9rem', textDecoration: 'none', marginTop: 'var(--space-1)' }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 'var(--space-2)',
+                      padding: 'var(--space-2) var(--space-4)',
+                      fontSize: '0.9rem',
+                      textDecoration: 'none',
+                      marginTop: 'var(--space-1)',
+                    }}
                   >
                     <MessageSquare size={18} /> {t('message')}
                   </Link>
                 )}
-                <div style={{ marginTop: 'var(--space-2)', padding: 'var(--space-3)', background: 'rgba(45, 212, 191, 0.12)', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--color-teal)', border: '1px solid rgba(45, 212, 191, 0.3)' }}>
-                  <ShieldCheck size={14} style={{ display: 'inline', marginRight: '6px', color: 'var(--color-teal)' }} /> 
+                <div
+                  style={{
+                    marginTop: 'var(--space-2)',
+                    padding: 'var(--space-3)',
+                    background: 'rgba(45, 212, 191, 0.12)',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    color: 'var(--color-teal)',
+                    border: '1px solid rgba(45, 212, 191, 0.3)',
+                  }}
+                >
+                  <ShieldCheck
+                    size={14}
+                    style={{ display: 'inline', marginRight: '6px', color: 'var(--color-teal)' }}
+                  />
                   Vilkår signert: {formatDateNo(listing.last_verified)}
                 </div>
               </div>
@@ -2138,7 +4242,7 @@ export default function ListingDetailsClient() {
               alignItems: 'stretch',
               justifyContent: 'flex-start',
               padding: 'var(--space-4)',
-              overflow: 'auto'
+              overflow: 'auto',
             }}
             onClick={() => setExpandedReportId(null)}
           >
@@ -2155,45 +4259,166 @@ export default function ListingDetailsClient() {
                 boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
                 overflow: 'hidden',
                 display: 'flex',
-                flexDirection: 'column'
+                flexDirection: 'column',
               }}
-              onClick={e => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
-              <div style={{ position: 'sticky', top: 0, left: 0, right: 0, padding: 'var(--space-4) var(--space-6)', background: 'var(--bg-card)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)', zIndex: 1 }}>
+              <div
+                style={{
+                  position: 'sticky',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  padding: 'var(--space-4) var(--space-6)',
+                  background: 'var(--bg-card)',
+                  borderBottom: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 'var(--space-3)',
+                  zIndex: 1,
+                }}
+              >
                 <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-main)' }}>
                   {expandedReport.reporter_type === 'homeowner' ? t('landlord') : t('tenant')}
-                  {expandedReport.content?.photo_urls?.length ? ` · ${expandedReport.content.photo_urls.length} bilder vedlagt` : ''}
+                  {expandedReport.content?.photo_urls?.length
+                    ? ` · ${expandedReport.content.photo_urls.length} bilder vedlagt`
+                    : ''}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setExpandedReportId(null)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: '10px', color: 'var(--text-main)', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 600 }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 20px',
+                    background: 'var(--bg-app)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '10px',
+                    color: 'var(--text-main)',
+                    cursor: 'pointer',
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                  }}
                 >
                   <ArrowLeft size={18} /> {t('close')}
                 </button>
               </div>
-              <div style={{ padding: 'var(--space-6)', fontSize: '1rem', color: 'var(--text-body)', lineHeight: 1.6, overflow: 'auto', flex: 1, minHeight: 0 }}>
-                <div style={{ marginBottom: 'var(--space-4)', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              <div
+                style={{
+                  padding: 'var(--space-6)',
+                  fontSize: '1rem',
+                  color: 'var(--text-body)',
+                  lineHeight: 1.6,
+                  overflow: 'auto',
+                  flex: 1,
+                  minHeight: 0,
+                }}
+              >
+                <div
+                  style={{
+                    marginBottom: 'var(--space-4)',
+                    fontSize: '0.9rem',
+                    color: 'var(--text-muted)',
+                  }}
+                >
                   {formatDateNo(expandedReport.created_at)}
                   {expandedReport.reporter_type !== 'tenant' && status !== 'pending' && (
-                    <span style={{ marginLeft: '12px', padding: '4px 10px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, background: status === 'approved' ? 'rgba(45, 212, 191, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: status === 'approved' ? 'var(--color-teal)' : '#ef4444' }}>
+                    <span
+                      style={{
+                        marginLeft: '12px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        background:
+                          status === 'approved'
+                            ? 'rgba(45, 212, 191, 0.2)'
+                            : 'rgba(239, 68, 68, 0.2)',
+                        color: status === 'approved' ? 'var(--color-teal)' : '#ef4444',
+                      }}
+                    >
                       {status === 'approved' ? 'Godkjent' : 'Ikke godkjent'}
                     </span>
                   )}
                 </div>
                 <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-                  {expandedReport.content?.address && <p style={{ margin: 0 }}><strong style={{ color: 'var(--text-main)' }}>Adresse:</strong> {expandedReport.content.address}</p>}
-                  {expandedReport.content?.agreement_period && <p style={{ margin: 0 }}><strong style={{ color: 'var(--text-main)' }}>Avtaleperiode:</strong> {expandedReport.content.agreement_period}</p>}
-                  {expandedReport.content?.inventory && <p style={{ margin: 0 }}><strong style={{ color: 'var(--text-main)' }}>Inventar:</strong> {expandedReport.content.inventory}</p>}
-                  {expandedReport.content?.keys && <p style={{ margin: 0 }}><strong style={{ color: 'var(--text-main)' }}>Nøkler:</strong> {expandedReport.content.keys}</p>}
-                  {expandedReport.content?.condition_description && <p style={{ margin: 0 }}><strong style={{ color: 'var(--text-main)' }}>{t('conditionDescription')}</strong> {expandedReport.content.condition_description}</p>}
-                  {expandedReport.request_change_comment && <p style={{ margin: 0, color: '#ef4444' }}><strong>{t('commentFromKommune')}</strong> {expandedReport.request_change_comment}</p>}
+                  {expandedReport.content?.address && (
+                    <p style={{ margin: 0 }}>
+                      <strong style={{ color: 'var(--text-main)' }}>Adresse:</strong>{' '}
+                      {expandedReport.content.address}
+                    </p>
+                  )}
+                  {expandedReport.content?.agreement_period && (
+                    <p style={{ margin: 0 }}>
+                      <strong style={{ color: 'var(--text-main)' }}>Avtaleperiode:</strong>{' '}
+                      {expandedReport.content.agreement_period}
+                    </p>
+                  )}
+                  {expandedReport.content?.inventory && (
+                    <p style={{ margin: 0 }}>
+                      <strong style={{ color: 'var(--text-main)' }}>Inventar:</strong>{' '}
+                      {expandedReport.content.inventory}
+                    </p>
+                  )}
+                  {expandedReport.content?.keys && (
+                    <p style={{ margin: 0 }}>
+                      <strong style={{ color: 'var(--text-main)' }}>Nøkler:</strong>{' '}
+                      {expandedReport.content.keys}
+                    </p>
+                  )}
+                  {(expandedReport.content?.tenant_comment ||
+                    expandedReport.content?.condition_description) && (
+                    <p style={{ margin: 0 }}>
+                      <strong style={{ color: 'var(--text-main)' }}>
+                        {expandedReport.reporter_type === 'tenant'
+                          ? t('tenantHandoverCommentLabel')
+                          : t('conditionDescription')}
+                      </strong>{' '}
+                      {expandedReport.content.tenant_comment ||
+                        expandedReport.content.condition_description}
+                    </p>
+                  )}
+                  {expandedReport.request_change_comment && (
+                    <p style={{ margin: 0, color: '#ef4444' }}>
+                      <strong>{t('commentFromKommune')}</strong>{' '}
+                      {expandedReport.request_change_comment}
+                    </p>
+                  )}
                 </div>
                 {expandedReport.content?.photo_urls?.length ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-6)' }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                      gap: 'var(--space-4)',
+                      marginTop: 'var(--space-6)',
+                    }}
+                  >
                     {expandedReport.content.photo_urls.map((url: string, i: number) => (
-                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
-                        <img src={url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover' }} />
+                      <a
+                        key={i}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'block',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          border: '1px solid var(--border-subtle)',
+                          position: 'relative',
+                          aspectRatio: '1',
+                        }}
+                      >
+                        <OptimizedPublicStorageImage
+                          variant="fill"
+                          src={url}
+                          alt={`Overtakelsesrapport, bilde ${i + 1}`}
+                          sizes="(max-width: 768px) 45vw, 200px"
+                          style={{ objectFit: 'cover' }}
+                        />
                       </a>
                     ))}
                   </div>
@@ -2206,15 +4431,87 @@ export default function ListingDetailsClient() {
 
       {/* Modal: Be om endring – kommentar til utleier og send melding */}
       {requestChangeReport && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'var(--space-4)' }} onClick={() => !requestChangeSending && setRequestChangeReport(null)}>
-          <div style={{ background: 'var(--bg-card)', borderRadius: '16px', padding: 'var(--space-8)', maxWidth: '440px', width: '100%', border: '1px solid var(--border-subtle)', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
-            <h4 style={{ margin: '0 0 var(--space-4)', color: 'var(--text-main)' }}>Be om endring i overtakelsesrapport</h4>
-            <p style={{ margin: '0 0 var(--space-4)', fontSize: '0.9rem', color: 'var(--text-body)' }}>Skriv en kommentar som sendes til utleier. De får melding og kan sende inn en ny rapport.</p>
-            <textarea value={requestChangeComment} onChange={e => setRequestChangeComment(e.target.value)} placeholder={t('listingRequestChangePlaceholder')} rows={4} className="input" style={{ width: '100%', marginBottom: 'var(--space-4)', resize: 'vertical', minHeight: '100px' }} />
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 'var(--space-4)',
+          }}
+          onClick={() => !requestChangeSending && setRequestChangeReport(null)}
+        >
+          <div
+            style={{
+              background: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: 'var(--space-8)',
+              maxWidth: '440px',
+              width: '100%',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 style={{ margin: '0 0 var(--space-4)', color: 'var(--text-main)' }}>
+              Be om endring i overtakelsesrapport
+            </h4>
+            <p
+              style={{
+                margin: '0 0 var(--space-4)',
+                fontSize: '0.9rem',
+                color: 'var(--text-body)',
+              }}
+            >
+              Skriv en kommentar som sendes til utleier. De får melding og kan sende inn en ny
+              rapport.
+            </p>
+            <textarea
+              value={requestChangeComment}
+              onChange={(e) => setRequestChangeComment(e.target.value)}
+              placeholder={t('listingRequestChangePlaceholder')}
+              rows={4}
+              className="input"
+              style={{
+                width: '100%',
+                marginBottom: 'var(--space-4)',
+                resize: 'vertical',
+                minHeight: '100px',
+              }}
+            />
             <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => setRequestChangeReport(null)} disabled={requestChangeSending} style={{ padding: '8px 16px', background: 'var(--bg-app)', border: '1px solid var(--border-subtle)', borderRadius: '8px', color: 'var(--text-body)', cursor: requestChangeSending ? 'not-allowed' : 'pointer' }}>{t('cancel')}</button>
-              <button type="button" onClick={handleRequestChangeSubmit} disabled={requestChangeSending} className="button" style={{ padding: '8px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {requestChangeSending ? 'Sender…' : <><Send size={16} /> Send melding og marker som ikke godkjent</>}
+              <button
+                type="button"
+                onClick={() => setRequestChangeReport(null)}
+                disabled={requestChangeSending}
+                style={{
+                  padding: '8px 16px',
+                  background: 'var(--bg-app)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '8px',
+                  color: 'var(--text-body)',
+                  cursor: requestChangeSending ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleRequestChangeSubmit}
+                disabled={requestChangeSending}
+                className="button"
+                style={{ padding: '8px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                {requestChangeSending ? (
+                  'Sender…'
+                ) : (
+                  <>
+                    <Send size={16} /> Send melding og marker som ikke godkjent
+                  </>
+                )}
               </button>
             </div>
           </div>

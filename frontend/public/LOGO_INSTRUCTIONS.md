@@ -2,7 +2,7 @@
 
 ## How to Add Your Logo
 
-1. **Take a screenshot** of the logo from the left side of your design (the abstract house icon with "Bo.ly" text)
+1. **Take a screenshot** of the logo from the left side of your design (the abstract house icon with **Boly** wordmark)
 
 2. **Save the image** as one of these formats:
    - `logo.png` (recommended)

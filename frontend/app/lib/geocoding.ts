@@ -3,7 +3,7 @@
  * Se https://operations.osmfoundation.org/policies/nominatim/ — bruk identifiserende User-Agent og ikke overbelast API-et.
  */
 
-const USER_AGENT = 'BoLy/1.0 (https://boly.no; contact: support)'
+const USER_AGENT = 'Boly/1.0 (https://bolynorge.no; contact: support)'
 
 export type GeocodeHit = {
   lat: number
@@ -35,7 +35,7 @@ export function nominatimResultToGeocodeHit(hit: Record<string, unknown>): Geoco
       ? `${addr.road} ${addr.house_number}`
       : (addr.road as string) || (hit.name as string),
     postcode,
-    city
+    city,
   ].filter(Boolean)
   const displayLabel = parts.length ? parts.join(' · ') : String(hit.display_name || 'Treff')
   return {
@@ -44,7 +44,7 @@ export function nominatimResultToGeocodeHit(hit: Record<string, unknown>): Geoco
     displayLabel,
     city,
     postal_code: postcode,
-    raw: hit
+    raw: hit,
   }
 }
 
@@ -58,7 +58,7 @@ export function pickBestNominatimHit(
   const pc = (postalCode || '').replace(/\s/g, '').slice(0, 4)
   const cityLower = (city || '').trim().toLowerCase()
   if (pc && /^\d{4}$/.test(pc)) {
-    const byPc = hits.find(h => {
+    const byPc = hits.find((h) => {
       const a = (h.address as Record<string, unknown>) || {}
       const p = String(a.postcode || '')
         .replace(/\s/g, '')
@@ -68,7 +68,7 @@ export function pickBestNominatimHit(
     if (byPc) return byPc
   }
   if (cityLower) {
-    const byCity = hits.find(h => {
+    const byCity = hits.find((h) => {
       const a = (h.address as Record<string, unknown>) || {}
       const c = String(a.city || a.town || a.municipality || '')
         .trim()
@@ -120,8 +120,8 @@ export async function searchNorwegianAddress(
   const response = await fetch(url, {
     headers: {
       'Accept-Language': 'no,nb',
-      'User-Agent': USER_AGENT
-    }
+      'User-Agent': USER_AGENT,
+    },
   })
   if (!response.ok) {
     console.warn('Nominatim error', response.status)
@@ -134,7 +134,9 @@ export async function searchNorwegianAddress(
 /**
  * Ett steg: søk og plukk beste treff (til boligdetaljer uten valgliste).
  */
-export async function geocodeAddressBestEffort(input: SearchAddressInput): Promise<GeocodeHit | null> {
+export async function geocodeAddressBestEffort(
+  input: SearchAddressInput
+): Promise<GeocodeHit | null> {
   const hits = await searchNorwegianAddress(input, 10)
   if (!hits.length) {
     const fallback = await searchNorwegianAddress(

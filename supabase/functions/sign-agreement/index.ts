@@ -1,5 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { z } from "https://esm.sh/zod@3.23.8"
+import { edgeLog } from "../_shared/edgeLog.ts"
+import { sanitizeOriginQueryValue } from "../_shared/safeRedirect.ts"
+
+const signAgreementBodySchema = z.object({
+  userId: z.string().uuid(),
+  origin: z.string().max(512).optional(),
+  city: z.string().max(200).optional(),
+  agreementVersion: z.string().max(32).optional(),
+})
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,42 +40,122 @@ serve(async (req) => {
   let currentStep = "Initialisering"
   try {
     const raw = await req.text()
-    let body: { userId?: string; origin?: string; city?: string }
+    let json: unknown = {}
     try {
-      body = raw ? JSON.parse(raw) : {}
+      json = raw ? JSON.parse(raw) : {}
     } catch {
       console.error('Body parse failed. Raw (first 200):', raw.slice(0, 200))
       throw new Error('Ugyldig forespørsel: kunne ikke parse JSON.')
     }
-    const { userId, origin, city } = body
+    const parsedBody = signAgreementBodySchema.safeParse(json)
+    if (!parsedBody.success) {
+      return new Response(
+        JSON.stringify({
+          error: 'Ugyldig forespørsel',
+          message: 'Validering av body feilet',
+          issues: parsedBody.error.flatten(),
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+    const { userId, origin, city } = parsedBody.data
     const cityParam = city?.trim() ? `&city=${encodeURIComponent(city.trim())}` : ''
+    const safeOrigin = sanitizeOriginQueryValue(origin)
 
-    console.log(`DEBUG: Starter signering for ${userId}. Origin: ${origin}. City: ${city ?? '(none)'}. Secret konfigurert: ${!!CLIENT_SECRET}`)
-    
-    if (!userId) throw new Error("Mangler userId i forespørselen")
+    edgeLog("info", "sign-agreement start", {
+      userId,
+      originOk: !!safeOrigin,
+      hasCity: !!(city && city.trim()),
+      hasSecret: !!CLIENT_SECRET,
+    })
     if (!CLIENT_SECRET) throw new Error("SIGNICAT_SECRET_SIGN mangler i Supabase Secrets. Sjekk at du har lagt den til i Edge Functions -> Secrets.")
     if (!SUPABASE_URL) throw new Error("SUPABASE_URL mangler")
 
-    // Logg initieringen (rate limit deaktivert for nå)
-    currentStep = "Logging"
+    currentStep = "Rate limit"
     const supabaseAdmin = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
-    await supabaseAdmin.from('audit_logs').insert([{
-      user_id: userId,
-      action_type: 'SIGN_INITIATED',
-      details: { note: 'Rate limit deaktivert' }
-    }])
 
-    currentStep = "Hent gjeldende vilkår-dokument"
-    const { data: docId, error: rpcErr } = await supabaseAdmin.rpc('get_latest_terms_document_id_for_user', {
-      p_user_id: userId,
-      p_city: city?.trim() || null,
-    })
-    if (rpcErr) console.warn('get_latest_terms_document_id_for_user:', rpcErr.message)
+    currentStep = "Sjekk avtalestatus"
+    const { data: uaCheck } = await supabaseAdmin
+      .from("user_agreements")
+      .select("is_terminated, terminated_by_kommune")
+      .eq("user_id", userId)
+      .maybeSingle()
+    if (uaCheck?.is_terminated === true) {
+      if (uaCheck?.terminated_by_kommune === true) {
+        return new Response(
+          JSON.stringify({
+            error: "Signering ikke tilgjengelig",
+            message:
+              "Avtalen er sagt opp av kommunen. Be om å få signere på nytt under Mine boliger og vent på godkjenning før du prøver igjen.",
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        )
+      }
+      return new Response(
+        JSON.stringify({
+          error: "Signering ikke tilgjengelig",
+          message:
+            "Avtalen er avsluttet. Ta kontakt med kommunen eller logg inn på utleierkontoen for neste steg.",
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
+    }
+
+    currentStep = "Hent dokument å signere"
+    const { data: docId, error: rpcErr } = await supabaseAdmin.rpc(
+      "get_first_missing_terms_document_id_for_user",
+      {
+        p_user_id: userId,
+        p_city: city?.trim() || null,
+      },
+    )
+    if (rpcErr) console.warn("get_first_missing_terms_document_id_for_user:", rpcErr.message)
+
+    if (!docId || typeof docId !== "string") {
+      return new Response(
+        JSON.stringify({
+          error: "Ingenting å signere",
+          message:
+            "Alle påkrevde vilkår for dette området er allerede signert, eller det finnes ingen publiserte vilkår.",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
+    }
+
+    const windowMs = 15 * 60 * 1000
+    const maxStarts = 8
+    const since = new Date(Date.now() - windowMs).toISOString()
+    const { count: recentCount, error: rateErr } = await supabaseAdmin
+      .from("audit_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("action_type", "SIGN_INITIATED")
+      .gte("created_at", since)
+
+    if (!rateErr && (recentCount ?? 0) >= maxStarts) {
+      edgeLog("warn", "sign-agreement rate limited", { userId, recentCount })
+      return new Response(
+        JSON.stringify({
+          error: "For mange forsøk",
+          message: "Vent noen minutter før du prøver å signere på nytt.",
+        }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      )
+    }
+
+    currentStep = "Logging"
+    await supabaseAdmin.from("audit_logs").insert([
+      {
+        user_id: userId,
+        action_type: "SIGN_INITIATED",
+        details: { note: "rate_limit_window_15m", terms_document_id: docId },
+      },
+    ])
 
     let pdfUrl = fallbackPdfUrl()
     let signTitle = "Vilkårsavtale Boligbank"
 
-    if (docId && typeof docId === 'string') {
+    if (docId && typeof docId === "string") {
       const { data: row } = await supabaseAdmin
         .from('terms_documents')
         .select('title, pdf_bucket, pdf_storage_path')
@@ -157,15 +247,15 @@ serve(async (req) => {
           signingFlow: "AUTHENTICATION_BASED"
         }],
         redirectSettings: {
-          success: `${functionsHost}/sign-callback?userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(origin || "")}${cityParam}`,
-          cancel: `${functionsHost}/sign-callback?status=cancel&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(origin || "")}${cityParam}`,
-          error: `${functionsHost}/sign-callback?status=error&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(origin || "")}${cityParam}`
-        }
+          success: `${functionsHost}/sign-callback?userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(safeOrigin)}${cityParam}`,
+          cancel: `${functionsHost}/sign-callback?status=cancel&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(safeOrigin)}${cityParam}`,
+          error: `${functionsHost}/sign-callback?status=error&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(safeOrigin)}${cityParam}`,
+        },
       }])
     })
 
     const sessionData = await sessionRes.json()
-    console.log("Full session response:", JSON.stringify(sessionData))
+    edgeLog("info", "sign-agreement session response", { ok: sessionRes.ok })
     
     if (!sessionRes.ok) throw new Error(`Signerings-økt feilet: ${JSON.stringify(sessionData)}`)
 
@@ -182,7 +272,7 @@ serve(async (req) => {
 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    console.error(`FEIL i steg "${currentStep}":`, message)
+    edgeLog("error", "sign-agreement", { step: currentStep, message })
     return new Response(JSON.stringify({ 
       error: `Feil under ${currentStep}`, 
       message 

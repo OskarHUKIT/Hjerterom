@@ -1,4 +1,4 @@
-# Quick Start Guide - Bo.ly Development
+# Quick Start Guide – Boly-utvikling
 
 ## 🚀 Local Development (Easiest Way)
 

@@ -1,7 +1,7 @@
 {
-  "name": "boligbanken-backend",
+  "name": "boly-backend",
   "version": "1.0.0",
-  "description": "Boligbanken Backend API",
+  "description": "Boly backend API",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",

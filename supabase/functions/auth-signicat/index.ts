@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { edgeLog } from "../_shared/edgeLog.ts"
+import { isAllowedAppUrl, safeAppRedirectUrl } from "../_shared/safeRedirect.ts"
 
 const SIGNICAT_DISCOVERY_URL = "https://kunnskapstrening-it.sandbox.signicat.com/auth/open/.well-known/openid-configuration"
 const CLIENT_ID = "sandbox-smug-hair-945"
@@ -38,11 +40,24 @@ serve(async (req) => {
       authorizeUrl.searchParams.set("response_type", "code")
       authorizeUrl.searchParams.set("scope", "openid profile email")
       authorizeUrl.searchParams.set("redirect_uri", redirectUri)
-      if (returnTo) authorizeUrl.searchParams.set("state", returnTo)
+      if (returnTo && returnTo.length <= 2048) {
+        let decoded = returnTo.trim()
+        try {
+          decoded = decodeURIComponent(returnTo.trim())
+        } catch {
+          /* bruk trim */
+        }
+        if (decoded.startsWith("http") && isAllowedAppUrl(decoded)) {
+          authorizeUrl.searchParams.set("state", returnTo.trim())
+        }
+      }
       
       return Response.redirect(authorizeUrl.toString(), 302)
     } catch (e) {
-      return new Response(JSON.stringify({ error: "Kunne ikke kontakte Signicat Discovery", details: e.message }), { status: 500 })
+      const details = e instanceof Error ? e.message : String(e)
+      return new Response(JSON.stringify({ error: "Kunne ikke kontakte Signicat Discovery", details }), {
+        status: 500,
+      })
     }
   }
 
@@ -119,12 +134,9 @@ serve(async (req) => {
       if (profileError) console.error("Profil-oppdatering feilet:", profileError.message)
     }
 
-    // 3. Generer innloggingslenke - bruk state (return_to) fra OAuth callback
-    const finalRedirect = (state && decodeURIComponent(state).startsWith('http')) 
-      ? decodeURIComponent(state) 
-      : (url.host.includes('localhost') ? 'http://localhost:3000' : 'https://boly.vercel.app')
-
-    const redirectWithBankId = finalRedirect + (finalRedirect.includes('?') ? '&' : '?') + 'bankid=1'
+    // 3. Generer innloggingslenke — kun tillatte URLer (ingen åpen redirect)
+    const finalRedirect = safeAppRedirectUrl(state, url.host.includes("localhost"))
+    const redirectWithBankId = finalRedirect + (finalRedirect.includes("?") ? "&" : "?") + "bankid=1"
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email: email,
@@ -135,9 +147,9 @@ serve(async (req) => {
 
     return Response.redirect(linkData.properties.action_link, 302)
 
-  } catch (err: any) {
-    const msg = err?.message || String(err)
-    console.error("BankID Login Error:", msg)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    edgeLog("error", "auth-signicat", { message: msg })
     return errorPage(msg, state, url)
   }
 })
@@ -146,10 +158,18 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+function loginPageHref(state: string | null | undefined, reqUrl?: URL): string {
+  const base = safeAppRedirectUrl(state, reqUrl?.host?.includes("localhost") ?? false)
+  try {
+    return new URL("/login", base).href
+  } catch {
+    return "http://localhost:3000/login"
+  }
+}
+
 function errorPage(msg: string, state?: string | null, url?: URL): Response {
   try {
-    const fallbackOrigin = url?.host?.includes('localhost') ? 'http://localhost:3000' : 'https://boly.vercel.app'
-    const loginUrl = (state && decodeURIComponent(state).startsWith('http')) ? decodeURIComponent(state) + '/login' : fallbackOrigin + '/login'
+    const loginUrl = loginPageHref(state ?? null, url)
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>BankID-feil</title></head><body style="font-family:system-ui;max-width:480px;margin:80px auto;padding:24px;background:#0f172a;color:#e2e8f0;">
       <h1 style="color:#ef4444;">BankID-innlogging feilet</h1>
       <p style="opacity:0.9;">${escapeHtml(msg)}</p>

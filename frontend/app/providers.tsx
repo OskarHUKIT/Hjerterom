@@ -6,9 +6,7 @@ import { ThemeProvider } from '../context/ThemeContext'
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
-      <LanguageProvider>
-        {children}
-      </LanguageProvider>
+      <LanguageProvider>{children}</LanguageProvider>
     </ThemeProvider>
   )
 }

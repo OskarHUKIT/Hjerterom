@@ -65,9 +65,16 @@ export default function LandlordOnboardingModal({
           border: '1px solid var(--border-subtle)',
           boxShadow: '0 24px 48px rgba(0,0,0,0.25)',
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-3)',
+            marginBottom: 'var(--space-4)',
+          }}
+        >
           <div
             style={{
               width: 48,
@@ -83,12 +90,25 @@ export default function LandlordOnboardingModal({
           >
             <Icon size={26} />
           </div>
-          <h1 id={titleId} style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-main)', lineHeight: 1.25 }}>
+          <h1
+            id={titleId}
+            style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-main)', lineHeight: 1.25 }}
+          >
             {title}
           </h1>
         </div>
         {children}
-        <button type="button" className="button" style={{ width: '100%', padding: 'var(--space-4)', fontSize: '1.05rem', marginTop: 'var(--space-2)' }} onClick={onDismiss}>
+        <button
+          type="button"
+          className="button"
+          style={{
+            width: '100%',
+            padding: 'var(--space-4)',
+            fontSize: '1.05rem',
+            marginTop: 'var(--space-2)',
+          }}
+          onClick={onDismiss}
+        >
           {ctaLabel}
         </button>
       </div>

@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 
-const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+const VAPID_PUBLIC =
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
   'BGJpQlyCiUmWuqwKMIf8Tc4eX9vUAT6_HxebrntxaXr638Rf72rYxo9IFrN_e6uY2JTiQlyTWN6t7f_WMgcUnX0'
 
 export function urlBase64ToUint8Array(base64: string): Uint8Array {
@@ -20,7 +21,7 @@ export async function savePushSubscription(ownerId: string, sub: PushSubscriptio
       owner_id: ownerId,
       endpoint: json.endpoint,
       p256dh: json.keys.p256dh,
-      auth: json.keys.auth
+      auth: json.keys.auth,
     },
     { onConflict: 'owner_id,endpoint' }
   )

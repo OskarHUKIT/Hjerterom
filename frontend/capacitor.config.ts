@@ -1,8 +1,9 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
+  /** Uendret bundle-ID gir enklere oppdatering i butikkene; synlig navn er `appName`. */
   appId: 'com.boligbanken.app',
-  appName: 'Boligbank',
+  appName: 'Boly',
   webDir: 'out',
   bundledWebRuntime: false,
   server: {

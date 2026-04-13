@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import React from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { pdf } from '@react-pdf/renderer'
+import { z } from 'zod'
 import { InvoiceBasisDocument } from '../../../../lib/pdf/InvoiceBasisDocument'
 import { buildInvoiceBasisPdfPayload } from '../../../../lib/pdf/invoiceBasisPayload'
+
+const listingIdSchema = z.string().uuid()
 
 export const runtime = 'nodejs'
 
@@ -12,8 +15,11 @@ function bad(msg: string, status: number) {
 }
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const requestId = req.headers.get('x-request-id')?.trim() || crypto.randomUUID()
   const { id: listingId } = await context.params
   if (!listingId) return bad('Mangler bolig-ID', 400)
+  const idParsed = listingIdSchema.safeParse(listingId)
+  if (!idParsed.success) return bad('Ugyldig bolig-ID', 400)
 
   const authHeader = req.headers.get('authorization')
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
@@ -85,16 +91,25 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const blob = await pdf(doc as React.ReactElement).toBlob()
     const buf = Buffer.from(await blob.arrayBuffer())
     const safeName = `fakturagrunnlag-${listingId.slice(0, 8)}.pdf`
+    console.log(
+      JSON.stringify({
+        msg: 'invoice-basis-pdf ok',
+        requestId,
+        listingId,
+      }),
+    )
     return new NextResponse(buf, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${safeName}"`,
         'Cache-Control': 'no-store',
+        'x-request-id': requestId,
       },
     })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'PDF-feil'
-    return bad(msg, 500)
+    console.error(JSON.stringify({ msg: 'invoice-basis-pdf error', requestId, error: msg }))
+    return NextResponse.json({ error: msg, requestId }, { status: 500 })
   }
 }

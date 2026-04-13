@@ -19,11 +19,14 @@ export function normalizeMunicipalityLabel(s: string): string {
 /**
  * True hvis boligens city (f.eks. «Narvik kommune» eller «Gratangen, Troms») svarer til minst ett av brukerens områder.
  */
-export function listingCityMatchesRegions(city: string | null | undefined, regionsLower: string[]): boolean {
+export function listingCityMatchesRegions(
+  city: string | null | undefined,
+  regionsLower: string[]
+): boolean {
   if (!city?.trim() || regionsLower.length === 0) return false
   const parts = city
     .split(/[,;]/)
-    .map(s => normalizeMunicipalityLabel(s))
+    .map((s) => normalizeMunicipalityLabel(s))
     .filter(Boolean)
   const candidates = parts.length > 0 ? parts : [normalizeMunicipalityLabel(city)]
   for (const norm of candidates) {
@@ -52,20 +55,30 @@ export function mergeKommuneRegionSources(
 
 export function parseKommuneRegions(val: string | string[] | null | undefined): string[] {
   if (val == null) return []
-  if (Array.isArray(val)) return val.map(r => String(r).trim().toLowerCase()).filter(Boolean)
+  if (Array.isArray(val)) return val.map((r) => String(r).trim().toLowerCase()).filter(Boolean)
   let s = String(val).trim()
   if (!s) return []
   s = s.replace(/^["\\]+|["\\]+$/g, '').trim()
   if (s.startsWith('[')) {
     try {
       const arr = JSON.parse(s) as unknown
-      return Array.isArray(arr) ? arr.map((r: unknown) => String(r).trim().toLowerCase()).filter(Boolean) : []
+      return Array.isArray(arr)
+        ? arr.map((r: unknown) => String(r).trim().toLowerCase()).filter(Boolean)
+        : []
     } catch {
       return []
     }
   }
   const regionStr = s.replace(/\s+og\s+/gi, ',').replace(/[,;\n]+/g, ',')
-  return regionStr.split(',').map((r: string) => r.replace(/^["'\s\\]+|["'\s\\]+$/g, '').trim().toLowerCase()).filter(Boolean)
+  return regionStr
+    .split(',')
+    .map((r: string) =>
+      r
+        .replace(/^["'\s\\]+|["'\s\\]+$/g, '')
+        .trim()
+        .toLowerCase()
+    )
+    .filter(Boolean)
 }
 
 /** Lesbar visning: «Narvik, Gratangen, Evenes» uansett om verdien er JSON-array, kommaseparert streng eller array. */
@@ -73,10 +86,10 @@ export function formatKommuneRegionsForDisplay(val: string | string[] | null | u
   const parts = parseKommuneRegions(val)
   if (parts.length === 0) return ''
   return parts
-    .map(r =>
+    .map((r) =>
       r
         .split(/[\s-]+/)
-        .map(p => (p ? p.charAt(0).toUpperCase() + p.slice(1) : ''))
+        .map((p) => (p ? p.charAt(0).toUpperCase() + p.slice(1) : ''))
         .filter(Boolean)
         .join(' ')
     )
@@ -88,7 +101,7 @@ export function formatKommuneRegionsForDisplay(val: string | string[] | null | u
  * flere som sortert JSON-array (samme logikk som DB-RPC).
  */
 export function kommuneRegionForTermsDocument(regions: string[]): string | null {
-  const u = [...new Set(regions.map(r => r.trim().toLowerCase()).filter(Boolean))].sort((a, b) =>
+  const u = [...new Set(regions.map((r) => r.trim().toLowerCase()).filter(Boolean))].sort((a, b) =>
     a.localeCompare(b, 'nb')
   )
   if (u.length === 0) return null
@@ -103,16 +116,19 @@ export function parseTermsRegionField(region: string | null | undefined): string
 }
 
 /** True hvis dokumentets område overlapper minst ett av brukerens områder. Tom brukerliste → ikke regionalt dokument. */
-export function termsRegionVisibleToUser(docRegionsLower: string[], userRegionsLower: string[]): boolean {
+export function termsRegionVisibleToUser(
+  docRegionsLower: string[],
+  userRegionsLower: string[]
+): boolean {
   if (docRegionsLower.length === 0) return false
   if (userRegionsLower.length === 0) return false
   const set = new Set(userRegionsLower)
-  return docRegionsLower.some(r => set.has(r))
+  return docRegionsLower.some((r) => set.has(r))
 }
 
 /** True hvis to normaliserte regionlister deler minst ett område (f.eks. saksbehandler ↔ saksbehandler). */
 export function regionsOverlap(a: string[], b: string[]): boolean {
   if (!a.length || !b.length) return false
   const set = new Set(a)
-  return b.some(r => set.has(r))
+  return b.some((r) => set.has(r))
 }

@@ -6,31 +6,47 @@ export default function Training() {
   const modules = [
     {
       title: 'Modul 1: Systemoversikt',
-      description: 'Grunnleggende oversikt over Bo.ly systemet',
+      description: 'Grunnleggende oversikt over Boly',
       icon: '🏠',
-      color: 'var(--color-royal-blue)'
+      color: 'var(--color-royal-blue)',
     },
     {
       title: 'Modul 2: Søknadshåndtering',
       description: 'Hvordan håndtere boliglånsøknader',
       icon: '📋',
-      color: 'var(--color-teal)'
+      color: 'var(--color-teal)',
     },
     {
       title: 'Modul 3: Dokumenthåndtering',
       description: 'Administrasjon av dokumenter og vilkårsavtaler',
       icon: '📁',
-      color: 'var(--color-muted-blue)'
-    }
+      color: 'var(--color-muted-blue)',
+    },
   ]
 
   return (
     <main className="container">
       <div style={{ marginBottom: '2rem' }}>
-        <Link href="/" className="nav-link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+        <Link
+          href="/"
+          className="nav-link"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginBottom: '1rem',
+          }}
+        >
           ← Tilbake til forsiden
         </Link>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--color-dark-navy)', marginBottom: '0.5rem' }}>
+        <h1
+          style={{
+            fontSize: '2.5rem',
+            fontWeight: 700,
+            color: 'var(--color-dark-navy)',
+            marginBottom: '0.5rem',
+          }}
+        >
           IT Kunnskapstrening
         </h1>
         <p style={{ fontSize: '1.1rem', color: 'var(--color-dark-navy)', opacity: 0.8 }}>
@@ -39,33 +55,49 @@ export default function Training() {
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ 
-          padding: '1.5rem', 
-          background: 'linear-gradient(135deg, rgba(32, 187, 175, 0.1) 0%, rgba(4, 93, 116, 0.05) 100%)',
-          borderRadius: '12px',
-          border: '2px solid rgba(32, 187, 175, 0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem'
-        }}>
-          <div style={{ 
-            width: '60px', 
-            height: '60px', 
-            borderRadius: '12px', 
-            background: 'linear-gradient(135deg, var(--color-teal) 0%, var(--color-dark-teal) 100%)',
+        <div
+          style={{
+            padding: '1.5rem',
+            background:
+              'linear-gradient(135deg, rgba(32, 187, 175, 0.1) 0%, rgba(4, 93, 116, 0.05) 100%)',
+            borderRadius: '12px',
+            border: '2px solid rgba(32, 187, 175, 0.2)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '2rem'
-          }}>
+            gap: '1rem',
+          }}
+        >
+          <div
+            style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '12px',
+              background:
+                'linear-gradient(135deg, var(--color-teal) 0%, var(--color-dark-teal) 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '2rem',
+            }}
+          >
             📚
           </div>
           <div style={{ flex: 1 }}>
             <h3 style={{ margin: 0, marginBottom: '0.5rem', color: 'var(--color-dark-navy)' }}>
-              Behov boligbanken - Kunnskapstrening IT
+              Behov boligbank – Kunnskapstrening IT
             </h3>
-            <p style={{ margin: 0, color: 'var(--color-dark-navy)', opacity: 0.7, fontSize: '0.95rem' }}>
-              Basert på dokumentet: <strong>251001 Behov boligbanken - oversendes Kunnskapstrening IT.docx (2).pdf</strong>
+            <p
+              style={{
+                margin: 0,
+                color: 'var(--color-dark-navy)',
+                opacity: 0.7,
+                fontSize: '0.95rem',
+              }}
+            >
+              Basert på dokumentet:{' '}
+              <strong>
+                251001 Behov boligbank – oversendes Kunnskapstrening IT.docx (2).pdf
+              </strong>
             </p>
           </div>
         </div>
@@ -73,17 +105,24 @@ export default function Training() {
 
       <div className="card">
         <h2 style={{ marginBottom: '1.5rem' }}>Treningsmoduler</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '1.5rem',
+          }}
+        >
           {modules.map((module, index) => (
-            <div 
+            <div
               key={index}
-              style={{ 
-                padding: '1.5rem', 
-                background: 'linear-gradient(135deg, rgba(170, 223, 240, 0.2) 0%, rgba(107, 137, 197, 0.1) 100%)',
+              style={{
+                padding: '1.5rem',
+                background:
+                  'linear-gradient(135deg, rgba(170, 223, 240, 0.2) 0%, rgba(107, 137, 197, 0.1) 100%)',
                 borderRadius: '12px',
                 border: `2px solid ${module.color}40`,
                 transition: 'all 0.3s',
-                cursor: 'pointer'
+                cursor: 'pointer',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)'
@@ -94,23 +133,40 @@ export default function Training() {
                 e.currentTarget.style.boxShadow = 'none'
               }}
             >
-              <div style={{ 
-                width: '50px', 
-                height: '50px', 
-                borderRadius: '10px', 
-                background: `linear-gradient(135deg, ${module.color} 0%, ${module.color}dd 100%)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.5rem',
-                marginBottom: '1rem'
-              }}>
+              <div
+                style={{
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '10px',
+                  background: `linear-gradient(135deg, ${module.color} 0%, ${module.color}dd 100%)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  marginBottom: '1rem',
+                }}
+              >
                 {module.icon}
               </div>
-              <h4 style={{ marginBottom: '0.75rem', color: 'var(--color-dark-navy)', fontSize: '1.1rem', fontWeight: 600 }}>
+              <h4
+                style={{
+                  marginBottom: '0.75rem',
+                  color: 'var(--color-dark-navy)',
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                }}
+              >
                 {module.title}
               </h4>
-              <p style={{ color: 'var(--color-dark-navy)', opacity: 0.8, fontSize: '0.95rem', lineHeight: '1.6', margin: 0 }}>
+              <p
+                style={{
+                  color: 'var(--color-dark-navy)',
+                  opacity: 0.8,
+                  fontSize: '0.95rem',
+                  lineHeight: '1.6',
+                  margin: 0,
+                }}
+              >
                 {module.description}
               </p>
             </div>
@@ -120,9 +176,3 @@ export default function Training() {
     </main>
   )
 }
-
-
-
-
-
-

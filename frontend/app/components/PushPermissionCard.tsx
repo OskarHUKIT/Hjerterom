@@ -28,7 +28,9 @@ export default function PushPermissionCard() {
 
       const hasSW = 'serviceWorker' in navigator
 
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user || cancelled) {
         if (!cancelled) setStatus('loading')
         return
@@ -60,7 +62,9 @@ export default function PushPermissionCard() {
 
     check()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
       if (!cancelled) check()
     })
     return () => {
@@ -78,12 +82,14 @@ export default function PushPermissionCard() {
         setLoading(false)
         return
       }
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) return
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC) as unknown as BufferSource
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC) as unknown as BufferSource,
       })
       await savePushSubscription(user.id, sub)
       setStatus('granted')
@@ -104,16 +110,23 @@ export default function PushPermissionCard() {
         padding: 'var(--space-6)',
         marginBottom: 'var(--space-4)',
         background: 'rgba(59, 130, 246, 0.08)',
-        border: '1px solid rgba(59, 130, 246, 0.3)'
+        border: '1px solid rgba(59, 130, 246, 0.3)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-4)' }}>
-        <div style={{
-          width: '40px', height: '40px', borderRadius: '50%',
-          background: 'rgba(59, 130, 246, 0.2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--color-sky-blue)', flexShrink: 0
-        }}>
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: 'rgba(59, 130, 246, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-sky-blue)',
+            flexShrink: 0,
+          }}
+        >
           {status === 'granted' ? <CheckCircle2 size={20} /> : <Bell size={20} />}
         </div>
         <div style={{ flex: 1 }}>
@@ -143,7 +156,7 @@ export default function PushPermissionCard() {
                   background: 'var(--color-sky-blue)',
                   color: 'white',
                   border: 'none',
-                  borderRadius: 'var(--radius-2)'
+                  borderRadius: 'var(--radius-2)',
                 }}
               >
                 {loading ? t('activating') : t('activateNotifications')}

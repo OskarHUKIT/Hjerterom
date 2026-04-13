@@ -39,6 +39,18 @@ export function formatAuditLogDescription(log: AuditLog): string {
       return `Forlenget formidlingsperiode for ${addr}${(d as any).new_end ? ` til ${formatDateNo((d as any).new_end)}` : ''}`
     case 'KOMMUNE_REMOVE_FORMIDLA':
       return `Fjernet formidling for ${addr}`
+    case 'KOMMUNE_DELETE_LISTING': {
+      const rc = (d as { reason_code?: string }).reason_code
+      return `Kommune slettet bolig: ${addr}${rc ? ` (grunnlag: ${rc})` : ''}`
+    }
+    case 'KOMMUNE_TERMINATE_LANDLORD_AGREEMENT': {
+      const rc = (d as { reason_code?: string }).reason_code
+      return `Kommune avsluttet vilkårsavtale med utleier${rc ? ` (grunnlag: ${rc})` : ''}`
+    }
+    case 'KOMMUNE_APPROVE_LANDLORD_RESIGN':
+      return 'Kommune godkjente forespørsel om ny vilkårssignering'
+    case 'KOMMUNE_REJECT_LANDLORD_RESIGN':
+      return 'Kommune avslo forespørsel om ny vilkårssignering'
     case 'UPDATE_FIELD': {
       const field = (d as any).field
       const value = (d as any).value
@@ -59,17 +71,29 @@ export function formatAuditLogDescription(log: AuditLog): string {
 
 export function getAuditLogIcon(action_type: string): string {
   switch (action_type) {
-    case 'STATUS_CHANGE': return 'toggle'
-    case 'CREATE_LISTING': return 'plus'
-    case 'DELETE_LISTING': return 'trash'
+    case 'STATUS_CHANGE':
+      return 'toggle'
+    case 'CREATE_LISTING':
+      return 'plus'
+    case 'DELETE_LISTING':
+      return 'trash'
     case 'SIGN_TERMS':
     case 'SIGN_TERMS_BANKID':
     case 'SIGN_INITIATED':
-    case 'TERMINATE_AGREEMENT': return 'shield'
+    case 'TERMINATE_AGREEMENT':
+      return 'shield'
     case 'KOMMUNE_MARK_FORMIDLA':
     case 'KOMMUNE_EXTEND_FORMIDLA':
-    case 'KOMMUNE_REMOVE_FORMIDLA': return 'home'
-    case 'UPDATE_FIELD': return 'edit'
-    default: return 'clock'
+    case 'KOMMUNE_REMOVE_FORMIDLA':
+    case 'KOMMUNE_DELETE_LISTING':
+      return 'home'
+    case 'KOMMUNE_TERMINATE_LANDLORD_AGREEMENT':
+    case 'KOMMUNE_APPROVE_LANDLORD_RESIGN':
+    case 'KOMMUNE_REJECT_LANDLORD_RESIGN':
+      return 'shield'
+    case 'UPDATE_FIELD':
+      return 'edit'
+    default:
+      return 'clock'
   }
 }

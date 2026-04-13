@@ -16,7 +16,9 @@ export default function ReportUtleierPage() {
 
   useEffect(() => {
     async function check() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         router.push(`/login?redirect=/report/utleier/${id}`)
         return
@@ -46,8 +48,18 @@ export default function ReportUtleierPage() {
 
   if (loading) {
     return (
-      <main className="container" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="card" style={{ padding: 'var(--space-8)' }}>Laster...</div>
+      <main
+        className="container"
+        style={{
+          minHeight: '60vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div className="card" style={{ padding: 'var(--space-8)' }}>
+          Laster...
+        </div>
       </main>
     )
   }
@@ -56,7 +68,16 @@ export default function ReportUtleierPage() {
     return (
       <main className="container" style={{ padding: 'var(--space-8)' }}>
         <p>Boligen finnes ikke eller du har ikke tilgang.</p>
-        <Link href="/homeowner/manage" className="nav-link" style={{ marginTop: 'var(--space-4)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+        <Link
+          href="/homeowner/manage"
+          className="nav-link"
+          style={{
+            marginTop: 'var(--space-4)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
           <ArrowLeft size={18} /> Tilbake til mine boliger
         </Link>
       </main>
@@ -65,12 +86,22 @@ export default function ReportUtleierPage() {
 
   return (
     <main className="container" style={{ padding: 'var(--space-8)', maxWidth: '800px' }}>
-      <Link href="/homeowner/manage" className="nav-link" style={{ marginBottom: 'var(--space-4)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+      <Link
+        href="/homeowner/manage"
+        className="nav-link"
+        style={{
+          marginBottom: 'var(--space-4)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
         <ArrowLeft size={18} /> Tilbake til mine boliger
       </Link>
       <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-2)' }}>Overtakelsesrapport</h1>
       <p style={{ opacity: 0.8, marginBottom: 'var(--space-6)' }}>
-        Fyll ut overtakelsesrapporten for {listing.address}. Denne leveres til kommunen når boligen er overtatt.
+        Fyll ut overtakelsesrapporten for {listing.address}. Denne leveres til kommunen når boligen
+        er overtatt.
       </p>
       <HandoverReport
         listingId={listing.id}

@@ -10,7 +10,8 @@ export const translations = {
     userPanel: 'Brukerpanel',
     myProperties: 'Mine boliger',
     signTerms: 'Signer vilkår',
-    signTermsCityHint: 'Avtalen som vises er knyttet til bolig i {city} (kommune fra registrering).',
+    signTermsCityHint:
+      'Avtalen som vises er knyttet til bolig i {city} (kommune fra registrering).',
     signedAgreement: 'Signert avtale',
     logOut: 'Logg ut',
     logIn: 'Logg inn',
@@ -19,7 +20,8 @@ export const translations = {
     navLandlords: 'Utleiere',
     navLandlordsDesc: 'Oversikt over alle registrerte utleiere i Boligbank.',
     navAccounts: 'Kontoer',
-    navAccountsDesc: 'Utleiere og saksbehandlere i dine regioner. Som kommune-admin kan du endre redigeringstilgang for saksbehandlere.',
+    navAccountsDesc:
+      'Utleiere og saksbehandlere i dine regioner. Som kommune-admin kan du endre redigeringstilgang for saksbehandlere.',
     navAccountsDescEditor: 'Utleiere og saksbehandlere i dine regioner.',
     navAccountsDescReadonly:
       'Utleiere og saksbehandlere i dine regioner. Med kun lesetilgang kan du skrive med andre saksbehandlere; meldinger fra utleiere er til lesing.',
@@ -27,34 +29,43 @@ export const translations = {
     tabStaff: 'Saksbehandlere',
     staffEditAccess: 'Kan redigere (formidling m.m.)',
     kommuneAdminRole: 'Kommune-admin',
-    termsMissingForRegion: 'Du må signere gjeldende vilkår for denne kommunen før du kan publisere boligen.',
+    termsMissingForRegion:
+      'Du må signere gjeldende vilkår for denne kommunen før du kan publisere boligen.',
     messages: 'Meldinger',
     expired: 'Utløpte',
     kommuneAccess: 'Kommune-tilgang',
-    kommuneAccessDesc: 'Administrer e-postadresser som automatisk får kommune-tilgang ved registrering.',
+    kommuneAccessDesc:
+      'Administrer e-postadresser som automatisk får kommune-tilgang ved registrering.',
     termsDocumentsNav: 'Vilkårsavtaler',
     termsDocumentsTitle: 'Versjonerte vilkårsavtaler',
-    termsDocumentsDesc: 'Last opp PDF som utleiere ser før BankID-signering. Tomt område = alle kommuner (global mal). Med område (f.eks. Narvik) overstyrer global for utleiere med bolig der.',
-    termsDocumentsDescAdmin: 'Som kommune-admin laster du opp PDF kun for dine tildelte kommuner/områder. Du kan ikke opprette global mal her — standard-PDF fra systemet vises under «Publiserte dokumenter».',
+    termsDocumentsDesc:
+      'Last opp PDF som utleiere ser før BankID-signering. Tomt område = alle kommuner (global mal). Med område (f.eks. Narvik) overstyrer global for utleiere med bolig der.',
+    termsDocumentsDescAdmin:
+      'Som kommune-admin laster du opp PDF kun for dine tildelte kommuner/områder. Du kan ikke opprette global mal her — standard-PDF fra systemet vises under «Publiserte dokumenter».',
     termsRegionLabelAdmin: 'Kommune / område for dette dokumentet',
     termsRegionPickPlaceholder: 'Velg kommune …',
     termsRegionMultiHint:
       'Velg ett eller flere områder. Dokumentet brukes ved BankID-signering for alle valgte kommuner.',
     termsAdminRegionRequired: 'Velg minst ett område dokumentet skal gjelde for.',
     termsAdminRegionInvalid: 'Du kan bare publisere for egne tildelte områder.',
-    termsAdminNoRegions: 'Profilen din har ingen kommune/område. Be administrator oppdatere profil eller hviteliste før du publiserer vilkår.',
+    termsAdminNoRegions:
+      'Profilen din har ingen kommune/område. Be administrator oppdatere profil eller hviteliste før du publiserer vilkår.',
     termsDefaultStorageTitle: 'Standard vilkår',
     termsScopeGlobal: 'Alle kommuner (standard)',
     termsScopeMunicipalities: 'Kommuner: {areas}',
-    termsSigningPriorityHint: 'Ved BankID-signering brukes først regionalt dokument som matcher boligens kommune, deretter global mal i databasen, til slutt standard-PDF i Storage.',
-    termsSigningInfoStorageDefault: 'Brukes når det ikke finnes nyere dokument i databasen som dekker boligens kommune.',
-    termsSigningInfoGlobal: 'Gjelder alle kommuner som ikke har eget regionalt dokument med høyere versjon for boligens kommune.',
+    termsSigningPriorityHint:
+      'Ved BankID-signering brukes først regionalt dokument som matcher boligens kommune, deretter global mal i databasen, til slutt standard-PDF i Storage.',
+    termsSigningInfoStorageDefault:
+      'Brukes når det ikke finnes nyere dokument i databasen som dekker boligens kommune.',
+    termsSigningInfoGlobal:
+      'Gjelder alle kommuner som ikke har eget regionalt dokument med høyere versjon for boligens kommune.',
     termsSigningInfoRegional: 'Gjelder ved signering for utleiere med bolig i: {regions}.',
     termsRegionLabel: 'Kommune/område (valgfritt)',
     termsTitleLabel: 'Tittel',
     termsBodyLabel: 'Tekst',
     termsPdfLabel: 'PDF-fil',
-    termsPdfHint: 'Kun PDF. Maks ca. 12 MB. Dette er dokumentet som sendes til Signicat ved BankID-signering.',
+    termsPdfHint:
+      'Kun PDF. Maks ca. 12 MB. Dette er dokumentet som sendes til Signicat ved BankID-signering.',
     termsOpenPdf: 'Åpne PDF',
     termsNoPdfOrText: 'Ingen PDF eller tekst lagret.',
     termsPdfInvalidType: 'Velg en PDF-fil.',
@@ -71,7 +82,8 @@ export const translations = {
       'Her ser du aktive vilkår du har signert med BankID. Har du bolig i flere kommuner, kan det være egne dokumenter per område.',
     termsScopeGlobalBadge: 'Alle kommuner',
     termsSignedOn: 'Signert {date}',
-    termsBankidUmbrellaNote: 'Tilgang til Boligbank er knyttet til din BankID-signerte rammeavtale (v1.0).',
+    termsBankidUmbrellaNote:
+      'Tilgang til Boly er knyttet til din BankID-signerte rammeavtale (v1.0).',
     termsActiveSectionTitle: 'Gjeldende avtaler',
     termsActiveSectionHint: 'Aktive vilkår som gjelder nå – én rad per område der du har signert.',
     termsHistoricalSectionTitle: 'Tidligere signeringer',
@@ -79,7 +91,8 @@ export const translations = {
       'Når kommunen publiserer ny versjon eller du signer på nytt i samme område, lagres eldre signeringer her for oversikt og dokumentasjon.',
     termsStatusSuperseded: 'Erstattet',
     termsHistoricalCardTitle: 'Tidligere signering',
-    termsHistoricalCardNote: 'Denne versjonen er erstattet av nyere vilkår; PDF viser det du signerte den gangen.',
+    termsHistoricalCardNote:
+      'Denne versjonen er erstattet av nyere vilkår; PDF viser det du signerte den gangen.',
     termsHistoricalDetailsSummary: 'Vis tidligere signeringer',
     termsActiveEmptyFallback:
       'Ingen gjeldende signering vises i listen. Se tidligere signeringer nedenfor, eller kontakt kommunen om noe ser feil ut.',
@@ -101,27 +114,34 @@ export const translations = {
     pwaInstallAndroidLabel: 'Android',
     pwaInstallAndroidBody:
       'Åpne menyen (tre prikker) i Chrome og velg «Installer app» eller «Legg til på hjemskjermen».',
-    pwaInstallGeneric: 'I nettleserens meny: finn «Legg til på hjemskjermen» eller «Installer app».',
+    pwaInstallGeneric:
+      'I nettleserens meny: finn «Legg til på hjemskjermen» eller «Installer app».',
     pwaDontShowAgain: 'Ikke vis igjen',
     pwaClose: 'Lukk',
 
     // Homepage
     heroTitle: 'Boly forenkler sosial boligformidling',
-    heroDesc: 'Boly er det sikre bindeleddet mellom kommune og privat boligeier og er et effektivt verktøy i arbeidet med å løse akutte boligbehov. Løsningen sikres av BankID.',
+    heroDesc:
+      'Boly er det sikre bindeleddet mellom kommune og privat boligeier og er et effektivt verktøy i arbeidet med å løse akutte boligbehov. Løsningen sikres av BankID.',
     chooseRole: 'Velg din rolle',
     forMunicipality: 'For kommuneansatte',
     kommunebrukerLabel: 'Jeg er kommunebruker',
-    searchDesc: 'Søk i oversikten over tilgjengelige boliger, som oppdateres kontinuerlig. Finn riktig løsning for dine brukere med avansert filtrering.',
+    searchDesc:
+      'Søk i oversikten over tilgjengelige boliger, som oppdateres kontinuerlig. Finn riktig løsning for dine brukere med avansert filtrering.',
     openHousingBank: 'Åpne boligbank',
     forHomeowners: 'For boligeiere',
     utleierLabel: 'Jeg er utleier',
-    manageDesc: 'Registrer og administrer dine utleieboliger. Du beholder full kontroll over tilgjengelighet og vilkår.',
+    manageDesc:
+      'Registrer og administrer dine utleieboliger. Du beholder full kontroll over tilgjengelighet og vilkår.',
     manageRental: 'Administrer utleie',
-    loginWithOtherAccount: 'Du er logget inn som kommune-ansatt. For å bruke boligeier-portalen må du logge inn på en annen konto.',
+    loginWithOtherAccount:
+      'Du er logget inn som kommune-ansatt. For å bruke boligeier-portalen må du logge inn på en annen konto.',
     securityTitle: 'Sikkerhet i fokus',
-    securityDesc: 'Alle leieforhold er dekket av juridisk kvalitetssikrede avtaler som følger gjeldende norske standarder for offentlig boligformidling.',
+    securityDesc:
+      'Alle leieforhold er dekket av juridisk kvalitetssikrede avtaler som følger gjeldende norske standarder for offentlig boligformidling.',
     improvementTitle: 'Kontinuerlig forbedring',
-    improvementDesc: 'Vi ønsker de absolutt beste funksjonene for denne appen og den vil bli kontinuerlig oppdatert. Hvis du finner problemer, vennligst send en e-post til info@bolynorge.no',
+    improvementDesc:
+      'Vi ønsker de absolutt beste funksjonene for denne appen og den vil bli kontinuerlig oppdatert. Hvis du finner problemer, vennligst send en e-post til info@bolynorge.no',
 
     // Footer
     developedBy: 'Utviklet av',
@@ -152,7 +172,8 @@ export const translations = {
     delete: 'Slett',
     noAccess: 'Ingen tilgang',
     noAccessDesc: 'Du har ikke tilgang til denne siden. Logg inn med en kommune-konto.',
-    noAccessDatabaseDesc: 'Du har ikke de nødvendige rettighetene for å se boligbank. Denne delen er forbeholdt kommune-ansatte.',
+    noAccessDatabaseDesc:
+      'Du har ikke de nødvendige rettighetene for å se boligbank. Denne delen er forbeholdt kommune-ansatte.',
     goHome: 'Til forsiden',
     address: 'Adresse',
     city: 'By',
@@ -175,6 +196,7 @@ export const translations = {
     openContactInfo: 'Åpne kontaktinfo',
     formidletActionsDesc: 'Ved formidling: fyll ut kontaktinfo og overtakelsesrapport.',
     goToMessage: 'Gå til melding',
+    notifGoToUserProfile: 'Åpne brukerprofil',
     markDone: 'Marker som ferdig',
     markUnread: 'Marker som ulest',
     resolvedByColleague: 'Løst av kollega',
@@ -193,7 +215,8 @@ export const translations = {
     noProperties: 'Ingen boliger funnet.',
     manageRentalNav: 'Merk som utilgjengelig',
     markAvailable: 'Merk som tilgjengelig',
-    formidletByKommune: 'Denne boligen er markert som formidlet av kommunen og status kan ikke endres av utleier.',
+    formidletByKommune:
+      'Denne boligen er markert som formidlet av kommunen og status kan ikke endres av utleier.',
     availablePeriods: 'Tilgjengelige perioder',
     noPeriods: 'Ingen perioder lagt til ennå.',
     close: 'Lukk',
@@ -202,7 +225,7 @@ export const translations = {
     toDate: 'Til dato',
     createAccount: 'Opprett konto',
     welcomeBack: 'Velkommen tilbake',
-    createAccountDesc: 'Bli en del av bo.ly og bidra til boligformidling.',
+    createAccountDesc: 'Bli en del av Boly og bidra til boligformidling.',
     loginDesc: 'Logg inn for å administrere dine boliger.',
     email: 'E-post',
     password: 'Passord',
@@ -218,6 +241,64 @@ export const translations = {
     chatWithLandlord: 'Chat med utleier',
     chatDesc: 'Send og motta meldinger med denne brukeren.',
     openChat: 'Åpne chat',
+    kommuneAdminActionsTitle: 'Kommunens administrative tiltak',
+    kommuneAdminActionsIntro:
+      'I tråd med vilkårsavtalen kan kommunen slette registrerte boliger eller avslutte avtalen med utleier. Alle handlinger loggføres.',
+    kommuneReason_registration_error_or_unsuitable:
+      'Feilregistrering eller boligen oppfyller ikke forsvarlighetskrav',
+    kommuneReason_breach_or_illegal:
+      'Utleier oppfyller ikke pliktene etter avtalen, eller det er avdekket ulovlige forhold',
+    kommuneReason_cooperation_failed: 'Samarbeidet med utleier fungerer ikke',
+    kommuneReason_service_discontinued: 'Boligformidlingstjenesten avvikles',
+    kommuneDeleteListingButton: 'Slett bolig',
+    kommuneTerminateAgreementButton: 'Avslutt avtale med utleier',
+    kommuneAdminSelectReason: 'Velg grunnlag (vilkår 1.10)',
+    kommuneAdminNoteOptional: 'Valgfri merknad (lagres i logg)',
+    kommuneAdminConfirmDelete:
+      'Slette denne boligen permanent fra tjenesten? Dette kan ikke angres.',
+    kommuneAdminConfirmTerminate:
+      'Avslutte vilkårsavtalen for denne utleieren? Utleier mister tilgang. Opplysninger kan fortsatt lagres for kommunens historikk.',
+    kommuneAdminExecuting: 'Utfører…',
+    kommuneAdminSubmit: 'Bekreft',
+    kommuneRpcError_generic: 'Kunne ikke fullføre handlingen.',
+    kommuneRpcError_forbidden: 'Du har ikke rettigheter til denne handlingen.',
+    kommuneRpcError_reason_required: 'Velg et grunnlag.',
+    kommuneRpcError_listing_outside_region: 'Boligen ligger utenfor din saksbehandlingsregion.',
+    kommuneRpcError_listing_not_found: 'Boligen finnes ikke.',
+    kommuneRpcError_landlord_outside_region: 'Utleieren er utenfor din region.',
+    kommuneRpcError_target_is_kommune_staff: 'Kan ikke avslutte avtale for en kommunebruker.',
+    kommuneRpcError_cannot_terminate_self: 'Ugyldig handling.',
+    kommuneRpcError_already_terminated: 'Avtalen er allerede avsluttet.',
+    kommuneRpcError_no_agreement: 'Ingen vilkårsavtale å avslutte.',
+    kommuneRpcError_not_authenticated: 'Ikke innlogget.',
+    kommuneRpcError_user_not_found: 'Bruker ikke funnet.',
+    kommuneRpcError_no_pending_request: 'Det finnes ingen aktiv forespørsel om ny signering.',
+    kommuneTerminatedTitle: 'Avtalen er sagt opp av kommunen',
+    kommuneTerminatedLead:
+      'Kommunen har avsluttet vilkårsavtalen din i Boly. Du har ikke lenger tilgang til å bruke tjenesten som aktiv utleier før du signerer på nytt.',
+    kommuneTerminatedExpiredHint:
+      'Du vil også ligge under «Utløpte» i kommunens oversikt inntil ny avtale er på plass.',
+    kommuneTerminatedResignExplain:
+      'For å signere vilkårene på nytt må du først be om tillatelse. Når du sender forespørselen, får saksbehandlere i kommunen beskjed. De godkjenner eller avslår i brukerprofilen din.',
+    kommuneTerminatedMessageHint:
+      'Du kan også skrive til kommunen i meldingene hvis du har spørsmål.',
+    landlordResignPendingTitle: 'Forespørsel sendt',
+    landlordResignPendingBody:
+      'Kommunen har fått beskjed. Du får varsel når forespørselen er behandlet. Etter godkjenning kan du gå til Mine boliger og fullføre signering.',
+    landlordResignMessageOptional: 'Valgfri melding til kommunen',
+    landlordResignMessagePlaceholder: 'F.eks. kort forklaring på hvorfor du ønsker tilgang igjen …',
+    landlordResignSubmitRequest: 'Be om mulighet for ny signering',
+    landlordResignRpcGeneric: 'Kunne ikke sende forespørselen.',
+    landlordResignRpc_not_eligible: 'Du kan ikke bruke denne funksjonen nå.',
+    landlordResignRpc_already_pending: 'Du har allerede en ventende forespørsel.',
+    kommuneResignRequestTitle: 'Forespørsel om ny vilkårssignering',
+    kommuneResignRequestIntro:
+      'Utleieren ønsker å signere vilkårsavtalen på nytt etter kommunal oppsigelse. Godkjenn hvis tilgang skal gjenåpnes, eller avslå med valgfri merknad.',
+    kommuneResignReviewNoteOptional: 'Merknad til utleier (valgfritt, vises ved avslag)',
+    kommuneResignApprove: 'Godkjenn ny signering',
+    kommuneResignReject: 'Avslå',
+    signTermsBlockedTerminated:
+      'Avtalen er avsluttet. Logg inn på utleierkontoen og følg instruksene der, eller ta kontakt med kommunen.',
     noPhone: 'Ingen telefon registrert',
     termsNotSigned: 'Vilkår IKKE signert',
     termsSigned: 'Vilkår signert',
@@ -244,12 +325,15 @@ export const translations = {
     notificationsSharedDesc: 'Delt varslingssystem for kommune-ansatte.',
     notificationsUserDesc: 'Viktige oppdateringer om ditt leieforhold.',
     loadingPleaseWait: 'Vennligst vent...',
-    pageLoadStuck: 'Kunne ikke laste innhold i tide. Sjekk nettverk og at Supabase-variabler (NEXT_PUBLIC_SUPABASE_URL og ANON_KEY) er satt, særlig ved lokal kjøring (.env.local).',
+    pageLoadStuck:
+      'Kunne ikke laste innhold i tide. Sjekk nettverk og at Supabase-variabler (NEXT_PUBLIC_SUPABASE_URL og ANON_KEY) er satt, særlig ved lokal kjøring (.env.local).',
     manageDataLoadTimeout:
       'Det tok for lang tid å hente data. Sjekk nettverket og oppdater siden. Hvis det gjentar seg: kontroller at Vercel (eller .env.local) har riktig NEXT_PUBLIC_SUPABASE_URL og anon-nøkkel for samme Supabase-prosjekt.',
     footerDiagnostics: 'Tilkoblingsdiagnostikk',
     loginAuthNoResponse:
       'Innloggingen fikk ikke svar i tide. Sjekk internett, VPN/brannmur og at URL og anon-nøkkel i .env.local matcher Supabase-prosjektet. Prøv igjen om et øyeblikk.',
+    loginAuthNetworkFailed:
+      'Kunne ikke nå innloggingstjenesten (nettverksfeil). Sjekk at du er på nett, at ingen annonsblokkerer blokkerer siden, og at NEXT_PUBLIC_SUPABASE_URL i .env.local peker på et tilgjengelig Supabase-prosjekt (samme opprinnelse som siden unngår ofte CORS-problemer).',
     retryLoad: 'Prøv igjen',
     orDivider: 'eller',
     loginWithBankID: 'Logg inn med BankID',
@@ -284,9 +368,12 @@ export const translations = {
     landlordOverviewTitle: 'Din Boly-oversikt',
     landlordOverviewLead:
       'Her har du alt på ett sted – vi er glade for at du er med. Kort fortalt hva du finner her:',
-    landlordOverviewBullet1: 'Under «Mine boliger» i menyen ser du boligene dine og kan åpne hver bolig for detaljer.',
-    landlordOverviewBullet2: 'Du kan filtrere på status (tilgjengelig, utilgjengelig, formidlet) og holde oversikt over boligene.',
-    landlordOverviewBullet3: 'Ledige perioder og kalender hjelper deg og kommunen å se når boligen kan formidles.',
+    landlordOverviewBullet1:
+      'Under «Mine boliger» i menyen ser du boligene dine og kan åpne hver bolig for detaljer.',
+    landlordOverviewBullet2:
+      'Du kan filtrere på status (tilgjengelig, utilgjengelig, formidlet) og holde oversikt over boligene.',
+    landlordOverviewBullet3:
+      'Ledige perioder og kalender hjelper deg og kommunen å se når boligen kan formidles.',
     landlordOverviewExpectTitle: 'Det vi håper du gjør',
     landlordOverviewExpectBody:
       'Vi ønsker at du holder informasjonen om boligen oppdatert, legger inn riktige perioder og svarer når kommunen tar kontakt. Du bestemmer fortsatt selv som utleier – Boly er bare verktøyet som forbinder deg med kommunen.',
@@ -294,16 +381,22 @@ export const translations = {
     landlordMineBoligerTitle: 'Mine boliger',
     landlordMineBoligerLead:
       'Hver bolig har sitt eget kort. Her er det nyttig å vite litt før du går videre:',
-    landlordMineBoligerBullet1: 'Trykk på en bolig for å åpne detaljsiden – der kan du justere opplysninger, legge til bilder og mer.',
-    landlordMineBoligerBullet2: 'Du kan legge inn og endre ledige perioder slik at kommunen ser når boligen er aktuell for formidling.',
-    landlordMineBoligerBullet3: 'Når en bolig er «formidlet» av kommunen, har du fortsatt oversikt og kan følge opp etter avtale.',
+    landlordMineBoligerBullet1:
+      'Trykk på en bolig for å åpne detaljsiden – der kan du justere opplysninger, legge til bilder og mer.',
+    landlordMineBoligerBullet2:
+      'Du kan legge inn og endre ledige perioder slik at kommunen ser når boligen er aktuell for formidling.',
+    landlordMineBoligerBullet3:
+      'Når en bolig er «formidlet» av kommunen, har du fortsatt oversikt og kan følge opp etter avtale.',
     landlordMineBoligerCta: 'Greit!',
     landlordMessagesTitle: 'Meldinger til kommunen',
     landlordMessagesLead:
       'Denne chatten er din direkte linje til kommunen om boligene dine. Vi har laget den enkel og trygg – slik bruker du den godt:',
-    landlordMessagesBullet1: 'Skriv gjerne når du trenger avklaring, har spørsmål om formidling eller vil opplyse om noe som har endret seg.',
-    landlordMessagesBullet2: 'Meldinger kan sees av saksbehandlere i kommunen – hold en saklig og vennlig tone, så hjelper vi deg raskere.',
-    landlordMessagesBullet3: 'Du trenger ikke svare med det samme – men vi oppfordrer til å åpne meldingene når du kan, så saker ikke står stille.',
+    landlordMessagesBullet1:
+      'Skriv gjerne når du trenger avklaring, har spørsmål om formidling eller vil opplyse om noe som har endret seg.',
+    landlordMessagesBullet2:
+      'Meldinger kan sees av saksbehandlere i kommunen – hold en saklig og vennlig tone, så hjelper vi deg raskere.',
+    landlordMessagesBullet3:
+      'Du trenger ikke svare med det samme – men vi oppfordrer til å åpne meldingene når du kan, så saker ikke står stille.',
     landlordMessagesExpectTitle: 'Forventninger',
     landlordMessagesExpectBody:
       'Kommunen bruker meldingene til å samarbeide med deg om boligbehov. Jo tydeligere du er, jo lettere er det for alle parter.',
@@ -311,9 +404,12 @@ export const translations = {
     landlordNotificationsTitle: 'Varsler i Boly',
     landlordNotificationsLead:
       'Her samler vi det du bør vite om boligene dine – på en oversiktlig måte. Ingen stress: tom liste betyr bare at alt er stille akkurat nå.',
-    landlordNotificationsBullet1: 'Du kan få varsel om nye meldinger fra kommunen, når en bolig er formidlet, eller når noe krever handling (for eksempel rapporter).',
-    landlordNotificationsBullet2: 'Trykk «Marker som ferdig» når du har lest og tatt det du trenger – da holder du oversikten ryddig.',
-    landlordNotificationsBullet3: 'Over listen kan du slå på e-postvarsel, så du ikke går glipp av noe viktig.',
+    landlordNotificationsBullet1:
+      'Du kan få varsel om nye meldinger fra kommunen, når en bolig er formidlet, eller når noe krever handling (for eksempel rapporter).',
+    landlordNotificationsBullet2:
+      'Trykk «Marker som ferdig» når du har lest og tatt det du trenger – da holder du oversikten ryddig.',
+    landlordNotificationsBullet3:
+      'Over listen kan du slå på e-postvarsel, så du ikke går glipp av noe viktig.',
     landlordNotificationsExpectTitle: 'Det vi håper',
     landlordNotificationsExpectBody:
       'Sjekk varsler med jevne mellomrom, særlig når du venter svar fra kommunen eller har boliger ute til formidling. Vi er her for å gjøre samarbeidet lettere for deg.',
@@ -324,7 +420,8 @@ export const translations = {
     formidlet: 'Formidlet',
     calendarLegendAvailableInfo: 'Boligen kan formidles i denne perioden.',
     calendarLegendFormidletInfo: 'Nav har formidlet boligen til en leietaker i denne perioden.',
-    calendarLegendUnavailableInfo: 'Boligen er ikke tilgjengelig for formidling (f.eks. egen bruk eller vedlikehold).',
+    calendarLegendUnavailableInfo:
+      'Boligen er ikke tilgjengelig for formidling (f.eks. egen bruk eller vedlikehold).',
     calendarLegendConflictInfo: 'Det er overlapp eller motstridende perioder som må ryddes opp i.',
     timelineColorHelpTitle: 'Farger på tidslinjen',
     timelineColorHelpIntro: 'Hver rute er én dag. Fargen viser status for boligen den dagen.',
@@ -335,7 +432,8 @@ export const translations = {
       'Mørkerød (konflikt): samme dag er merket både utilgjengelig og (tilgjengelig eller formidlet). Periodene overlapper og bør ryddes.',
     timelineLegendConflictShort: 'Konflikt',
     emailNotificationsToggle: 'Send også varsler på e-post',
-    emailNotificationsHint: 'Gjelder når e-postutsending er aktivert for tjenesten. Du kan endre dette når som helst.',
+    emailNotificationsHint:
+      'Gjelder når e-postutsending er aktivert for tjenesten. Du kan endre dette når som helst.',
     showing: 'Viser',
     propertiesPlural: 'boliger',
     bedroomsUnit: 'soverom',
@@ -352,7 +450,8 @@ export const translations = {
     messagesPickConversationPlaceholder:
       'Velg en samtale til venstre, eller start en ny chat fra brukerlisten.',
     expiredAndInactive: 'Utløpte & Inaktive',
-    expiredDesc: 'Historisk oversikt over brukere og boliger som ikke lenger er aktive i Boligbank.',
+    expiredDesc:
+      'Historisk oversikt over brukere og boliger som ikke lenger er aktive i Boligbank.',
     inactiveUsers: 'Inaktive Brukere',
     expiredDate: 'Utløpt',
     nameNotStored: 'Navn ikke lagret',
@@ -362,7 +461,8 @@ export const translations = {
     noAccessExpiredDesc: 'Denne siden er forbeholdt kommune-ansatte.',
     pushNotificationsMobile: 'Push-varsler på mobil',
     pushGrantedDesc: 'Du får varsler på telefonen når du er logget inn.',
-    pushUnsupportedDesc: 'Lukk Safari-fanen og åpne appen fra hjemskjerm-ikonet. Push støttes kun når du starter appen direkte fra ikonet.',
+    pushUnsupportedDesc:
+      'Lukk Safari-fanen og åpne appen fra hjemskjerm-ikonet. Push støttes kun når du starter appen direkte fra ikonet.',
     pushActivateDesc: 'Trykk nedenfor for å aktivere varsler på telefonen.',
     activating: 'Aktiverer...',
     activateNotifications: 'Aktiver varsler',
@@ -371,13 +471,17 @@ export const translations = {
     backToHousingBank: 'Tilbake til boligbank',
     backToMyProperties: 'Tilbake til mine boliger',
     noAccessThisListing: 'Du har ikke tilgang til denne boligen',
-    listingInRegionDesc: 'Boligen ligger i {city}. Din konto har kun tilgang til boliger i de kommunene du har fått eksplisitt tillatelse til.',
+    listingInRegionDesc:
+      'Boligen ligger i {city}. Din konto har kun tilgang til boliger i de kommunene du har fått eksplisitt tillatelse til.',
     formidling: 'Formidling',
-    formidlingManagedByCaseworker: 'Formidling administreres av saksbehandler. Kun brukere med redigeringstilgang kan legge inn eller fjerne formidlingsperioder.',
+    formidlingManagedByCaseworker:
+      'Formidling administreres av saksbehandler. Kun brukere med redigeringstilgang kan legge inn eller fjerne formidlingsperioder.',
     formidlingManagedByCaseworkerShort: 'Formidling administreres av saksbehandler.',
-    expiredOwnerNoMediationNav: 'Utleierens avtale er avsluttet. Du kan se historikk her, men ikke reservere, formidle, forlenge perioder eller sende melding til utleier.',
+    expiredOwnerNoMediationNav:
+      'Utleierens avtale er avsluttet. Du kan se historikk her, men ikke reservere, formidle, forlenge perioder eller sende melding til utleier.',
     expiredOwnerNoMediationShort: 'Utleieravtale avsluttet – ingen formidling eller reservasjon.',
-    messagingTerminatedAccountBlocked: 'Du kan ikke sende melding til denne kontoen (avtale utløpt).',
+    messagingTerminatedAccountBlocked:
+      'Du kan ikke sende melding til denne kontoen (avtale utløpt).',
     depositGuaranteeHeading: 'Depositum og garanti (utleier)',
     depositGuaranteeRowNav: 'Depositumsgaranti fra Nav',
     depositGuaranteeRowOther: 'Depositumsgaranti fra andre tilbydere',
@@ -386,15 +490,18 @@ export const translations = {
     depositGuaranteeNo: 'Nei',
     depositGuaranteeNotSpecified: 'Ikke oppgitt av utleier',
     mediationReserveTitle: 'Reservasjon for avklaring',
-    mediationReserveHint: 'Reserver boligen i to timer mens du avklarer internt. Andre saksbehandlere ser at boligen er opptatt.',
+    mediationReserveHint:
+      'Reserver boligen i to timer mens du avklarer internt. Andre saksbehandlere ser at boligen er opptatt.',
     mediationReserveButton: 'Reserver i 2 timer',
     mediationReservedByYou: 'Du har aktiv reservasjon til {expires}.',
     mediationReservedByOther: '{name} har reservasjon til {expires}.',
-    mediationBlockedFormidlet: 'Du kan ikke legge inn formidling mens en annen saksbehandler har aktiv reservasjon.',
+    mediationBlockedFormidlet:
+      'Du kan ikke legge inn formidling mens en annen saksbehandler har aktiv reservasjon.',
     mediationInternalNote: 'Internt notat',
     mediationRelease: 'Frigjør',
     mediationCancel: 'Avbryt reservasjon',
-    mediationReserveError: 'Kunne ikke reservere. Prøv igjen eller frigjør eksisterende reservasjon.',
+    mediationReserveError:
+      'Kunne ikke reservere. Prøv igjen eller frigjør eksisterende reservasjon.',
     thisPropertyMarkedFormidlet: 'Denne boligen er markert som formidlet.',
     removeFormidling: 'Fjern formidling',
     periodDateRange: 'Periode (datoområde)',
@@ -413,17 +520,34 @@ export const translations = {
     handoverReports: 'Overtakelsesrapporter',
     tenant: 'Leietaker',
     linkForTenant: 'Lenke til leietaker:',
-    linkForTenantDesc: 'Send denne lenken til leietaker for nedlasting og opplasting av overtakelsesrapport (PDF) – de trenger ikke logge inn:',
+    linkForTenantDesc:
+      'Send denne lenken til leietaker. De kan legge inn en kort kommentar og eventuelle bilder – uten innlogging. Skjemaet er anonymt (se informasjon på lenken).',
+    tenantHandoverPageTitle: 'Overtakelsesrapport – leietaker',
+    tenantHandoverPageLead:
+      'Du kan sende inn en anonym merknad om boligen. Du trenger ikke logge inn.',
+    tenantHandoverGdprP1:
+      'Skjemaet er anonymt: vi lagrer ikke navn, e-post, telefonnummer eller andre opplysninger som identifiserer deg som person. Det som lagres er kommentaren og eventuelle bilder du velger å legge ved, knyttet til denne boligen i kommunens saksbehandling. Unngå å skrive personopplysninger i kommentarfeltet eller ta bilder der personer kan gjenkjennes, med mindre du selv vurderer det nødvendig.',
+    tenantHandoverGdprP2:
+      'Av tekniske og sikkerhetsmessige årsaker vil innsendingen kunne spores til internettadressen (IP-adresse) du sender fra, i serverlogger hos leverandør – på samme måte som ved vanlig nettbruk. Det knyttes ikke til BankID eller innlogging her, fordi du ikke logger inn.',
+    tenantHandoverCommentLabel: 'Kommentar',
+    tenantHandoverCommentPlaceholder:
+      'Valgfritt hvis du legger ved bilder. Skriv kort om overtakelse, tilstand eller annet som er relevant.',
+    tenantHandoverPhotosSection: 'Bilder (valgfritt)',
+    tenantHandoverSubmit: 'Send inn',
+    tenantHandoverNeedCommentOrPhoto:
+      'Skriv en kommentar eller legg ved minst ett bilde før du sender inn.',
     linkGeneratedWhenFormidlet: 'Lenken genereres når boligen markeres som formidlet.',
     message: 'Melding',
-    formidletUseRemoveBelow: 'Boligen er markert som formidlet. Bruk «Fjern formidling» lenger ned for å gjøre den tilgjengelig igjen.',
+    formidletUseRemoveBelow:
+      'Boligen er markert som formidlet. Bruk «Fjern formidling» lenger ned for å gjøre den tilgjengelig igjen.',
     tidsspannFormidling: 'Tidsspann for formidling',
     startFormidling: 'Start formidling',
     startingFormidling: 'Starter formidling...',
     conditionDescription: 'Tilstandsbeskrivelse:',
     selectStartEndFormidling: 'Velg start- og sluttdato for formidlingsperioden.',
     endDateAfterStart: 'Sluttdato må være etter eller lik startdato.',
-    generateNewLinkConfirm: 'Generer ny lenke? Den gamle lenken vil slutte å fungere. Leietaker må få den nye lenken.',
+    generateNewLinkConfirm:
+      'Generer ny lenke? Den gamle lenken vil slutte å fungere. Leietaker må få den nye lenken.',
     signAgreementToEdit: 'Du må ha en signert og aktiv avtale for å gjøre endringer.',
     signAgreementToUpload: 'Du må ha en signert og aktiv avtale for å laste opp bilder.',
     errorSaving: 'Feil ved lagring: ',
@@ -440,7 +564,8 @@ export const translations = {
     confirmDeleteListing:
       'Er du sikker på at du vil slette boligen «{address}»? Den vil ikke lenger være synlig i boligbank.',
     mediationNoteOptional: 'Notat ved formidling (valgfritt)',
-    mediationNotePlaceholder: 'Kort notat – vises kun for utleier i varselet om du krysser av nedenfor.',
+    mediationNotePlaceholder:
+      'Kort notat – vises kun for utleier i varselet om du krysser av nedenfor.',
     includeMediationNoteInNotification: 'Inkluder i varsel til utleier',
     paymentMethodLabel: 'Betaling til utleier',
     paymentMethodFaktura: 'Faktura',
@@ -453,6 +578,12 @@ export const translations = {
     invoiceBasisKommuneHint:
       'Opplysningene er fylt ut av utleier. Du kan laste ned PDF til saksmappe.',
     invoiceAccount: 'Kontonummer',
+    invoiceAccountRepeat: 'Gjenta kontonummer',
+    invoiceAccountDoubleEntryHint:
+      'Skriv kontonummeret på nytt for å unngå feil. Mellomrom og punktum spiller ingen rolle ved sammenligning.',
+    invoiceAccountCorrectConfirmLabel: 'Jeg bekrefter at kontonummeret er riktig.',
+    invoiceAccountMismatch: 'Kontonummer og gjentakelse stemmer ikke overens.',
+    invoiceAccountConfirmRequired: 'Du må bekrefte at kontonummeret er riktig (kryss av i boksen).',
     invoiceAmount: 'Avtalt husleie for perioden',
     invoiceSave: 'Lagre grunnlag',
     invoiceSaving: 'Lagrer…',
@@ -465,8 +596,10 @@ export const translations = {
     invoiceSelectMediationPeriod: 'Velg periode …',
     invoiceMediationPeriodHint: 'Angir hvilken formidlingsperiode utbetalingen gjelder.',
     invoiceMediationPeriodRequired: 'Velg hvilken formidlingsperiode fakturagrunnlaget gjelder.',
-    invoicePdfNoMediationPeriod: 'Det er ingen registrert formidlingsperiode for denne boligen ennå. PDF kan ikke genereres.',
-    invoiceNoFormidlaPeriodYet: 'Ingen formidlingsperiode ennå – den settes når kommunen markerer boligen som formidlet.',
+    invoicePdfNoMediationPeriod:
+      'Det er ingen registrert formidlingsperiode for denne boligen ennå. PDF kan ikke genereres.',
+    invoiceNoFormidlaPeriodYet:
+      'Ingen formidlingsperiode ennå – den settes når kommunen markerer boligen som formidlet.',
     invoiceListingAddressLabel: 'Adresse',
     invoiceListingOwnerLabel: 'Utleier',
     invoiceAutoFromListing: 'Hentes automatisk fra boligannonsen.',
@@ -482,6 +615,7 @@ export const translations = {
 
     // Boligbank (nav/database) — UI rundt tabell, filter, tidslinje
     dbViewTable: 'Tabellvisning',
+    dbViewList: 'Liste',
     dbViewMap: 'Kartvisning',
     dbViewTimeline: 'Tidslinje',
     dbAvailabilityCalendarTitle: 'Tilgjengelighetskalender',
@@ -527,7 +661,8 @@ export const translations = {
     dbExtendEndAfterCurrent: 'Ny sluttdato må være etter nåværende sluttdato.',
     dbExtendConfirm: 'Forleng formidlingsperioden for «{address}» til {date}?',
     dbMarkFormidletConfirm: 'Vil du markere «{address}» som formidlet for perioden {start}–{end}?',
-    dbRemoveFormidletConfirm: 'Vil du fjerne formidlingen for «{address}»?\n\nBoligen vil igjen vises som tilgjengelig.',
+    dbRemoveFormidletConfirm:
+      'Vil du fjerne formidlingen for «{address}»?\n\nBoligen vil igjen vises som tilgjengelig.',
     dbSelectStartEnd: 'Velg både start- og sluttdato.',
     dateInputPlaceholder: 'DD.MM.ÅÅÅÅ',
 
@@ -555,8 +690,9 @@ export const translations = {
     signTermsListingAfterSignError: 'Kunne ikke fullføre boligregistrering etter signering: ',
     signTermsStartError: 'Feil ved start av signering: ',
     signTermsTerminateConfirm:
-      'Er du sikker på at du vil si opp avtalen? Du mister tilgang til Boligbank med en gang. Informasjon om deg og boligene dine bevares for kommunens historikk.',
-    signTermsTerminatedSuccess: 'Avtalen er nå sagt opp. Du logges ut. Kommunen beholder historikk over boliger og avtale.',
+      'Er du sikker på at du vil si opp avtalen? Du mister tilgang til Boly med en gang. Informasjon om deg og boligene dine bevares for kommunens historikk.',
+    signTermsTerminatedSuccess:
+      'Avtalen er nå sagt opp. Du logges ut. Kommunen beholder historikk over boliger og avtale.',
     signTermsTerminateError: 'Feil ved oppsigelse: ',
     termsPdfTooltip: 'Vilkår PDF',
     termsScrollBeforeSign: 'Scroll ned i avtalen først for å aktivere signering.',
@@ -567,12 +703,14 @@ export const translations = {
     kommuneAccessRemoveConfirm: 'Er du sikker på at du vil fjerne denne adressen?',
     deleteShort: 'Slett',
     manageDeletePeriodTitle: 'Slett periode',
-    listingRegenerateLinkTitle: 'Den gamle lenken vil slutte å fungere. Send den nye lenken til leietaker.',
+    listingRegenerateLinkTitle:
+      'Den gamle lenken vil slutte å fungere. Send den nye lenken til leietaker.',
     listingRegenerating: 'Lager …',
     listingNewLink: 'Ny lenke',
     listingFullscreen: 'Fullskjerm',
     listingRequestChangePlaceholder: 'Forklar hva som må endres eller suppleres …',
-    listingTenantLinkHelp: 'Bruk «Ny lenke» hvis leietaker sier at lenken er ugyldig – send deretter den nye lenken.',
+    listingTenantLinkHelp:
+      'Bruk «Ny lenke» hvis leietaker sier at lenken er ugyldig – send deretter den nye lenken.',
     handoverRentPeriodPlaceholder: 'f.eks. 01.01.2026 – 31.03.2026',
     handoverInventoryPlaceholder: 'List opp inventar …',
     handoverKeysPlaceholder: 'f.eks. 2 stk systemnøkler, 1 stk postkassenøkkel',
@@ -581,7 +719,8 @@ export const translations = {
       'Kunne ikke hente boliger. Kjør migrasjonen 20250308000000_listings_kommune_select.sql i Supabase (SQL Editor).',
 
     regTitle: 'Registrer ny bolig',
-    regLead: 'Fyll ut alle detaljer om boligen. Denne informasjonen er grunnlaget for kommunens vurdering av boligen.',
+    regLead:
+      'Fyll ut alle detaljer om boligen. Denne informasjonen er grunnlaget for kommunens vurdering av boligen.',
     regBack: 'Tilbake til mine boliger',
     regContactSection: 'Kontaktinformasjon',
     regOwnerLabel: 'Utleier / Firma',
@@ -596,7 +735,8 @@ export const translations = {
     regSearchingAddresses: 'Søker adresser …',
     regGeocodeError: 'Fant ingen posisjon. Sjekk adresse og postnummer.',
     regGeocodeFailed: 'Geokoding feilet. Prøv igjen senere.',
-    regSaveNoIdError: 'Lagring fullført, men kunne ikke hente ID for den nye boligen. Sjekk at du har tilgang til å opprette boliger.',
+    regSaveNoIdError:
+      'Lagring fullført, men kunne ikke hente ID for den nye boligen. Sjekk at du har tilgang til å opprette boliger.',
     regAddressPickAria: 'Flere treff for adressen',
     regGeocodeMultiHelp:
       'Flere mulige steder ble funnet. Velg det som stemmer med boligen — posisjon på kart settes etter valg.',
@@ -623,7 +763,8 @@ export const translations = {
     regUploadImages: 'Last opp bilder',
     regAdditionalInfo: 'Annen info om boligen',
     regInsuranceTitle: 'Bolig- og innboforsikring',
-    regInsuranceBody: 'I henhold til vilkårsavtalen plikter utleier å ha både bolig- og innboforsikring.',
+    regInsuranceBody:
+      'I henhold til vilkårsavtalen plikter utleier å ha både bolig- og innboforsikring.',
     regPublish: 'Publiser bolig',
     regSaving: 'Lagrer …',
     placeholderNok: 'NOK',
@@ -646,7 +787,8 @@ export const translations = {
     userPanel: 'Bruhkarásiidu',
     myProperties: 'Mu dávvirat',
     signTerms: 'Almmuhán oaivámuša',
-    signTermsCityHint: 'Oaivámuš mii čájehuvvo lea čadnon dávvira {city} (kommuvdna registreremis).',
+    signTermsCityHint:
+      'Oaivámuš mii čájehuvvo lea čadnon dávvira {city} (kommuvdna registreremis).',
     signedAgreement: 'Almmuhan oaivámuš',
     logOut: 'Lohkkás',
     logIn: 'Sisa',
@@ -655,7 +797,8 @@ export const translations = {
     navLandlords: 'Goddánuslohkkit',
     navLandlordsDesc: 'Ovdánahtti buot registrereduvvon goddánuslohkiid Beaivvášbánccus.',
     navAccounts: 'Kontut',
-    navAccountsDesc: 'Goddánuslohkkit ja sáhttibealddit du guovlluin. Kommuvdna-admin sáhttá rievddadit rievdadanoktavuođa sáhttibealddiide.',
+    navAccountsDesc:
+      'Goddánuslohkkit ja sáhttibealddit du guovlluin. Kommuvdna-admin sáhttá rievddadit rievdadanoktavuođa sáhttibealddiide.',
     navAccountsDescEditor: 'Goddánuslohkkit ja sáhttibealddit du guovlluin.',
     navAccountsDescReadonly:
       'Goddánuslohkkit ja sáhttibealddit du guovlluin. Jus dus lea dušše lohkanoktavuohta, sáhttát čállit eará sáhttibealddiiguin; goddánuslohkkiid sáhcastagat leat lohkamii.',
@@ -663,34 +806,42 @@ export const translations = {
     tabStaff: 'Sáhttibealddit',
     staffEditAccess: 'Sáhttá rievddadit',
     kommuneAdminRole: 'Kommuvdna-admin',
-    termsMissingForRegion: 'Fertet dohkkehat gullevaš ektui teaksta dán kommunas ovdal go sáhttát almmuhit dávvi.',
+    termsMissingForRegion:
+      'Fertet dohkkehat gullevaš ektui teaksta dán kommunas ovdal go sáhttát almmuhit dávvi.',
     messages: 'Sáhcastallat',
     expired: 'Lohppan',
     kommuneAccess: 'Kommuvdna oktavuohta',
-    kommuneAccessDesc: 'Hálddaše e-poasttaid maid automáhtalaččat ožžot kommuvdna oktavuohta registreremas.',
+    kommuneAccessDesc:
+      'Hálddaše e-poasttaid maid automáhtalaččat ožžot kommuvdna oktavuohta registreremas.',
     termsDocumentsNav: 'Ektui šiehtadusat',
     termsDocumentsTitle: 'Veršuvnnat ektui šiehtadusain',
-    termsDocumentsDesc: 'Vurke PDF maid goddánuslohkkit oainnat ovdal BankID-almmu. Gulis guovlu = buot kommuvnnat. Namain guovllu sáhttá bisánit globála málli.',
-    termsDocumentsDescAdmin: 'Kommuvdna-adminin vurket du PDF dušše iežat guovlluide. It sáhte láhit globála málli das — standárda-PDF čájehuvvo «Almmuhan dokumeanttat».',
+    termsDocumentsDesc:
+      'Vurke PDF maid goddánuslohkkit oainnat ovdal BankID-almmu. Gulis guovlu = buot kommuvnnat. Namain guovllu sáhttá bisánit globála málli.',
+    termsDocumentsDescAdmin:
+      'Kommuvdna-adminin vurket du PDF dušše iežat guovlluide. It sáhte láhit globála málli das — standárda-PDF čájehuvvo «Almmuhan dokumeanttat».',
     termsRegionLabelAdmin: 'Kommune / guovlu dán dokumeantta várás',
     termsRegionPickPlaceholder: 'Vállje kommuvnna …',
     termsRegionMultiHint:
       'Vállje ovtta dahje máŋgga guovllu. Dokumeanta geavahuvvo BankID-almmus buot válljejuvvon kommuvnnaide.',
     termsAdminRegionRequired: 'Vállje ummáseamet ovtta guovllu maid dokumeanta galgá gustot.',
     termsAdminRegionInvalid: 'Sáhttát almmuhit dušše iežat guovlluide.',
-    termsAdminNoRegions: 'Profiliinas ii leat kommuvnna/guovlu. Bivdde hálddašeaddji ođasmahttit profiilla.',
+    termsAdminNoRegions:
+      'Profiliinas ii leat kommuvnna/guovlu. Bivdde hálddašeaddji ođasmahttit profiilla.',
     termsDefaultStorageTitle: 'Standárda ektui',
     termsScopeGlobal: 'Buot kommuvnnat (standárda)',
     termsScopeMunicipalities: 'Kommuvnnat: {areas}',
-    termsSigningPriorityHint: 'BankID-almmus geavahuvvo vuos regiovnnalaš dokumeanta, dasto globála databásas, maŋimus standárda-PDF.',
-    termsSigningInfoStorageDefault: 'Geavahuvvo go databásas ii leat ođđaseabbo dokumeanta mii gullá dán dávvira kommunii.',
+    termsSigningPriorityHint:
+      'BankID-almmus geavahuvvo vuos regiovnnalaš dokumeanta, dasto globála databásas, maŋimus standárda-PDF.',
+    termsSigningInfoStorageDefault:
+      'Geavahuvvo go databásas ii leat ođđaseabbo dokumeanta mii gullá dán dávvira kommunii.',
     termsSigningInfoGlobal: 'Gusto buot kommuvnnaide main ii leat sierra regiovnnalaš dokumeanta.',
     termsSigningInfoRegional: 'Gusto goddánuslohkkiide geain lea dávvir dáin guovlluin: {regions}.',
     termsRegionLabel: 'Kommune / guovlu (válljehahtti)',
     termsTitleLabel: 'Bajilčála',
     termsBodyLabel: 'Teaksta',
     termsPdfLabel: 'PDF-fiila',
-    termsPdfHint: 'Dušše PDF. Badjel 12 MB. Dát lea dokumeanta mii sáddejuvvo Signicatii BankID-almmus.',
+    termsPdfHint:
+      'Dušše PDF. Badjel 12 MB. Dát lea dokumeanta mii sáddejuvvo Signicatii BankID-almmus.',
     termsOpenPdf: 'Raba PDF',
     termsNoPdfOrText: 'Ii PDF dahje teaksta.',
     termsPdfInvalidType: 'Vállje PDF-fiilla.',
@@ -707,7 +858,7 @@ export const translations = {
       'Dás oainnát aktiiva ektui maid leat almmuhan BankID:in. Jos dus leat dávvirat máŋgga kommuvnnas, sáhttet leat sierra dokumeanttat guovlluide.',
     termsScopeGlobalBadge: 'Buot kommuvnnat',
     termsSignedOn: 'Almmuhan {date}',
-    termsBankidUmbrellaNote: 'Beaivvášbánccui oktavuohta lea čadnon du BankID-oaivámušrámmai (v1.0).',
+    termsBankidUmbrellaNote: 'Boly:i oktavuohta lea čadnon du BankID-oaivámušrámmai (v1.0).',
     termsActiveSectionTitle: 'Doaššat oaivámučat',
     termsActiveSectionHint: 'Aktiiva ektui mat gustojit dál – okta ráidu guovllu ko leat almmuhan.',
     termsHistoricalSectionTitle: 'Ovddit almmuhusat',
@@ -715,7 +866,8 @@ export const translations = {
       'Go kommuvdna almmuha ođđa veršuvnna dahje almmut ođđasit seamma guovllus, váldojuvvojit boarrásat almmuhusat dás.',
     termsStatusSuperseded: 'Rievttaduvvon',
     termsHistoricalCardTitle: 'Ovddit almmuheapmi',
-    termsHistoricalCardNote: 'Dát veršuvdna lea rievttaduvvon ođđaseabbo ektui; PDF čájeha maid almmut dalle.',
+    termsHistoricalCardNote:
+      'Dát veršuvdna lea rievttaduvvon ođđaseabbo ektui; PDF čájeha maid almmut dalle.',
     termsHistoricalDetailsSummary: 'Čájet ovddit almmuhusaid',
     termsActiveEmptyFallback:
       'Ii oainne aktiiva almmuhusa listtus. Geahča ovddit almmuhusaid vuolábealde, dahje váldde oktavuođa kommuvdnii jos lea vealahus.',
@@ -743,21 +895,27 @@ export const translations = {
 
     // Homepage
     heroTitle: 'Boly ovdánahttá sosiála beaivvášformiduhttima.',
-    heroDesc: 'Boly lea sihkar oktavuoda gaskka kommuvdna ja priváhta beaivváš olbmuid ja lea effeavtta reaidu váttisvuođaid hálahit. BankID várrejit láttodaga.',
+    heroDesc:
+      'Boly lea sihkar oktavuoda gaskka kommuvdna ja priváhta beaivváš olbmuid ja lea effeavtta reaidu váttisvuođaid hálahit. BankID várrejit láttodaga.',
     chooseRole: 'Vállje iežat rolla',
     forMunicipality: 'Kommuvnna bargiide',
     kommunebrukerLabel: 'Lean kommuvnna geavaheaddji',
-    searchDesc: 'Oza beaivvášlisttus maid olisat dahkat. Oza buorre loahpahusa iežat bruhkaide filtaraiguin.',
+    searchDesc:
+      'Oza beaivvášlisttus maid olisat dahkat. Oza buorre loahpahusa iežat bruhkaide filtaraiguin.',
     openHousingBank: 'Raba beaivvášbánccu',
     forHomeowners: 'Beaivváš oamasteaddjiide',
     utleierLabel: 'Lean duodjár',
-    manageDesc: 'Registrere ja hálddaše iežat duodji beaivvášaid. Du bidjat buot stuorit hálddahusa tilgangu ja ektui.',
+    manageDesc:
+      'Registrere ja hálddaše iežat duodji beaivvášaid. Du bidjat buot stuorit hálddahusa tilgangu ja ektui.',
     manageRental: 'Háldda duodji',
-    loginWithOtherAccount: 'Leat loggen njunnebealde kommuvnna bargu. Sii bohtet báikki-portálas fertet logget njunnebealde oktavuođa.',
+    loginWithOtherAccount:
+      'Leat loggen njunnebealde kommuvnna bargu. Sii bohtet báikki-portálas fertet logget njunnebealde oktavuođa.',
     securityTitle: 'Siidu vuosšamin',
-    securityDesc: 'Buot duodjifáŋggat leat ráhkaduvvon juridihkalaš kvalitehtalaš oaivámušain norgga stándárda nuppe beaivváš formiduhttima vuođul.',
+    securityDesc:
+      'Buot duodjifáŋggat leat ráhkaduvvon juridihkalaš kvalitehtalaš oaivámušain norgga stándárda nuppe beaivváš formiduhttima vuođul.',
     improvementTitle: 'Áibbas buoret funkšuvnnat',
-    improvementDesc: 'Áibbas buoret funkšuvnnat dán appii. Jus gávnnat háhkat, sádde e-poastta info@bolynorge.no',
+    improvementDesc:
+      'Áibbas buoret funkšuvnnat dán appii. Jus gávnnat háhkat, sádde e-poastta info@bolynorge.no',
 
     // Footer
     developedBy: 'Ráhkkadan',
@@ -788,7 +946,8 @@ export const translations = {
     delete: 'Sihkkut',
     noAccess: 'Ii oktavuohta',
     noAccessDesc: 'Du eai leat oktavuohta dán siiddus. Sisa kommuvdna kontuiguin.',
-    noAccessDatabaseDesc: 'Du eai leat oktavuohta beaivvášbánccui. Dát oassi lea kommuvnna bargiide.',
+    noAccessDatabaseDesc:
+      'Du eai leat oktavuohta beaivvášbánccui. Dát oassi lea kommuvnna bargiide.',
     goHome: 'Forsáiddii',
     address: 'Čujuhus',
     city: 'Gávpot',
@@ -810,6 +969,7 @@ export const translations = {
     openContactInfo: 'Raba oktavuoddu dieđuid',
     formidletActionsDesc: 'Formidla hállain: deavdde oktavuoddu ja ođđasit raporta.',
     goToMessage: 'Manne sáhcastalliide',
+    notifGoToUserProfile: 'Raba geavaheaddjiprofiilla',
     markDone: 'Merke ferten',
     markUnread: 'Merke ii lohkon',
     resolvedByColleague: 'Dádján kollega',
@@ -828,7 +988,8 @@ export const translations = {
     noProperties: 'Eai gávdnan dáviraid.',
     manageRentalNav: 'Merke eanetge hábmet',
     markAvailable: 'Merke hábmet',
-    formidletByKommune: 'Dán dávir lea merke formiduhttimin kommuvdnas ja stáhtus sáhttá ii rievddadit goddánuslohkki.',
+    formidletByKommune:
+      'Dán dávir lea merke formiduhttimin kommuvdnas ja stáhtus sáhttá ii rievddadit goddánuslohkki.',
     availablePeriods: 'Hábme áigodat',
     noPeriods: 'Eai áigodat lasihan.',
     close: 'Gidde',
@@ -837,7 +998,7 @@ export const translations = {
     toDate: 'Rái beivvi',
     createAccount: 'Ráhkat kontu',
     welcomeBack: 'Bures boahtin',
-    createAccountDesc: 'Leat oassi bo.ly ja veahke beaivváš formiduhttimis.',
+    createAccountDesc: 'Leat oassi Boly ja veahke beaivváš formiduhttimis.',
     loginDesc: 'Sisa hálddaše iežat dáviraid.',
     email: 'E-poasta',
     password: 'Sálti',
@@ -853,6 +1014,61 @@ export const translations = {
     chatWithLandlord: 'Sáhcastallat goddánuslohkkiin',
     chatDesc: 'Sádde ja oažžu sáhcastallain dán bruhkaiguin.',
     openChat: 'Raba sáhcastallama',
+    kommuneAdminActionsTitle: 'Kommuvnna hálddašlaš doaimmat',
+    kommuneAdminActionsIntro:
+      'Eaktavuođa mielde sáhttá kommuvdna sihkkut registrerejuvvon dávirat dahje loahppat eaktavuođa goddánusiin. Buot doaimmat loggojuvvojit.',
+    kommuneReason_registration_error_or_unsuitable:
+      'Feailaregistereheapmi dahje dávir ii deavdde gáibádusaid',
+    kommuneReason_breach_or_illegal:
+      'Goddánus ii deavdde eaktavuođa dahje leat lága vuostásaš dilálašvuođat',
+    kommuneReason_cooperation_failed: 'Ovttasbargu goddánusiin ii doađa',
+    kommuneReason_service_discontinued: 'Beaivvášformidlanbálvalus heaitá',
+    kommuneDeleteListingButton: 'Sihkkut dávira',
+    kommuneTerminateAgreementButton: 'Loahppat eaktavuođa goddánusiin',
+    kommuneAdminSelectReason: 'Vállje vuođu',
+    kommuneAdminNoteOptional: 'Valgfri fuomášupmi',
+    kommuneAdminConfirmDelete: 'Sihkkut dán dávira bissovaččat?',
+    kommuneAdminConfirmTerminate: 'Loahppat eaktavuođa dán goddánusis?',
+    kommuneAdminExecuting: 'Čađa…',
+    kommuneAdminSubmit: 'Dohkkehat',
+    kommuneRpcError_generic: 'Ii sáhttán čađahit.',
+    kommuneRpcError_forbidden: 'It oaččo dahkat dán.',
+    kommuneRpcError_reason_required: 'Vállje vuođu.',
+    kommuneRpcError_listing_outside_region: 'Dávir ii leat du regiovnnas.',
+    kommuneRpcError_listing_not_found: 'Dávir ii gávdno.',
+    kommuneRpcError_landlord_outside_region: 'Goddánus ii leat du regiovnnas.',
+    kommuneRpcError_target_is_kommune_staff: 'Ii sáhte loahppat kommuvnna geavaheaddji eaktavuođa.',
+    kommuneRpcError_cannot_terminate_self: 'Ii leat dohkálaš.',
+    kommuneRpcError_already_terminated: 'Eaktuohta lea juo loahppan.',
+    kommuneRpcError_no_agreement: 'Eai leat eaktuođat.',
+    kommuneRpcError_not_authenticated: 'It leat sisačálihan.',
+    kommuneRpcError_user_not_found: 'Bruhkar ii gávdno.',
+    kommuneRpcError_no_pending_request: 'Ii leat aktiiva ohcamuš ođđa almmus.',
+    kommuneTerminatedTitle: 'Kommuvdna lea loahppan eaktavuođa',
+    kommuneTerminatedLead:
+      'Kommuvdna lea loahppan du eaktavuođa Boly:s. It oaččo geavahit bálvalusa ovdal go almmut ođđasit.',
+    kommuneTerminatedExpiredHint:
+      'Don gullet maiddái «Heaitán» oainnus kommuvnnas dassážžii go ođđa eaktuohta lea sajáiduvvon.',
+    kommuneTerminatedResignExplain:
+      'Váldde lohpi ovdal go sáhtát almmut ođđasit. Go sádde ohcamuša, oačču sáhttibealddit dieđu. Sii dohkkehit dahje bisánit profiillasat.',
+    kommuneTerminatedMessageHint: 'Sáhtát maiddái čállit kommuvdnii sáhcastallamiin.',
+    landlordResignPendingTitle: 'Ohcamuš sáddejuvvon',
+    landlordResignPendingBody:
+      'Kommuvdna lea ožžon dieđu. Oaččut dieđu go ohcamuš lea gieđahallojuvvon. Maŋŋil dohkkeheami sáhtát mannat «Mu dávvirat» ja čađahit almmu.',
+    landlordResignMessageOptional: 'Valgfri sáhka kommuvdnii',
+    landlordResignMessagePlaceholder: 'Ovdamearka oanehis čilgehus …',
+    landlordResignSubmitRequest: 'Bivdde vejolašvuođa almmut ođđasit',
+    landlordResignRpcGeneric: 'Ii sáhttán sáddet ohcamuša.',
+    landlordResignRpc_not_eligible: 'It sáhte geavahit dán dál.',
+    landlordResignRpc_already_pending: 'Dus lea juo ohcamuš mii vuordá.',
+    kommuneResignRequestTitle: 'Ohcamuš ođđa eaktavuođaalmmus',
+    kommuneResignRequestIntro:
+      'Goddánuslohkki hálu almmut eaktavuođa ođđasit maŋŋil kommuvnna loahppadeami. Dohkkehat jos galgat rabastit, dahje bisán merkain.',
+    kommuneResignReviewNoteOptional: 'Merkka goddánuslohkái (válljehahtti, čájehuvvo bisáneamis)',
+    kommuneResignApprove: 'Dohkkehat ođđa almmu',
+    kommuneResignReject: 'Bisán',
+    signTermsBlockedTerminated:
+      'Eaktuohta lea loahppan. Logge sisa ja čuovo čilgehusaid, dahje váldde oktavuođa kommuvdnii.',
     noPhone: 'Eai telefovdna registrereduvvon',
     termsNotSigned: 'Ektui Ii almmuhan',
     termsSigned: 'Ektui almmuhan',
@@ -879,12 +1095,15 @@ export const translations = {
     notificationsSharedDesc: 'Dahkkon doarjanguoibmimat kommuvnna bargiide.',
     notificationsUserDesc: 'Dehálaš ođasmahttit du duodji birra.',
     loadingPleaseWait: 'Veahkkelis beara',
-    pageLoadStuck: 'Sisdoallu ii sáhttán heivehuvvot oktanaga. Geahčal fierpmádatoktavuođa ja ahte Supabase-variábelat leat čadnon.',
+    pageLoadStuck:
+      'Sisdoallu ii sáhttán heivehuvvot oktanaga. Geahčal fierpmádatoktavuođa ja ahte Supabase-variábelat leat čadnon.',
     manageDataLoadTimeout:
       'Dat válddii guhkes áiggi viežžat dieđuid. Geahčal fierpmádatoktavuođa ja ođđasit siiddu. Jos dat čuohppa: dárkkis ahte Vercel dahje .env.local:s leat rivttes NEXT_PUBLIC_SUPABASE_URL ja anon-nøkkul seamma Supabase-prošeaktii.',
     footerDiagnostics: 'Dieđihančuolbma',
     loginAuthNoResponse:
       'Sisačáliheapmi ii ožžon vástádusa oktanaga. Geahčal fierpmádat, VPN/brannmur ja ahte URL ja anon-nøkkel .env.local:s shttet Supabase-prošeavtta.',
+    loginAuthNetworkFailed:
+      'Ii sáhttán olláhit sisačálihanbálvalusa (fierpmádatfeaila). Geahčal fierpmádat, hehttenheivehusaid ja ahte NEXT_PUBLIC_SUPABASE_URL .env.local:s čujuhša olámuttos Supabase-prošeaktii.',
     retryLoad: 'Geahčal ođđasit',
     orDivider: 'dahje',
     loginWithBankID: 'Sisa BankID:in',
@@ -919,9 +1138,11 @@ export const translations = {
     landlordOverviewTitle: 'Du Boly-ovddidus',
     landlordOverviewLead:
       'Dás gávdná buot oktanaga – mii leat ilus go leat mielde. Oanehaččat maid dás gávdná:',
-    landlordOverviewBullet1: '«Mu dávvirat» listtus oainnát dávvirat ja sáhttát rabat juohke dávvira dieđuide.',
+    landlordOverviewBullet1:
+      '«Mu dávvirat» listtus oainnát dávvirat ja sáhttát rabat juohke dávvira dieđuide.',
     landlordOverviewBullet2: 'Sáhtát filtteret stáhtusa mielde ja bissut ovdáneami.',
-    landlordOverviewBullet3: 'Hábme áigodagat ja kaleandar veahkehit du ja kommuvdnii oaidnit go dáigi lea hábme formideapmái.',
+    landlordOverviewBullet3:
+      'Hábme áigodagat ja kaleandar veahkehit du ja kommuvdnii oaidnit go dáigi lea hábme formideapmái.',
     landlordOverviewExpectTitle: 'Maid mii sávvat',
     landlordOverviewExpectBody:
       'Mii sávvat ahte du dieđut dávvira birra leat ođastuvvon, áigodagat leat rievttes ja vástadat go kommuvdna váldá oktavuođa. Don mearridit ain iežat – Boly lea dušše veahkkeođastus.',
@@ -929,16 +1150,22 @@ export const translations = {
     landlordMineBoligerTitle: 'Mu dávvirat',
     landlordMineBoligerLead:
       'Juohke dáigi lea iežas kárta. Dás leat dieđut maidda lea buorre diehtit:',
-    landlordMineBoligerBullet1: 'Deaddil dávvira rabat dieđuid – das sáhtát rievdadit dieđuid, lasit govaid ja eará.',
-    landlordMineBoligerBullet2: 'Sáhtát lasit ja rievdadit hábme áigodagat nu ahte kommuvdna oainná go dáigi lea hábme formideapmái.',
-    landlordMineBoligerBullet3: 'Go dáigi lea «formiduvvon» kommuvdnas, dus lea ain ovdáneapmi ja sáhtát čuovvul.',
+    landlordMineBoligerBullet1:
+      'Deaddil dávvira rabat dieđuid – das sáhtát rievdadit dieđuid, lasit govaid ja eará.',
+    landlordMineBoligerBullet2:
+      'Sáhtát lasit ja rievdadit hábme áigodagat nu ahte kommuvdna oainná go dáigi lea hábme formideapmái.',
+    landlordMineBoligerBullet3:
+      'Go dáigi lea «formiduvvon» kommuvdnas, dus lea ain ovdáneapmi ja sáhtát čuovvul.',
     landlordMineBoligerCta: 'Greit!',
     landlordMessagesTitle: 'Sáhcastallat kommuvdnii',
     landlordMessagesLead:
       'Dát sáhcastallan lea njuolges oktavuohta kommuvdnii dávvira birra. Mii leat dahkán dan álkit – ná geavahat buori:',
-    landlordMessagesBullet1: 'Sáhcal go dárbbašat čilgehusa, jearaldaga formideami birra dahje dieđu maid lea rievdat.',
-    landlordMessagesBullet2: 'Meldingat sáhttet čájet saksbealddiide – čále čielggas ja buorre láhkai.',
-    landlordMessagesBullet3: 'It ferte vástadit haste – muhto mii ohcet ahte rabat meldingaid go dáidet.',
+    landlordMessagesBullet1:
+      'Sáhcal go dárbbašat čilgehusa, jearaldaga formideami birra dahje dieđu maid lea rievdat.',
+    landlordMessagesBullet2:
+      'Meldingat sáhttet čájet saksbealddiide – čále čielggas ja buorre láhkai.',
+    landlordMessagesBullet3:
+      'It ferte vástadit haste – muhto mii ohcet ahte rabat meldingaid go dáidet.',
     landlordMessagesExpectTitle: 'Vuordámušat',
     landlordMessagesExpectBody:
       'Kommuvdna geavaha sáhcastallama ovttasráđđeheapmin duinna. Jo čielggebut, jo álkit lea buohkaide.',
@@ -946,8 +1173,10 @@ export const translations = {
     landlordNotificationsTitle: 'Dieđut Bolys',
     landlordNotificationsLead:
       'Dás čohkkejit dieđut maid fertet diehtit dávvira birra – oanehaččat. Gulis lista lea guoros dalle go ii leat ođđa dieđut.',
-    landlordNotificationsBullet1: 'Sáhtát oažžut dieđu ođđa sáhcastallamiin kommuvnnas, go dáigi lea formiduvvon, dahje go soamethis gáibida.',
-    landlordNotificationsBullet2: 'Deaddil «Merke leamaš loahppan» go leat lohkan ja dahkan maid dárbbašat.',
+    landlordNotificationsBullet1:
+      'Sáhtát oažžut dieđu ođđa sáhcastallamiin kommuvnnas, go dáigi lea formiduvvon, dahje go soamethis gáibida.',
+    landlordNotificationsBullet2:
+      'Deaddil «Merke leamaš loahppan» go leat lohkan ja dahkan maid dárbbašat.',
     landlordNotificationsBullet3: 'Listtu badjel sáhtát láitet e-poastadieđu.',
     landlordNotificationsExpectTitle: 'Maid mii sávvat',
     landlordNotificationsExpectBody:
@@ -962,7 +1191,8 @@ export const translations = {
     calendarLegendUnavailableInfo: 'Dáigi ii leat hábme formideapmái.',
     calendarLegendConflictInfo: 'Leahki dahje vuostemielalaš áigodagat mat fertejit rasttilduvvot.',
     timelineColorHelpTitle: 'Ivnnit áigelinnjas',
-    timelineColorHelpIntro: 'Juohke ruhta lea okta beaivi. Ivnnit čájeha dávvira stáhtusa dan beaivvi.',
+    timelineColorHelpIntro:
+      'Juohke ruhta lea okta beaivi. Ivnnit čájeha dávvira stáhtusa dan beaivvi.',
     timelineColorHelpTeal: 'Turkis: hábme formideapmái.',
     timelineColorHelpBlue: 'Alit: merkejuvvon formidlan Nav:in dán áigodagas.',
     timelineColorHelpRed: 'Ruoksat: ii hábme (omd. iežas atnu dahje divvun).',
@@ -997,7 +1227,8 @@ export const translations = {
     noAccessExpiredDesc: 'Dán siidu lea kommuvnna bargiide.',
     pushNotificationsMobile: 'Push-doarjanguoibmimat mobilas',
     pushGrantedDesc: 'Oažžut doarjanguoibmimat telefovnnas go leat sisa.',
-    pushUnsupportedDesc: 'Gidde Safari fanas ja raba appa forsáiddi ikonas. Push dahkkojuvvo dušše go álggahat appa direkta ikonas.',
+    pushUnsupportedDesc:
+      'Gidde Safari fanas ja raba appa forsáiddi ikonas. Push dahkkojuvvo dušše go álggahat appa direkta ikonas.',
     pushActivateDesc: 'Doavttir vuollái aktiveret doarjanguoibmimat.',
     activating: 'Aktiveren...',
     activateNotifications: 'Aktiver doarjanguoibmimat',
@@ -1006,11 +1237,14 @@ export const translations = {
     backToHousingBank: 'Máhcat beaivvášbánccui',
     backToMyProperties: 'Máhcat mu dáviraide',
     noAccessThisListing: 'Du eai leat oktavuohta dán dávirii',
-    listingInRegionDesc: 'Dávir lea {city}. Du kontu oažžu dušše dáviraid kommunas maid leat oktavuohta.',
+    listingInRegionDesc:
+      'Dávir lea {city}. Du kontu oažžu dušše dáviraid kommunas maid leat oktavuohta.',
     formidling: 'Formiduhttin',
-    formidlingManagedByCaseworker: 'Formiduhttin hálddahuvvo sáhkkadahkii. Dušše geavaheaddjit rievddadusa oktavuođain sáhttet lasihit dahje sihkkut formiduhttin áigodagaid.',
+    formidlingManagedByCaseworker:
+      'Formiduhttin hálddahuvvo sáhkkadahkii. Dušše geavaheaddjit rievddadusa oktavuođain sáhttet lasihit dahje sihkkut formiduhttin áigodagaid.',
     formidlingManagedByCaseworkerShort: 'Formiduhttin hálddahuvvo sáhkkadahkii.',
-    expiredOwnerNoMediationNav: 'Vuovdineaddji lea loahpahan šiehtadusa. Sáhtát oaidnit historjjá, ii ge sáhte várret, formidlet, guhkit áigodagaid dahje sáddet dieđu vuovdinii.',
+    expiredOwnerNoMediationNav:
+      'Vuovdineaddji lea loahpahan šiehtadusa. Sáhtát oaidnit historjjá, ii ge sáhte várret, formidlet, guhkit áigodagaid dahje sáddet dieđu vuovdinii.',
     expiredOwnerNoMediationShort: 'Vuovdineaddji šiehtadus loahppan – ii formidlet.',
     messagingTerminatedAccountBlocked: 'It sáhte sáddet dieđu dán kontoi (šiehtadus loahppan).',
     depositGuaranteeHeading: 'Deposihtta ja garantia (goddánuslohkki)',
@@ -1021,11 +1255,13 @@ export const translations = {
     depositGuaranteeNo: 'Ii',
     depositGuaranteeNotSpecified: 'Ii dieđihuvvon goddánuslohkki',
     mediationReserveTitle: 'Várrehus čoahkkáneapmái',
-    mediationReserveHint: 'Várre dávvi guokte diimmu go čoahkkánat sisttis. Eará sáhttibealddit oainnat ahte dávir lea váldojuvvon.',
+    mediationReserveHint:
+      'Várre dávvi guokte diimmu go čoahkkánat sisttis. Eará sáhttibealddit oainnat ahte dávir lea váldojuvvon.',
     mediationReserveButton: 'Várre guokte diimmu',
     mediationReservedByYou: 'Dus lea aktiiva várrehus {expires} rádjai.',
     mediationReservedByOther: '{name} lea várrehus {expires} rádjai.',
-    mediationBlockedFormidlet: 'It sáhte lasihit formiduhttima go eará sáhttibealddi lea aktiiva várrehus.',
+    mediationBlockedFormidlet:
+      'It sáhte lasihit formiduhttima go eará sáhttibealddi lea aktiiva várrehus.',
     mediationInternalNote: 'Siskkaldas mearka',
     mediationRelease: 'Luovtta',
     mediationCancel: 'Heahtát várrehusa',
@@ -1048,17 +1284,32 @@ export const translations = {
     handoverReports: 'Ođđasit raportat',
     tenant: 'Báhkki',
     linkForTenant: 'Liŋka báhkkiide:',
-    linkForTenantDesc: 'Sádde dán liŋkka báhkkiide raporta nammadit dahje lasihit (PDF) – eai fertet sisa.',
+    linkForTenantDesc:
+      'Sádde dán liŋkka báhkái. Sii sáhttet čálehit oanehis kommeanta ja vejolaš govaid – almma bealátloggema. Skema lea anonima (dieđut liŋkkas).',
+    tenantHandoverPageTitle: 'Ođđasit raporta – báhkká',
+    tenantHandoverPageLead: 'Sáhtát sáddet anonima cealkaga boliiggas. It dárbbaše beassat sisa.',
+    tenantHandoverGdprP1:
+      'Skema lea anonima: mii ii vurke nama, e-poasta, telefovdnanummira dahje eará dieđuid mat dovddasta du persovdnan. Dat mii vurkejuvvo lea kommeanta ja vejolaš govat maid válljet lasihit, mat leat čadnon dán boliiggii suohkana áššemeannudeapmái. Várre čállit persovdnadieđuid kommeantabiktas dahje govvidit olbmuiguin jos ii leat dárbbašlaš.',
+    tenantHandoverGdprP2:
+      'Tehnihkalaš ja sihkarvuođa dihte sáhttá sáddema čujuhit interneahttačujuhussii (IP-čujuhus) masa sáddejuvvo, serverlogain fálusolbmuin – seammá láhkái go dábálaš neahttageavaheapmi. Dat ii leat čadnon BankID:i dahje sisačáliheapmái dasgo it logge sisa.',
+    tenantHandoverCommentLabel: 'Kommeanta',
+    tenantHandoverCommentPlaceholder:
+      'Valjálaš jos lasihat govaid. Čále oanehis ođđas birra, dili birra dahje eará relevánta.',
+    tenantHandoverPhotosSection: 'Govat (valjálaš)',
+    tenantHandoverSubmit: 'Sádde',
+    tenantHandoverNeedCommentOrPhoto: 'Čále kommeantta dahje lasit uksa gova ovdal go sádde.',
     linkGeneratedWhenFormidlet: 'Liŋka ráhkaduvvo go dávir merke formiduhttimin.',
     message: 'Sáhcastallan',
-    formidletUseRemoveBelow: 'Dávir lea merke formiduhttimin. Geahčal «Sihkkut formiduhttima» vuollái.',
+    formidletUseRemoveBelow:
+      'Dávir lea merke formiduhttimin. Geahčal «Sihkkut formiduhttima» vuollái.',
     tidsspannFormidling: 'Áigodat formiduhttimis',
     startFormidling: 'Álggah formiduhttima',
     startingFormidling: 'Álggaha formiduhttima...',
     conditionDescription: 'Stáhtus govvádus:',
     selectStartEndFormidling: 'Vállje álgga- ja loahppa beaivvi formidla áigodagis.',
     endDateAfterStart: 'Loahppa beaivi ferte leat álgga beaivi maŋŋel dahje seammá.',
-    generateNewLinkConfirm: 'Ráhkat ođđa liŋkka? Boares liŋka heahtá. Báhkki ferte oažžut ođđa liŋkka.',
+    generateNewLinkConfirm:
+      'Ráhkat ođđa liŋkka? Boares liŋka heahtá. Báhkki ferte oažžut ođđa liŋkka.',
     signAgreementToEdit: 'Fertet almmuhan ja aktiiva oaivámuša rievddadusaid dahkama.',
     signAgreementToUpload: 'Fertet almmuhan ja aktiiva oaivámuša govvaid nammadan.',
     errorSaving: 'Háhkka vurkejuvvon: ',
@@ -1075,7 +1326,8 @@ export const translations = {
     confirmDeleteListing:
       'Leatgo sihkar aht hálid sihkkut dán dávvira «{address}»? It oainne šat Beaivvášbánccus.',
     mediationNoteOptional: 'Mearka formiduhttimis (válljehahtti)',
-    mediationNotePlaceholder: 'Oanehis mearka – čájeh dušše goddánuslohkái doarjanguoibmis go válljet vuollá.',
+    mediationNotePlaceholder:
+      'Oanehis mearka – čájeh dušše goddánuslohkái doarjanguoibmis go válljet vuollá.',
     includeMediationNoteInNotification: 'Lasit doarjanguoibmii goddánuslohkái',
     paymentMethodLabel: 'Maksáneapmi goddánuslohkái',
     paymentMethodFaktura: 'Reive',
@@ -1085,9 +1337,14 @@ export const translations = {
     invoiceBasisTitle: 'Reivevuođđu',
     invoiceBasisDesc:
       'Vállje formiduhttináigodaga, dievdda kontonumbira ja suoma, ja dievdda vuolláičuojan. Sáhtát vurket ja ládjet PDF mállet.',
-    invoiceBasisKommuneHint:
-      'Dieđut leat dievddon goddánuslohkki. Sáhtát ládjet PDF sáhka máhpái.',
+    invoiceBasisKommuneHint: 'Dieđut leat dievddon goddánuslohkki. Sáhtát ládjet PDF sáhka máhpái.',
     invoiceAccount: 'Kontonummir',
+    invoiceAccountRepeat: 'Čájet kontonumbira ođđasit',
+    invoiceAccountDoubleEntryHint:
+      'Čájet kontonumbira ođđasit vai eahpefuomášat hehttejit. Gaskamearri ja čuoggát eai leat mearkkašupmin.',
+    invoiceAccountCorrectConfirmLabel: 'Almmuhan ahte kontonummir lea rivttes.',
+    invoiceAccountMismatch: 'Kontonummirat eai leat seammát.',
+    invoiceAccountConfirmRequired: 'Fertet almmuhit ahte kontonummir lea rivttes (vállje vuollá).',
     invoiceAmount: 'Šiehtaduvvon láigu áigodagas',
     invoiceSave: 'Vurke vuođu',
     invoiceSaving: 'Vurke…',
@@ -1100,8 +1357,10 @@ export const translations = {
     invoiceSelectMediationPeriod: 'Vállje áigodaga …',
     invoiceMediationPeriodHint: 'Čilge man formiduhttináigodagas máksin gullá.',
     invoiceMediationPeriodRequired: 'Vállje man formiduhttináigodagas reivevuođđu gullá.',
-    invoicePdfNoMediationPeriod: 'Ii leat registrerejuvvon formiduhttináigi dán dávvira. Ii sáhte ráhkadit PDF.',
-    invoiceNoFormidlaPeriodYet: 'Ii leat formiduhttináigi vel – dat biddjojuvvo go kommuvdna merke dávvira formidleruvvon.',
+    invoicePdfNoMediationPeriod:
+      'Ii leat registrerejuvvon formiduhttináigi dán dávvira. Ii sáhte ráhkadit PDF.',
+    invoiceNoFormidlaPeriodYet:
+      'Ii leat formiduhttináigi vel – dat biddjojuvvo go kommuvdna merke dávvira formidleruvvon.',
     invoiceListingAddressLabel: 'Čujuhus',
     invoiceListingOwnerLabel: 'Goddánuslohkki',
     invoiceAutoFromListing: 'Báhcá automáhtalaččat dávvira dieđuin.',
@@ -1115,6 +1374,7 @@ export const translations = {
     homeDemoCardCta: 'Bivdde demo',
 
     dbViewTable: 'Tabellá oainnus',
+    dbViewList: 'Listu',
     dbViewMap: 'Kárta',
     dbViewTimeline: 'Áigeguovdilis',
     dbAvailabilityCalendarTitle: 'Hábme beaivekálender',
@@ -1160,7 +1420,8 @@ export const translations = {
     dbExtendEndAfterCurrent: 'Ođđa loahppa beaivi ferte leat maŋŋel dálá loahppa beaivvi.',
     dbExtendConfirm: 'Guhkit formiduhttináigodaga «{address}» rádjai {date}?',
     dbMarkFormidletConfirm: 'Hálidatgo merket «{address}» formiduhttimin áigodagas {start}–{end}?',
-    dbRemoveFormidletConfirm: 'Hálidatgo sihkkut formiduhttima «{address}»?\n\nDávir čájehuvvo fas hábmin.',
+    dbRemoveFormidletConfirm:
+      'Hálidatgo sihkkut formiduhttima «{address}»?\n\nDávir čájehuvvo fas hábmin.',
     dbSelectStartEnd: 'Vállje sihke álgga- ja loahppa beaivvi.',
     dateInputPlaceholder: 'DD.MM.YYYY',
 
@@ -1188,8 +1449,9 @@ export const translations = {
     signTermsListingAfterSignError: 'Ii sáhttán loahppat dávvirregistrerema maŋŋil almmu: ',
     signTermsStartError: 'Háhkka álggahetti almmu: ',
     signTermsTerminateConfirm:
-      'Leatgo sihkar aht hálid sihtat loahppat oaivámušas? Gahččát Beaivvášbánccui oktavuođa dál. Dieđut du ja dávviraid birra bissot kommuvnna historjjás.',
-    signTermsTerminatedSuccess: 'Oaivámuš lea loahppan. Logget lohkkás. Kommuvdna bissu historjjás dávviraid ja oaivámušaid birra.',
+      'Leatgo sihkar aht hálid sihtat loahppat oaivámušas? Gahččát Boly:i oktavuođa dál. Dieđut du ja dávviraid birra bissot kommuvnna historjjás.',
+    signTermsTerminatedSuccess:
+      'Oaivámuš lea loahppan. Logget lohkkás. Kommuvdna bissu historjjás dávviraid ja oaivámušaid birra.',
     signTermsTerminateError: 'Háhkka loahppamis: ',
     termsPdfTooltip: 'Ektui PDF',
     termsScrollBeforeSign: 'Rulle vuolás oaivámušas vuosttaš aktiveret almmu.',
@@ -1205,7 +1467,8 @@ export const translations = {
     listingNewLink: 'Ođđa liŋka',
     listingFullscreen: 'Olles skiermi',
     listingRequestChangePlaceholder: 'Čilge maid ferte rievdadit dahje lasihit …',
-    listingTenantLinkHelp: 'Geavat «Ođđa liŋkka» jos báhkki dadjá ahte liŋka ii leat dohkálaš – sádde dalle ođđa liŋkka.',
+    listingTenantLinkHelp:
+      'Geavat «Ođđa liŋkka» jos báhkki dadjá ahte liŋka ii leat dohkálaš – sádde dalle ođđa liŋkka.',
     handoverRentPeriodPlaceholder: 'ovd. 01.01.2026 – 31.03.2026',
     handoverInventoryPlaceholder: 'Listu inventára …',
     handoverKeysPlaceholder: 'ovd. 2 systemnøkler, 1 postkassenøkkel',
@@ -1229,7 +1492,8 @@ export const translations = {
     regSearchingAddresses: 'Oza čujuhusaid …',
     regGeocodeError: 'Ii gávdnan posišuvnna. Geahčal čujuhusa ja postanumbira.',
     regGeocodeFailed: 'Geokoding ii lihkahuvvon. Geahčal fas maŋŋil.',
-    regSaveNoIdError: 'Vurkejuvvon, muhto ii sáhttán oažžut ID ođđa dávvira. Geahčal ahte dus lea oktavuohta ráhkadit dáviraid.',
+    regSaveNoIdError:
+      'Vurkejuvvon, muhto ii sáhttán oažžut ID ođđa dávvira. Geahčal ahte dus lea oktavuohta ráhkadit dáviraid.',
     regAddressPickAria: 'Máŋga deavstta čujuhussii',
     regGeocodeMultiHelp:
       'Máŋga vejolaš báikki gávdnojit. Vállje dan mii heive dávvirii — posišuvdna kártas biddjo válljema maŋŋil.',
@@ -1256,7 +1520,8 @@ export const translations = {
     regUploadImages: 'Nammat govaid',
     regAdditionalInfo: 'Eará dieđut dávvira birra',
     regInsuranceTitle: 'Dávvir- ja siskkobealiforsikering',
-    regInsuranceBody: 'Ektui mielde fertet vuovdinareddit sihke dávvir- ja siskkobealiforsikeringa.',
+    regInsuranceBody:
+      'Ektui mielde fertet vuovdinareddit sihke dávvir- ja siskkobealiforsikeringa.',
     regPublish: 'Almmuh dávvira',
     regSaving: 'Vurke …',
     placeholderNok: 'NOK',
@@ -1279,16 +1544,18 @@ export const translations = {
     userPanel: 'User panel',
     myProperties: 'My properties',
     signTerms: 'Sign terms',
-    signTermsCityHint: 'The agreement shown is tied to a property in {city} (municipality from your registration).',
+    signTermsCityHint:
+      'The agreement shown is tied to a property in {city} (municipality from your registration).',
     signedAgreement: 'Signed agreement',
     logOut: 'Log out',
     logIn: 'Log in',
     housingBank: 'Boligbank',
     users: 'Users',
     navLandlords: 'Landlords',
-    navLandlordsDesc: 'Overview of all registered landlords in the Housing Bank.',
+    navLandlordsDesc: 'Overview of all registered landlords in Boligbank.',
     navAccounts: 'Accounts',
-    navAccountsDesc: 'Landlords and caseworkers in your regions. As municipality admin you can change edit access for caseworkers.',
+    navAccountsDesc:
+      'Landlords and caseworkers in your regions. As municipality admin you can change edit access for caseworkers.',
     navAccountsDescEditor: 'Landlords and caseworkers in your regions.',
     navAccountsDescReadonly:
       'Landlords and caseworkers in your regions. With view-only access you can message other caseworkers; landlord messages are read-only.',
@@ -1296,28 +1563,36 @@ export const translations = {
     tabStaff: 'Caseworkers',
     staffEditAccess: 'Edit access (mediation etc.)',
     kommuneAdminRole: 'Municipality admin',
-    termsMissingForRegion: 'You must sign the current terms for this municipality before publishing the listing.',
+    termsMissingForRegion:
+      'You must sign the current terms for this municipality before publishing the listing.',
     messages: 'Messages',
     expired: 'Expired',
     kommuneAccess: 'Municipality access',
-    kommuneAccessDesc: 'Manage email addresses that automatically get municipality access when they register.',
+    kommuneAccessDesc:
+      'Manage email addresses that automatically get municipality access when they register.',
     termsDocumentsNav: 'Terms documents',
     termsDocumentsTitle: 'Versioned terms agreements',
-    termsDocumentsDesc: 'Upload the PDF landlords see before BankID signing. Empty area = global template for all. With an area (e.g. Narvik) it overrides the global template for landlords with a property there.',
-    termsDocumentsDescAdmin: 'As municipality admin you upload PDFs only for your assigned areas. You cannot create a global template here — the system default PDF is listed under Published documents.',
+    termsDocumentsDesc:
+      'Upload the PDF landlords see before BankID signing. Empty area = global template for all. With an area (e.g. Narvik) it overrides the global template for landlords with a property there.',
+    termsDocumentsDescAdmin:
+      'As municipality admin you upload PDFs only for your assigned areas. You cannot create a global template here — the system default PDF is listed under Published documents.',
     termsRegionLabelAdmin: 'Municipality / area for this document',
     termsRegionPickPlaceholder: 'Select municipality…',
     termsRegionMultiHint:
       'Choose one or more areas. The document is used for BankID signing for all selected municipalities.',
     termsAdminRegionRequired: 'Select at least one area the document should apply to.',
     termsAdminRegionInvalid: 'You can only publish for your assigned areas.',
-    termsAdminNoRegions: 'Your profile has no municipality/area. Ask an administrator to update your profile or whitelist before publishing terms.',
+    termsAdminNoRegions:
+      'Your profile has no municipality/area. Ask an administrator to update your profile or whitelist before publishing terms.',
     termsDefaultStorageTitle: 'Default terms',
     termsScopeGlobal: 'All municipalities (default)',
     termsScopeMunicipalities: 'Municipalities: {areas}',
-    termsSigningPriorityHint: 'For BankID signing, the regional document matching the property municipality is used first, then the global row in the database, then the default Storage PDF.',
-    termsSigningInfoStorageDefault: 'Used when no newer database document covers the property municipality.',
-    termsSigningInfoGlobal: 'Applies to all municipalities that do not have their own regional document with a matching version for that city.',
+    termsSigningPriorityHint:
+      'For BankID signing, the regional document matching the property municipality is used first, then the global row in the database, then the default Storage PDF.',
+    termsSigningInfoStorageDefault:
+      'Used when no newer database document covers the property municipality.',
+    termsSigningInfoGlobal:
+      'Applies to all municipalities that do not have their own regional document with a matching version for that city.',
     termsSigningInfoRegional: 'Used for signing when the landlord has a property in: {regions}.',
     termsRegionLabel: 'Municipality / area (optional)',
     termsTitleLabel: 'Title',
@@ -1340,15 +1615,17 @@ export const translations = {
       'Active terms you have signed with BankID. If you have properties in more than one municipality, you may have separate documents per area.',
     termsScopeGlobalBadge: 'All municipalities',
     termsSignedOn: 'Signed {date}',
-    termsBankidUmbrellaNote: 'Access to the housing bank is tied to your BankID framework agreement (v1.0).',
+    termsBankidUmbrellaNote: 'Access to Boly is tied to your BankID framework agreement (v1.0).',
     termsActiveSectionTitle: 'Current agreements',
-    termsActiveSectionHint: 'Active terms that apply now – one entry per area where you have signed.',
+    termsActiveSectionHint:
+      'Active terms that apply now – one entry per area where you have signed.',
     termsHistoricalSectionTitle: 'Previous signings',
     termsHistoricalSectionHint:
       'When the municipality publishes a new version or you sign again for the same area, older signings are kept here for reference.',
     termsStatusSuperseded: 'Superseded',
     termsHistoricalCardTitle: 'Previous signing',
-    termsHistoricalCardNote: 'This version was superseded by newer terms; the PDF is what you signed at the time.',
+    termsHistoricalCardNote:
+      'This version was superseded by newer terms; the PDF is what you signed at the time.',
     termsHistoricalDetailsSummary: 'Show previous signings',
     termsActiveEmptyFallback:
       'No current signing appears in the list. See previous signings below, or contact the municipality if something looks wrong.',
@@ -1376,21 +1653,27 @@ export const translations = {
 
     // Homepage
     heroTitle: 'Boly simplifies social housing mediation.',
-    heroDesc: 'Boly is the secure link between municipalities and private property owners and an effective tool for meeting acute housing needs. The solution is secured by BankID.',
+    heroDesc:
+      'Boly is the secure link between municipalities and private property owners and an effective tool for meeting acute housing needs. The solution is secured by BankID.',
     chooseRole: 'Choose your role',
     forMunicipality: 'For municipality staff',
     kommunebrukerLabel: 'I am a municipality user',
-    searchDesc: 'Search the continuously updated list of available properties. Find the right solution for your users with advanced filtering.',
-    openHousingBank: 'Open housing bank',
+    searchDesc:
+      'Search the continuously updated list of available properties. Find the right solution for your users with advanced filtering.',
+    openHousingBank: 'Open Boligbank',
     forHomeowners: 'For property owners',
     utleierLabel: 'I am a landlord',
-    manageDesc: 'Register and manage your rental properties. You retain full control over availability and terms.',
+    manageDesc:
+      'Register and manage your rental properties. You retain full control over availability and terms.',
     manageRental: 'Manage rental',
-    loginWithOtherAccount: 'You are logged in as municipality staff. To use the homeowner portal you must log in with a different account.',
+    loginWithOtherAccount:
+      'You are logged in as municipality staff. To use the homeowner portal you must log in with a different account.',
     securityTitle: 'Security in focus',
-    securityDesc: 'All tenancy agreements are covered by legally quality-assured contracts following current Norwegian standards for public housing mediation.',
+    securityDesc:
+      'All tenancy agreements are covered by legally quality-assured contracts following current Norwegian standards for public housing mediation.',
     improvementTitle: 'Continuous improvement',
-    improvementDesc: 'We want the best possible features for this app and it will be continuously updated. If you experience issues, please email info@bolynorge.no',
+    improvementDesc:
+      'We want the best possible features for this app and it will be continuously updated. If you experience issues, please email info@bolynorge.no',
 
     // Footer
     developedBy: 'Developed by',
@@ -1421,7 +1704,8 @@ export const translations = {
     delete: 'Delete',
     noAccess: 'No access',
     noAccessDesc: 'You do not have access to this page. Log in with a municipality account.',
-    noAccessDatabaseDesc: 'You do not have the required permissions to view the housing bank. This section is for municipality staff only.',
+    noAccessDatabaseDesc:
+      'You do not have the required permissions to view Boligbank. This section is for municipality staff only.',
     goHome: 'Go to front page',
     address: 'Address',
     city: 'City',
@@ -1443,6 +1727,7 @@ export const translations = {
     openContactInfo: 'Open contact info',
     formidletActionsDesc: 'When mediated: fill in contact info and handover report.',
     goToMessage: 'Go to message',
+    notifGoToUserProfile: 'Open user profile',
     markDone: 'Mark as done',
     markUnread: 'Mark as unread',
     resolvedByColleague: 'Resolved by colleague',
@@ -1461,7 +1746,8 @@ export const translations = {
     noProperties: 'No properties found.',
     manageRentalNav: 'Mark as unavailable',
     markAvailable: 'Mark as available',
-    formidletByKommune: 'This property is marked as mediated by the municipality and status cannot be changed by the landlord.',
+    formidletByKommune:
+      'This property is marked as mediated by the municipality and status cannot be changed by the landlord.',
     availablePeriods: 'Available periods',
     noPeriods: 'No periods added yet.',
     close: 'Close',
@@ -1470,7 +1756,7 @@ export const translations = {
     toDate: 'To date',
     createAccount: 'Create account',
     welcomeBack: 'Welcome back',
-    createAccountDesc: 'Become part of bo.ly and contribute to housing mediation.',
+    createAccountDesc: 'Become part of Boly and contribute to housing mediation.',
     loginDesc: 'Log in to manage your properties.',
     email: 'Email',
     password: 'Password',
@@ -1486,6 +1772,62 @@ export const translations = {
     chatWithLandlord: 'Chat with landlord',
     chatDesc: 'Send and receive messages with this user.',
     openChat: 'Open chat',
+    kommuneAdminActionsTitle: 'Municipality administrative actions',
+    kommuneAdminActionsIntro:
+      'Under the terms of service the municipality may delete registered homes or terminate the agreement with the landlord. All actions are logged.',
+    kommuneReason_registration_error_or_unsuitable:
+      'Registration error or the home does not meet safety/suitability requirements',
+    kommuneReason_breach_or_illegal:
+      'Landlord fails duties under the agreement, or unlawful conditions are found',
+    kommuneReason_cooperation_failed: 'Cooperation with the landlord is not working',
+    kommuneReason_service_discontinued: 'The housing mediation service is discontinued',
+    kommuneDeleteListingButton: 'Delete property',
+    kommuneTerminateAgreementButton: 'Terminate agreement with landlord',
+    kommuneAdminSelectReason: 'Select basis (clause 1.10)',
+    kommuneAdminNoteOptional: 'Optional note (stored in log)',
+    kommuneAdminConfirmDelete: 'Permanently delete this property from the service? This cannot be undone.',
+    kommuneAdminConfirmTerminate:
+      'Terminate the terms agreement for this landlord? They lose access; data may be kept for municipal records.',
+    kommuneAdminExecuting: 'Working…',
+    kommuneAdminSubmit: 'Confirm',
+    kommuneRpcError_generic: 'Could not complete the action.',
+    kommuneRpcError_forbidden: 'You are not allowed to perform this action.',
+    kommuneRpcError_reason_required: 'Select a basis.',
+    kommuneRpcError_listing_outside_region: 'The property is outside your casework region.',
+    kommuneRpcError_listing_not_found: 'Property not found.',
+    kommuneRpcError_landlord_outside_region: 'The landlord is outside your region.',
+    kommuneRpcError_target_is_kommune_staff: 'Cannot terminate an agreement for a municipality user.',
+    kommuneRpcError_cannot_terminate_self: 'Invalid action.',
+    kommuneRpcError_already_terminated: 'The agreement is already terminated.',
+    kommuneRpcError_no_agreement: 'No terms agreement to terminate.',
+    kommuneRpcError_not_authenticated: 'Not signed in.',
+    kommuneRpcError_user_not_found: 'User not found.',
+    kommuneRpcError_no_pending_request: 'There is no pending re-signing request.',
+    kommuneTerminatedTitle: 'Your agreement was terminated by the municipality',
+    kommuneTerminatedLead:
+      'The municipality has ended your terms agreement in Boly. You cannot use the service as an active landlord until you sign again.',
+    kommuneTerminatedExpiredHint:
+      'You will also appear under «Expired» in the municipality’s overview until a new agreement is in place.',
+    kommuneTerminatedResignExplain:
+      'To sign the terms again, you must first request permission. Municipality staff are notified and approve or decline from your user profile.',
+    kommuneTerminatedMessageHint: 'You can also write to the municipality in messages if you have questions.',
+    landlordResignPendingTitle: 'Request sent',
+    landlordResignPendingBody:
+      'The municipality has been notified. You will get a notification when the request is processed. After approval, go to My properties to complete signing.',
+    landlordResignMessageOptional: 'Optional message to the municipality',
+    landlordResignMessagePlaceholder: 'e.g. briefly why you need access again …',
+    landlordResignSubmitRequest: 'Request permission to sign again',
+    landlordResignRpcGeneric: 'Could not send the request.',
+    landlordResignRpc_not_eligible: 'You cannot use this right now.',
+    landlordResignRpc_already_pending: 'You already have a pending request.',
+    kommuneResignRequestTitle: 'Request to sign terms again',
+    kommuneResignRequestIntro:
+      'The landlord wants to sign the terms again after municipal termination. Approve to reopen access, or decline with an optional note.',
+    kommuneResignReviewNoteOptional: 'Note to landlord (optional, shown if declined)',
+    kommuneResignApprove: 'Approve re-signing',
+    kommuneResignReject: 'Decline',
+    signTermsBlockedTerminated:
+      'The agreement is ended. Sign in to your landlord account and follow the instructions, or contact the municipality.',
     noPhone: 'No phone registered',
     termsNotSigned: 'Terms NOT signed',
     termsSigned: 'Terms signed',
@@ -1512,12 +1854,15 @@ export const translations = {
     notificationsSharedDesc: 'Shared notification system for municipality staff.',
     notificationsUserDesc: 'Important updates about your tenancy.',
     loadingPleaseWait: 'Please wait...',
-    pageLoadStuck: 'Content is taking too long to load. Check your network and that NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set (e.g. in .env.local for local dev).',
+    pageLoadStuck:
+      'Content is taking too long to load. Check your network and that NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set (e.g. in .env.local for local dev).',
     manageDataLoadTimeout:
       'Loading data took too long. Check your connection and refresh. If it keeps happening, verify Vercel (or .env.local) has the correct NEXT_PUBLIC_SUPABASE_URL and anon key for the same Supabase project.',
     footerDiagnostics: 'Connection diagnostics',
     loginAuthNoResponse:
       'Sign-in did not get a response in time. Check your connection, VPN/firewall, and that your .env.local URL and anon key match your Supabase project.',
+    loginAuthNetworkFailed:
+      'Could not reach the sign-in service (network error). Check you are online, disable ad blockers for this site if needed, and that NEXT_PUBLIC_SUPABASE_URL in .env.local points to a reachable Supabase project.',
     retryLoad: 'Try again',
     orDivider: 'or',
     loginWithBankID: 'Log in with BankID',
@@ -1528,7 +1873,7 @@ export const translations = {
     loginHere: 'Log in here',
     signUpHere: 'Sign up here',
     forgotPassword: 'Forgot your password?',
-    usersDesc: 'Overview of all registered landlords in the Housing Bank.',
+    usersDesc: 'Overview of all registered landlords in Boligbank.',
     searchByNamePlaceholder: 'Search by name...',
     signedOn: 'Signed',
     notSigned: 'Not signed',
@@ -1543,7 +1888,8 @@ export const translations = {
     landlordWelcomeTitle: 'Welcome to Boly',
     landlordWelcomeIntro: 'As a landlord you can for example:',
     landlordWelcomeBulletRegister: 'Register your property and keep availability up to date',
-    landlordWelcomeBulletMessages: 'Send messages to the municipality (under «Messages» in the menu)',
+    landlordWelcomeBulletMessages:
+      'Send messages to the municipality (under «Messages» in the menu)',
     landlordWelcomeBulletSign: 'Read and sign the terms with BankID when prompted',
     landlordWelcomeOrderTitle: 'How to get started',
     landlordWelcomeOrderBody:
@@ -1552,9 +1898,12 @@ export const translations = {
     landlordOverviewTitle: 'Your Boly overview',
     landlordOverviewLead:
       'Here you have everything in one place – we’re glad you’re here. In short, what you’ll find:',
-    landlordOverviewBullet1: 'Under «My properties» in the menu you’ll see your homes and can open each one for details.',
-    landlordOverviewBullet2: 'You can filter by status (available, unavailable, mediated) and keep track of your listings.',
-    landlordOverviewBullet3: 'Availability periods and the calendar help you and the municipality see when mediation is possible.',
+    landlordOverviewBullet1:
+      'Under «My properties» in the menu you’ll see your homes and can open each one for details.',
+    landlordOverviewBullet2:
+      'You can filter by status (available, unavailable, mediated) and keep track of your listings.',
+    landlordOverviewBullet3:
+      'Availability periods and the calendar help you and the municipality see when mediation is possible.',
     landlordOverviewExpectTitle: 'What we hope you’ll do',
     landlordOverviewExpectBody:
       'We’d like you to keep your property information up to date, set the right periods, and respond when the municipality contacts you. You remain in charge as landlord – Boly is simply the tool that connects you with the municipality.',
@@ -1562,16 +1911,22 @@ export const translations = {
     landlordMineBoligerTitle: 'My properties',
     landlordMineBoligerLead:
       'Each property has its own card. Here’s what helps before you go further:',
-    landlordMineBoligerBullet1: 'Tap a property to open its page – there you can adjust details, add photos, and more.',
-    landlordMineBoligerBullet2: 'You can add and edit periods when the home is available for mediation.',
-    landlordMineBoligerBullet3: 'When a property is marked as mediated by the municipality, you still have an overview and can follow up as agreed.',
+    landlordMineBoligerBullet1:
+      'Tap a property to open its page – there you can adjust details, add photos, and more.',
+    landlordMineBoligerBullet2:
+      'You can add and edit periods when the home is available for mediation.',
+    landlordMineBoligerBullet3:
+      'When a property is marked as mediated by the municipality, you still have an overview and can follow up as agreed.',
     landlordMineBoligerCta: 'Sounds good',
     landlordMessagesTitle: 'Messages to the municipality',
     landlordMessagesLead:
       'This chat is your direct line to the municipality about your properties. We’ve kept it simple – here’s how to use it well:',
-    landlordMessagesBullet1: 'Write when you need clarification, have questions about mediation, or want to share something that has changed.',
-    landlordMessagesBullet2: 'Messages may be seen by municipality staff – a clear, friendly tone helps everyone move faster.',
-    landlordMessagesBullet3: 'You don’t need to reply instantly – but we encourage you to open messages when you can so things don’t stall.',
+    landlordMessagesBullet1:
+      'Write when you need clarification, have questions about mediation, or want to share something that has changed.',
+    landlordMessagesBullet2:
+      'Messages may be seen by municipality staff – a clear, friendly tone helps everyone move faster.',
+    landlordMessagesBullet3:
+      'You don’t need to reply instantly – but we encourage you to open messages when you can so things don’t stall.',
     landlordMessagesExpectTitle: 'Expectations',
     landlordMessagesExpectBody:
       'The municipality uses messages to work with you on housing needs. The clearer you are, the easier it is for everyone.',
@@ -1579,9 +1934,12 @@ export const translations = {
     landlordNotificationsTitle: 'Notifications in Boly',
     landlordNotificationsLead:
       'This is where we gather what you should know about your properties – in one calm place. An empty list simply means nothing new right now.',
-    landlordNotificationsBullet1: 'You may get alerts for new messages from the municipality, when a home is mediated, or when something needs your attention (such as reports).',
-    landlordNotificationsBullet2: 'Tap “Mark as done” once you’ve read and handled it – that keeps your list tidy.',
-    landlordNotificationsBullet3: 'Above the list you can turn on email alerts so important items don’t get missed.',
+    landlordNotificationsBullet1:
+      'You may get alerts for new messages from the municipality, when a home is mediated, or when something needs your attention (such as reports).',
+    landlordNotificationsBullet2:
+      'Tap “Mark as done” once you’ve read and handled it – that keeps your list tidy.',
+    landlordNotificationsBullet3:
+      'Above the list you can turn on email alerts so important items don’t get missed.',
     landlordNotificationsExpectTitle: 'What we hope',
     landlordNotificationsExpectBody:
       'Check notifications from time to time, especially when you’re waiting for the municipality or have homes out for mediation. We’re here to make collaboration easier for you.',
@@ -1603,7 +1961,8 @@ export const translations = {
       'Dark red (conflict): the same day is both unavailable and (available or mediated). Periods overlap and should be cleaned up.',
     timelineLegendConflictShort: 'Conflict',
     emailNotificationsToggle: 'Also send notifications by email',
-    emailNotificationsHint: 'Applies when email delivery is enabled for the service. You can change this anytime.',
+    emailNotificationsHint:
+      'Applies when email delivery is enabled for the service. You can change this anytime.',
     showing: 'Showing',
     propertiesPlural: 'properties',
     bedroomsUnit: 'bedrooms',
@@ -1620,7 +1979,8 @@ export const translations = {
     messagesPickConversationPlaceholder:
       'Select a conversation on the left, or start a new chat from the user list.',
     expiredAndInactive: 'Expired & Inactive',
-    expiredDesc: 'Historical overview of users and properties no longer active in the Housing Bank.',
+    expiredDesc:
+      'Historical overview of users and properties no longer active in Boligbank.',
     inactiveUsers: 'Inactive Users',
     expiredDate: 'Expired',
     nameNotStored: 'Name not stored',
@@ -1630,20 +1990,24 @@ export const translations = {
     noAccessExpiredDesc: 'This page is for municipality staff only.',
     pushNotificationsMobile: 'Push notifications on mobile',
     pushGrantedDesc: 'You will receive notifications on your phone when logged in.',
-    pushUnsupportedDesc: 'Close the Safari tab and open the app from the home screen icon. Push is only supported when you launch the app directly from the icon.',
+    pushUnsupportedDesc:
+      'Close the Safari tab and open the app from the home screen icon. Push is only supported when you launch the app directly from the icon.',
     pushActivateDesc: 'Press below to enable notifications on your phone.',
     activating: 'Activating...',
     activateNotifications: 'Enable notifications',
 
     // Listing detail (boligsiden)
-    backToHousingBank: 'Back to housing bank',
+    backToHousingBank: 'Back to Boligbank',
     backToMyProperties: 'Back to my properties',
     noAccessThisListing: 'You do not have access to this property',
-    listingInRegionDesc: 'The property is in {city}. Your account only has access to properties in the municipalities you have been granted access to.',
+    listingInRegionDesc:
+      'The property is in {city}. Your account only has access to properties in the municipalities you have been granted access to.',
     formidling: 'Mediation',
-    formidlingManagedByCaseworker: 'Mediation is managed by caseworkers. Only users with edit permission can add or remove mediation periods.',
+    formidlingManagedByCaseworker:
+      'Mediation is managed by caseworkers. Only users with edit permission can add or remove mediation periods.',
     formidlingManagedByCaseworkerShort: 'Mediation is managed by caseworkers.',
-    expiredOwnerNoMediationNav: 'The landlord’s agreement has ended. You can view history here, but you cannot reserve, mediate, extend periods, or message the landlord.',
+    expiredOwnerNoMediationNav:
+      'The landlord’s agreement has ended. You can view history here, but you cannot reserve, mediate, extend periods, or message the landlord.',
     expiredOwnerNoMediationShort: 'Landlord agreement ended – no mediation or reservation.',
     messagingTerminatedAccountBlocked: 'You cannot message this account (agreement ended).',
     depositGuaranteeHeading: 'Deposit and guarantee (landlord)',
@@ -1654,11 +2018,13 @@ export const translations = {
     depositGuaranteeNo: 'No',
     depositGuaranteeNotSpecified: 'Not specified by landlord',
     mediationReserveTitle: 'Reservation for internal coordination',
-    mediationReserveHint: 'Reserve the property for two hours while you coordinate internally. Other caseworkers see that it is held.',
+    mediationReserveHint:
+      'Reserve the property for two hours while you coordinate internally. Other caseworkers see that it is held.',
     mediationReserveButton: 'Reserve for 2 hours',
     mediationReservedByYou: 'You have an active reservation until {expires}.',
     mediationReservedByOther: '{name} has a reservation until {expires}.',
-    mediationBlockedFormidlet: 'You cannot add mediation while another caseworker has an active reservation.',
+    mediationBlockedFormidlet:
+      'You cannot add mediation while another caseworker has an active reservation.',
     mediationInternalNote: 'Internal note',
     mediationRelease: 'Release',
     mediationCancel: 'Cancel reservation',
@@ -1681,17 +2047,34 @@ export const translations = {
     handoverReports: 'Handover reports',
     tenant: 'Tenant',
     linkForTenant: 'Link for tenant:',
-    linkForTenantDesc: 'Send this link to the tenant to download and upload the handover report (PDF) – they do not need to log in:',
+    linkForTenantDesc:
+      'Send this link to the tenant. They can add a short comment and optional photos – no login. The form is anonymous (see the information on the page).',
+    tenantHandoverPageTitle: 'Handover report – tenant',
+    tenantHandoverPageLead:
+      'You can submit an anonymous note about the property. You do not need to log in.',
+    tenantHandoverGdprP1:
+      'This form is anonymous: we do not store your name, email, phone number or other data that identifies you personally. What is stored is your comment and any images you choose to attach, linked to this property in the municipality’s case handling. Avoid writing personal data in the comment or taking photos where people can be recognised, unless you consider it necessary.',
+    tenantHandoverGdprP2:
+      'For technical and security reasons, the submission may be traceable to the internet address (IP address) you send from, in server logs at the provider – like normal web use. It is not linked to BankID or login here because you are not logging in.',
+    tenantHandoverCommentLabel: 'Comment',
+    tenantHandoverCommentPlaceholder:
+      'Optional if you attach images. Briefly describe handover, condition or other relevant matters.',
+    tenantHandoverPhotosSection: 'Images (optional)',
+    tenantHandoverSubmit: 'Submit',
+    tenantHandoverNeedCommentOrPhoto:
+      'Please add a comment or at least one image before submitting.',
     linkGeneratedWhenFormidlet: 'The link is generated when the property is marked as mediated.',
     message: 'Message',
-    formidletUseRemoveBelow: 'The property is marked as mediated. Use «Remove mediation» below to make it available again.',
+    formidletUseRemoveBelow:
+      'The property is marked as mediated. Use «Remove mediation» below to make it available again.',
     tidsspannFormidling: 'Mediation period',
     startFormidling: 'Start mediation',
     startingFormidling: 'Starting mediation...',
     conditionDescription: 'Condition description:',
     selectStartEndFormidling: 'Select start and end date for the mediation period.',
     endDateAfterStart: 'End date must be on or after the start date.',
-    generateNewLinkConfirm: 'Generate new link? The old link will stop working. The tenant must receive the new link.',
+    generateNewLinkConfirm:
+      'Generate new link? The old link will stop working. The tenant must receive the new link.',
     signAgreementToEdit: 'You must have a signed and active agreement to make changes.',
     signAgreementToUpload: 'You must have a signed and active agreement to upload images.',
     errorSaving: 'Error saving: ',
@@ -1706,9 +2089,10 @@ export const translations = {
     messageFromKommune: 'Message from municipality',
     confirmRemovePeriod: 'Are you sure you want to remove this period?',
     confirmDeleteListing:
-      'Are you sure you want to delete the listing «{address}»? It will no longer appear in the housing bank.',
+      'Are you sure you want to delete the listing «{address}»? It will no longer appear in Boligbank.',
     mediationNoteOptional: 'Mediation note (optional)',
-    mediationNotePlaceholder: 'Short note – only shown to the landlord in the notification if you check below.',
+    mediationNotePlaceholder:
+      'Short note – only shown to the landlord in the notification if you check below.',
     includeMediationNoteInNotification: 'Include in landlord notification',
     paymentMethodLabel: 'Payment to landlord',
     paymentMethodFaktura: 'Invoice',
@@ -1721,6 +2105,12 @@ export const translations = {
     invoiceBasisKommuneHint:
       'Information was entered by the landlord. You can download a PDF for the case file.',
     invoiceAccount: 'Account number',
+    invoiceAccountRepeat: 'Re-enter account number',
+    invoiceAccountDoubleEntryHint:
+      'Enter the account number again to avoid typos. Spaces and dots are ignored when comparing.',
+    invoiceAccountCorrectConfirmLabel: 'I confirm that the account number is correct.',
+    invoiceAccountMismatch: 'The two account numbers do not match.',
+    invoiceAccountConfirmRequired: 'You must confirm that the account number is correct (check the box).',
     invoiceAmount: 'Agreed rent for the period',
     invoiceSave: 'Save basis',
     invoiceSaving: 'Saving…',
@@ -1733,8 +2123,10 @@ export const translations = {
     invoiceSelectMediationPeriod: 'Select period …',
     invoiceMediationPeriodHint: 'Indicates which mediation period the payment applies to.',
     invoiceMediationPeriodRequired: 'Select which mediation period this invoice basis applies to.',
-    invoicePdfNoMediationPeriod: 'There is no registered mediation period for this listing yet. The PDF cannot be generated.',
-    invoiceNoFormidlaPeriodYet: 'No mediation period yet – it is added when the municipality marks the home as mediated.',
+    invoicePdfNoMediationPeriod:
+      'There is no registered mediation period for this listing yet. The PDF cannot be generated.',
+    invoiceNoFormidlaPeriodYet:
+      'No mediation period yet – it is added when the municipality marks the home as mediated.',
     invoiceListingAddressLabel: 'Address',
     invoiceListingOwnerLabel: 'Landlord',
     invoiceAutoFromListing: 'Taken automatically from the listing.',
@@ -1748,6 +2140,7 @@ export const translations = {
     homeDemoCardCta: 'Request a demo',
 
     dbViewTable: 'Table view',
+    dbViewList: 'List',
     dbViewMap: 'Map view',
     dbViewTimeline: 'Timeline',
     dbAvailabilityCalendarTitle: 'Availability calendar',
@@ -1793,7 +2186,8 @@ export const translations = {
     dbExtendEndAfterCurrent: 'The new end date must be after the current end date.',
     dbExtendConfirm: 'Extend the mediation period for «{address}» to {date}?',
     dbMarkFormidletConfirm: 'Mark «{address}» as mediated for {start}–{end}?',
-    dbRemoveFormidletConfirm: 'Remove mediation for «{address}»?\n\nThe listing will show as available again.',
+    dbRemoveFormidletConfirm:
+      'Remove mediation for «{address}»?\n\nThe listing will show as available again.',
     dbSelectStartEnd: 'Select both a start and an end date.',
     dateInputPlaceholder: 'DD.MM.YYYY',
 
@@ -1821,8 +2215,9 @@ export const translations = {
     signTermsListingAfterSignError: 'Could not finish listing registration after signing: ',
     signTermsStartError: 'Could not start signing: ',
     signTermsTerminateConfirm:
-      'Are you sure you want to terminate the agreement? You will lose access to the housing bank immediately. Your data and listings are kept for the municipality’s records.',
-    signTermsTerminatedSuccess: 'The agreement is terminated. You will be logged out. The municipality keeps history of listings and agreements.',
+      'Are you sure you want to terminate the agreement? You will lose access to Boly immediately. Your data and listings are kept for the municipality’s records.',
+    signTermsTerminatedSuccess:
+      'The agreement is terminated. You will be logged out. The municipality keeps history of listings and agreements.',
     signTermsTerminateError: 'Termination failed: ',
     termsPdfTooltip: 'Terms PDF',
     termsScrollBeforeSign: 'Scroll through the agreement first to enable signing.',
@@ -1838,7 +2233,8 @@ export const translations = {
     listingNewLink: 'New link',
     listingFullscreen: 'Fullscreen',
     listingRequestChangePlaceholder: 'Explain what needs to be changed or added…',
-    listingTenantLinkHelp: 'Use “New link” if the tenant says the link is invalid—then send them the new link.',
+    listingTenantLinkHelp:
+      'Use “New link” if the tenant says the link is invalid—then send them the new link.',
     handoverRentPeriodPlaceholder: 'e.g. 01.01.2026 – 31.03.2026',
     handoverInventoryPlaceholder: 'List inventory…',
     handoverKeysPlaceholder: 'e.g. 2 system keys, 1 mailbox key',
@@ -1847,7 +2243,8 @@ export const translations = {
       'Could not load listings. Run migration 20250308000000_listings_kommune_select.sql in Supabase (SQL editor).',
 
     regTitle: 'Register new property',
-    regLead: 'Fill in all details about the property. This information is the basis for the municipality’s assessment.',
+    regLead:
+      'Fill in all details about the property. This information is the basis for the municipality’s assessment.',
     regBack: 'Back to my properties',
     regContactSection: 'Contact information',
     regOwnerLabel: 'Landlord / company',
@@ -1862,7 +2259,8 @@ export const translations = {
     regSearchingAddresses: 'Searching addresses…',
     regGeocodeError: 'No position found. Check address and postal code.',
     regGeocodeFailed: 'Geocoding failed. Please try again later.',
-    regSaveNoIdError: 'Save completed, but the new listing ID could not be retrieved. Check that you have permission to create listings.',
+    regSaveNoIdError:
+      'Save completed, but the new listing ID could not be retrieved. Check that you have permission to create listings.',
     regAddressPickAria: 'Multiple matches for the address',
     regGeocodeMultiHelp:
       'Several possible locations were found. Choose the one that matches the property — the map position is set after you choose.',
@@ -1889,7 +2287,8 @@ export const translations = {
     regUploadImages: 'Upload photos',
     regAdditionalInfo: 'Other information about the property',
     regInsuranceTitle: 'Building and contents insurance',
-    regInsuranceBody: 'Under the terms agreement the landlord must have both building and contents insurance.',
+    regInsuranceBody:
+      'Under the terms agreement the landlord must have both building and contents insurance.',
     regPublish: 'Publish listing',
     regSaving: 'Saving…',
     placeholderNok: 'NOK',
@@ -1907,6 +2306,6 @@ export const translations = {
     placeholderPetDetail: 'e.g. small dogs only, no cats…',
     placeholderParking: 'e.g. Garage',
   },
-} as const;
+} as const
 
-export type TranslationKey = keyof typeof translations.no;
+export type TranslationKey = keyof typeof translations.no

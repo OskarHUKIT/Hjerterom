@@ -66,8 +66,10 @@ function hostProjectRef(url: string): string | null {
 function keyFormatHint(key: string): { label: string; code: string } {
   const k = key.trim()
   if (!k) return { label: 'mangler', code: 'KEY_MISSING' }
-  if (k.startsWith('eyJ')) return { label: 'JWT (legacy anon / service — skal være anon)', code: 'KEY_JWT' }
-  if (k.startsWith('sb_publishable_')) return { label: 'Publishable (sb_publishable_*)', code: 'KEY_PUBLISHABLE' }
+  if (k.startsWith('eyJ'))
+    return { label: 'JWT (legacy anon / service — skal være anon)', code: 'KEY_JWT' }
+  if (k.startsWith('sb_publishable_'))
+    return { label: 'Publishable (sb_publishable_*)', code: 'KEY_PUBLISHABLE' }
   if (k.startsWith('sb_')) return { label: 'Supabase-nøkkel (sb_*)', code: 'KEY_SB_PREFIX' }
   return { label: 'ukjent format — verifiser i Dashboard → API', code: 'KEY_UNKNOWN_FORMAT' }
 }
@@ -82,10 +84,14 @@ async function timedFetch(
   const to = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
     const res = await fetch(url, { ...init, signal: ctrl.signal, cache: 'no-store' })
-    const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+    const ms = Math.round(
+      (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0
+    )
     return { res, err: null, ms }
   } catch (e) {
-    const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+    const ms = Math.round(
+      (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0
+    )
     const msg = e instanceof Error ? e.message : String(e)
     const err = msg.includes('abort') ? `Timeout etter ${timeoutMs} ms` : msg
     return { res: null, err, ms }
@@ -270,7 +276,11 @@ export async function runSupabaseDiagnostics(): Promise<SupabaseDiagnosticReport
         label: 'HTTP GET /auth/v1/health',
         status: ok ? 'ok' : res.status === 401 || res.status === 403 ? 'fail' : 'warn',
         detail: `HTTP ${res.status} på ${ms}ms — ${body.slice(0, 160)}`,
-        code: ok ? 'HTTP_AUTH_HEALTH_OK' : res.status === 401 ? 'HTTP_401_INVALID_KEY' : `HTTP_${res.status}`,
+        code: ok
+          ? 'HTTP_AUTH_HEALTH_OK'
+          : res.status === 401
+            ? 'HTTP_401_INVALID_KEY'
+            : `HTTP_${res.status}`,
         ms,
       })
     }
@@ -311,8 +321,7 @@ export async function runSupabaseDiagnostics(): Promise<SupabaseDiagnosticReport
           id: 'http_rest_root',
           label: 'HTTP GET /rest/v1/ (rot)',
           status: 'ok',
-          detail:
-            `HTTP ${res.status} forventet for mange prosjekter: åpen API-rot krever ofte ikke publishable. Appen bruker supabase-js mot tabeller — ikke denne URL-en. Auth health over er det som teller.`,
+          detail: `HTTP ${res.status} forventet for mange prosjekter: åpen API-rot krever ofte ikke publishable. Appen bruker supabase-js mot tabeller — ikke denne URL-en. Auth health over er det som teller.`,
           code: 'HTTP_REST_ROOT_SCHEMA_FORBIDDEN_OK',
           ms,
         })
@@ -330,20 +339,20 @@ export async function runSupabaseDiagnostics(): Promise<SupabaseDiagnosticReport
   }
 
   // Oppsummering
-  const failed = steps.filter(s => s.status === 'fail')
-  const warns = steps.filter(s => s.status === 'warn')
+  const failed = steps.filter((s) => s.status === 'fail')
+  const warns = steps.filter((s) => s.status === 'warn')
   const summaryCode =
     failed.length > 0
-      ? failed.map(f => f.code || f.id).join(',')
+      ? failed.map((f) => f.code || f.id).join(',')
       : warns.length > 0
-        ? `WARN:${warns.map(w => w.code || w.id).join(',')}`
+        ? `WARN:${warns.map((w) => w.code || w.id).join(',')}`
         : 'ALL_OK'
 
   const summaryText =
     failed.length > 0
-      ? `Feil: ${failed.map(f => f.label).join('; ')}`
+      ? `Feil: ${failed.map((f) => f.label).join('; ')}`
       : warns.length > 0
-        ? `Advarsler: ${warns.map(w => w.label).join('; ')}`
+        ? `Advarsler: ${warns.map((w) => w.label).join('; ')}`
         : 'Alle automatiske sjekker OK.'
 
   const reportObj = {
@@ -377,10 +386,14 @@ export async function measureGetSessionMs(supabase: {
     const { data } = (await supabase.auth.getSession()) as {
       data: { session: unknown }
     }
-    const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+    const ms = Math.round(
+      (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0
+    )
     return { ms, session: !!data?.session }
   } catch (e) {
-    const ms = Math.round((typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0)
+    const ms = Math.round(
+      (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0
+    )
     return { ms, session: false, error: e instanceof Error ? e.message : String(e) }
   }
 }

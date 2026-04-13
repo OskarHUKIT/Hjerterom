@@ -1,6 +1,6 @@
-# Supabase Integration for Bo.ly
+# Supabase-integrasjon for Boly
 
-This guide explains how to connect Bo.ly to Supabase for data storage and management.
+This guide explains how to connect Boly to Supabase for data storage and management.
 
 ## 1. Create Supabase Project
 
@@ -75,7 +75,7 @@ To enable image uploads for housing listings, you need to create a storage bucke
     *   **Policy 2 (Insert):** Allow **Authenticated Users** to `INSERT` (upload) files.
     *   **Policy 3 (Update/Delete):** Allow **Authenticated Users** to `UPDATE` or `DELETE` their own files.
 
-## 7. Database Updates (IMPORTANT: Full Boligbanken Requirements)
+## 7. Database updates (full funksjonalitet for Boly)
 
 Run this SQL to add all the professional fields, user agreements, and history logging required for the full app. **This fixes the "could not find status column" error.**
 
