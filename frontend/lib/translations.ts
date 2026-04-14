@@ -14,6 +14,7 @@ export const translations = {
       'Avtalen som vises er knyttet til bolig i {city} (kommune fra registrering).',
     signedAgreement: 'Signert avtale',
     logOut: 'Logg ut',
+    logoutRedirecting: 'Logger ut …',
     logIn: 'Logg inn',
     housingBank: 'Boligbank',
     users: 'Brukere',
@@ -33,6 +34,15 @@ export const translations = {
       'Du må signere gjeldende vilkår for denne kommunen før du kan publisere boligen.',
     messages: 'Meldinger',
     expired: 'Utløpte',
+    navMore: 'Mer',
+    mainNavigation: 'Hovednavigasjon',
+    onboardingSkipIntro: 'Hopp over intro',
+    dbMobileTools: 'Verktøy',
+    dbMapModeHint:
+      'I kartvisning er ikke fanene Tilgjengelig / Utilgjengelig / Formidlet synlige. Velg hvilke statuser som skal vises under Filtrer.',
+    manageListingActions: 'Handlinger',
+    manageFilterActiveHint:
+      'Et filter er valgt. Boliger som ikke matcher filteret, vises ikke i listen.',
     kommuneAccess: 'Kommune-tilgang',
     kommuneAccessDesc:
       'Administrer e-postadresser som automatisk får kommune-tilgang ved registrering.',
@@ -700,6 +710,7 @@ export const translations = {
     termsScrollBeforeSign: 'Scroll ned i avtalen først for å aktivere signering.',
     messagesRemoveImageAria: 'Fjern bilde',
     messagesAddImagesTitle: 'Legg til bilde(r)',
+    messagesSendAria: 'Send melding',
     messagesPlaceholder: 'Skriv en melding …',
     notificationsSaveSettingError: 'Kunne ikke lagre innstilling',
     kommuneAccessRemoveConfirm: 'Er du sikker på at du vil fjerne denne adressen?',
@@ -793,7 +804,7 @@ export const translations = {
       'Vi fant ikke lagret boligskjema etter signering (f.eks. annen nettleser eller tømt lagring). Fyll ut skjemaet på nytt og prøv igjen.',
     listingMapPinShowOnMap: 'Vis boligen på kartet',
     messagesKommuneContacts: 'Saksbehandlere i din kommune',
-    messagesKommuneBroadcast: 'Melding til kommunen (felles)',
+    messagesKommuneBroadcast: 'Melding til kommunen',
   },
   se: {
     // Header & nav – Northern Sami (Davvisámegiella)
@@ -804,6 +815,7 @@ export const translations = {
       'Oaivámuš mii čájehuvvo lea čadnon dávvira {city} (kommuvdna registreremis).',
     signedAgreement: 'Almmuhan oaivámuš',
     logOut: 'Lohkkás',
+    logoutRedirecting: 'Loggejit olggos …',
     logIn: 'Sisa',
     housingBank: 'Beaivvášbánccu',
     users: 'Bruhkat',
@@ -823,6 +835,15 @@ export const translations = {
       'Fertet dohkkehat gullevaš ektui teaksta dán kommunas ovdal go sáhttát almmuhit dávvi.',
     messages: 'Sáhcastallat',
     expired: 'Lohppan',
+    navMore: 'Eanet',
+    mainNavigation: 'Váldo navigeren',
+    onboardingSkipIntro: 'Njuike introdušuvnna',
+    dbMobileTools: 'Reaiddu',
+    dbMapModeHint:
+      'Kártamodeallas eai leat fanat «Gallehusa», «Ii gallehusa» ja «Formidlejuvvon» nai. Vállje gallehusaid karttas «Silli» boksa.',
+    manageListingActions: 'Doaimmat',
+    manageFilterActiveHint:
+      'Silli lea válljejuvvon. Dáidat mat eai heive silliide, eai čájet listtus.',
     kommuneAccess: 'Kommuvdna oktavuohta',
     kommuneAccessDesc:
       'Hálddaše e-poasttaid maid automáhtalaččat ožžot kommuvdna oktavuohta registreremas.',
@@ -1472,6 +1493,7 @@ export const translations = {
     termsScrollBeforeSign: 'Rulle vuolás oaivámušas vuosttaš aktiveret almmu.',
     messagesRemoveImageAria: 'Sihkkut govva',
     messagesAddImagesTitle: 'Lasit govva(id)',
+    messagesSendAria: 'Sádde sáhcastallama',
     messagesPlaceholder: 'Čále sáhcastallama …',
     notificationsSaveSettingError: 'Ii sáhttán vurket heivehusa',
     kommuneAccessRemoveConfirm: 'Leatgo sihkar aht hálid sihkkut dán čujuhusa?',
@@ -1564,7 +1586,7 @@ export const translations = {
       'Mii eat gávdnan vurken dávvirskema BankID-almmus (eará neahttanlávvir dahje gurren vurkengieddi). Dievtte skema ođđasit.',
     listingMapPinShowOnMap: 'Čájet dávvira kártas',
     messagesKommuneContacts: 'Gieđahallit du kommuvnnas',
-    messagesKommuneBroadcast: 'Sáhcastat kommuvdnii (oktasaš)',
+    messagesKommuneBroadcast: 'Sáhcastat kommuvdnii',
   },
   en: {
     // Header & nav
@@ -1575,6 +1597,7 @@ export const translations = {
       'The agreement shown is tied to a property in {city} (municipality from your registration).',
     signedAgreement: 'Signed agreement',
     logOut: 'Log out',
+    logoutRedirecting: 'Signing out…',
     logIn: 'Log in',
     housingBank: 'Boligbank',
     users: 'Users',
@@ -1594,6 +1617,15 @@ export const translations = {
       'You must sign the current terms for this municipality before publishing the listing.',
     messages: 'Messages',
     expired: 'Expired',
+    navMore: 'More',
+    mainNavigation: 'Main navigation',
+    onboardingSkipIntro: 'Skip intro',
+    dbMobileTools: 'Tools',
+    dbMapModeHint:
+      'In map view the Available / Unavailable / Mediated tabs are hidden. Choose which statuses to show under Filter.',
+    manageListingActions: 'Actions',
+    manageFilterActiveHint:
+      'A filter is active. Listings that do not match the filter are hidden from the list.',
     kommuneAccess: 'Municipality access',
     kommuneAccessDesc:
       'Manage email addresses that automatically get municipality access when they register.',
@@ -2252,6 +2284,7 @@ export const translations = {
     termsScrollBeforeSign: 'Scroll through the agreement first to enable signing.',
     messagesRemoveImageAria: 'Remove image',
     messagesAddImagesTitle: 'Add image(s)',
+    messagesSendAria: 'Send message',
     messagesPlaceholder: 'Write a message…',
     notificationsSaveSettingError: 'Could not save setting',
     kommuneAccessRemoveConfirm: 'Are you sure you want to remove this address?',
@@ -2345,7 +2378,7 @@ export const translations = {
       'We could not find your saved listing form after signing (e.g. different browser or cleared storage). Please complete the form again.',
     listingMapPinShowOnMap: 'Show listing on map',
     messagesKommuneContacts: 'Caseworkers in your municipality',
-    messagesKommuneBroadcast: 'Message to municipality (shared inbox)',
+    messagesKommuneBroadcast: 'Message to the municipality',
   },
 } as const
 

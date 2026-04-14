@@ -1,5 +1,5 @@
 /**
- * Legacy / lokal stub — ikke produksjons-BFF for BoLy (kjernelogikk: Supabase + Next.js).
+ * Legacy / lokal stub — ikke produksjons-BFF for Boly (kjernelogikk: Supabase + Next.js).
  * Ikke eksponer mot åpent internett uten auth, rate limit og begrenset CORS.
  */
 const express = require('express');

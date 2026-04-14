@@ -45,6 +45,7 @@ import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
+import BottomSheet from '../../components/BottomSheet'
 import { Button, buttonClassName } from '../../components/ui/Button'
 import {
   appendMediationNoteToOwnerMessage,
@@ -62,6 +63,8 @@ function navDbErrMessage(err: unknown): string {
 type NavDbViewMode = 'table' | 'map' | 'timeline' | 'list'
 
 const MOBILE_DB_VIEW_KEY = 'boly-nav-db-view-mobile'
+/** Gjenopprett tabell/kart/tidslinje etter retur fra listing (samme fane). */
+const SESSION_NAV_DB_VIEW_KEY = 'boly-nav-db-view-session'
 
 // Dynamically import Map component to avoid SSR issues
 const MapView = dynamic(() => import('../../components/MapView'), {
@@ -175,6 +178,7 @@ export default function NavDatabase() {
     if (typeof window === 'undefined') return 'timeline'
     return new URLSearchParams(window.location.search).get('focusListing')?.trim() ? 'map' : 'timeline'
   })
+  const sessionDbViewRestoredRef = useRef(false)
   const [isMobile, setIsMobile] = useState(false)
   /** ≤480px: skjul tidslinje (for kompleks horisontal UI). */
   const [isNarrow, setIsNarrow] = useState(false)
@@ -183,6 +187,7 @@ export default function NavDatabase() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [showFilters, setShowFilters] = useState(false)
   const [showColumnSettings, setShowColumnSettings] = useState(false)
+  const [mobileDbToolsOpen, setMobileDbToolsOpen] = useState(false)
   const [timelineOffset, setTimelineOffset] = useState(0)
   const [timelineColorHelpOpen, setTimelineColorHelpOpen] = useState(false)
   const [formidletModalListing, setFormidletModalListing] = useState<NavDatabaseListingRow | null>(
@@ -331,6 +336,29 @@ export default function NavDatabase() {
       }
     }
   }, [isMobile])
+
+  useLayoutEffect(() => {
+    if (sessionDbViewRestoredRef.current) return
+    sessionDbViewRestoredRef.current = true
+    if (focusListingId) return
+    try {
+      const s = sessionStorage.getItem(SESSION_NAV_DB_VIEW_KEY)
+      if (s === 'table' || s === 'map' || s === 'timeline' || s === 'list') {
+        setViewMode(s)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [focusListingId])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      sessionStorage.setItem(SESSION_NAV_DB_VIEW_KEY, viewMode)
+    } catch {
+      /* ignore */
+    }
+  }, [viewMode])
 
   const persistMobileDbView = useCallback((mode: NavDbViewMode) => {
     if (mode === 'table') return
@@ -1309,118 +1337,238 @@ export default function NavDatabase() {
             alignItems: 'center',
           }}
         >
-          {viewMode !== 'map' && (
+          {isMobile ? (
             <button
               type="button"
-              onClick={() => {
-                setShowColumnSettings(!showColumnSettings)
-                setShowFilters(false)
-              }}
+              onClick={() => setMobileDbToolsOpen(true)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: isMobile ? '10px 12px' : '10px 20px',
+                padding: '10px 12px',
                 borderRadius: '12px',
-                background: showColumnSettings ? 'var(--color-accent)' : 'var(--bg-app)',
+                background: 'var(--bg-app)',
                 border: '1px solid var(--border-subtle)',
-                color: showColumnSettings ? 'white' : 'var(--text-main)',
+                color: 'var(--text-main)',
                 cursor: 'pointer',
                 fontWeight: 600,
               }}
             >
-              <Settings size={18} /> <span className="btn-label">{t('dbCustomizeColumns')}</span>
+              <Settings size={18} /> <span className="btn-label">{t('dbMobileTools')}</span>
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              setShowFilters(!showFilters)
-              setShowColumnSettings(false)
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: isMobile ? '10px 12px' : '10px 20px',
-              borderRadius: '12px',
-              background: showFilters ? 'var(--color-accent)' : 'var(--bg-app)',
-              border: '1px solid var(--border-subtle)',
-              color: showFilters ? 'white' : 'var(--text-main)',
-              cursor: 'pointer',
-              fontWeight: 600,
-            }}
-          >
-            <Filter size={18} />{' '}
-            <span className="btn-label">
-              {showFilters ? t('dbFilterClose') : t('dbFilterOpen')}
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {showColumnSettings && viewMode !== 'map' && (
-        <div
-          className="card card-settings-panel"
-          style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)' }}
-        >
-          <h3
-            style={{
-              marginBottom: 'var(--space-4)',
-              fontSize: '1.1rem',
-              color: 'var(--text-main)',
-            }}
-          >
-            {t('dbColumnSettingsTitle')}
-          </h3>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-              gap: 'var(--space-3)',
-            }}
-          >
-            {ALL_COLUMNS.map((col) => (
-              <label
-                key={col.id}
-                className="card-settings-option"
+          ) : (
+            <>
+              {viewMode !== 'map' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowColumnSettings(!showColumnSettings)
+                    setShowFilters(false)
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 20px',
+                    borderRadius: '12px',
+                    background: showColumnSettings ? 'var(--color-accent)' : 'var(--bg-app)',
+                    border: '1px solid var(--border-subtle)',
+                    color: showColumnSettings ? 'white' : 'var(--text-main)',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Settings size={18} />{' '}
+                  <span className="btn-label">{t('dbCustomizeColumns')}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowFilters(!showFilters)
+                  setShowColumnSettings(false)
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
+                  gap: '8px',
+                  padding: '10px 20px',
+                  borderRadius: '12px',
+                  background: showFilters ? 'var(--color-accent)' : 'var(--bg-app)',
+                  border: '1px solid var(--border-subtle)',
+                  color: showFilters ? 'white' : 'var(--text-main)',
                   cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '8px',
+                  fontWeight: 600,
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={visibleColumns.includes(col.id)}
-                  onChange={() => toggleColumn(col.id)}
-                  style={{ width: '18px', height: '18px', accentColor: 'var(--color-accent)' }}
-                />
-                <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>{col.label}</span>
-              </label>
-            ))}
-          </div>
-          <div style={{ marginTop: 'var(--space-6)', display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => setShowColumnSettings(false)}
-              style={{ padding: '8px 24px' }}
-            >
-              {t('dbDone')}
-            </Button>
-          </div>
+                <Filter size={18} />{' '}
+                <span className="btn-label">
+                  {showFilters ? t('dbFilterClose') : t('dbFilterOpen')}
+                </span>
+              </button>
+            </>
+          )}
         </div>
+      </div>
+
+      {viewMode === 'map' && (
+        <p
+          className="text-sm"
+          style={{
+            margin: '0 0 var(--space-4)',
+            color: 'var(--text-muted)',
+            lineHeight: 1.5,
+            maxWidth: 720,
+          }}
+        >
+          {t('dbMapModeHint')}
+        </p>
       )}
 
-      {showFilters && (
-        <div
-          className="card card-settings-panel"
-          style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)' }}
+      {isMobile && (
+        <BottomSheet
+          open={mobileDbToolsOpen}
+          title={t('dbMobileTools')}
+          titleId="db-mobile-tools"
+          closeLabel={t('close')}
+          onClose={() => setMobileDbToolsOpen(false)}
+          zIndex={2050}
         >
+          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
+            {viewMode !== 'map' && (
+              <button
+                type="button"
+                className={buttonClassName('secondary')}
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => {
+                  setShowColumnSettings(true)
+                  setShowFilters(false)
+                  setMobileDbToolsOpen(false)
+                }}
+              >
+                <Settings size={18} style={{ marginRight: 8 }} aria-hidden />
+                {t('dbCustomizeColumns')}
+              </button>
+            )}
+            <button
+              type="button"
+              className={buttonClassName('secondary')}
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => {
+                setShowFilters(true)
+                setShowColumnSettings(false)
+                setMobileDbToolsOpen(false)
+              }}
+            >
+              <Filter size={18} style={{ marginRight: 8 }} aria-hidden />
+              {showFilters ? t('dbFilterClose') : t('dbFilterOpen')}
+            </button>
+          </div>
+        </BottomSheet>
+      )}
+
+      {showColumnSettings && viewMode !== 'map' &&
+        (isMobile ? (
+          <BottomSheet
+            open={showColumnSettings}
+            title={t('dbColumnSettingsTitle')}
+            titleId="db-column-settings"
+            closeLabel={t('dbDone')}
+            onClose={() => setShowColumnSettings(false)}
+            zIndex={2100}
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: 'var(--space-3)',
+              }}
+            >
+              {ALL_COLUMNS.map((col) => (
+                <label
+                  key={col.id}
+                  className="card-settings-option"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '8px',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.includes(col.id)}
+                    onChange={() => toggleColumn(col.id)}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-accent)' }}
+                  />
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>{col.label}</span>
+                </label>
+              ))}
+            </div>
+          </BottomSheet>
+        ) : (
+          <div
+            className="card card-settings-panel"
+            style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)' }}
+          >
+            <h3
+              style={{
+                marginBottom: 'var(--space-4)',
+                fontSize: '1.1rem',
+                color: 'var(--text-main)',
+              }}
+            >
+              {t('dbColumnSettingsTitle')}
+            </h3>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: 'var(--space-3)',
+              }}
+            >
+              {ALL_COLUMNS.map((col) => (
+                <label
+                  key={col.id}
+                  className="card-settings-option"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '8px',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.includes(col.id)}
+                    onChange={() => toggleColumn(col.id)}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-accent)' }}
+                  />
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>{col.label}</span>
+                </label>
+              ))}
+            </div>
+            <div style={{ marginTop: 'var(--space-6)', display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => setShowColumnSettings(false)}
+                style={{ padding: '8px 24px' }}
+              >
+                {t('dbDone')}
+              </Button>
+            </div>
+          </div>
+        ))}
+
+      {showFilters &&
+        (() => {
+          const filtersInner = (
+            <>
           {viewMode === 'map' && (
             <div
               style={{
@@ -1733,8 +1881,28 @@ export default function NavDatabase() {
               {t('dbDone')}
             </Button>
           </div>
-        </div>
-      )}
+            </>
+          )
+          return isMobile ? (
+            <BottomSheet
+              open={showFilters}
+              title={t('dbFilterOpen')}
+              titleId="db-filters-sheet"
+              closeLabel={t('dbDone')}
+              onClose={() => setShowFilters(false)}
+              zIndex={2100}
+            >
+              {filtersInner}
+            </BottomSheet>
+          ) : (
+            <div
+              className="card card-settings-panel"
+              style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)' }}
+            >
+              {filtersInner}
+            </div>
+          )
+        })()}
 
       {/* Modal: Legg inn formidlet periode */}
       {formidletModalListing && (
@@ -2338,40 +2506,16 @@ export default function NavDatabase() {
             />
           ) : (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-              {timelineColorHelpOpen && (
-                <div
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="timeline-color-help-title"
-                  style={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 10050,
-                    background: 'rgba(0,0,0,0.55)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 'var(--space-4)',
-                  }}
-                  onClick={() => setTimelineColorHelpOpen(false)}
-                >
-                  <div
-                    className="card"
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      maxWidth: 460,
-                      width: '100%',
-                      padding: 'var(--space-6)',
-                      textAlign: 'left',
-                      boxShadow: 'var(--shadow-lg, 0 12px 40px rgba(0,0,0,0.35))',
-                    }}
+              {timelineColorHelpOpen &&
+                (isMobile ? (
+                  <BottomSheet
+                    open={timelineColorHelpOpen}
+                    title={t('timelineColorHelpTitle')}
+                    titleId="timeline-color-help-title"
+                    closeLabel={t('close')}
+                    onClose={() => setTimelineColorHelpOpen(false)}
+                    zIndex={10050}
                   >
-                    <h2
-                      id="timeline-color-help-title"
-                      style={{ margin: '0 0 var(--space-3)', fontSize: '1.2rem' }}
-                    >
-                      {t('timelineColorHelpTitle')}
-                    </h2>
                     <p
                       style={{
                         margin: '0 0 var(--space-4)',
@@ -2481,17 +2625,161 @@ export default function NavDatabase() {
                         <span>{t('timelineColorHelpConflict')}</span>
                       </li>
                     </ul>
-                    <Button
-                      type="button"
-                      variant="primary"
-                      onClick={() => setTimelineColorHelpOpen(false)}
-                      style={{ marginTop: 'var(--space-6)', width: '100%' }}
+                  </BottomSheet>
+                ) : (
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="timeline-color-help-title"
+                    style={{
+                      position: 'fixed',
+                      inset: 0,
+                      zIndex: 10050,
+                      background: 'rgba(0,0,0,0.55)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 'var(--space-4)',
+                    }}
+                    onClick={() => setTimelineColorHelpOpen(false)}
+                  >
+                    <div
+                      className="card"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        maxWidth: 460,
+                        width: '100%',
+                        padding: 'var(--space-6)',
+                        textAlign: 'left',
+                        boxShadow: 'var(--shadow-lg, 0 12px 40px rgba(0,0,0,0.35))',
+                      }}
                     >
-                      {t('close')}
-                    </Button>
+                      <h2
+                        id="timeline-color-help-title"
+                        style={{ margin: '0 0 var(--space-3)', fontSize: '1.2rem' }}
+                      >
+                        {t('timelineColorHelpTitle')}
+                      </h2>
+                      <p
+                        style={{
+                          margin: '0 0 var(--space-4)',
+                          fontSize: '0.95rem',
+                          opacity: 0.9,
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {t('timelineColorHelpIntro')}
+                      </p>
+                      <ul
+                        style={{
+                          margin: 0,
+                          paddingLeft: '1.1rem',
+                          display: 'grid',
+                          gap: 'var(--space-3)',
+                          fontSize: '0.9rem',
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        <li
+                          style={{
+                            listStyle: 'none',
+                            marginLeft: '-1.1rem',
+                            paddingLeft: 0,
+                            display: 'flex',
+                            gap: '10px',
+                            alignItems: 'flex-start',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 14,
+                              height: 14,
+                              background: 'var(--color-teal)',
+                              borderRadius: 3,
+                              flexShrink: 0,
+                              marginTop: 3,
+                            }}
+                          />
+                          <span>{t('timelineColorHelpTeal')}</span>
+                        </li>
+                        <li
+                          style={{
+                            listStyle: 'none',
+                            marginLeft: '-1.1rem',
+                            paddingLeft: 0,
+                            display: 'flex',
+                            gap: '10px',
+                            alignItems: 'flex-start',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 14,
+                              height: 14,
+                              background: 'var(--color-sky-blue)',
+                              borderRadius: 3,
+                              flexShrink: 0,
+                              marginTop: 3,
+                            }}
+                          />
+                          <span>{t('timelineColorHelpBlue')}</span>
+                        </li>
+                        <li
+                          style={{
+                            listStyle: 'none',
+                            marginLeft: '-1.1rem',
+                            paddingLeft: 0,
+                            display: 'flex',
+                            gap: '10px',
+                            alignItems: 'flex-start',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 14,
+                              height: 14,
+                              background: '#ef4444',
+                              borderRadius: 3,
+                              flexShrink: 0,
+                              marginTop: 3,
+                            }}
+                          />
+                          <span>{t('timelineColorHelpRed')}</span>
+                        </li>
+                        <li
+                          style={{
+                            listStyle: 'none',
+                            marginLeft: '-1.1rem',
+                            paddingLeft: 0,
+                            display: 'flex',
+                            gap: '10px',
+                            alignItems: 'flex-start',
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 14,
+                              height: 14,
+                              background: '#991b1b',
+                              borderRadius: 3,
+                              flexShrink: 0,
+                              marginTop: 3,
+                            }}
+                          />
+                          <span>{t('timelineColorHelpConflict')}</span>
+                        </li>
+                      </ul>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={() => setTimelineColorHelpOpen(false)}
+                        style={{ marginTop: 'var(--space-6)', width: '100%' }}
+                      >
+                        {t('close')}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
+                ))}
               <div
                 className="card"
                 style={{ padding: 'var(--space-6)', overflowX: 'auto', position: 'relative' }}

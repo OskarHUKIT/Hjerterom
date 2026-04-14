@@ -28,6 +28,11 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;")
 }
 
+/** Maps legacy spelling BoLy → Boly (e.g. NOTIFICATION_FROM_NAME in dashboard). */
+function normalizeBrandSpelling(s: string): string {
+  return s.replace(/\bBoLy\b/g, "Boly")
+}
+
 type EmailLocale = "no" | "se" | "en"
 
 function normalizeEmailLocale(raw: string | null | undefined): EmailLocale {
@@ -482,7 +487,9 @@ serve(async (req) => {
       )
     }
 
-    const fromName = (Deno.env.get("NOTIFICATION_FROM_NAME") ?? "Boly").replace(/"/g, "'")
+    const fromName = normalizeBrandSpelling(
+      Deno.env.get("NOTIFICATION_FROM_NAME") ?? "Boly"
+    ).replace(/"/g, "'")
     const appBase = (Deno.env.get("NOTIFICATION_APP_BASE_URL") ?? "https://bolynorge.no").replace(/\/$/, "")
 
     const title = record.title || "Boly"

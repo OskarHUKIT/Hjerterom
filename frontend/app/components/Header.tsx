@@ -30,6 +30,7 @@ import {
   kommuneNavUsesAccountsLabel,
 } from '../lib/kommuneRoles'
 import { getLandlordPostLoginHref } from '../lib/landlordNavGate'
+import MobileBottomNav from './MobileBottomNav'
 
 export default function Header() {
   const router = useRouter()
@@ -45,6 +46,8 @@ export default function Header() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  /** Synlig under utlogging så gammel side ikke oppleves «hengt» før full redirect. */
+  const [logoutPending, setLogoutPending] = useState(false)
   /** Samme breakpoint som header (768px): forenklet kommune-nav på små skjermer. */
   const [isMobileLayout, setIsMobileLayout] = useState(false)
 
@@ -182,17 +185,21 @@ export default function Header() {
     }
   }
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
+    setLogoutPending(true)
     setIsMenuOpen(false)
     closeMobileNav()
-    try {
-      // Global signOut() can hang on slow/unreachable API; local clears session immediately.
-      await supabase.auth.signOut({ scope: 'local' })
-    } catch (e) {
-      console.error('signOut:', e)
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[Boly/auth] logout: local signOut + redirect')
     }
-    // Full navigation so logout works even if client router or auth listeners are stuck.
-    window.location.assign('/')
+    void (async () => {
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch (e) {
+        console.error('signOut:', e)
+      }
+      window.location.assign('/')
+    })()
   }
 
   const closeMobileNav = () => setIsMobileNavOpen(false)
@@ -211,6 +218,9 @@ export default function Header() {
     navRoleForLinks != null &&
     !isKommuneStaffRole(navRoleForLinks) &&
     hasSignedTerms
+
+  const hideHeaderMobileShortcutIcons =
+    (isKommuneStaffRole(navRoleForLinks) || showLandlordFullNav) && isMobileLayout
 
   const logoHref = !user
     ? '/'
@@ -570,6 +580,7 @@ export default function Header() {
   )
 
   return (
+    <>
     <header className="header">
       <div
         className="header-inner container"
@@ -645,7 +656,7 @@ export default function Header() {
               </select>
             </div>
           )}
-          {user && (
+          {user && !hideHeaderMobileShortcutIcons && (
             <>
               {isKommuneStaffRole(navRoleForLinks) && (
                 <Link
@@ -819,5 +830,43 @@ export default function Header() {
         }
       `}</style>
     </header>
+    <MobileBottomNav
+      user={user}
+      navRole={navRoleForLinks}
+      loading={loading}
+      unreadCount={unreadCount}
+      showLandlordFullNav={showLandlordFullNav}
+    />
+    {logoutPending && (
+      <div
+        role="status"
+        aria-live="assertive"
+        aria-busy="true"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 200000,
+          background: 'rgba(0,0,0,0.4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 'var(--space-4)',
+        }}
+      >
+        <div
+          className="card"
+          style={{
+            padding: 'var(--space-6)',
+            maxWidth: 360,
+            textAlign: 'center',
+            fontWeight: 600,
+            color: 'var(--text-main)',
+          }}
+        >
+          {t('logoutRedirecting')}
+        </div>
+      </div>
+    )}
+    </>
   )
 }

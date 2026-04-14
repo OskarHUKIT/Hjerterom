@@ -214,6 +214,8 @@ export default function NavNotifications() {
         ctaLabel={t('landlordNotificationsCta')}
         icon={Bell}
         iconAccent="blue"
+        skipLinkLabel={t('onboardingSkipIntro')}
+        onSkip={dismissLandlordNotificationsIntro}
       >
         <p
           style={{

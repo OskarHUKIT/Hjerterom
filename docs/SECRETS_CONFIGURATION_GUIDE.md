@@ -1,6 +1,6 @@
 # Detailed guide: where every secret lives and where to paste it
 
-This document matches the **BoLy** codebase (`frontend/`, `supabase/functions/`). Use your **actual** project ref everywhere you see `<PROJECT_REF>`.
+This document matches the **Boly** codebase (`frontend/`, `supabase/functions/`). Use your **actual** project ref everywhere you see `<PROJECT_REF>`.
 
 ---
 
@@ -32,7 +32,7 @@ These are **not** Edge Function “custom secrets” for hosted projects — the
 
 **How the labels map**
 
-| What you see in the dashboard | Role | Use in BoLy |
+| What you see in the dashboard | Role | Use in Boly |
 |------------------------------|------|-------------|
 | **Publishable key** / **anon** `public` | Public, RLS applies | `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `frontend/.env.local` |
 | **Secret keys** → **service_role** | Full database access | Webhooks, server scripts, never in the frontend bundle |
@@ -110,7 +110,7 @@ Repeat for any SMTP variables you use (see section 5).
 
 Use your **production** Signicat organisation/account (not sandbox). Sign in at [Signicat Dashboard](https://dashboard.signicat.com). If your organisation has both sandbox and production, switch to the **production** account/domain before copying IDs and secrets.
 
-BoLy uses **two** separate Signicat integrations — each has its **own** client ID and secret in the Dashboard.
+Boly uses **two** separate Signicat integrations — each has its **own** client ID and secret in the Dashboard.
 
 ---
 
@@ -141,7 +141,7 @@ Your authorisation server is tied to your **Signicat domain** (organisation/acco
 
 1. **Discovery document** (used by the Edge Function to read `authorization_endpoint`, etc.):  
    `https://<YOUR_SIGNICAT_DOMAIN>/auth/open/.well-known/openid-configuration`  
-   Replace `<YOUR_SIGNICAT_DOMAIN>` with your production issuer host (for sandbox, BoLy used `….sandbox.signicat.com`; production is typically **`….signicat.com`** without `.sandbox` — exact hostname is assigned per account).
+   Replace `<YOUR_SIGNICAT_DOMAIN>` with your production issuer host (for sandbox, Boly used `….sandbox.signicat.com`; production is typically **`….signicat.com`** without `.sandbox` — exact hostname is assigned per account).
 2. How to get `<YOUR_SIGNICAT_DOMAIN>`:  
    - Check Signicat’s onboarding email or **organisation / domain** settings in the Dashboard, or  
    - Open the OIDC client **Overview** / documentation links for your tenant, or  
@@ -187,7 +187,7 @@ Deploy: `supabase functions deploy sign-agreement --project-ref <PROJECT_REF>`.
 
 ---
 
-### C) Updating BoLy code when moving from sandbox to production
+### C) Updating Boly code when moving from sandbox to production
 
 1. **`auth-signicat/index.ts`** — set `SIGNICAT_DISCOVERY_URL` to your production discovery URL; set `CLIENT_ID` to the OIDC **Overview** Client ID; deploy after setting **`SIGNICAT_SECRET_LOGIN`** in Supabase.
 2. **`sign-agreement/index.ts`** — set `CLIENT_ID` to the **Settings → API clients** Client ID; deploy after setting **`SIGNICAT_SECRET_SIGN`**.
@@ -202,7 +202,7 @@ Deploy: `supabase functions deploy sign-agreement --project-ref <PROJECT_REF>`.
 3. Add domain and verify **sender** email in Resend **Domains**.
 4. Put in Supabase Edge secrets:
    - `RESEND_API_KEY` = the API key
-   - `SMTP_FROM` = verified sender, e.g. `BoLy <onboarding@yourdomain.com>` (must match Resend’s allowed senders)
+   - `SMTP_FROM` = verified sender, e.g. `Boly <onboarding@yourdomain.com>` (must match Resend’s allowed senders)
 
 Deploy: `supabase functions deploy send-notification-email --project-ref <PROJECT_REF>`
 
@@ -282,4 +282,4 @@ When `notifications` row is inserted, Supabase calls your function URL.
 | Email never sends | `RESEND_API_KEY` + verified domain, or full `SMTP_*`; logs in **Edge Functions → Logs**. |
 | Push never fires | Webhook URL wrong ref; `VAPID_*` set; `send-push` deployed. |
 
-This file is the detailed map for BoLy: use `<PROJECT_REF>` for Supabase, and your **production** Signicat domain plus the Dashboard paths above for OIDC vs API clients.
+This file is the detailed map for Boly: use `<PROJECT_REF>` for Supabase, and your **production** Signicat domain plus the Dashboard paths above for OIDC vs API clients.

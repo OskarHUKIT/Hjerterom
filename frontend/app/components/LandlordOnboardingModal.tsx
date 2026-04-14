@@ -13,6 +13,9 @@ type LandlordOnboardingModalProps = {
   /** Bak ikonet (teal / blå / himmel) */
   iconAccent?: 'teal' | 'blue' | 'sky'
   children: ReactNode
+  /** Valgfri lenke under CTA (samme som å markere intro som sett). */
+  skipLinkLabel?: string
+  onSkip?: () => void
 }
 
 const accentBg: Record<NonNullable<LandlordOnboardingModalProps['iconAccent']>, string> = {
@@ -36,6 +39,8 @@ export default function LandlordOnboardingModal({
   icon: Icon,
   iconAccent = 'teal',
   children,
+  skipLinkLabel,
+  onSkip,
 }: LandlordOnboardingModalProps) {
   if (!open) return null
 
@@ -131,6 +136,26 @@ export default function LandlordOnboardingModal({
         >
           {ctaLabel}
         </button>
+        {skipLinkLabel && onSkip ? (
+          <button
+            type="button"
+            onClick={onSkip}
+            style={{
+              marginTop: 'var(--space-3)',
+              width: '100%',
+              padding: 'var(--space-2)',
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              textUnderlineOffset: '3px',
+            }}
+          >
+            {skipLinkLabel}
+          </button>
+        ) : null}
       </div>
     </div>
   )

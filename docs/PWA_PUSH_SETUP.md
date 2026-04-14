@@ -44,7 +44,7 @@ Gå til **Project Settings → Edge Functions → Secrets** og legg til:
 ## Steg 3: Deploy Edge Function
 
 ```powershell
-cd c:\Users\oskar\Desktop\BoLy
+cd <sti-til-repo>
 npx supabase functions deploy send-push
 ```
 
@@ -92,7 +92,7 @@ Legg til **Edge Function secrets** `RESEND_API_KEY` (fra [resend.com](https://re
 ### Steg B: Deploy
 
 ```powershell
-cd c:\Users\oskar\Desktop\BoLy
+cd <sti-til-repo>
 npx supabase functions deploy send-notification-email
 ```
 

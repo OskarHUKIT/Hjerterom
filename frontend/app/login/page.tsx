@@ -104,7 +104,7 @@ function LoginPageContent() {
     return () => {
       cancelled = true
     }
-  }, [router, redirectTo])
+  }, [router, redirectTo, t])
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -31,6 +31,7 @@ import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
+import BottomSheet from '../../components/BottomSheet'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
 import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
 
@@ -63,6 +64,25 @@ export default function HomeownerManage() {
   const [fetchError, setFetchError] = useState<'timeout' | string | null>(null)
   const pageGateRef = useRef(pageGate)
   pageGateRef.current = pageGate
+  const filtersRowRef = useRef<HTMLDivElement>(null)
+  const [isMobileLayout, setIsMobileLayout] = useState(false)
+  const [actionSheetListingId, setActionSheetListingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(max-width: 768px)')
+    const sync = () => setIsMobileLayout(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  const scrollFiltersIntoViewMobile = useCallback(() => {
+    if (typeof window === 'undefined' || window.innerWidth > 768) return
+    requestAnimationFrame(() => {
+      filtersRowRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    })
+  }, [])
 
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
@@ -439,6 +459,10 @@ export default function HomeownerManage() {
     return getEffectiveStatus(l) === filter
   })
 
+  const actionSheetListing = actionSheetListingId
+    ? myListings.find((l) => l.id === actionSheetListingId) ?? null
+    : null
+
   const translateType = (type: string) => {
     if (!type) return ''
     const mapping: Record<string, string> = {
@@ -483,6 +507,8 @@ export default function HomeownerManage() {
             ctaLabel={t('landlordWelcomeCta')}
             icon={Sparkles}
             iconAccent="teal"
+            skipLinkLabel={t('onboardingSkipIntro')}
+            onSkip={() => void dismissLandlordWelcome()}
           >
             <p
               style={{
@@ -572,6 +598,8 @@ export default function HomeownerManage() {
         ctaLabel={t('landlordOverviewCta')}
         icon={LayoutDashboard}
         iconAccent="blue"
+        skipLinkLabel={t('onboardingSkipIntro')}
+        onSkip={() => void dismissOverviewIntro()}
       >
         <p
           style={{
@@ -632,6 +660,8 @@ export default function HomeownerManage() {
         ctaLabel={t('landlordMineBoligerCta')}
         icon={HomeIcon}
         iconAccent="teal"
+        skipLinkLabel={t('onboardingSkipIntro')}
+        onSkip={() => void dismissMineBoligerIntro()}
       >
         <p
           style={{
@@ -866,6 +896,7 @@ export default function HomeownerManage() {
 
         <div>
           <div
+            ref={filtersRowRef}
             className="hm-filters-row"
             style={{
               marginBottom: 'var(--space-4)',
@@ -880,7 +911,12 @@ export default function HomeownerManage() {
               {(['Alle', 'Tilgjengelig', 'Utilgjengelig', 'Formidla'] as const).map((f) => (
                 <button
                   key={f}
-                  onClick={() => setFilter(f)}
+                  type="button"
+                  aria-pressed={filter === f}
+                  onClick={() => {
+                    setFilter(f)
+                    scrollFiltersIntoViewMobile()
+                  }}
                   style={{
                     padding: 'var(--space-2) var(--space-4)',
                     borderRadius: '20px',
@@ -905,6 +941,25 @@ export default function HomeownerManage() {
               {t('showing')} {filteredListings.length} {t('propertiesPlural')}
             </div>
           </div>
+
+          {filter !== 'Alle' && (
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-sm"
+              style={{
+                margin: '0 0 var(--space-4)',
+                padding: 'var(--space-3) var(--space-4)',
+                borderRadius: 10,
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.22)',
+                color: 'var(--text-main)',
+                lineHeight: 1.5,
+              }}
+            >
+              {t('manageFilterActiveHint')}
+            </p>
+          )}
 
           <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
             {loading ? (
@@ -1025,160 +1080,191 @@ export default function HomeownerManage() {
                       style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {getEffectiveStatus(listing) !== 'Formidla' && (
+                      {isMobileLayout ? (
+                        <button
+                          type="button"
+                          className="button"
+                          onClick={() => setActionSheetListingId(listing.id)}
+                          style={{
+                            width: '100%',
+                            maxWidth: '100%',
+                            flex: 1,
+                            justifyContent: 'center',
+                            padding: 'var(--space-3) var(--space-4)',
+                            fontSize: '0.9rem',
+                          }}
+                        >
+                          {t('manageListingActions')}
+                        </button>
+                      ) : (
                         <>
-                          <div
-                            className="hm-status-actions"
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 'var(--space-2)',
-                              minWidth: '200px',
-                            }}
-                          >
-                            {getEffectiveStatus(listing) === 'Tilgjengelig' ? (
-                              <button
-                                type="button"
-                                onClick={() => openPeriodCalendar(listing.id, 'Utilgjengelig')}
-                                className="button"
+                          {getEffectiveStatus(listing) !== 'Formidla' && (
+                            <>
+                              <div
+                                className="hm-status-actions"
                                 style={{
-                                  padding: 'var(--space-2) var(--space-4)',
-                                  fontSize: '0.85rem',
-                                  borderRadius: '8px',
-                                  width: '100%',
-                                  background: 'rgba(239, 68, 68, 0.12)',
-                                  color: '#ef4444',
-                                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 'var(--space-2)',
+                                  minWidth: '200px',
                                 }}
                               >
-                                {t('manageRentalNav')}
-                              </button>
-                            ) : getEffectiveStatus(listing) === 'Utilgjengelig' ? (
-                              <button
-                                type="button"
-                                onClick={() => openPeriodCalendar(listing.id, 'Tilgjengelig')}
-                                className="button"
+                                {getEffectiveStatus(listing) === 'Tilgjengelig' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openPeriodCalendar(listing.id, 'Utilgjengelig')}
+                                    className="button"
+                                    style={{
+                                      padding: 'var(--space-2) var(--space-4)',
+                                      fontSize: '0.85rem',
+                                      borderRadius: '8px',
+                                      width: '100%',
+                                      background: 'rgba(239, 68, 68, 0.12)',
+                                      color: '#ef4444',
+                                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    {t('manageRentalNav')}
+                                  </button>
+                                ) : getEffectiveStatus(listing) === 'Utilgjengelig' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openPeriodCalendar(listing.id, 'Tilgjengelig')}
+                                    className="button"
+                                    style={{
+                                      padding: 'var(--space-2) var(--space-4)',
+                                      fontSize: '0.85rem',
+                                      borderRadius: '8px',
+                                      width: '100%',
+                                      background: 'rgba(32, 187, 175, 0.12)',
+                                      color: 'var(--color-teal)',
+                                      border: '1px solid rgba(32, 187, 175, 0.25)',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    {t('markAvailable')}
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => openPeriodCalendar(listing.id, 'Utilgjengelig')}
+                                      className="button"
+                                      style={{
+                                        padding: 'var(--space-2) var(--space-4)',
+                                        fontSize: '0.85rem',
+                                        borderRadius: '8px',
+                                        width: '100%',
+                                        background: 'rgba(239, 68, 68, 0.12)',
+                                        color: '#ef4444',
+                                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                                        cursor: 'pointer',
+                                      }}
+                                    >
+                                      {t('manageRentalNav')}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => openPeriodCalendar(listing.id, 'Tilgjengelig')}
+                                      className="button"
+                                      style={{
+                                        padding: 'var(--space-2) var(--space-4)',
+                                        fontSize: '0.85rem',
+                                        borderRadius: '8px',
+                                        width: '100%',
+                                        background: 'rgba(32, 187, 175, 0.12)',
+                                        color: 'var(--color-teal)',
+                                        border: '1px solid rgba(32, 187, 175, 0.25)',
+                                        cursor: 'pointer',
+                                      }}
+                                    >
+                                      {t('markAvailable')}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                              <div
                                 style={{
-                                  padding: 'var(--space-2) var(--space-4)',
-                                  fontSize: '0.85rem',
-                                  borderRadius: '8px',
-                                  width: '100%',
-                                  background: 'rgba(32, 187, 175, 0.12)',
-                                  color: 'var(--color-teal)',
-                                  border: '1px solid rgba(32, 187, 175, 0.25)',
-                                  cursor: 'pointer',
+                                  width: '1px',
+                                  height: '32px',
+                                  background: 'var(--border-subtle)',
+                                  alignSelf: 'stretch',
                                 }}
-                              >
-                                {t('markAvailable')}
-                              </button>
-                            ) : (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => openPeriodCalendar(listing.id, 'Utilgjengelig')}
-                                  className="button"
-                                  style={{
-                                    padding: 'var(--space-2) var(--space-4)',
-                                    fontSize: '0.85rem',
-                                    borderRadius: '8px',
-                                    width: '100%',
-                                    background: 'rgba(239, 68, 68, 0.12)',
-                                    color: '#ef4444',
-                                    border: '1px solid rgba(239, 68, 68, 0.25)',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  {t('manageRentalNav')}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => openPeriodCalendar(listing.id, 'Tilgjengelig')}
-                                  className="button"
-                                  style={{
-                                    padding: 'var(--space-2) var(--space-4)',
-                                    fontSize: '0.85rem',
-                                    borderRadius: '8px',
-                                    width: '100%',
-                                    background: 'rgba(32, 187, 175, 0.12)',
-                                    color: 'var(--color-teal)',
-                                    border: '1px solid rgba(32, 187, 175, 0.25)',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  {t('markAvailable')}
-                                </button>
-                              </>
-                            )}
+                              />
+                            </>
+                          )}
+                          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingAvailability(
+                                  editingAvailability === listing.id ? null : listing.id
+                                )
+                                setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
+                              }}
+                              style={{
+                                padding: '8px',
+                                borderRadius: '8px',
+                                background:
+                                  editingAvailability === listing.id
+                                    ? 'rgba(59, 130, 246, 0.2)'
+                                    : 'var(--bg-app)',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color:
+                                  editingAvailability === listing.id
+                                    ? 'var(--color-accent)'
+                                    : 'var(--text-main)',
+                              }}
+                              title={t('managePeriods')}
+                              aria-label={t('managePeriods')}
+                            >
+                              <Clock size={18} aria-hidden />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                router.push(`/listings/${listing.id}?view=owner`)
+                              }
+                              style={{
+                                padding: '8px',
+                                borderRadius: '8px',
+                                background: 'var(--bg-app)',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: 'var(--text-main)',
+                              }}
+                              title={t('editListing')}
+                              aria-label={t('editListing')}
+                            >
+                              <Edit3 size={18} aria-hidden />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPendingDeleteListing({ id: listing.id, address: listing.address })
+                              }
+                              style={{
+                                padding: '8px',
+                                borderRadius: '8px',
+                                background: 'rgba(239, 68, 68, 0.05)',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: '#ef4444',
+                              }}
+                              title={t('delete')}
+                              aria-label={t('delete')}
+                            >
+                              <Trash2 size={18} aria-hidden />
+                            </button>
                           </div>
-                          <div
-                            style={{
-                              width: '1px',
-                              height: '32px',
-                              background: 'var(--border-subtle)',
-                              alignSelf: 'stretch',
-                            }}
-                          />
                         </>
                       )}
-                      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                        <button
-                          onClick={() => {
-                            setEditingAvailability(
-                              editingAvailability === listing.id ? null : listing.id
-                            )
-                            setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
-                          }}
-                          style={{
-                            padding: '8px',
-                            borderRadius: '8px',
-                            background:
-                              editingAvailability === listing.id
-                                ? 'rgba(59, 130, 246, 0.2)'
-                                : 'var(--bg-app)',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color:
-                              editingAvailability === listing.id
-                                ? 'var(--color-accent)'
-                                : 'var(--text-main)',
-                          }}
-                          title={t('managePeriods')}
-                        >
-                          <Clock size={18} />
-                        </button>
-                        <button
-                          style={{
-                            padding: '8px',
-                            borderRadius: '8px',
-                            background: 'var(--bg-app)',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: 'var(--text-main)',
-                          }}
-                        >
-                          <Edit3 size={18} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setPendingDeleteListing({ id: listing.id, address: listing.address })
-                          }
-                          style={{
-                            padding: '8px',
-                            borderRadius: '8px',
-                            background: 'rgba(239, 68, 68, 0.05)',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#ef4444',
-                          }}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
                     </div>
                   </div>
 
-                  {getEffectiveStatus(listing) === 'Formidla' && (
+                  {getEffectiveStatus(listing) === 'Formidla' && !isMobileLayout && (
                     <div
                       onClick={(e) => e.stopPropagation()}
                       style={{
@@ -1455,6 +1541,222 @@ export default function HomeownerManage() {
           </div>
         </div>
       </div>
+
+      {actionSheetListing && (
+        <BottomSheet
+          open={!!actionSheetListingId}
+          title={String(actionSheetListing.address ?? '—')}
+          titleId="hm-listing-actions-sheet"
+          closeLabel={t('close')}
+          onClose={() => setActionSheetListingId(null)}
+          zIndex={2200}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+            {getEffectiveStatus(actionSheetListing) === 'Formidla' && (
+              <>
+                <a
+                  href={publicContactInfoFormPdfUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="button"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    padding: 'var(--space-3) var(--space-4)',
+                    fontSize: '0.9rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    textDecoration: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                  onClick={() => setActionSheetListingId(null)}
+                >
+                  <FileText size={16} /> {t('contactInfoForm')}
+                </a>
+                <Link
+                  href={`/report/utleier/${actionSheetListing.id}`}
+                  className="button"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    padding: 'var(--space-3) var(--space-4)',
+                    fontSize: '0.9rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    textDecoration: 'none',
+                    background: 'var(--color-teal)',
+                    color: 'white',
+                    border: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                  onClick={() => setActionSheetListingId(null)}
+                >
+                  <FileText size={16} /> {t('fillHandoverReport')}
+                </Link>
+              </>
+            )}
+            {getEffectiveStatus(actionSheetListing) !== 'Formidla' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {getEffectiveStatus(actionSheetListing) === 'Tilgjengelig' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openPeriodCalendar(actionSheetListing.id, 'Utilgjengelig')
+                      setActionSheetListingId(null)
+                    }}
+                    className="button"
+                    style={{
+                      padding: 'var(--space-3) var(--space-4)',
+                      fontSize: '0.9rem',
+                      borderRadius: '8px',
+                      width: '100%',
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      color: '#ef4444',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {t('manageRentalNav')}
+                  </button>
+                ) : getEffectiveStatus(actionSheetListing) === 'Utilgjengelig' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openPeriodCalendar(actionSheetListing.id, 'Tilgjengelig')
+                      setActionSheetListingId(null)
+                    }}
+                    className="button"
+                    style={{
+                      padding: 'var(--space-3) var(--space-4)',
+                      fontSize: '0.9rem',
+                      borderRadius: '8px',
+                      width: '100%',
+                      background: 'rgba(32, 187, 175, 0.12)',
+                      color: 'var(--color-teal)',
+                      border: '1px solid rgba(32, 187, 175, 0.25)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {t('markAvailable')}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        openPeriodCalendar(actionSheetListing.id, 'Utilgjengelig')
+                        setActionSheetListingId(null)
+                      }}
+                      className="button"
+                      style={{
+                        padding: 'var(--space-3) var(--space-4)',
+                        fontSize: '0.9rem',
+                        borderRadius: '8px',
+                        width: '100%',
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        color: '#ef4444',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {t('manageRentalNav')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        openPeriodCalendar(actionSheetListing.id, 'Tilgjengelig')
+                        setActionSheetListingId(null)
+                      }}
+                      className="button"
+                      style={{
+                        padding: 'var(--space-3) var(--space-4)',
+                        fontSize: '0.9rem',
+                        borderRadius: '8px',
+                        width: '100%',
+                        background: 'rgba(32, 187, 175, 0.12)',
+                        color: 'var(--color-teal)',
+                        border: '1px solid rgba(32, 187, 175, 0.25)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {t('markAvailable')}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+            <button
+              type="button"
+              className="button"
+              style={{
+                width: '100%',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--space-2)',
+                padding: 'var(--space-3) var(--space-4)',
+              }}
+              onClick={() => {
+                setEditingAvailability(
+                  editingAvailability === actionSheetListing.id ? null : actionSheetListing.id
+                )
+                setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
+                setActionSheetListingId(null)
+              }}
+            >
+              <Clock size={18} aria-hidden />
+              {t('managePeriods')}
+            </button>
+            <button
+              type="button"
+              className="button button-secondary"
+              style={{
+                width: '100%',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--space-2)',
+                padding: 'var(--space-3) var(--space-4)',
+              }}
+              onClick={() => {
+                router.push(`/listings/${actionSheetListing.id}?view=owner`)
+                setActionSheetListingId(null)
+              }}
+            >
+              <Edit3 size={18} aria-hidden />
+              {t('editListing')}
+            </button>
+            <button
+              type="button"
+              className="button"
+              style={{
+                width: '100%',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--space-2)',
+                padding: 'var(--space-3) var(--space-4)',
+                background: 'rgba(239, 68, 68, 0.08)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+              }}
+              onClick={() => {
+                setPendingDeleteListing({
+                  id: actionSheetListing.id,
+                  address: actionSheetListing.address,
+                })
+                setActionSheetListingId(null)
+              }}
+            >
+              <Trash2 size={18} aria-hidden />
+              {t('delete')}
+            </button>
+          </div>
+        </BottomSheet>
+      )}
     </main>
   )
 }

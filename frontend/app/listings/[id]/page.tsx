@@ -22,7 +22,22 @@ type PageProps = { searchParams?: Promise<Record<string, string | string[] | und
 export default async function ListingDetailsPage(props: PageProps) {
   if (props.searchParams) await props.searchParams
   return (
-    <Suspense fallback={<div style={{ minHeight: '80vh' }} />}>
+    <Suspense
+      fallback={
+        <div
+          className="container"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '50vh',
+            color: 'var(--text-muted)',
+          }}
+        >
+          <p style={{ fontSize: '1rem', margin: 0 }}>Laster bolig…</p>
+        </div>
+      }
+    >
       <ListingDetailsClient />
     </Suspense>
   )
