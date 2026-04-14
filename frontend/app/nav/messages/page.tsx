@@ -237,7 +237,7 @@ function MessagesContent() {
   }, [currentUser, isKommune, kommuneCanEdit, myKommuneRegion])
 
   useEffect(() => {
-    if (!currentUser || !isKommune || kommuneCanEdit !== false) {
+    if (!currentUser || !isKommune) {
       setLandlordAccounts([])
       return
     }
@@ -286,7 +286,7 @@ function MessagesContent() {
     return () => {
       cancelled = true
     }
-  }, [currentUser, isKommune, kommuneCanEdit, myKommuneRegion])
+  }, [currentUser, isKommune, myKommuneRegion])
 
   /** Én felles tråd: fjern ?with= mot saksbehandler (gamle bokmerker). */
   useEffect(() => {
@@ -356,37 +356,9 @@ function MessagesContent() {
       setConversations(peers.sort((a, b) => (b.lastAt > a.lastAt ? 1 : -1)))
     }
 
-    const fetchConversationsLandlord = async () => {
-      const { data: msgs } = await supabase
-        .from('chat_messages')
-        .select('sender_id, receiver_id, content, created_at, image_urls')
-        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
-        .order('created_at', { ascending: false })
-
-      if (!msgs?.length) {
-        setConversations([])
-        return
-      }
-
-      const last = msgs[0]
-      const snippet =
-        (last?.content?.trim()?.slice(0, 40) ||
-          (last?.image_urls?.length ? '[Bilde]' : '')) +
-        ((last?.content?.length ?? 0) > 40 ? '...' : '')
-
-      setConversations([
-        {
-          userId: '',
-          name: t('messagesKommuneBroadcast'),
-          lastMessage: snippet,
-          lastAt: last?.created_at || '',
-        },
-      ])
-    }
-
     void (async () => {
       if (isKommune) await fetchConversationsKommune()
-      else await fetchConversationsLandlord()
+      else setConversations([])
       setLoading(false)
     })()
   }, [profileResolved, currentUser, isKommune, withUserId, kommuneCanEdit, t])
@@ -639,11 +611,12 @@ function MessagesContent() {
     setShowLandlordMessagesIntro(false)
   }
 
-  const backHref = kommuneMobileChatOnly
-    ? '/nav/messages'
-    : isKommune
-      ? '/nav/database'
-      : '/homeowner/manage'
+  const backHref =
+    isKommune && withUserId
+      ? '/nav/messages'
+      : isKommune
+        ? '/nav/database'
+        : '/homeowner/manage'
 
   return (
     <main
@@ -731,82 +704,6 @@ function MessagesContent() {
         </Link>
         <h1 style={{ fontSize: '2rem', marginTop: 'var(--space-2)' }}>{t('messages')}</h1>
       </div>
-
-      {!isKommune && conversations.length > 0 && (
-        <div
-          className="card"
-          style={{
-            marginBottom: 'var(--space-6)',
-            maxHeight: 'min(42vh, 380px)',
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            padding: 'var(--space-4)',
-          }}
-        >
-          <h3 style={{ margin: '0 0 var(--space-3)', fontSize: '1rem' }}>{t('conversations')}</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            {conversations.map((c) => (
-              <Link
-                key={c.userId || 'kommune-inbox'}
-                href="/nav/messages"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-3)',
-                  padding: 'var(--space-3)',
-                  borderRadius: '10px',
-                  background:
-                    !withUserId && (c.userId || '') === ''
-                      ? 'rgba(59, 130, 246, 0.15)'
-                      : 'rgba(255,255,255,0.03)',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  minWidth: 0,
-                }}
-              >
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    flexShrink: 0,
-                    borderRadius: '50%',
-                    background: 'rgba(34, 197, 94, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <User size={16} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {c.name}
-                  </div>
-                  <div
-                    className="text-sm"
-                    style={{
-                      opacity: 0.6,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {c.lastMessage}
-                  </div>
-                </div>
-                <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div
         style={{
@@ -917,84 +814,85 @@ function MessagesContent() {
                 )}
               </div>
             )}
-            {kommuneCanEdit === false && (
-              <div style={{ flexShrink: 0 }}>
-                <h3
+            <div style={{ flexShrink: 0 }}>
+              <h3
+                style={{
+                  marginBottom: 'var(--space-3)',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <Home size={18} style={{ opacity: 0.85 }} /> {t('tabLandlords')}
+              </h3>
+              <p className="text-sm" style={{ opacity: 0.65, margin: '0 0 var(--space-2)' }}>
+                {t('messagesAccountListHint')}
+              </p>
+              {landlordAccounts.length === 0 ? (
+                <p className="text-sm" style={{ opacity: 0.65, margin: 0 }}>
+                  {t('messagesNoLandlordsInRegion')}
+                </p>
+              ) : (
+                <div
                   style={{
-                    marginBottom: 'var(--space-3)',
-                    fontSize: '1rem',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
+                    flexDirection: 'column',
+                    gap: 'var(--space-2)',
+                    maxHeight: 'min(42vh, 360px)',
+                    overflow: 'auto',
                   }}
                 >
-                  <Home size={18} style={{ opacity: 0.85 }} /> {t('tabLandlords')}
-                </h3>
-                {landlordAccounts.length === 0 ? (
-                  <p className="text-sm" style={{ opacity: 0.65, margin: 0 }}>
-                    {t('messagesNoLandlordsInRegion')}
-                  </p>
-                ) : (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 'var(--space-2)',
-                      maxHeight: 'min(42vh, 360px)',
-                      overflow: 'auto',
-                    }}
-                  >
-                    {landlordAccounts.map((l) => (
-                      <Link
-                        key={l.id}
-                        href={`/nav/messages?with=${l.id}`}
+                  {landlordAccounts.map((l) => (
+                    <Link
+                      key={l.id}
+                      href={`/nav/messages?with=${l.id}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-3)',
+                        padding: 'var(--space-3)',
+                        borderRadius: '10px',
+                        background:
+                          withUserId === l.id
+                            ? 'rgba(59, 130, 246, 0.15)'
+                            : 'rgba(255,255,255,0.03)',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                        minWidth: 0,
+                      }}
+                    >
+                      <div
                         style={{
+                          width: '36px',
+                          height: '36px',
+                          flexShrink: 0,
+                          borderRadius: '50%',
+                          background: 'rgba(59, 130, 246, 0.2)',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 'var(--space-3)',
-                          padding: 'var(--space-3)',
-                          borderRadius: '10px',
-                          background:
-                            withUserId === l.id
-                              ? 'rgba(59, 130, 246, 0.15)'
-                              : 'rgba(255,255,255,0.03)',
-                          textDecoration: 'none',
-                          color: 'inherit',
-                          minWidth: 0,
+                          justifyContent: 'center',
                         }}
                       >
-                        <div
-                          style={{
-                            width: '36px',
-                            height: '36px',
-                            flexShrink: 0,
-                            borderRadius: '50%',
-                            background: 'rgba(59, 130, 246, 0.2)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <User size={16} />
-                        </div>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            flex: 1,
-                          }}
-                        >
-                          {l.name}
-                        </div>
-                        <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                        <User size={16} />
+                      </div>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          flex: 1,
+                        }}
+                      >
+                        {l.name}
+                      </div>
+                      <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1rem', flexShrink: 0 }}>
                 {t('conversations')}
