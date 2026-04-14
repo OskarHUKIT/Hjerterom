@@ -39,7 +39,7 @@ export const translations = {
     onboardingSkipIntro: 'Hopp over intro',
     dbMobileTools: 'Verktøy',
     dbMapModeHint:
-      'I kartvisning er ikke fanene Tilgjengelig / Utilgjengelig / Formidlet synlige. Velg hvilke statuser som skal vises under Filtrer.',
+      'I kartvisning vises Tilgjengelig, Utilgjengelig og Formidlet med ulike farger på kartet.',
     manageListingActions: 'Handlinger',
     manageFilterActiveHint:
       'Et filter er valgt. Boliger som ikke matcher filteret, vises ikke i listen.',
@@ -457,6 +457,10 @@ export const translations = {
     colleaguesFullAccess: 'Saksbehandlere i din region',
     noColleaguesWithEdit: 'Ingen andre saksbehandlere i din region.',
     messagesNoLandlordsInRegion: 'Ingen utleiere med bolig i dine områder funnet.',
+    messagesLandlordsAllInConversations:
+      'Alle utleiere i området har allerede en samtale — se listen over.',
+    messagesPickerSearchPlaceholder: 'Søk i listen …',
+    messagesPickerSearchAria: 'Filtrer listen under etter navn',
     messagesAccountListTitle: 'Kontolisten',
     messagesAccountListHint: 'Velg en utleier for å åpne chat.',
     messagesPickConversationPlaceholder:
@@ -840,7 +844,7 @@ export const translations = {
     onboardingSkipIntro: 'Njuike introdušuvnna',
     dbMobileTools: 'Reaiddu',
     dbMapModeHint:
-      'Kártamodeallas eai leat fanat «Gallehusa», «Ii gallehusa» ja «Formidlejuvvon» nai. Vállje gallehusaid karttas «Silli» boksa.',
+      'Kártamodeallas čájehit «Gallehusa», «Ii gallehusa» ja «Formidlejuvvon» iešguđet ivnnuin karttas.',
     manageListingActions: 'Doaimmat',
     manageFilterActiveHint:
       'Silli lea válljejuvvon. Dáidat mat eai heive silliide, eai čájet listtus.',
@@ -1248,6 +1252,10 @@ export const translations = {
     colleaguesFullAccess: 'Sáhttibealddit du guovllus',
     noColleaguesWithEdit: 'Eai eará sáhttibealddit du guovllus.',
     messagesNoLandlordsInRegion: 'Eai goddánuslohkkiid mas lea dávvir du guovlluin.',
+    messagesLandlordsAllInConversations:
+      'Buot goddánuslohkkit du guovllus leat juo sáhcastallamis — geahča listu bajás.',
+    messagesPickerSearchPlaceholder: 'Oza listtus …',
+    messagesPickerSearchAria: 'Silli listtu namma mielde',
     messagesAccountListTitle: 'Goddánuslohkkit',
     messagesAccountListHint: 'Vállje goddánuslohkki rabastit sáhcastallama.',
     messagesPickConversationPlaceholder:
@@ -1622,7 +1630,7 @@ export const translations = {
     onboardingSkipIntro: 'Skip intro',
     dbMobileTools: 'Tools',
     dbMapModeHint:
-      'In map view the Available / Unavailable / Mediated tabs are hidden. Choose which statuses to show under Filter.',
+      'In map view, available, unavailable, and mediated listings are shown in different colors on the map.',
     manageListingActions: 'Actions',
     manageFilterActiveHint:
       'A filter is active. Listings that do not match the filter are hidden from the list.',
@@ -2035,6 +2043,10 @@ export const translations = {
     colleaguesFullAccess: 'Caseworkers in your region',
     noColleaguesWithEdit: 'No other caseworkers in your region.',
     messagesNoLandlordsInRegion: 'No landlords with a property in your areas.',
+    messagesLandlordsAllInConversations:
+      'All landlords in your area already have a thread — see the list above.',
+    messagesPickerSearchPlaceholder: 'Search list…',
+    messagesPickerSearchAria: 'Filter the list below by name',
     messagesAccountListTitle: 'Landlord accounts',
     messagesAccountListHint: 'Select a landlord to open the chat.',
     messagesPickConversationPlaceholder:
