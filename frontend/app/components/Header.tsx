@@ -209,7 +209,8 @@ export default function Header() {
     user?.user_metadata && typeof user.user_metadata.role === 'string'
       ? user.user_metadata.role
       : null
-  const navRoleForLinks = role ?? (loading ? metadataRoleStr : null)
+  /** Alltid bruk metadata som reserve når bruker finnes — ikke bare mens loading er true. Ellers forsvinner hele kommune-/nav-linja når loading går til false før profil-API svarer, eller ved midlertidig DB-feil. */
+  const navRoleForLinks = role ?? (user ? metadataRoleStr : null)
 
   const kommuneMobileNav = isKommuneStaffRole(navRoleForLinks) && isMobileLayout
 

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Session, User } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -85,22 +86,40 @@ if (!isSupabaseConfigured) {
   client.auth.signOut = async () =>
     ({ error: null }) as unknown as Awaited<ReturnType<typeof client.auth.signOut>>
 } else {
+  let lastSessionMemory: Session | null = null
+  let lastUserMemory: User | null = null
+
+  const syncSessionMemory = (s: Session | null) => {
+    lastSessionMemory = s
+    lastUserMemory = s?.user ?? null
+  }
+
+  client.auth.onAuthStateChange((_event, session) => {
+    syncSessionMemory(session)
+  })
+
   // Wrapper getSession – timeout + ugyldig refresh token
   const originalGetSession = client.auth.getSession.bind(client.auth)
   client.auth.getSession = async () => {
     try {
-      return await withAuthTimeout(originalGetSession(), AUTH_OPERATION_TIMEOUT_MS)
+      const result = await withAuthTimeout(originalGetSession(), AUTH_OPERATION_TIMEOUT_MS)
+      syncSessionMemory(result.data.session ?? null)
+      return result
     } catch (e) {
       if (isAuthOperationTimeout(e)) {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[Boly] auth.getSession timed out — check network and Supabase env')
+          console.warn(
+            '[Boly] auth.getSession timed out — returning last known session (stale-while-revalidate)'
+          )
         }
-        return { data: { session: null }, error: null } as unknown as Awaited<
-          ReturnType<typeof originalGetSession>
-        >
+        return {
+          data: { session: lastSessionMemory },
+          error: null,
+        } as unknown as Awaited<ReturnType<typeof originalGetSession>>
       }
       if (isInvalidRefreshTokenError(e)) {
         await handleInvalidRefreshToken()
+        syncSessionMemory(null)
       }
       throw e
     }
@@ -110,18 +129,24 @@ if (!isSupabaseConfigured) {
   const originalGetUser = client.auth.getUser.bind(client.auth)
   client.auth.getUser = async () => {
     try {
-      return await withAuthTimeout(originalGetUser(), AUTH_OPERATION_TIMEOUT_MS)
+      const result = await withAuthTimeout(originalGetUser(), AUTH_OPERATION_TIMEOUT_MS)
+      lastUserMemory = result.data.user ?? null
+      return result
     } catch (e) {
       if (isAuthOperationTimeout(e)) {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('[Boly] auth.getUser timed out — check network and Supabase env')
+          console.warn(
+            '[Boly] auth.getUser timed out — returning last known user (stale-while-revalidate)'
+          )
         }
-        return { data: { user: null }, error: null } as unknown as Awaited<
-          ReturnType<typeof originalGetUser>
-        >
+        return {
+          data: { user: lastUserMemory },
+          error: null,
+        } as unknown as Awaited<ReturnType<typeof originalGetUser>>
       }
       if (isInvalidRefreshTokenError(e)) {
         await handleInvalidRefreshToken()
+        syncSessionMemory(null)
       }
       throw e
     }
@@ -134,13 +159,19 @@ if (!isSupabaseConfigured) {
       return await withAuthTimeout(originalRefreshSession(), AUTH_OPERATION_TIMEOUT_MS)
     } catch (e) {
       if (isAuthOperationTimeout(e)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(
+            '[Boly] auth.refreshSession timed out — returning last known session (stale-while-revalidate)'
+          )
+        }
         return {
-          data: { session: null, user: null },
+          data: { session: lastSessionMemory, user: lastUserMemory },
           error: null,
         } as unknown as Awaited<ReturnType<typeof originalRefreshSession>>
       }
       if (isInvalidRefreshTokenError(e)) {
         await handleInvalidRefreshToken()
+        syncSessionMemory(null)
       }
       throw e
     }
