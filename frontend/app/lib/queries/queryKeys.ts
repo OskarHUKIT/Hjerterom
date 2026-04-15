@@ -1,5 +1,7 @@
 /** Centralized TanStack Query key prefixes for AuthQuerySync invalidation. */
 export const QK = {
+  /** Canonical user row; also use `authUserQueryKey` from `authUserQuery.ts`. */
+  authUser: ['auth', 'user'] as const,
   auth: ['auth'] as const,
   kommuneNavAccess: ['kommune'] as const,
   landlordNavGate: ['landlord'] as const,

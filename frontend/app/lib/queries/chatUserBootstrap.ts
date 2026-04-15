@@ -1,4 +1,5 @@
 import type { User } from '@supabase/supabase-js'
+import type { QueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabase'
 import { mergeKommuneRegionSources } from '../kommuneRegions'
 import { fetchLandlordNavGate } from './landlordNavGateQuery'
@@ -20,8 +21,8 @@ export type ChatUserBootstrap =
 /**
  * Single fetch for /nav/messages: gate + profile + whitelist merge (replaces two useEffects).
  */
-export async function fetchChatUserBootstrap(): Promise<ChatUserBootstrap> {
-  const gate = await fetchLandlordNavGate()
+export async function fetchChatUserBootstrap(qc: QueryClient): Promise<ChatUserBootstrap> {
+  const gate = await fetchLandlordNavGate(qc)
   if (gate.kind === 'anon') return { kind: 'anon' }
   if (gate.kind === 'redirect') return { kind: 'redirect', href: gate.href }
 

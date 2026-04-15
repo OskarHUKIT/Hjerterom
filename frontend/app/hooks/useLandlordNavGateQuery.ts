@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import {
@@ -11,9 +11,10 @@ import {
 /** Gate for /nav/notifications (and similar): kommune vs landlord redirect. */
 export function useLandlordNavGateQuery() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const q = useQuery({
     queryKey: landlordNavGateQueryKey,
-    queryFn: fetchLandlordNavGate,
+    queryFn: () => fetchLandlordNavGate(queryClient),
     staleTime: 60_000,
     gcTime: 10 * 60 * 1000,
   })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import {
@@ -10,9 +10,10 @@ import {
 
 export function useChatUserBootstrap() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const q = useQuery({
     queryKey: chatUserBootstrapQueryKey,
-    queryFn: fetchChatUserBootstrap,
+    queryFn: () => fetchChatUserBootstrap(queryClient),
     staleTime: 60_000,
     gcTime: 10 * 60 * 1000,
   })

@@ -29,6 +29,7 @@ export default function AuthQuerySync() {
     }
 
     const invalidateLight = () => {
+      void queryClient.invalidateQueries({ queryKey: QK.authUser })
       void queryClient.invalidateQueries({ queryKey: QK.headerBundle })
       void queryClient.invalidateQueries({ queryKey: QK.notificationsList })
     }

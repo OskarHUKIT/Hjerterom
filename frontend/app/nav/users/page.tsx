@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import {
@@ -16,7 +17,8 @@ import {
   Info,
   CheckCircle2,
 } from 'lucide-react'
-import { getAuthUserDeduped, supabase } from '../../lib/supabase'
+import { fetchAuthUserForQueryClient } from '../../lib/queries/authUserQuery'
+import { supabase } from '../../lib/supabase'
 import { formatDateNo } from '../../lib/dateFormat'
 import { formatKommuneRegionsForDisplay, listingCityMatchesRegions } from '../../lib/kommuneRegions'
 import UserProfileClient from './UserProfileClient'
@@ -33,6 +35,7 @@ import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
 function NavUsersContent() {
   const { t } = useLanguage()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const pathname = usePathname()
   const kommuneAccess = useKommuneNavAccess()
   const searchParams = useSearchParams()
@@ -81,7 +84,7 @@ function NavUsersContent() {
         setKommuneCanEdit(access.kommuneCanEdit)
         setUseAccountsNavCopy(kommuneNavUsesAccountsLabel(userRole))
       } else {
-        const user = await getAuthUserDeduped()
+        const user = await fetchAuthUserForQueryClient(queryClient)
         if (!user) {
           setUseAccountsNavCopy(false)
           return
@@ -247,7 +250,7 @@ function NavUsersContent() {
     } finally {
       setLoading(false)
     }
-  }, [kommuneAccess.data])
+  }, [kommuneAccess.data, queryClient])
 
   useEffect(() => {
     if (kommuneAccess.isPending) return

@@ -1,4 +1,6 @@
-import { getAuthUserDeduped, supabase } from '../supabase'
+import type { QueryClient } from '@tanstack/react-query'
+import { supabase } from '../supabase'
+import { fetchAuthUserForQueryClient } from './authUserQuery'
 
 export const notificationsListQueryKey = ['notifications', 'list'] as const
 
@@ -9,8 +11,8 @@ export type NotificationsListPayload = {
   rows: any[]
 }
 
-export async function fetchNotificationsList(): Promise<NotificationsListPayload | null> {
-  const user = await getAuthUserDeduped()
+export async function fetchNotificationsList(qc: QueryClient): Promise<NotificationsListPayload | null> {
+  const user = await fetchAuthUserForQueryClient(qc)
   if (!user) return null
 
   const { data: profile } = await supabase

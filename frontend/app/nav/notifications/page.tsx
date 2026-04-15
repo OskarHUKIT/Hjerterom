@@ -43,7 +43,7 @@ export default function NavNotifications() {
   const gateReady = gateQ.data?.kind === 'ready'
   const listQ = useQuery({
     queryKey: notificationsListQueryKey,
-    queryFn: fetchNotificationsList,
+    queryFn: () => fetchNotificationsList(queryClient),
     enabled: gateReady,
     staleTime: 30_000,
     gcTime: 10 * 60 * 1000,

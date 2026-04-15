@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import {
@@ -13,11 +13,12 @@ const staleMs = 2 * 60 * 1000
 
 export function useKommuneNavAccess(options?: { redirectUnauthenticated?: boolean }) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const redirectUnauthenticated = options?.redirectUnauthenticated !== false
 
   const q = useQuery<KommuneNavAccess, Error>({
     queryKey: kommuneNavAccessQueryKey,
-    queryFn: fetchKommuneNavAccess,
+    queryFn: () => fetchKommuneNavAccess(queryClient),
     staleTime: staleMs,
     gcTime: 10 * 60 * 1000,
   })

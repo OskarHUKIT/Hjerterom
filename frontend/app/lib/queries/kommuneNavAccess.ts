@@ -1,4 +1,6 @@
-import { getAuthUserDeduped, supabase } from '../supabase'
+import type { QueryClient } from '@tanstack/react-query'
+import { supabase } from '../supabase'
+import { fetchAuthUserForQueryClient } from './authUserQuery'
 
 export const kommuneNavAccessQueryKey = ['kommune', 'navAccess'] as const
 
@@ -17,8 +19,8 @@ export type KommuneNavAccess =
  * Single gate + region resolution for kommune /nav/* pages. Cached via TanStack Query
  * so /nav/database ↔ /nav/expired do not duplicate getUser + profiles + RPC.
  */
-export async function fetchKommuneNavAccess(): Promise<KommuneNavAccess> {
-  const user = await getAuthUserDeduped()
+export async function fetchKommuneNavAccess(qc: QueryClient): Promise<KommuneNavAccess> {
+  const user = await fetchAuthUserForQueryClient(qc)
   if (!user) return { kind: 'unauthenticated' }
 
   const role = user.user_metadata?.role

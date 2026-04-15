@@ -7,6 +7,7 @@ import { LanguageProvider } from '../context/LanguageContext'
 import { ThemeProvider } from '../context/ThemeContext'
 import NavigationProgress from './components/NavigationProgress'
 import AuthQuerySync from './components/AuthQuerySync'
+import PrefetchAuthUser from './components/PrefetchAuthUser'
 
 function makeQueryClient() {
   return new QueryClient({
@@ -29,6 +30,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthSessionProvider>
         <ThemeProvider>
           <LanguageProvider>
+            <PrefetchAuthUser />
             <AuthQuerySync />
             <NavigationProgress />
             {children}

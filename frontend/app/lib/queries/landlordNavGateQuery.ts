@@ -1,7 +1,9 @@
 import type { User } from '@supabase/supabase-js'
-import { getAuthUserDeduped, supabase } from '../supabase'
+import type { QueryClient } from '@tanstack/react-query'
+import { supabase } from '../supabase'
 import { isKommuneStaffRole } from '../kommuneRoles'
 import { getLandlordPostLoginHref } from '../landlordNavGate'
+import { fetchAuthUserForQueryClient } from './authUserQuery'
 
 export const landlordNavGateQueryKey = ['landlord', 'navGate'] as const
 
@@ -14,8 +16,8 @@ export type LandlordNavGateResult =
  * Lightweight gate used by /nav/notifications and as part of chat bootstrap.
  * Avoids duplicate getUser + profile role + getLandlordPostLoginHref chains.
  */
-export async function fetchLandlordNavGate(): Promise<LandlordNavGateResult> {
-  const user = await getAuthUserDeduped()
+export async function fetchLandlordNavGate(qc: QueryClient): Promise<LandlordNavGateResult> {
+  const user = await fetchAuthUserForQueryClient(qc)
   if (!user) return { kind: 'anon' }
 
   const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
