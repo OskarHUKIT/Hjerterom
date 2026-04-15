@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Mail, Lock, UserPlus, LogIn, User, Phone } from 'lucide-react'
 import Logo from '../components/Logo'
 import { useLanguage } from '../../context/LanguageContext'
+import { bolyLocaleToSignicatUi } from '../lib/signicatLocale'
 import { isKommuneStaffRole } from '../lib/kommuneRoles'
 import { Button } from '../components/ui/Button'
 
@@ -49,7 +50,7 @@ function isBrowserFetchNetworkError(error: unknown): boolean {
 }
 
 function LoginPageContent() {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/'
@@ -207,7 +208,8 @@ function LoginPageContent() {
       setBankIdRedirecting(false)
       return
     }
-    const url = `${base}/functions/v1/auth-signicat?return_to=${returnTo}`
+    const uiLocales = bolyLocaleToSignicatUi(locale)
+    const url = `${base}/functions/v1/auth-signicat?return_to=${returnTo}&ui_locales=${encodeURIComponent(uiLocales)}`
     window.location.assign(url)
   }
 
@@ -276,15 +278,20 @@ function LoginPageContent() {
           {isSignUp && (
             <>
               <div>
-                <label className="label login-label">{t('fullName')}</label>
+                <label className="label login-label" htmlFor="login-full-name">
+                  {t('fullName')}
+                </label>
                 <div style={{ position: 'relative' }}>
                   <input
+                    id="login-full-name"
+                    name="full_name"
                     type="text"
                     className="input login-input"
                     placeholder={t('loginPlaceholderFullName')}
                     required={isSignUp}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    autoComplete="name"
                     style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
                   />
                   <User
@@ -300,14 +307,19 @@ function LoginPageContent() {
                 </div>
               </div>
               <div>
-                <label className="label login-label">{t('phone')}</label>
+                <label className="label login-label" htmlFor="login-phone">
+                  {t('phone')}
+                </label>
                 <div style={{ position: 'relative' }}>
                   <input
+                    id="login-phone"
+                    name="phone"
                     type="tel"
                     className="input login-input"
                     placeholder={t('loginPlaceholderPhone')}
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
+                    autoComplete="tel"
                     style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
                   />
                   <Phone
@@ -325,15 +337,20 @@ function LoginPageContent() {
             </>
           )}
           <div>
-            <label className="label login-label">{t('email')}</label>
+            <label className="label login-label" htmlFor="login-email">
+              {t('email')}
+            </label>
             <div style={{ position: 'relative' }}>
               <input
+                id="login-email"
+                name="email"
                 type="email"
                 className="input login-input"
                 placeholder={t('loginPlaceholderEmail')}
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
               />
               <Mail
@@ -350,15 +367,20 @@ function LoginPageContent() {
           </div>
 
           <div>
-            <label className="label login-label">{t('password')}</label>
+            <label className="label login-label" htmlFor="login-password">
+              {t('password')}
+            </label>
             <div style={{ position: 'relative' }}>
               <input
+                id="login-password"
+                name="password"
                 type="password"
                 className="input login-input"
                 placeholder={t('loginPasswordMask')}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
               />
               <Lock

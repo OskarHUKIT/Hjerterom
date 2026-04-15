@@ -2,7 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { Locale, translations, TranslationKey } from '../lib/translations'
-import { supabase } from '../app/lib/supabase'
+import { getAuthUserDeduped, supabase } from '../app/lib/supabase'
+import { useAuthSession } from './AuthSessionContext'
 
 type LanguageContextType = {
   locale: Locale
@@ -20,36 +21,41 @@ function isLocale(x: string | null | undefined): x is Locale {
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
+  const { user, isReady: authReady } = useAuthSession()
   const [locale, setLocaleState] = useState<Locale>(defaultLocale)
   const [mounted, setMounted] = useState(false)
 
+  /** One pass when auth is ready / user id changes — replaces getSession + separate onAuthStateChange. */
   useEffect(() => {
+    if (!authReady) return
     let cancelled = false
     const init = async () => {
       const stored = localStorage.getItem(STORAGE_KEY)
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('preferred_locale')
-            .eq('id', session.user.id)
-            .maybeSingle()
-          const meta = session.user.user_metadata?.preferred_locale
-          const fromProfile =
-            profile?.preferred_locale && isLocale(profile.preferred_locale)
-              ? profile.preferred_locale
-              : null
-          const fromMeta = typeof meta === 'string' && isLocale(meta) ? meta : null
-          const resolved = fromProfile ?? fromMeta
-          if (!cancelled && resolved) {
-            setLocaleState(resolved)
-            localStorage.setItem(STORAGE_KEY, resolved)
-            setMounted(true)
-            return
+        if (!user) {
+          if (!cancelled && stored && isLocale(stored)) {
+            setLocaleState(stored)
           }
+          if (!cancelled) setMounted(true)
+          return
+        }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('preferred_locale')
+          .eq('id', user.id)
+          .maybeSingle()
+        const meta = user.user_metadata?.preferred_locale
+        const fromProfile =
+          profile?.preferred_locale && isLocale(profile.preferred_locale)
+            ? profile.preferred_locale
+            : null
+        const fromMeta = typeof meta === 'string' && isLocale(meta) ? meta : null
+        const resolved = fromProfile ?? fromMeta
+        if (!cancelled && resolved) {
+          setLocaleState(resolved)
+          localStorage.setItem(STORAGE_KEY, resolved)
+          setMounted(true)
+          return
         }
         if (!cancelled && stored && isLocale(stored)) {
           setLocaleState(stored)
@@ -66,24 +72,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [])
-
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!session?.user) return
-      if (event !== 'SIGNED_IN' && event !== 'TOKEN_REFRESHED' && event !== 'USER_UPDATED') return
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('preferred_locale')
-        .eq('id', session.user.id)
-        .maybeSingle()
-      if (profile?.preferred_locale && isLocale(profile.preferred_locale)) {
-        setLocaleState(profile.preferred_locale)
-        localStorage.setItem(STORAGE_KEY, profile.preferred_locale)
-      }
-    })
-    return () => sub.subscription.unsubscribe()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `user?.id` only; avoid locale refetch on token refresh
+  }, [authReady, user?.id])
 
   const setLocale = (l: Locale) => {
     setLocaleState(l)
@@ -92,11 +82,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       document.documentElement.lang = l === 'no' ? 'nb' : l === 'se' ? 'se' : 'en'
     }
     void (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-      await supabase.from('profiles').update({ preferred_locale: l }).eq('id', user.id)
+      const u = await getAuthUserDeduped()
+      if (!u) return
+      await supabase.from('profiles').update({ preferred_locale: l }).eq('id', u.id)
       await supabase.auth.updateUser({ data: { preferred_locale: l } })
     })()
   }

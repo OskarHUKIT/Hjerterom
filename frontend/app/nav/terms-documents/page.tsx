@@ -324,83 +324,102 @@ export default function TermsDocumentsPage() {
               {t('termsAdminNoRegions')}
             </p>
           )}
-          <label className="label">
-            {isAdmin ? t('termsRegionLabelAdmin') : t('termsRegionLabel')}
-          </label>
           {isAdmin ? (
-            myRegions.length === 0 ? (
-              <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 12 }}>
-                —
-              </p>
-            ) : myRegions.length === 1 ? (
-              <p className="input" style={{ marginBottom: 12, background: 'var(--bg-app)' }}>
-                {displayRegionList(myRegions)}
-              </p>
-            ) : (
-              <div style={{ marginBottom: 12 }}>
-                <p
-                  className="text-sm"
-                  style={{ color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.45 }}
-                >
-                  {t('termsRegionMultiHint')}
+            <>
+              <div className="label">{t('termsRegionLabelAdmin')}</div>
+              {myRegions.length === 0 ? (
+                <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 12 }}>
+                  —
                 </p>
-                <fieldset
-                  style={{
-                    border: 'none',
-                    padding: 0,
-                    margin: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10,
-                  }}
-                >
-                  {myRegions.map((r) => (
-                    <label
-                      key={r}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        cursor: 'pointer',
-                        fontSize: '0.95rem',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={adminSelectedRegions.includes(r)}
-                        onChange={() => {
-                          setAdminSelectedRegions((prev) =>
-                            prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
-                          )
+              ) : myRegions.length === 1 ? (
+                <p className="input" style={{ marginBottom: 12, background: 'var(--bg-app)' }}>
+                  {displayRegionList(myRegions)}
+                </p>
+              ) : (
+                <div style={{ marginBottom: 12 }}>
+                  <p
+                    className="text-sm"
+                    style={{ color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.45 }}
+                  >
+                    {t('termsRegionMultiHint')}
+                  </p>
+                  <fieldset
+                    style={{
+                      border: 'none',
+                      padding: 0,
+                      margin: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10,
+                    }}
+                  >
+                    {myRegions.map((r, ri) => (
+                      <label
+                        key={r}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          cursor: 'pointer',
+                          fontSize: '0.95rem',
                         }}
-                      />
-                      <span>{displayRegionList([r])}</span>
-                    </label>
-                  ))}
-                </fieldset>
-              </div>
-            )
+                      >
+                        <input
+                          id={`terms-doc-region-${ri}`}
+                          name={`terms_region_choice_${ri}`}
+                          type="checkbox"
+                          checked={adminSelectedRegions.includes(r)}
+                          onChange={() => {
+                            setAdminSelectedRegions((prev) =>
+                              prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]
+                            )
+                          }}
+                        />
+                        <span>{displayRegionList([r])}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                </div>
+              )}
+            </>
           ) : (
-            <input
-              className="input"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              placeholder={t('regionPlaceholder')}
-              style={{ marginBottom: 12 }}
-            />
+            <>
+              <label className="label" htmlFor="terms-doc-region">
+                {t('termsRegionLabel')}
+              </label>
+              <input
+                id="terms-doc-region"
+                name="terms_region"
+                className="input"
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                placeholder={t('regionPlaceholder')}
+                autoComplete="off"
+                style={{ marginBottom: 12 }}
+              />
+            </>
           )}
-          <label className="label">{t('termsTitleLabel')}</label>
+          <label className="label" htmlFor="terms-doc-title">
+            {t('termsTitleLabel')}
+          </label>
           <input
+            id="terms-doc-title"
+            name="terms_title"
             className="input"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            autoComplete="off"
             style={{ marginBottom: 12 }}
           />
-          <label className="label">{t('termsPdfLabel')}</label>
+          <label className="label" htmlFor="terms-doc-pdf">
+            {t('termsPdfLabel')}
+          </label>
           <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 8 }}>
             {t('termsPdfHint')}
           </p>
           <input
+            id="terms-doc-pdf"
+            name="terms_pdf"
             type="file"
             accept="application/pdf"
             className="input"

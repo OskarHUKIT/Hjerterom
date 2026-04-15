@@ -34,6 +34,8 @@ export default function Documents() {
         <h2 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>Last opp dokument</h2>
         <div className="doc-upload-zone">
           <input
+            id="documents-public-upload"
+            name="documents_public_upload"
             ref={fileInputRef}
             type="file"
             accept=".pdf,.doc,.docx"

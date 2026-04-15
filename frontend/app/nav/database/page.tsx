@@ -55,6 +55,7 @@ import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
 import type { PostgrestError } from '@supabase/supabase-js'
+import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
 
 function navDbErrMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
@@ -98,69 +99,31 @@ export default function NavDatabase() {
     void router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false })
   }, [router, pathname, searchParams])
 
-  const [userRole, setUserRole] = useState<string | null>(null)
-  const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
-  const [kommuneRegion, setKommuneRegion] = useState<string | string[] | null>(null)
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
+  const {
+    data: access,
+    isPending: accessPending,
+    isError: accessError,
+    error: accessQueryError,
+    refetch: refetchKommuneAccess,
+  } = useKommuneNavAccess()
+
+  const userRole = access?.kind === 'ok' ? access.userRole : null
+  const kommuneCanEdit = access?.kind === 'ok' ? access.kommuneCanEdit : true
+  const kommuneRegion = access?.kind === 'ok' ? access.kommuneRegion : null
+  const isAuthorized: boolean | null =
+    accessPending || access === undefined
+      ? null
+      : access.kind === 'unauthenticated'
+        ? null
+        : access.kind === 'ok'
+          ? true
+          : access.kind === 'forbidden'
+            ? false
+            : null
+
   const [searchTerm, setSearchTerm] = useState('')
   // ... rest of state ...
 
-  useEffect(() => {
-    async function checkAccess() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const role = user.user_metadata?.role
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, kommune_can_edit, kommune_region')
-        .eq('id', user.id)
-        .maybeSingle()
-      const kr =
-        role === 'kommune_ansatt' ||
-        profile?.role === 'kommune_ansatt' ||
-        role === 'kommune_admin' ||
-        profile?.role === 'kommune_admin'
-      if (kr) {
-        setIsAuthorized(true)
-        setUserRole(profile?.role || role || 'kommune_ansatt')
-        setKommuneCanEdit(profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false)
-        let region = profile?.kommune_region ?? null
-        if ((region == null || String(region).trim() === '') && user.email) {
-          const rpcRes = await supabase.rpc('get_whitelist_region_for_email', {
-            p_email: user.email,
-          })
-          const fromRpc =
-            typeof rpcRes.data === 'string'
-              ? rpcRes.data
-              : Array.isArray(rpcRes.data) && rpcRes.data?.length
-                ? rpcRes.data[0]
-                : null
-          if (fromRpc && String(fromRpc).trim()) {
-            region = fromRpc
-          } else {
-            const tableRes = await supabase
-              .from('kommune_access_list')
-              .select('region')
-              .ilike('email', user.email)
-              .eq('is_active', true)
-              .limit(1)
-            const fromTable = tableRes.data?.[0]?.region
-            if (fromTable && String(fromTable).trim()) region = fromTable
-          }
-        }
-        setKommuneRegion(region || null)
-      } else {
-        setIsAuthorized(false)
-      }
-    }
-    checkAccess()
-  }, [router])
   const [listings, setListings] = useState<NavDatabaseListingRow[]>([])
   const [availability, setAvailability] = useState<Record<string, ListingAvailabilityRow[]>>({})
   const [loading, setLoading] = useState(true)
@@ -733,6 +696,19 @@ export default function NavDatabase() {
     kommuneRegion,
   ])
 
+  if (accessError) {
+    return (
+      <main className="container" style={{ padding: 'var(--space-8)' }}>
+        <div className="card" style={{ padding: 'var(--space-6)', maxWidth: 480, margin: '0 auto' }}>
+          <p style={{ marginBottom: 'var(--space-4)' }}>{navDbErrMessage(accessQueryError)}</p>
+          <Button type="button" variant="primary" onClick={() => void refetchKommuneAccess()}>
+            {t('retryLoad')}
+          </Button>
+        </div>
+      </main>
+    )
+  }
+
   if (isAuthorized === false) {
     return (
       <main className="container" style={{ textAlign: 'center', padding: '100px 20px' }}>
@@ -754,7 +730,11 @@ export default function NavDatabase() {
   }
 
   if (isAuthorized === null) {
-    return <div className="container" style={{ minHeight: '80vh' }} />
+    return (
+      <main className="container">
+        <LoadingPlaceholder minHeight={560} />
+      </main>
+    )
   }
 
   const toggleSort = (field: string) => {

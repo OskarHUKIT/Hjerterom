@@ -1,15 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { getAuthUserDeduped } from '../lib/supabase'
 import { savePushSubscription, urlBase64ToUint8Array, VAPID_PUBLIC } from '../lib/push-utils'
 import { Bell, CheckCircle2 } from 'lucide-react'
+import { useAuthSession } from '../../context/AuthSessionContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { isMobileUserAgent } from '../lib/mobile'
 
 type Status = 'loading' | 'show-button' | 'granted' | 'unsupported'
 
 export default function PushPermissionCard() {
+  const { user } = useAuthSession()
   const { t } = useLanguage()
   const [isMobile, setIsMobile] = useState<boolean | null>(null)
   const [status, setStatus] = useState<Status>('loading')
@@ -28,10 +30,8 @@ export default function PushPermissionCard() {
 
       const hasSW = 'serviceWorker' in navigator
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user || cancelled) {
+      const u = await getAuthUserDeduped()
+      if (!u || cancelled) {
         if (!cancelled) setStatus('loading')
         return
       }
@@ -60,18 +60,11 @@ export default function PushPermissionCard() {
       }
     }
 
-    check()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      if (!cancelled) check()
-    })
+    void check()
     return () => {
       cancelled = true
-      subscription.unsubscribe()
     }
-  }, [isMobile])
+  }, [isMobile, user?.id])
 
   async function requestPermission() {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
@@ -82,16 +75,14 @@ export default function PushPermissionCard() {
         setLoading(false)
         return
       }
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
+      const u = await getAuthUserDeduped()
+      if (!u) return
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC) as unknown as BufferSource,
       })
-      await savePushSubscription(user.id, sub)
+      await savePushSubscription(u.id, sub)
       setStatus('granted')
     } catch (err) {
       console.warn('Push subscription:', err)

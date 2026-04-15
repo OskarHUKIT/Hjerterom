@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { getAuthUserDeduped } from '../lib/supabase'
 import { savePushSubscription } from '../lib/push-utils'
 
 export default function PushSubscription() {
@@ -16,9 +16,7 @@ export default function PushSubscription() {
       )
         return
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user || cancelled) return
 
       try {

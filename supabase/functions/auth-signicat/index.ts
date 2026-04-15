@@ -40,6 +40,10 @@ serve(async (req) => {
       authorizeUrl.searchParams.set("response_type", "code")
       authorizeUrl.searchParams.set("scope", "openid profile email")
       authorizeUrl.searchParams.set("redirect_uri", redirectUri)
+      const rawUi = url.searchParams.get("ui_locales")?.trim().toLowerCase()
+      /** OIDC `ui_locales`; Signicat supports e.g. no, en. Sami → use no. */
+      const uiLocales = rawUi === "en" ? "en" : "no"
+      authorizeUrl.searchParams.set("ui_locales", uiLocales)
       if (returnTo && returnTo.length <= 2048) {
         let decoded = returnTo.trim()
         try {

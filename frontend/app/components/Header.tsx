@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { User as AuthUser } from '@supabase/supabase-js'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
+import { fetchHeaderBundle, headerBundleQueryKey } from '../lib/queries/headerBundleQuery'
 import Logo from './Logo'
 import {
   User,
@@ -22,6 +23,7 @@ import {
   Building2,
   Home,
 } from 'lucide-react'
+import { useAuthSession } from '../../context/AuthSessionContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
 import {
@@ -29,14 +31,13 @@ import {
   isKommuneStaffRole,
   kommuneNavUsesAccountsLabel,
 } from '../lib/kommuneRoles'
-import { getLandlordPostLoginHref } from '../lib/landlordNavGate'
 import MobileBottomNav from './MobileBottomNav'
 
 export default function Header() {
   const router = useRouter()
+  const { user, isReady: authReady } = useAuthSession()
   const { t, locale, setLocale } = useLanguage()
   const { theme, toggleTheme } = useTheme()
-  const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [hasSignedTerms, setHasSignedTerms] = useState(false)
   /** Når utleier mangler aktiv avtale: logo/pekere til register eller signering (fra getLandlordPostLoginHref). */
@@ -51,54 +52,54 @@ export default function Header() {
   /** Samme breakpoint som header (768px): forenklet kommune-nav på små skjermer. */
   const [isMobileLayout, setIsMobileLayout] = useState(false)
 
-  const fetchHeaderData = async (
-    userId: string,
-    metadata: AuthUser['user_metadata'],
-    email?: string | null
-  ) => {
-    try {
-      // Sjekk både metadata (raskt) og database (sikkert)
-      const metadataRole = metadata?.role
+  const headerBundleQ = useQuery({
+    queryKey: headerBundleQueryKey(user?.id ?? ''),
+    queryFn: () =>
+      fetchHeaderBundle(user!.id, user!.user_metadata, user?.email ?? null),
+    enabled: Boolean(user?.id),
+    staleTime: 45_000,
+    gcTime: 10 * 60 * 1000,
+  })
 
-      const [profileRes, agreementRes] = await Promise.all([
-        supabase.from('profiles').select('role, kommune_can_edit').eq('id', userId).maybeSingle(),
-        supabase
-          .from('user_agreements')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('is_terminated', false)
-          .maybeSingle(),
-      ])
+  useEffect(() => {
+    if (!user?.id) return
+    const b = headerBundleQ.data
+    if (!b) return
+    setRole(b.role)
+    setKommuneCanEdit(b.kommuneCanEdit)
+    setHasSignedTerms(b.hasSignedTerms)
+    setLandlordBootstrapHref(b.landlordBootstrapHref)
+    setUnreadCount(b.unreadCount)
+  }, [user?.id, headerBundleQ.data])
 
-      // Profil i DB er kilden; metadata kan være utdatert og gi feil nav-etikett.
-      const userRole = profileRes.data?.role || metadataRole || 'homeowner'
-      setRole(userRole)
-      setKommuneCanEdit(profileRes.data?.kommune_can_edit ?? null)
-      setHasSignedTerms(!!agreementRes.data)
-
-      if (isKommuneStaffRole(userRole) || agreementRes.data) {
-        setLandlordBootstrapHref('/homeowner/manage')
-      } else {
-        const href = await getLandlordPostLoginHref(supabase, userId, email ?? null, {
-          reuseProfileRole: userRole,
-        })
-        setLandlordBootstrapHref(href)
-      }
-
-      // Hent unread count – kun varsler som er til brukeren (owner_id)
-      const { count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'unread')
-        .eq('owner_id', userId)
-
-      setUnreadCount(count ?? 0)
-    } catch (err) {
-      console.error('Error fetching header data:', err)
-    } finally {
+  useEffect(() => {
+    if (headerBundleQ.isError) {
+      console.error('Header bundle:', headerBundleQ.error)
       setLoading(false)
     }
-  }
+  }, [headerBundleQ.isError, headerBundleQ.error])
+
+  useEffect(() => {
+    if (!authReady) return
+    if (!user?.id) {
+      setLoading(false)
+      return
+    }
+    if (headerBundleQ.isPending && !headerBundleQ.isError) {
+      setLoading(true)
+      return
+    }
+    setLoading(false)
+  }, [authReady, user?.id, headerBundleQ.isPending, headerBundleQ.isError])
+
+  useEffect(() => {
+    if (user) return
+    setHasSignedTerms(false)
+    setLandlordBootstrapHref('/homeowner/register')
+    setRole(null)
+    setKommuneCanEdit(null)
+    setUnreadCount(0)
+  }, [user])
 
   useEffect(() => {
     let cancelled = false
@@ -106,40 +107,6 @@ export default function Header() {
       if (!cancelled) setLoading(false)
     }, 8000)
 
-    // Get initial session
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        if (cancelled) return
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          fetchHeaderData(session.user.id, session.user.user_metadata)
-        } else {
-          setLoading(false)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false)
-      })
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchHeaderData(session.user.id, session.user.user_metadata, session.user.email)
-      } else {
-        setHasSignedTerms(false)
-        setLandlordBootstrapHref('/homeowner/register')
-        setRole(null)
-        setKommuneCanEdit(null)
-        setUnreadCount(0)
-        setLoading(false)
-      }
-    })
-
-    // Close menu when clicking outside
     const closeMenu = (e: MouseEvent) => {
       if (!(e.target as Element).closest('.user-menu-trigger')) {
         setIsMenuOpen(false)
@@ -161,29 +128,11 @@ export default function Header() {
     return () => {
       cancelled = true
       clearTimeout(timeoutId)
-      subscription.unsubscribe()
       window.removeEventListener('click', closeMenu)
       window.removeEventListener('resize', handleResize)
       mq.removeEventListener('change', syncMobileLayout)
     }
   }, [])
-
-  const checkAgreement = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_agreements')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('is_terminated', false)
-        .maybeSingle()
-
-      setHasSignedTerms(!!data)
-    } catch (err) {
-      console.error('Error checking agreement:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleLogout = () => {
     setLogoutPending(true)
@@ -237,6 +186,7 @@ export default function Header() {
         <>
           {kommuneMobileNav ? (
             <Link
+              prefetch={false}
               href="/nav/database"
               className="nav-link"
               onClick={closeMobileNav}
@@ -253,20 +203,20 @@ export default function Header() {
             </Link>
           ) : (
             <>
-              <Link href="/nav/database" className="nav-link" onClick={closeMobileNav}>
+              <Link prefetch={false} href="/nav/database" className="nav-link" onClick={closeMobileNav}>
                 {t('housingBank')}
               </Link>
-              <Link href="/nav/users" className="nav-link" onClick={closeMobileNav}>
+              <Link prefetch={false} href="/nav/users" className="nav-link" onClick={closeMobileNav}>
                 {kommuneNavUsesAccountsLabel(navRoleForLinks) ? t('navAccounts') : t('navLandlords')}
               </Link>
-              <Link href="/nav/messages" className="nav-link" onClick={closeMobileNav}>
+              <Link prefetch={false} href="/nav/messages" className="nav-link" onClick={closeMobileNav}>
                 {t('messages')}
               </Link>
-              <Link href="/nav/expired" className="nav-link" onClick={closeMobileNav}>
+              <Link prefetch={false} href="/nav/expired" className="nav-link" onClick={closeMobileNav}>
                 {t('expired')}
               </Link>
               {isKommuneAdminRole(navRoleForLinks) && (
-                <Link href="/nav/terms-documents" className="nav-link" onClick={closeMobileNav}>
+                <Link prefetch={false} href="/nav/terms-documents" className="nav-link" onClick={closeMobileNav}>
                   {t('termsDocumentsNav')}
                 </Link>
               )}
@@ -305,6 +255,7 @@ export default function Header() {
 
       {showLandlordFullNav && (
         <Link
+          prefetch={false}
           href="/nav/messages"
           className="nav-link"
           style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -316,7 +267,7 @@ export default function Header() {
       )}
 
       {showLandlordFullNav && (
-        <Link href="/homeowner/manage" className="nav-link" onClick={closeMobileNav}>
+        <Link prefetch={false} href="/homeowner/manage" className="nav-link" onClick={closeMobileNav}>
           {t('myProperties')}
         </Link>
       )}
@@ -408,6 +359,7 @@ export default function Header() {
               </div>
 
               <Link
+                prefetch={false}
                 href="/homeowner/sign-terms"
                 className="menu-item"
                 onClick={() => {
@@ -595,6 +547,7 @@ export default function Header() {
         }}
       >
         <Link
+          prefetch={false}
           href={logoHref}
           style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
           onClick={closeMobileNav}
@@ -661,6 +614,7 @@ export default function Header() {
             <>
               {isKommuneStaffRole(navRoleForLinks) && (
                 <Link
+                  prefetch={false}
                   href="/nav/messages"
                   style={{
                     display: 'flex',
@@ -683,6 +637,7 @@ export default function Header() {
               )}
               {showLandlordFullNav && (
                 <Link
+                  prefetch={false}
                   href="/homeowner/manage"
                   style={{
                     display: 'flex',
@@ -705,6 +660,7 @@ export default function Header() {
               )}
               {user && (isKommuneStaffRole(navRoleForLinks) || showLandlordFullNav) && (
                 <Link
+                  prefetch={false}
                   href="/nav/notifications"
                   style={{
                     display: 'flex',

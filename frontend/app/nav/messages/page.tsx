@@ -17,17 +17,13 @@ import {
 import { supabase } from '../../lib/supabase'
 import { formatDateTimeNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
-import {
-  listingCityMatchesRegions,
-  mergeKommuneRegionSources,
-  parseKommuneRegions,
-} from '../../lib/kommuneRegions'
+import { listingCityMatchesRegions, parseKommuneRegions } from '../../lib/kommuneRegions'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
 import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { OptimizedPublicStorageImage } from '../../components/OptimizedPublicStorageImage'
-import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
+import { useChatUserBootstrap } from '../../hooks/useChatUserBootstrap'
 
 const CHAT_IMAGES_BUCKET = 'chat-images'
 const MAX_IMAGES_PER_MESSAGE = 4
@@ -67,10 +63,14 @@ function MessagesContent() {
   const searchParams = useSearchParams()
   const withUserId = searchParams.get('with')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [landlordNavGateReady, setLandlordNavGateReady] = useState(false)
 
-  const [currentUser, setCurrentUser] = useState<any>(null)
-  const [role, setRole] = useState<string | null>(null)
+  const chatBoot = useChatUserBootstrap()
+  const bootOk = chatBoot.data?.kind === 'ok' ? chatBoot.data : null
+  const currentUser = bootOk?.user ?? null
+  const role = bootOk?.role ?? null
+  const kommuneCanEdit = bootOk?.kommuneCanEdit ?? true
+  const myKommuneRegion = bootOk?.myKommuneRegion ?? null
+  const profileResolved = Boolean(bootOk)
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [pendingImages, setPendingImages] = useState<File[]>([])
@@ -81,8 +81,6 @@ function MessagesContent() {
     { userId: string; name: string; lastMessage: string; lastAt: string }[]
   >([])
   const [otherUser, setOtherUser] = useState<any>(null)
-  const [kommuneCanEdit, setKommuneCanEdit] = useState(true)
-  const [myKommuneRegion, setMyKommuneRegion] = useState<string | string[] | null>(null)
   const [peerRole, setPeerRole] = useState<string | null>(null)
   const [colleagues, setColleagues] = useState<{ id: string; name: string }[]>([])
   const [landlordAccounts, setLandlordAccounts] = useState<{ id: string; name: string }[]>([])
@@ -92,9 +90,6 @@ function MessagesContent() {
   const [messagesPickerTab, setMessagesPickerTab] = useState<'landlords' | 'staff'>('landlords')
   const [messagesContactSearch, setMessagesContactSearch] = useState('')
   const messagesScrollRef = useRef<HTMLDivElement>(null)
-  /** False until `profiles` (and region fallbacks) are loaded — avoids flashing utleier-UI for kommune. */
-  const [profileResolved, setProfileResolved] = useState(false)
-
   const isKommune = role === 'kommune_ansatt' || role === 'kommune_admin'
   const peerIsKommuneColleague = peerRole === 'kommune_ansatt' || peerRole === 'kommune_admin'
   const readonlyBlocksReply =
@@ -109,87 +104,6 @@ function MessagesContent() {
     sync()
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.replace('/login')
-        return
-      }
-      const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
-      const r = prof?.role || user.user_metadata?.role
-      if (isKommuneStaffRole(r)) {
-        if (!cancelled) setLandlordNavGateReady(true)
-        return
-      }
-      const href = await getLandlordPostLoginHref(supabase, user.id, user.email, {
-        reuseProfileRole: r ?? null,
-      })
-      if (cancelled) return
-      if (href !== '/homeowner/manage') {
-        router.replace(href)
-        return
-      }
-      setLandlordNavGateReady(true)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [router])
-
-  useEffect(() => {
-    let cancelled = false
-    void supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (cancelled) return
-      setCurrentUser(user)
-      if (!user) {
-        setProfileResolved(true)
-        return
-      }
-      try {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('role, kommune_can_edit, kommune_region')
-          .eq('id', user.id)
-          .maybeSingle()
-        if (cancelled) return
-        let wlRpc: string | null = null
-        let wlTable: string | null = null
-        if (user.email) {
-          const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', {
-            p_email: user.email,
-          })
-          wlRpc =
-            typeof rpcRegion === 'string'
-              ? rpcRegion
-              : Array.isArray(rpcRegion) && rpcRegion?.length
-                ? String(rpcRegion[0])
-                : null
-          const { data: whitelistRows } = await supabase
-            .from('kommune_access_list')
-            .select('region')
-            .ilike('email', user.email)
-            .eq('is_active', true)
-            .limit(1)
-          wlTable = whitelistRows?.[0]?.region ?? null
-        }
-        if (cancelled) return
-        const merged = mergeKommuneRegionSources(prof?.kommune_region, wlRpc, wlTable)
-        setMyKommuneRegion(merged.length > 0 ? merged.join(', ') : null)
-        setRole(prof?.role || user.user_metadata?.role || 'homeowner')
-        setKommuneCanEdit(prof?.role === 'kommune_admin' || prof?.kommune_can_edit !== false)
-      } finally {
-        if (!cancelled) setProfileResolved(true)
-      }
-    })
-    return () => {
-      cancelled = true
-    }
   }, [])
 
   useEffect(() => {
@@ -447,7 +361,12 @@ function MessagesContent() {
       const { data } = await query.order('created_at', { ascending: true })
       setMessages(data || [])
     }
-    fetchMessages()
+    void fetchMessages()
+
+    const onVisibleRefetch = () => {
+      if (document.visibilityState === 'visible') void fetchMessages()
+    }
+    document.addEventListener('visibilitychange', onVisibleRefetch)
 
     const channelId = isHomeownerChat
       ? `chat:${currentUser.id}:kommune:${withUserId || 'all'}`
@@ -455,12 +374,21 @@ function MessagesContent() {
     const sub = supabase
       .channel(channelId)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, () =>
-        fetchMessages()
+        void fetchMessages()
       )
-      .subscribe()
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') return
+        if (process.env.NODE_ENV === 'development' && err) {
+          console.warn('[Boly/chat] realtime', status, err)
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          void fetchMessages()
+        }
+      })
 
     return () => {
-      sub.unsubscribe()
+      document.removeEventListener('visibilitychange', onVisibleRefetch)
+      void sub.unsubscribe()
     }
   }, [profileResolved, currentUser, withUserId, isKommune, t])
 
@@ -598,23 +526,7 @@ function MessagesContent() {
     [landlordAccounts, conversationPeerIds]
   )
 
-  if (!landlordNavGateReady) {
-    return (
-      <main className="container">
-        <LoadingPlaceholder minHeight={400} />
-      </main>
-    )
-  }
-
-  if (!currentUser) {
-    return (
-      <main className="container">
-        <LoadingPlaceholder minHeight={400} />
-      </main>
-    )
-  }
-
-  if (!profileResolved) {
+  if (chatBoot.isError || chatBoot.isPending || !bootOk) {
     return (
       <main className="container">
         <LoadingPlaceholder minHeight={400} />
@@ -1178,7 +1090,7 @@ function MessagesContent() {
                 }}
               >
                 {messages.map((m) => {
-                  const isMe = m.sender_id === currentUser.id
+                  const isMe = m.sender_id === bootOk.user.id
                   const urls = (m.image_urls || []).filter(Boolean)
                   return (
                     <div

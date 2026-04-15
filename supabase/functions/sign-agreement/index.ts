@@ -3,12 +3,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { z } from "https://esm.sh/zod@3.23.8"
 import { edgeLog } from "../_shared/edgeLog.ts"
 import { sanitizeOriginQueryValue } from "../_shared/safeRedirect.ts"
+import { signicatUiLanguageFromAppLocale } from "../_shared/signicatUiLanguage.ts"
 
 const signAgreementBodySchema = z.object({
   userId: z.string().uuid(),
   origin: z.string().max(512).optional(),
   city: z.string().max(200).optional(),
   agreementVersion: z.string().max(32).optional(),
+  /** Boly UI language: drives Signicat Sign API `ui.language` (no/en; se → no). */
+  appLocale: z.enum(["no", "se", "en"]).optional(),
 })
 
 const corsHeaders = {
@@ -58,15 +61,17 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
     }
-    const { userId, origin, city } = parsedBody.data
+    const { userId, origin, city, appLocale } = parsedBody.data
     const cityParam = city?.trim() ? `&city=${encodeURIComponent(city.trim())}` : ''
     const safeOrigin = sanitizeOriginQueryValue(origin)
+    const signicatUiLang = signicatUiLanguageFromAppLocale(appLocale)
 
     edgeLog("info", "sign-agreement start", {
       userId,
       originOk: !!safeOrigin,
       hasCity: !!(city && city.trim()),
       hasSecret: !!CLIENT_SECRET,
+      signicatUiLanguage: signicatUiLang,
     })
     if (!CLIENT_SECRET) throw new Error("SIGNICAT_SECRET_SIGN mangler i Supabase Secrets. Sjekk at du har lagt den til i Edge Functions -> Secrets.")
     if (!SUPABASE_URL) throw new Error("SUPABASE_URL mangler")
@@ -251,6 +256,7 @@ serve(async (req) => {
           cancel: `${functionsHost}/sign-callback?status=cancel&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(safeOrigin)}${cityParam}`,
           error: `${functionsHost}/sign-callback?status=error&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(safeOrigin)}${cityParam}`,
         },
+        ui: { language: signicatUiLang },
       }])
     })
 

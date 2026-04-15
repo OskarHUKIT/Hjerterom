@@ -166,7 +166,7 @@ function SignedAgreementCard({
 }
 
 function SignTermsContent() {
-  const { t } = useLanguage()
+  const { t, locale: appLocale } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -482,6 +482,7 @@ function SignTermsContent() {
         userId: user.id,
         agreementVersion: '1.0',
         origin: typeof window !== 'undefined' ? window.location.origin : '',
+        appLocale,
         ...(signCity.trim() ? { city: signCity.trim() } : {}),
       }
       const res = await fetch(`${supabaseUrl}/functions/v1/sign-agreement`, {

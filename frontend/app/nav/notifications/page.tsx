@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   Bell,
   CheckCircle2,
@@ -18,107 +19,59 @@ import {
   Home,
   Receipt,
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { getAuthUserDeduped, supabase } from '../../lib/supabase'
 import { formatDateTimeNo } from '../../lib/dateFormat'
 import PushPermissionCard from '../../components/PushPermissionCard'
 import { useLanguage } from '../../../context/LanguageContext'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
-import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
+import { useLandlordNavGateQuery } from '../../hooks/useLandlordNavGateQuery'
+import type { NotificationsListPayload } from '../../lib/queries/notificationsListQuery'
+import {
+  fetchNotificationsList,
+  notificationsListQueryKey,
+} from '../../lib/queries/notificationsListQuery'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
 import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 
 export default function NavNotifications() {
   const { t } = useLanguage()
-  const router = useRouter()
   const pathname = usePathname()
-  const [landlordNavGateReady, setLandlordNavGateReady] = useState(false)
-  const [notifications, setNotifications] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [role, setRole] = useState<string | null>(null)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+  const gateQ = useLandlordNavGateQuery()
+  const gateReady = gateQ.data?.kind === 'ready'
+  const listQ = useQuery({
+    queryKey: notificationsListQueryKey,
+    queryFn: fetchNotificationsList,
+    enabled: gateReady,
+    staleTime: 30_000,
+    gcTime: 10 * 60 * 1000,
+  })
+  const listPayload = listQ.data
+  const notifications = listPayload?.rows ?? []
+  const loading = !gateReady || listQ.isPending
+  const role = listPayload?.role ?? null
+  const currentUserId = listPayload?.userId ?? null
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(false)
   const [emailPrefSaving, setEmailPrefSaving] = useState(false)
   const [showLandlordNotificationsIntro, setShowLandlordNotificationsIntro] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.replace('/login')
-        return
-      }
-      const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
-      const r = prof?.role || user.user_metadata?.role
-      if (isKommuneStaffRole(r)) {
-        if (!cancelled) setLandlordNavGateReady(true)
-        return
-      }
-      const href = await getLandlordPostLoginHref(supabase, user.id, user.email, {
-        reuseProfileRole: r ?? null,
-      })
-      if (cancelled) return
-      if (href !== '/homeowner/manage') {
-        router.replace(href)
-        return
-      }
-      setLandlordNavGateReady(true)
-    })()
-    return () => {
-      cancelled = true
+    if (listPayload != null) {
+      setEmailNotificationsEnabled(listPayload.emailNotificationsEnabled)
     }
-  }, [router])
-
-  const fetchNotifications = async (showLoader = true) => {
-    if (showLoader) setLoading(true)
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-
-      setCurrentUserId(user.id)
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, email_notifications_enabled')
-        .eq('id', user.id)
-        .maybeSingle()
-      setRole(profile?.role || 'homeowner')
-      setEmailNotificationsEnabled(profile?.email_notifications_enabled === true)
-
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setNotifications(data || [])
-    } catch (err: any) {
-      console.error('Error fetching notifications:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [listPayload])
 
   useEffect(() => {
-    if (!landlordNavGateReady) return
-    fetchNotifications()
-  }, [landlordNavGateReady])
-
-  useEffect(() => {
-    if (!landlordNavGateReady) return
+    if (!gateReady) return
     if (loading || !currentUserId) return
     if (role == null) return
     if (isKommuneStaffRole(role)) return
     if (typeof window === 'undefined') return
     const key = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.notifications, currentUserId)
     if (!localStorage.getItem(key)) setShowLandlordNotificationsIntro(true)
-  }, [landlordNavGateReady, loading, currentUserId, role])
+  }, [gateReady, loading, currentUserId, role])
 
   const dismissLandlordNotificationsIntro = () => {
     if (currentUserId && typeof window !== 'undefined') {
@@ -131,27 +84,31 @@ export default function NavNotifications() {
   }
 
   const handleStatusChange = async (id: string, newStatus: 'unread' | 'completed') => {
-    const previous = notifications
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const previous = queryClient.getQueryData<NotificationsListPayload | null>(
+      notificationsListQueryKey
+    )
+    const user = await getAuthUserDeduped()
     const resolverId = newStatus === 'completed' ? (user?.id ?? 'me') : null
-    setNotifications((notifs) =>
-      notifs.map((n) =>
-        n.id === id
-          ? {
-              ...n,
-              status: newStatus,
-              resolved_by: resolverId,
-              resolved_at: newStatus === 'completed' ? new Date().toISOString() : null,
-            }
-          : n
-      )
+    queryClient.setQueryData<NotificationsListPayload | null>(
+      notificationsListQueryKey,
+      (prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          rows: prev.rows.map((n) =>
+            n.id === id
+              ? {
+                  ...n,
+                  status: newStatus,
+                  resolved_by: resolverId,
+                  resolved_at: newStatus === 'completed' ? new Date().toISOString() : null,
+                }
+              : n
+          ),
+        }
+      }
     )
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
       const { error } = await supabase
         .from('notifications')
         .update({
@@ -162,8 +119,9 @@ export default function NavNotifications() {
         .eq('id', id)
 
       if (error) throw error
+      void queryClient.invalidateQueries({ queryKey: ['header'] })
     } catch (err: any) {
-      setNotifications(previous)
+      queryClient.setQueryData(notificationsListQueryKey, previous)
       alert(t('errNotificationUpdate') + err.message)
     }
   }
@@ -194,7 +152,7 @@ export default function NavNotifications() {
     }
   }
 
-  if (!landlordNavGateReady) {
+  if (!gateReady || listQ.isPending) {
     return (
       <main className="container">
         <LoadingPlaceholder minHeight={200} />
@@ -313,6 +271,7 @@ export default function NavNotifications() {
         }}
       >
         <label
+          htmlFor="notifications-email-enabled"
           style={{
             display: 'flex',
             alignItems: 'flex-start',
@@ -321,6 +280,8 @@ export default function NavNotifications() {
           }}
         >
           <input
+            id="notifications-email-enabled"
+            name="email_notifications_enabled"
             type="checkbox"
             checked={emailNotificationsEnabled}
             disabled={emailPrefSaving}
@@ -329,14 +290,12 @@ export default function NavNotifications() {
               setEmailNotificationsEnabled(v)
               setEmailPrefSaving(true)
               try {
-                const {
-                  data: { user },
-                } = await supabase.auth.getUser()
-                if (!user) return
+                const u = await getAuthUserDeduped()
+                if (!u) return
                 const { error } = await supabase
                   .from('profiles')
                   .update({ email_notifications_enabled: v })
-                  .eq('id', user.id)
+                  .eq('id', u.id)
                 if (error) throw error
               } catch (err: any) {
                 setEmailNotificationsEnabled(!v)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { formatDateNo, parseDateNo } from '@/app/lib/dateFormat'
 import { Calendar } from 'lucide-react'
@@ -15,6 +15,8 @@ type Props = {
   className?: string
   style?: React.CSSProperties
   id?: string
+  /** Form submit name; defaults to a unique value from id or useId (autofill / a11y audits). */
+  name?: string
   /** Vis kalender-ikon og dropdown for å velge dato */
   showCalendar?: boolean
   disabled?: boolean
@@ -49,10 +51,14 @@ export function DateInput({
   className,
   style,
   id,
+  name,
   showCalendar,
   disabled,
 }: Props) {
   const { t, locale } = useLanguage()
+  const autoId = useId().replace(/:/g, '')
+  const inputId = id ?? `boly-date-${autoId}`
+  const inputName = name ?? inputId
   const resolvedPlaceholder = placeholder ?? t('dateInputPlaceholder')
   const localeTag = locale === 'no' ? 'nb-NO' : locale === 'se' ? 'se' : 'en-GB'
   const weekdayLabels = useMemo(() => {
@@ -154,7 +160,9 @@ export function DateInput({
     <input
       type="text"
       inputMode="numeric"
-      id={id}
+      id={inputId}
+      name={inputName}
+      autoComplete="off"
       className={className}
       disabled={disabled}
       style={inputStyle}

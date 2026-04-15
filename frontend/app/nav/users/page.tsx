@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import {
@@ -16,7 +16,7 @@ import {
   Info,
   CheckCircle2,
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { getAuthUserDeduped, supabase } from '../../lib/supabase'
 import { formatDateNo } from '../../lib/dateFormat'
 import { formatKommuneRegionsForDisplay, listingCityMatchesRegions } from '../../lib/kommuneRegions'
 import UserProfileClient from './UserProfileClient'
@@ -28,11 +28,13 @@ import {
   kommuneNavUsesAccountsLabel,
 } from '../../lib/kommuneRoles'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
+import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
 
 function NavUsersContent() {
   const { t } = useLanguage()
   const router = useRouter()
   const pathname = usePathname()
+  const kommuneAccess = useKommuneNavAccess()
   const searchParams = useSearchParams()
   const userId = searchParams.get('id')
   const [users, setUsers] = useState<any[]>([])
@@ -56,57 +58,76 @@ function NavUsersContent() {
   const [staffLoading, setStaffLoading] = useState(false)
   const [viewerRole, setViewerRole] = useState<string | null>(null)
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
+      const access = kommuneAccess.data
+      if (!access) {
+        return
+      }
+      if (access.kind === 'unauthenticated') {
         setUseAccountsNavCopy(false)
         return
       }
 
-      const metadataRole = user.user_metadata?.role
-      const { data: currentProfile } = await supabase
-        .from('profiles')
-        .select('role, kommune_region')
-        .eq('id', user.id)
-        .maybeSingle()
-      const userRole = currentProfile?.role || metadataRole
-      setViewerRole(userRole ?? null)
-      let kommuneRegion: string | string[] | null = currentProfile?.kommune_region ?? null
-      if ((kommuneRegion == null || String(kommuneRegion).trim() === '') && user.email) {
-        const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', {
-          p_email: user.email,
-        })
-        const fromRpc =
-          typeof rpcRegion === 'string'
-            ? rpcRegion
-            : Array.isArray(rpcRegion) && rpcRegion?.length
-              ? rpcRegion[0]
-              : null
-        if (fromRpc && String(fromRpc).trim()) {
-          kommuneRegion = fromRpc
-        } else {
-          const { data: whitelistRows } = await supabase
-            .from('kommune_access_list')
-            .select('region')
-            .ilike('email', user.email)
-            .eq('is_active', true)
-            .limit(1)
-          const fromTable = whitelistRows?.[0]?.region
-          if (fromTable && String(fromTable).trim()) kommuneRegion = fromTable
-        }
-      }
+      let userRole: string | null | undefined
+      let kommuneRegion: string | string[] | null = null
 
-      setIsKommuneAdmin(isKommuneAdminRole(userRole))
-      setKommuneCanEdit(
-        userRole === 'kommune_admin' ||
-          (currentProfile as { kommune_can_edit?: boolean | null } | null)?.kommune_can_edit !==
-            false
-      )
-      setUseAccountsNavCopy(kommuneNavUsesAccountsLabel(userRole))
+      if (access.kind === 'ok') {
+        userRole = access.userRole
+        kommuneRegion = access.kommuneRegion
+        setViewerRole(userRole ?? null)
+        setIsKommuneAdmin(isKommuneAdminRole(userRole))
+        setKommuneCanEdit(access.kommuneCanEdit)
+        setUseAccountsNavCopy(kommuneNavUsesAccountsLabel(userRole))
+      } else {
+        const user = await getAuthUserDeduped()
+        if (!user) {
+          setUseAccountsNavCopy(false)
+          return
+        }
+
+        const metadataRole = user.user_metadata?.role
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('role, kommune_region')
+          .eq('id', user.id)
+          .maybeSingle()
+        userRole = currentProfile?.role || metadataRole
+        kommuneRegion = currentProfile?.kommune_region ?? null
+        if ((kommuneRegion == null || String(kommuneRegion).trim() === '') && user.email) {
+          const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', {
+            p_email: user.email,
+          })
+          const fromRpc =
+            typeof rpcRegion === 'string'
+              ? rpcRegion
+              : Array.isArray(rpcRegion) && rpcRegion?.length
+                ? rpcRegion[0]
+                : null
+          if (fromRpc && String(fromRpc).trim()) {
+            kommuneRegion = fromRpc
+          } else {
+            const { data: whitelistRows } = await supabase
+              .from('kommune_access_list')
+              .select('region')
+              .ilike('email', user.email)
+              .eq('is_active', true)
+              .limit(1)
+            const fromTable = whitelistRows?.[0]?.region
+            if (fromTable && String(fromTable).trim()) kommuneRegion = fromTable
+          }
+        }
+
+        setViewerRole(userRole ?? null)
+        setIsKommuneAdmin(isKommuneAdminRole(userRole))
+        setKommuneCanEdit(
+          userRole === 'kommune_admin' ||
+            (currentProfile as { kommune_can_edit?: boolean | null } | null)?.kommune_can_edit !==
+              false
+        )
+        setUseAccountsNavCopy(kommuneNavUsesAccountsLabel(userRole))
+      }
 
       if (!isKommuneStaffRole(userRole)) {
         setUsers([])
@@ -226,11 +247,12 @@ function NavUsersContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [kommuneAccess.data])
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    if (kommuneAccess.isPending) return
+    void fetchUsers()
+  }, [kommuneAccess.isPending, fetchUsers])
 
   useEffect(() => {
     if (useAccountsNavCopy !== true || accountTab !== 'staff') return

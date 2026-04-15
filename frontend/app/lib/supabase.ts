@@ -15,12 +15,56 @@ if (process.env.NODE_ENV === 'development' && !isSupabaseConfigured) {
 }
 
 /**
+ * PostgREST / Storage / Edge — cap hangs on half-dead TCP after idle.
+ * Auth methods still use the separate 30s `withAuthTimeout` wrappers below.
+ * Override (ms): `NEXT_PUBLIC_SUPABASE_REST_FETCH_TIMEOUT_MS` in `.env.local`.
+ */
+const REST_FETCH_TIMEOUT_MS = (() => {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_REST_FETCH_TIMEOUT_MS
+  if (raw == null || raw === '') return 75_000
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 10_000 ? n : 75_000
+})()
+
+function fetchWithRestTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REST_FETCH_TIMEOUT_MS)
+  const parent = init?.signal
+  if (parent) {
+    if (parent.aborted) {
+      clearTimeout(timer)
+      return Promise.reject(parent.reason)
+    }
+    parent.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer)
+        controller.abort(parent.reason)
+      },
+      { once: true }
+    )
+  }
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => {
+    clearTimeout(timer)
+  })
+}
+
+const supabaseGlobalOptions = {
+  global: {
+    fetch: fetchWithRestTimeout,
+  },
+} as const
+
+/**
  * Cookie-basert klient via @supabase/ssr — samme økt som Next middleware leser,
  * slik at server-side rutebeskyttelse og token-refresh fungerer.
  */
 const client = isSupabaseConfigured
-  ? createBrowserClient(supabaseUrl, supabaseKey, { isSingleton: true })
-  : createClient(supabaseUrl, supabaseKey)
+  ? createBrowserClient(supabaseUrl, supabaseKey, {
+      isSingleton: true,
+      ...supabaseGlobalOptions,
+    })
+  : createClient(supabaseUrl, supabaseKey, { ...supabaseGlobalOptions })
 
 /** Sjekker om feilen er ugyldig/utløpt refresh token – da skal vi logge ut og sende bruker til forsiden. */
 function isInvalidRefreshTokenError(err: unknown): boolean {
@@ -176,6 +220,28 @@ if (!isSupabaseConfigured) {
       throw e
     }
   }
+}
+
+/**
+ * Coalesce concurrent `auth.getUser()` calls (parallel TanStack queryFns, Strict Mode, etc.)
+ * so `/auth/v1/user` is not hit multiple times in the same tick.
+ */
+let inflightGetUser: Promise<User | null> | null = null
+
+export async function getAuthUserDeduped(): Promise<User | null> {
+  if (!isSupabaseConfigured) return null
+  if (!inflightGetUser) {
+    inflightGetUser = client.auth
+      .getUser()
+      .then(({ data, error }) => {
+        if (error) throw error
+        return data.user ?? null
+      })
+    void inflightGetUser.finally(() => {
+      inflightGetUser = null
+    })
+  }
+  return inflightGetUser
 }
 
 export const supabase = client

@@ -105,6 +105,7 @@ export default function MobileBottomNav({
         {kommune ? (
           <>
             <Link
+              prefetch={false}
               href="/nav/database"
               style={tabStyle(isActive('/nav/database'))}
               aria-current={isActive('/nav/database') ? 'page' : undefined}
@@ -113,6 +114,7 @@ export default function MobileBottomNav({
               <span style={{ textAlign: 'center' }}>{t('housingBank')}</span>
             </Link>
             <Link
+              prefetch={false}
               href="/nav/messages"
               style={tabStyle(isActive('/nav/messages'))}
               aria-current={isActive('/nav/messages') ? 'page' : undefined}
@@ -121,6 +123,7 @@ export default function MobileBottomNav({
               <span style={{ textAlign: 'center' }}>{t('messages')}</span>
             </Link>
             <Link
+              prefetch={false}
               href="/nav/notifications"
               style={{ ...tabStyle(isActive('/nav/notifications')), position: 'relative' }}
               aria-current={isActive('/nav/notifications') ? 'page' : undefined}
@@ -170,6 +173,7 @@ export default function MobileBottomNav({
         ) : (
           <>
             <Link
+              prefetch={false}
               href="/homeowner/manage"
               style={tabStyle(isActive('/homeowner/manage'))}
               aria-current={isActive('/homeowner/manage') ? 'page' : undefined}
@@ -178,6 +182,7 @@ export default function MobileBottomNav({
               <span style={{ textAlign: 'center' }}>{t('myPropertiesTabShort')}</span>
             </Link>
             <Link
+              prefetch={false}
               href="/nav/messages"
               style={tabStyle(isActive('/nav/messages'))}
               aria-current={isActive('/nav/messages') ? 'page' : undefined}
@@ -186,6 +191,7 @@ export default function MobileBottomNav({
               <span style={{ textAlign: 'center' }}>{t('messages')}</span>
             </Link>
             <Link
+              prefetch={false}
               href="/nav/notifications"
               style={{ ...tabStyle(isActive('/nav/notifications')), position: 'relative' }}
               aria-current={isActive('/nav/notifications') ? 'page' : undefined}
@@ -246,6 +252,7 @@ export default function MobileBottomNav({
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             <Link
+              prefetch={false}
               href="/nav/users"
               className="button"
               style={{
@@ -259,6 +266,7 @@ export default function MobileBottomNav({
               {kommuneNavUsesAccountsLabel(navRole) ? t('navAccounts') : t('navLandlords')}
             </Link>
             <Link
+              prefetch={false}
               href="/nav/expired"
               className="button"
               style={{
@@ -273,6 +281,7 @@ export default function MobileBottomNav({
             </Link>
             {isKommuneAdminRole(navRole) && (
               <Link
+                prefetch={false}
                 href="/nav/terms-documents"
                 className="button"
                 style={{
@@ -288,6 +297,7 @@ export default function MobileBottomNav({
             )}
             {navRole === 'kommune_ansatt' && (
               <Link
+                prefetch={false}
                 href="/nav/kommune-access"
                 className="button"
                 style={{
@@ -316,6 +326,7 @@ export default function MobileBottomNav({
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             <Link
+              prefetch={false}
               href="/homeowner/register"
               className="button"
               style={{
@@ -329,6 +340,7 @@ export default function MobileBottomNav({
               {t('registerNewProperty')}
             </Link>
             <Link
+              prefetch={false}
               href="/homeowner/sign-terms"
               className="button"
               style={{

@@ -184,25 +184,35 @@ export default function KommuneAccessPage() {
           className="kommune-access-form"
         >
           <div>
-            <label className="label">{t('email')}</label>
+            <label className="label" htmlFor="kommune-access-new-email">
+              {t('email')}
+            </label>
             <input
+              id="kommune-access-new-email"
+              name="kommune_access_email"
               type="email"
               className="input"
               placeholder={t('emailPlaceholder')}
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
+              autoComplete="email"
               required
               style={{ marginBottom: 0 }}
             />
           </div>
           <div>
-            <label className="label">Region</label>
+            <label className="label" htmlFor="kommune-access-new-region">
+              Region
+            </label>
             <input
+              id="kommune-access-new-region"
+              name="kommune_access_region"
               type="text"
               className="input"
               placeholder={t('regionPlaceholder')}
               value={newRegion}
               onChange={(e) => setNewRegion(e.target.value)}
+              autoComplete="off"
               required
               style={{ marginBottom: 0 }}
             />

@@ -2,18 +2,37 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { History, UserX, Home, ChevronRight, ShieldCheck } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { formatDateNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
+import LoadingPlaceholder from '../../components/LoadingPlaceholder'
+import { Button } from '../../components/ui/Button'
+import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
 
 export default function NavExpired() {
   const { t } = useLanguage()
-  const router = useRouter()
   const pathname = usePathname()
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
+  const {
+    data: access,
+    isPending: accessPending,
+    isError: accessError,
+    error: accessQueryError,
+    refetch: refetchKommuneAccess,
+  } = useKommuneNavAccess()
+
+  const isAuthorized: boolean | null =
+    accessPending || access === undefined
+      ? null
+      : access.kind === 'unauthenticated'
+        ? null
+        : access.kind === 'ok'
+          ? true
+          : access.kind === 'forbidden'
+            ? false
+            : null
   const [expiredListings, setExpiredListings] = useState<any[]>([])
   const [terminatedUsers, setTerminatedUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -63,35 +82,6 @@ export default function NavExpired() {
   }
 
   useEffect(() => {
-    async function checkAccess() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const role = user.user_metadata?.role
-      if (role === 'kommune_ansatt' || role === 'kommune_admin') {
-        setIsAuthorized(true)
-      } else {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .maybeSingle()
-        if (profile?.role === 'kommune_ansatt' || profile?.role === 'kommune_admin') {
-          setIsAuthorized(true)
-        } else {
-          setIsAuthorized(false)
-        }
-      }
-    }
-    checkAccess()
-  }, [router])
-
-  useEffect(() => {
     if (isAuthorized) {
       fetchData()
     }
@@ -115,8 +105,27 @@ export default function NavExpired() {
     )
   }
 
+  if (accessError) {
+    return (
+      <main className="container" style={{ padding: 'var(--space-8)' }}>
+        <div className="card" style={{ padding: 'var(--space-6)', maxWidth: 480, margin: '0 auto' }}>
+          <p style={{ marginBottom: 'var(--space-4)' }}>
+            {accessQueryError instanceof Error ? accessQueryError.message : String(accessQueryError)}
+          </p>
+          <Button type="button" variant="primary" onClick={() => void refetchKommuneAccess()}>
+            {t('retryLoad')}
+          </Button>
+        </div>
+      </main>
+    )
+  }
+
   if (isAuthorized === null) {
-    return <div className="container" style={{ minHeight: '80vh' }} />
+    return (
+      <main className="container">
+        <LoadingPlaceholder minHeight={560} />
+      </main>
+    )
   }
 
   const overviewBack = getOverviewBackLink(pathname, 'kommune_ansatt', t)
