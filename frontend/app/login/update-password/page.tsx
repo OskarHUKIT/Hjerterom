@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Lock } from 'lucide-react'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase'
 import Logo from '../../components/Logo'
@@ -46,9 +46,10 @@ function isBrowserFetchNetworkError(error: unknown): boolean {
   return false
 }
 
-export default function UpdatePasswordPage() {
+function UpdatePasswordInner() {
   const { t } = useLanguage()
   const router = useRouter()
+  const params = useSearchParams()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -74,6 +75,34 @@ export default function UpdatePasswordPage() {
         if (!cancelled) setSessionReady(false)
         return
       }
+
+      /**
+       * Token-hash-flyt: e-post-lenken peker på vår egen side med `?token_hash=...&type=recovery`
+       * i stedet for Supabase sitt `/verify`-endepunkt. Dermed forbrukes ikke tokenet av
+       * e-post-skannere (Microsoft Safe Links, Outlook m.fl.), som bare laster HTML og ikke JS.
+       * Vi kaller `verifyOtp` her – det bytter tokenet inn i en faktisk sesjon, og fjerner
+       * deretter parametrene fra URL-en slik at tilbake-knapp/refresh ikke prøver å bruke det igjen.
+       */
+      const tokenHash = params.get('token_hash')
+      const otpType = params.get('type')
+      if (tokenHash && otpType === 'recovery') {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        })
+        if (cancelled) return
+        if (!error) {
+          window.history.replaceState({}, '', window.location.pathname)
+          setSessionReady(true)
+          return
+        }
+        devWarn('[Boly] Update password: verifyOtp failed', error)
+        const target = new URL('/auth/auth-code-error', window.location.origin)
+        target.searchParams.set('reason', error.message || 'verify_failed')
+        window.location.replace(target.toString())
+        return
+      }
+
       for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
         const { data } = await supabase.auth.getSession()
         if (cancelled) return
@@ -90,7 +119,7 @@ export default function UpdatePasswordPage() {
       cancelled = true
       listener.subscription.unsubscribe()
     }
-  }, [])
+  }, [params])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -327,5 +356,28 @@ export default function UpdatePasswordPage() {
         </form>
       </div>
     </main>
+  )
+}
+
+export default function UpdatePasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <main
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--bg-app)',
+            color: 'var(--text-muted)',
+          }}
+        >
+          …
+        </main>
+      }
+    >
+      <UpdatePasswordInner />
+    </Suspense>
   )
 }
