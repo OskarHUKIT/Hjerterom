@@ -10,8 +10,25 @@ export const translations = {
     userPanel: 'Brukerpanel',
     myProperties: 'Mine boliger',
     signTerms: 'Signer vilkår',
+    signTermsPageTitle: 'Signering av vilkårsavtale',
     signTermsCityHint:
-      'Avtalen som vises er knyttet til bolig i {city} (kommune fra registrering).',
+      'Dokumentet som gjelder for signering, er knyttet til bolig i {city} (kommune/område fra registrering).',
+    signTermsIntroFirstTimeWithCity:
+      'Du er nå i ferd med å signere det gjeldende brukerdokumentet for utleiere, tilpasset området for den første boligen du registrerte ({city}).',
+    signTermsIntroFirstTimeNoCity:
+      'Du er nå i ferd med å signere det gjeldende brukerdokumentet for utleiere. Hvilket dokument som brukes, bestemmes av kommune/område for den første boligen du registrerte.',
+    signTermsIntroAdditionalSigning:
+      'Du har allerede en aktiv utleieravtale. Her signer du kun det som mangler for valgt område (for eksempel regional avtale i tillegg til grunnavtalen), med BankID.',
+    signTermsNoApprovedDocument:
+      'Det finnes ingen godkjent vilkårs-PDF for dette området ennå. Kommunens dokument må godkjennes sentralt før det tilbys for BankID-signering. Ta kontakt med kommunen, eller prøv igjen senere.',
+    signTermsConfirmReadDocument:
+      'Jeg bekrefter at jeg har lest og forstått dokumentet jeg skal signere',
+    signTermsConfirmBankIdLine:
+      'Ved å trykke på knappen nedenfor signerer du avtalen digitalt med BankID.',
+    signTermsNoDocCardTitle: 'Ingen signering tilgjengelig',
+    signTermsScrollHint: 'Les helt til bunnen for å aktivere signering',
+    signTermsReadThroughTitle: 'Du har nå gjennomgått hele avtalen.',
+    signTermsReadThroughSub: 'Bekreft nedenfor for å fortsette.',
     signedAgreement: 'Signert avtale',
     logOut: 'Logg ut',
     logoutRedirecting: 'Logger ut …',
@@ -51,7 +68,7 @@ export const translations = {
     termsDocumentsDesc:
       'Last opp PDF som utleiere ser før BankID-signering. Tomt område = alle kommuner (global mal). Med område (f.eks. Narvik) overstyrer global for utleiere med bolig der.',
     termsDocumentsDescAdmin:
-      'Som kommune-admin laster du opp PDF kun for dine tildelte kommuner/områder. Du kan ikke opprette global mal her — standard-PDF fra systemet vises under «Publiserte dokumenter».',
+      'Som kommune-admin laster du opp PDF kun for dine tildelte kommuner/områder. Nye opplastinger sendes til sentral gjennomgang og gjelder for utleieres BankID-signering først etter godkjenning. Du kan ikke opprette global mal her — standard-PDF fra systemet vises under «Publiserte dokumenter».',
     termsRegionLabelAdmin: 'Kommune / område for dette dokumentet',
     termsRegionPickPlaceholder: 'Velg kommune …',
     termsRegionMultiHint:
@@ -83,6 +100,12 @@ export const translations = {
     termsConfirmReadPdf: 'Jeg bekrefter at jeg har lest PDF-dokumentet',
     termsPublish: 'Publiser ny versjon',
     termsPublishing: 'Publiserer…',
+    termsUploadNewVersionHeading: 'Last opp ny versjon',
+    termsSubmitForCentralReview: 'Send til sentral gjennomgang',
+    termsCentralWorkflowNote:
+      'Nye dokumenter er ikke synlige for utleieres signering før de er godkjent sentralt. Varsel sendes til info@bolynorge.no. Godkjenning kan settes i Supabase (kolonnen approved_for_utleier_signing).',
+    termsPendingCentralBadge: 'Venter sentral godkjenning',
+    termsApprovedForLandlordsBadge: 'Godkjent for utleiersignering',
     termsListHeading: 'Publiserte dokumenter',
     termsEmpty: 'Ingen vilkår ennå. Last opp første PDF under.',
     termsSignedVersionLine: 'Aktiv tekstversjon: {title} (v{version})',
@@ -158,13 +181,22 @@ export const translations = {
     inCollaborationWith: 'i samarbeid med',
     contactUs: 'Kontakt oss',
     info: 'Informasjon',
-    termsOfUse: 'Vilkår for bruk',
+    termsOfUse: 'Vilkårsavtale du signerer (BankID)',
+    termsPreliminaryBrowsing: 'Preliminære brukervilkår (informasjon)',
     privacy: 'Personvern',
     aboutBoly: 'Om Boly',
     comingSoon: 'Kommer snart',
     footerDevelopedLine1: 'Boly er utviklet av Nav',
     footerDevelopedLine2: 'Narvik og Gamechanging',
     copyright: '© 2026 Alle rettigheter reservert.',
+    footerCookieSettings: 'Informasjonskapsler',
+    cookieBannerAriaLabel: 'Samtykke til informasjonskapsler',
+    cookieBannerTitle: 'Informasjonskapsler',
+    cookieBannerBody:
+      'Vi bruker nødvendige informasjonskapsler for innlogging og sikkerhet (f.eks. økt fra leverandør). Med «Godta alle» kan vi også ta i bruk valgfrie kapsler til statistikk eller lignende der loven krever samtykke. Du kan velge kun nødvendige eller godta alt. Les mer i ',
+    cookiePrivacyLinkText: 'personvern­erklæringen',
+    cookieRejectNonEssential: 'Kun nødvendige',
+    cookieAcceptAll: 'Godta alle',
 
     // Settings
     settings: 'Innstillinger',
@@ -227,6 +259,22 @@ export const translations = {
     markAvailable: 'Merk som tilgjengelig',
     formidletByKommune:
       'Denne boligen er markert som formidlet av kommunen og status kan ikke endres av utleier.',
+    ownerCannotEditListingWhenFormidlet:
+      'Boligen er markert som formidlet. Du kan ikke endre boliginformasjon, bilder, priser eller husordensregler her; fakturagrunnlag fyller du ut i eget avsnitt nedenfor.',
+    houseRulesTitle: 'Husordensregler',
+    houseRulesHelp:
+      'Valgfritt PDF-vedlegg (f.eks. husordensregler). Maks 10 MB. Kan endres på boligdetalj inntil boligen er formidlet.',
+    houseRulesChooseFile: 'Velg PDF',
+    houseRulesOpenPdf: 'Åpne PDF',
+    houseRulesRemove: 'Fjern vedlegg',
+    houseRulesReplace: 'Bytt PDF',
+    houseRulesNone: 'Ingen husordensregler lastet opp.',
+    houseRulesValidationType: 'Filen må være PDF.',
+    houseRulesValidationSize: 'PDF er for stor (maks 10 MB).',
+    houseRulesUploadError: 'Kunne ikke laste opp husordensregler.',
+    regHouseRulesLabel: 'Husordensregler (valgfritt)',
+    regHouseRulesHint: 'Last opp én PDF om du har husordensregler for boligen.',
+    regHouseRulesClear: 'Fjern valg',
     availablePeriods: 'Tilgjengelige perioder',
     noPeriods: 'Ingen perioder lagt til ennå.',
     close: 'Lukk',
@@ -322,6 +370,7 @@ export const translations = {
       'Dere har ikke felles kommune- eller områdetilgang i profilen. Andre saksbehandlere og kommune-admins ser du bare når minst ett av deres tildelte områder overlapper med dine.',
     seeProperty: 'Se bolig',
     editListing: 'Rediger bolig',
+    viewListing: 'Vis bolig',
     extend: 'Forleng',
     remove: 'Fjern',
     table: 'Tabell',
@@ -356,6 +405,20 @@ export const translations = {
     loginHere: 'Logg inn her',
     signUpHere: 'Registrer deg her',
     forgotPassword: 'Glemt passordet ditt?',
+    forgotPasswordPageTitle: 'Tilbakestill passord',
+    forgotPasswordPageDesc:
+      'Skriv inn e-postadressen din. Hvis den finnes i systemet, sender vi en lenke for å velge nytt passord.',
+    forgotPasswordSubmit: 'Send lenke',
+    passwordResetEmailSent:
+      'Hvis du har en konto med denne e-postadressen, har vi sendt en lenke. Sjekk innboks og søppelpost.',
+    forgotPasswordBackToLogin: '← Tilbake til innlogging',
+    updatePasswordPageTitle: 'Velg nytt passord',
+    updatePasswordPageDesc: 'Skriv inn passordet du vil bruke fra nå av.',
+    confirmPasswordLabel: 'Bekreft passord',
+    passwordMismatch: 'Passordene er ikke like.',
+    updatePasswordSubmit: 'Lagre nytt passord',
+    updatePasswordNoSession: 'Lenken er ugyldig eller utløpt. Be om en ny tilbakestillingslenke.',
+    loginPasswordResetSuccess: 'Passordet er oppdatert. Du kan logge inn på nytt.',
     usersDesc: 'Oversikt over alle registrerte utleiere i Boligbank.',
     searchByNamePlaceholder: 'Søk etter navn...',
     signedOn: 'Signert',
@@ -465,6 +528,8 @@ export const translations = {
     messagesAccountListHint: 'Velg en utleier for å åpne chat.',
     messagesPickConversationPlaceholder:
       'Velg en samtale til venstre, eller start en ny chat fra brukerlisten.',
+    messagesSensitiveDataNotice:
+      'Unngå å dele sensitive personopplysninger (f.eks. helse, straffesak eller opplysninger om andre) i chatten.',
     expiredAndInactive: 'Utløpte & Inaktive',
     expiredDesc:
       'Historisk oversikt over brukere og boliger som ikke lenger er aktive i Boligbank.',
@@ -809,14 +874,35 @@ export const translations = {
     listingMapPinShowOnMap: 'Vis boligen på kartet',
     messagesKommuneContacts: 'Saksbehandlere i din kommune',
     messagesKommuneBroadcast: 'Melding til kommunen',
+    messagesLandlordMultiRegionHint:
+      'Du har boliger i flere kommuner. Velg hvilken kommune meldingen gjelder — hver kommune har egen samtale.',
+    messagesSendToKommuneLabel: 'Send til kommune',
+    messagesLandlordRegionPickerAria: 'Velg kommune for meldingen',
   },
   se: {
     // Header & nav – Northern Sami (Davvisámegiella)
     userPanel: 'Bruhkarásiidu',
     myProperties: 'Mu dávvirat',
     signTerms: 'Almmuhán oaivámuša',
+    signTermsPageTitle: 'Oaivámuša almmu',
     signTermsCityHint:
-      'Oaivámuš mii čájehuvvo lea čadnon dávvira {city} (kommuvdna registreremis).',
+      'Dokumeanta mii gustu alibmái lea čadnon dávvira {city} (kommuvdna/guovlu registreremis).',
+    signTermsIntroFirstTimeWithCity:
+      'Don leat dál vuosttaš dávvira registreren {city} várás hábmimin gullevaš brukerdokumeantta goddánuslohkái, mii lea heivehuvvon dan guvlui.',
+    signTermsIntroFirstTimeNoCity:
+      'Don leat dál hábmimin gullevaš brukerdokumeantta goddánuslohkái. Makkár dokumeanta geavahuvvo, mearrida kommuvnna/guovllu vuosttaš dávvira registreremis.',
+    signTermsIntroAdditionalSigning:
+      'Dus lea juo aktiiva goddánusoapmi. Dás don vuolláičáhpat dušše dan mii váilot válljejuvvon guovllus (omd. regiovnnalaš oktavuohta lassin vuođđooaivámuššii) BankID:in.',
+    signTermsNoApprovedDocument:
+      'Ii leat dohkkehuvvon vilkár-PDF dán guovllus vel. Kommuvnna dokumeanta ferte dohkkehuvvot guovddás ovdal go dat addojuvvo BankID-albmái. Váldde oktavuođa kommuvdnii dahje geahččal fas maŋŋil.',
+    signTermsConfirmReadDocument:
+      'Dohkkehan ahte lean lohkan ja ádden dokumeantta man galggan vuolláičáhppat',
+    signTermsConfirmBankIdLine:
+      'Go deaddilat vuolležis boksa, de vuolláičáhpat šiehtadusa digitálalaččat BankID:in.',
+    signTermsNoDocCardTitle: 'Almmu ii leat olámuttos',
+    signTermsScrollHint: 'Lohpa buot vuollás aktiveret almmu',
+    signTermsReadThroughTitle: 'Don leat dál čađahan buot oaivámuša.',
+    signTermsReadThroughSub: 'Dohkke vuollá čađahit.',
     signedAgreement: 'Almmuhan oaivámuš',
     logOut: 'Lohkkás',
     logoutRedirecting: 'Loggejit olggos …',
@@ -856,7 +942,7 @@ export const translations = {
     termsDocumentsDesc:
       'Vurke PDF maid goddánuslohkkit oainnat ovdal BankID-almmu. Gulis guovlu = buot kommuvnnat. Namain guovllu sáhttá bisánit globála málli.',
     termsDocumentsDescAdmin:
-      'Kommuvdna-adminin vurket du PDF dušše iežat guovlluide. It sáhte láhit globála málli das — standárda-PDF čájehuvvo «Almmuhan dokumeanttat».',
+      'Kommuvdna-adminin vurket du PDF dušše iežat guovlluide. Ođđa dokumeanttat sáddejuvvojit guovddáš geahčadeapmái ja gustojit goddánuslohkkiide dušše go dat leat dohkkehuvvon. It sáhte láhit globála málli das — standárda-PDF čájehuvvo «Almmuhan dokumeanttat».',
     termsRegionLabelAdmin: 'Kommune / guovlu dán dokumeantta várás',
     termsRegionPickPlaceholder: 'Vállje kommuvnna …',
     termsRegionMultiHint:
@@ -887,6 +973,12 @@ export const translations = {
     termsConfirmReadPdf: 'Dohkkehan ahte lean lohkan PDF-dokumeantta',
     termsPublish: 'Almmuh ođđa veršuvnna',
     termsPublishing: 'Almmuha…',
+    termsUploadNewVersionHeading: 'Vurke ođđa veršuvnna',
+    termsSubmitForCentralReview: 'Sádde guovddáš geahčadeapmái',
+    termsCentralWorkflowNote:
+      'Ođđa dokumeanttat eai leat oidnosis goddánuslohkkiide ovdal go dat leat dohkkehuvvon guovddás. Dieđihan sáddejuvvo info@bolynorge.no. Dohkkehusa sáhttá ásahit Supabase:is (approved_for_utleier_signing).',
+    termsPendingCentralBadge: 'Vuordá guovddáš dohkkehusa',
+    termsApprovedForLandlordsBadge: 'Dohkkehuvvon goddánuslohkkiide',
     termsListHeading: 'Almmuhan dokumeanttat',
     termsEmpty: 'Eai ektui dál. Vurke vuosttaš PDF vuolábealde.',
     termsSignedVersionLine: 'Aktiiva teakstaveršuvdna: {title} (v{version})',
@@ -960,13 +1052,22 @@ export const translations = {
     inCollaborationWith: 'samen oažžun',
     contactUs: 'Ozažat',
     info: 'Dieđut',
-    termsOfUse: 'Geavahan ektui',
+    termsOfUse: 'Oaivámuš maid vuolláičáhpat (BankID)',
+    termsPreliminaryBrowsing: 'Ovddit geavahaneaktut (dieđihan)',
     privacy: 'Iešdovdus',
     aboutBoly: 'Boly birra',
     comingSoon: 'Boatná beaivi',
     footerDevelopedLine1: 'Boly lea ráhkaduvvon Nav',
     footerDevelopedLine2: 'Narvik ja Gamechanging',
     copyright: '© 2026 Buot vuoigatvuođat galgen.',
+    footerCookieSettings: 'Dieđihančalmmit',
+    cookieBannerAriaLabel: 'Dohkkehus dieđihančalmmiide',
+    cookieBannerTitle: 'Dieđihančalmmit',
+    cookieBannerBody:
+      'Mii geavat dárbbalaš dieđihančalmmaid sisačáliheapmái ja dorvvolašvuhtii (ovdamearkka sesuvdna). «Dohket buot»-válljema bokte sáhttet maiddái vejolaš ii-dárbbalaš čalmmit, main lea lohpi statistihka várás. Sáhtát válljet dušše dárbbalaš dahje dohket buot. Loga lasi ',
+    cookiePrivacyLinkText: 'iešdovdusdiedádusas',
+    cookieRejectNonEssential: 'Dušše dárbbalaš',
+    cookieAcceptAll: 'Dohket buot',
 
     // Settings
     settings: 'Heivehusat',
@@ -1028,6 +1129,22 @@ export const translations = {
     markAvailable: 'Merke hábmet',
     formidletByKommune:
       'Dán dávir lea merke formiduhttimin kommuvdnas ja stáhtus sáhttá ii rievddadit goddánuslohkki.',
+    ownerCannotEditListingWhenFormidlet:
+      'Dávvir lea merken formidleruvvon. It sáhte rievdadit dieđuid, govaid, háhkaid dahje viessodráđđehusaid; reivevuođđu dievdat sierra oasis vuollás.',
+    houseRulesTitle: 'Viessodráđđehus',
+    houseRulesHelp:
+      'Ii ferte PDF (omd. viessodráđđehusat). Max 10 MB. Sáhttá rievdadit ovdal go dávvir lea formidleruvvon.',
+    houseRulesChooseFile: 'Vállje PDF',
+    houseRulesOpenPdf: 'Raba PDF',
+    houseRulesRemove: 'Sihko liđi',
+    houseRulesReplace: 'Rievdda PDF',
+    houseRulesNone: 'Ii leat PDF lasihan.',
+    houseRulesValidationType: 'Fiilla ferte leat PDF.',
+    houseRulesValidationSize: 'PDF lea menddo stuoris (max 10 MB).',
+    houseRulesUploadError: 'Ii sáhttán ládjet PDF.',
+    regHouseRulesLabel: 'Viessodráđđehusat (ii ferte)',
+    regHouseRulesHint: 'Ládde ovtta PDF jus dus leat viessodráđđehusat dávvira várás.',
+    regHouseRulesClear: 'Sihko válljema',
     availablePeriods: 'Hábme áigodat',
     noPeriods: 'Eai áigodat lasihan.',
     close: 'Gidde',
@@ -1120,6 +1237,7 @@ export const translations = {
       'Ehpet leat oktasaš kommuvnna- dahje guovlubajidusa profiillas. Oainnat eará saksbeallegiid ja kommuvdna-admiid dušše go ummáseamos okta sin juogaduvvon guovlluide lea ovttas duiguin.',
     seeProperty: 'Čájeh dávira',
     editListing: 'Rievdat dávira',
+    viewListing: 'Čájet dávvira',
     extend: 'Nuppástuhte',
     remove: 'Sihkkut',
     table: 'Tabellá',
@@ -1154,6 +1272,20 @@ export const translations = {
     loginHere: 'Sisa dál',
     signUpHere: 'Registrere dál',
     forgotPassword: 'Väldde sálti?',
+    forgotPasswordPageTitle: 'Ođčasit sálti',
+    forgotPasswordPageDesc:
+      'Čále e-poastačujuhusa. Jus dat gávdno, sáddejit liŋkka ođđa sálti válljemii.',
+    forgotPasswordSubmit: 'Sádde liŋkka',
+    passwordResetEmailSent:
+      'Jus dus lea kontu dán e-poasttain, leat sáddejuvvon liŋkka. Geahčal sisačujuhusa ja suohpánbáikái.',
+    forgotPasswordBackToLogin: '← Máhcat sisačáliheapmái',
+    updatePasswordPageTitle: 'Vállje ođđa sálti',
+    updatePasswordPageDesc: 'Čále sálti maid hálat geavahit dál rájes.',
+    confirmPasswordLabel: 'Nannet sálti',
+    passwordMismatch: 'Sáltit eai sullas.',
+    updatePasswordSubmit: 'Vurke ođđa sálti',
+    updatePasswordNoSession: 'Liŋka lea lossa dahje heakka. Bivdde ođđa liŋkka.',
+    loginPasswordResetSuccess: 'Sálti lea ođastuvvon. Sáhtát sisačálihit ođđasit.',
     usersDesc: 'Ovdánahtti buot registrereduvvon goddánuslohkiid Beaivvášbánccus.',
     searchByNamePlaceholder: 'Oza namma...',
     signedOn: 'Almmuhan',
@@ -1260,6 +1392,8 @@ export const translations = {
     messagesAccountListHint: 'Vállje goddánuslohkki rabastit sáhcastallama.',
     messagesPickConversationPlaceholder:
       'Vállje sáhcastallama olgešbealde, dahje álggat ođđa sáhcastallama bruhkalisttu.',
+    messagesSensitiveDataNotice:
+      'Alit juogo heivehis persovnnadieđuid (ovdamearka dearvvašvuođa, lágasáššiid dahje dieđuid earáid birra) sáhcastallamis.',
     expiredAndInactive: 'Lohppan & Ii aktiiva',
     expiredDesc: 'Historjá buot bruhkaide ja dáviraide maid eai leat aktiiva Beaivvášbánccus.',
     inactiveUsers: 'Ii aktiiva bruhkat',
@@ -1595,14 +1729,35 @@ export const translations = {
     listingMapPinShowOnMap: 'Čájet dávvira kártas',
     messagesKommuneContacts: 'Gieđahallit du kommuvnnas',
     messagesKommuneBroadcast: 'Sáhcastat kommuvdnii',
+    messagesLandlordMultiRegionHint:
+      'Dus leat dávvirat máŋggain kommuvnnain. Vállje makkár kommuvdnii sáhcastat gullet — juohke kommuvdnas lea iežas sáhcastallan.',
+    messagesSendToKommuneLabel: 'Sádde kommuvdnii',
+    messagesLandlordRegionPickerAria: 'Vállje kommuvdnas sáhcastaga várás',
   },
   en: {
     // Header & nav
     userPanel: 'User panel',
     myProperties: 'My properties',
     signTerms: 'Sign terms',
+    signTermsPageTitle: 'Sign the terms agreement',
     signTermsCityHint:
-      'The agreement shown is tied to a property in {city} (municipality from your registration).',
+      'The document you must sign is tied to a property in {city} (municipality/area from your registration).',
+    signTermsIntroFirstTimeWithCity:
+      'You are about to sign the current landlord user document for your region, based on the area of the first property you registered ({city}).',
+    signTermsIntroFirstTimeNoCity:
+      'You are about to sign the current landlord user document. Which document applies is determined by the municipality/area of the first property you registered.',
+    signTermsIntroAdditionalSigning:
+      'You already have an active landlord agreement. Here you only sign what is still missing for the selected area (for example a regional agreement in addition to the base agreement), using BankID.',
+    signTermsNoApprovedDocument:
+      'There is no approved terms PDF for this area yet. The municipality’s document must be centrally approved before it is offered for BankID signing. Contact the municipality or try again later.',
+    signTermsConfirmReadDocument:
+      'I confirm that I have read and understood the document I am about to sign',
+    signTermsConfirmBankIdLine:
+      'By tapping the button below you sign the agreement digitally with BankID.',
+    signTermsNoDocCardTitle: 'Signing not available',
+    signTermsScrollHint: 'Read to the bottom to enable signing',
+    signTermsReadThroughTitle: 'You have now read through the full agreement.',
+    signTermsReadThroughSub: 'Confirm below to continue.',
     signedAgreement: 'Signed agreement',
     logOut: 'Log out',
     logoutRedirecting: 'Signing out…',
@@ -1642,7 +1797,7 @@ export const translations = {
     termsDocumentsDesc:
       'Upload the PDF landlords see before BankID signing. Empty area = global template for all. With an area (e.g. Narvik) it overrides the global template for landlords with a property there.',
     termsDocumentsDescAdmin:
-      'As municipality admin you upload PDFs only for your assigned areas. You cannot create a global template here — the system default PDF is listed under Published documents.',
+      'As municipality admin you upload PDFs only for your assigned areas. New uploads go to central review and only apply to landlord BankID signing after approval. You cannot create a global template here — the system default PDF is listed under Published documents.',
     termsRegionLabelAdmin: 'Municipality / area for this document',
     termsRegionPickPlaceholder: 'Select municipality…',
     termsRegionMultiHint:
@@ -1673,6 +1828,12 @@ export const translations = {
     termsConfirmReadPdf: 'I confirm I have read the PDF document',
     termsPublish: 'Publish new version',
     termsPublishing: 'Publishing…',
+    termsUploadNewVersionHeading: 'Upload new version',
+    termsSubmitForCentralReview: 'Submit for central review',
+    termsCentralWorkflowNote:
+      'New documents are not offered to landlords for signing until centrally approved. A notification is sent to info@bolynorge.no. Approval can be set in Supabase (column approved_for_utleier_signing).',
+    termsPendingCentralBadge: 'Pending central approval',
+    termsApprovedForLandlordsBadge: 'Approved for landlord signing',
     termsListHeading: 'Published documents',
     termsEmpty: 'No terms yet. Upload the first PDF below.',
     termsSignedVersionLine: 'Active text version: {title} (v{version})',
@@ -1747,13 +1908,22 @@ export const translations = {
     inCollaborationWith: 'in collaboration with',
     contactUs: 'Contact us',
     info: 'Information',
-    termsOfUse: 'Terms of use',
+    termsOfUse: 'Agreement you sign (BankID)',
+    termsPreliminaryBrowsing: 'Preliminary terms of use (information)',
     privacy: 'Privacy',
     aboutBoly: 'About Boly',
     comingSoon: 'Coming soon',
     footerDevelopedLine1: 'Boly is developed by Nav',
     footerDevelopedLine2: 'Narvik and Gamechanging',
     copyright: '© 2026 All rights reserved.',
+    footerCookieSettings: 'Cookies',
+    cookieBannerAriaLabel: 'Cookie consent',
+    cookieBannerTitle: 'Cookies',
+    cookieBannerBody:
+      'We use strictly necessary cookies for sign-in and security (e.g. session cookies from our provider). If you choose “Accept all”, we may also use optional cookies for analytics or similar where consent is required. You can choose necessary only or accept all. Read more in our ',
+    cookiePrivacyLinkText: 'privacy notice',
+    cookieRejectNonEssential: 'Necessary only',
+    cookieAcceptAll: 'Accept all',
 
     // Settings
     settings: 'Settings',
@@ -1815,6 +1985,22 @@ export const translations = {
     markAvailable: 'Mark as available',
     formidletByKommune:
       'This property is marked as mediated by the municipality and status cannot be changed by the landlord.',
+    ownerCannotEditListingWhenFormidlet:
+      'This listing is mediated. You cannot change property details, photos, prices or house rules here; use the invoice basis section below for payment details.',
+    houseRulesTitle: 'House rules',
+    houseRulesHelp:
+      'Optional PDF attachment (e.g. house rules). Max 10 MB. You can change it on the listing page until the home is mediated.',
+    houseRulesChooseFile: 'Choose PDF',
+    houseRulesOpenPdf: 'Open PDF',
+    houseRulesRemove: 'Remove attachment',
+    houseRulesReplace: 'Replace PDF',
+    houseRulesNone: 'No house rules PDF uploaded.',
+    houseRulesValidationType: 'The file must be a PDF.',
+    houseRulesValidationSize: 'The PDF is too large (max 10 MB).',
+    houseRulesUploadError: 'Could not upload house rules PDF.',
+    regHouseRulesLabel: 'House rules (optional)',
+    regHouseRulesHint: 'Upload one PDF if you have house rules for the property.',
+    regHouseRulesClear: 'Clear selection',
     availablePeriods: 'Available periods',
     noPeriods: 'No periods added yet.',
     close: 'Close',
@@ -1908,6 +2094,7 @@ export const translations = {
       'Your municipality areas in your profiles do not overlap. You only see other caseworkers and municipality admins when at least one of their assigned areas matches yours.',
     seeProperty: 'View property',
     editListing: 'Edit property',
+    viewListing: 'View listing',
     extend: 'Extend',
     remove: 'Remove',
     table: 'Table',
@@ -1942,6 +2129,20 @@ export const translations = {
     loginHere: 'Log in here',
     signUpHere: 'Sign up here',
     forgotPassword: 'Forgot your password?',
+    forgotPasswordPageTitle: 'Reset password',
+    forgotPasswordPageDesc:
+      'Enter your email address. If it is registered, we will send a link to choose a new password.',
+    forgotPasswordSubmit: 'Send link',
+    passwordResetEmailSent:
+      'If you have an account with this email, we have sent a link. Check your inbox and spam folder.',
+    forgotPasswordBackToLogin: '← Back to sign in',
+    updatePasswordPageTitle: 'Choose a new password',
+    updatePasswordPageDesc: 'Enter the password you want to use from now on.',
+    confirmPasswordLabel: 'Confirm password',
+    passwordMismatch: 'Passwords do not match.',
+    updatePasswordSubmit: 'Save new password',
+    updatePasswordNoSession: 'This link is invalid or has expired. Request a new reset link.',
+    loginPasswordResetSuccess: 'Your password was updated. You can sign in again.',
     usersDesc: 'Overview of all registered landlords in Boligbank.',
     searchByNamePlaceholder: 'Search by name...',
     signedOn: 'Signed',
@@ -2051,6 +2252,8 @@ export const translations = {
     messagesAccountListHint: 'Select a landlord to open the chat.',
     messagesPickConversationPlaceholder:
       'Select a conversation on the left, or start a new chat from the user list.',
+    messagesSensitiveDataNotice:
+      'Avoid sharing sensitive personal data (e.g. health, criminal matters, or information about others) in chat.',
     expiredAndInactive: 'Expired & Inactive',
     expiredDesc:
       'Historical overview of users and properties no longer active in Boligbank.',
@@ -2391,6 +2594,10 @@ export const translations = {
     listingMapPinShowOnMap: 'Show listing on map',
     messagesKommuneContacts: 'Caseworkers in your municipality',
     messagesKommuneBroadcast: 'Message to the municipality',
+    messagesLandlordMultiRegionHint:
+      'You have listings in more than one municipality. Choose which municipality this message is about — each municipality has its own thread.',
+    messagesSendToKommuneLabel: 'Send to municipality',
+    messagesLandlordRegionPickerAria: 'Choose municipality for this message',
   },
 } as const
 

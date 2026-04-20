@@ -79,8 +79,9 @@ supabase secrets set SIGNICAT_SECRET_SIGN="paste-value-here" --project-ref <PROJ
 supabase secrets set SIGNICAT_CLIENT_ID_SIGN="your-api-client-id" --project-ref <PROJECT_REF>
 supabase secrets set VAPID_KEY="paste-private-key" --project-ref <PROJECT_REF>
 supabase secrets set VAPID_PUBLIC_KEY="paste-public-key" --project-ref <PROJECT_REF>
-supabase secrets set RESEND_API_KEY="re_..." --project-ref <PROJECT_REF>
-supabase secrets set SMTP_FROM="noreply@yourdomain.com" --project-ref <PROJECT_REF>
+supabase secrets set MAILJET_API_KEY="your-mailjet-api-key" --project-ref <PROJECT_REF>
+supabase secrets set MAILJET_SECRET_KEY="your-mailjet-secret-key" --project-ref <PROJECT_REF>
+supabase secrets set NOTIFICATION_FROM_EMAIL="noreply@yourdomain.com" --project-ref <PROJECT_REF>
 ```
 
 Repeat for any SMTP variables you use (see section 5).
@@ -94,9 +95,11 @@ Repeat for any SMTP variables you use (see section 5).
 | `SIGNICAT_CLIENT_ID_SIGN` | `sign-agreement` | **Production:** set to the same API client’s **Client ID** as the secret (Signicat → Settings → API clients). If unset, code falls back to sandbox ID for local dev only. |
 | `VAPID_KEY` (or `VAPID_PRIVATE_KEY` or `VAPID-KEY`) | `send-push` | Yes for web push |
 | `VAPID_PUBLIC_KEY` | `send-push` | Recommended (else default in code) |
-| `RESEND_API_KEY` | `send-notification-email` | Optional if using Resend |
-| `SMTP_FROM` or `RESEND_FROM` | `send-notification-email` | With Resend or SMTP |
-| `SMTP_HOSTNAME`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_PORT`, `SMTP_SECURE` | `send-notification-email` | If using SMTP instead of Resend |
+| `MAILJET_API_KEY` | `send-notification-email`, `notify-terms-central-review` | With `MAILJET_SECRET_KEY` for Mailjet REST API |
+| `MAILJET_SECRET_KEY` | `send-notification-email`, `notify-terms-central-review` | Mailjet **secret** (pair with API key in dashboard) |
+| `NOTIFICATION_FROM_EMAIL` or `SMTP_FROM` | `send-notification-email`, `notify-terms-central-review` | Verified sender address in Mailjet |
+| `SMTP_HOSTNAME`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_PORT`, `SMTP_SECURE` | `send-notification-email`, `notify-terms-central-review` | Optional: Mailjet SMTP instead of REST API |
+| `CENTRAL_TERMS_INBOX` | `notify-terms-central-review` | Optional (default `info@bolynorge.no`) |
 | `NOTIFICATION_APP_BASE_URL` | `send-notification-email` | Optional (default production URL in code) |
 | `NOTIFICATION_FROM_NAME` | `send-notification-email` | Optional |
 | `NOTIFICATION_SUPPORT_EMAIL` | `send-notification-email` | Optional |
@@ -195,22 +198,31 @@ Deploy: `supabase functions deploy sign-agreement --project-ref <PROJECT_REF>`.
 
 ---
 
-## 4. Resend (email via HTTPS)
+## 4. Mailjet (transactional email via REST API)
 
-1. Go to [https://resend.com](https://resend.com) → sign in → **API Keys**.
-2. Create a key → copy (starts with `re_`).
-3. Add domain and verify **sender** email in Resend **Domains**.
-4. Put in Supabase Edge secrets:
-   - `RESEND_API_KEY` = the API key
-   - `SMTP_FROM` = verified sender, e.g. `Boly <onboarding@yourdomain.com>` (must match Resend’s allowed senders)
+Boly sends mail through **Mailjet** (`https://api.mailjet.com/v3.1/send`) using your **API key** and **secret key** (Basic auth). This replaces the previous Resend integration.
 
-Deploy: `supabase functions deploy send-notification-email --project-ref <PROJECT_REF>`
+1. Sign in at [Mailjet](https://www.mailjet.com/) → **Account** → **API Keys** (or **Master / Sub-account** keys).
+2. Copy the **API Key** and **Secret Key** (two separate values).
+3. Under **Sender domains & addresses**, verify the domain and the **From** address you will use.
+4. Set Edge Function secrets:
+   - `MAILJET_API_KEY` — public API key  
+   - `MAILJET_SECRET_KEY` — secret key  
+   - `NOTIFICATION_FROM_EMAIL` — verified sender email (e.g. `notifikasjon@yourdomain.com`)
+
+Deploy:
+
+`supabase functions deploy send-notification-email --project-ref <PROJECT_REF>`
+
+`supabase functions deploy notify-terms-central-review --project-ref <PROJECT_REF>`
+
+If `MAILJET_*` is not set, the functions fall back to **SMTP** (section 5), e.g. Mailjet’s SMTP relay with `SMTP_HOSTNAME` = `in-v3.mailjet.com` and credentials from the same Mailjet account.
 
 ---
 
-## 5. SMTP (alternative to Resend)
+## 5. SMTP (alternative to Mailjet REST)
 
-If you use Gmail/Google Workspace or another SMTP:
+If you use Gmail/Google Workspace, Mailjet SMTP only, or another SMTP relay:
 
 | Secret | Example / note |
 |--------|----------------|
@@ -265,10 +277,10 @@ When `notifications` row is inserted, Supabase calls your function URL.
 
 - [ ] `frontend/.env.local`: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (publishable / **anon** `public` only — not `service_role`).
 - [ ] Supabase **Settings → API**: keys rotated if needed; project ref matches URLs.
-- [ ] Edge secrets: `SIGNICAT_SECRET_LOGIN`, `SIGNICAT_SECRET_SIGN`, VAPID, email (Resend or SMTP).
+- [ ] Edge secrets: `SIGNICAT_SECRET_LOGIN`, `SIGNICAT_SECRET_SIGN`, VAPID, email (Mailjet `MAILJET_API_KEY` + `MAILJET_SECRET_KEY` + `NOTIFICATION_FROM_EMAIL`, or full `SMTP_*`).
 - [ ] Signicat: redirect URI for OAuth = `https://<PROJECT_REF>.supabase.co/functions/v1/auth-signicat`.
 - [ ] Signicat: Sign API client secret in `SIGNICAT_SECRET_SIGN`; signing callbacks use `sign-callback` URL if required by Signicat.
-- [ ] Deploy affected functions: `auth-signicat`, `sign-agreement`, `send-push`, `send-notification-email`.
+- [ ] Deploy affected functions: `auth-signicat`, `sign-agreement`, `send-push`, `send-notification-email`, `notify-terms-central-review` (if used).
 - [ ] Database webhooks point to `https://<PROJECT_REF>.supabase.co/functions/v1/...` with your current ref.
 
 ---
@@ -279,7 +291,7 @@ When `notifications` row is inserted, Supabase calls your function URL.
 |---------|--------|
 | `redirect_uri mismatch` on BankID | Signicat OAuth client redirect list vs exact URL in section 3A. |
 | `SIGNICAT_SECRET_LOGIN` / `_SIGN` errors | Secret name spelling; redeploy function after setting secret. |
-| Email never sends | `RESEND_API_KEY` + verified domain, or full `SMTP_*`; logs in **Edge Functions → Logs**. |
+| Email never sends | `MAILJET_API_KEY` + `MAILJET_SECRET_KEY` + verified `NOTIFICATION_FROM_EMAIL`, or full `SMTP_*`; logs in **Edge Functions → Logs**. |
 | Push never fires | Webhook URL wrong ref; `VAPID_*` set; `send-push` deployed. |
 
 This file is the detailed map for Boly: use `<PROJECT_REF>` for Supabase, and your **production** Signicat domain plus the Dashboard paths above for OIDC vs API clients.

@@ -149,10 +149,14 @@ export default function PersonvernPage() {
 
           <h2 style={h2}>7. Informasjonskapsler (cookies)</h2>
           <p style={p}>
-            Nettsiden kan bruke nødvendige informasjonskapsler for innlogging, sikkerhet og
-            språkvalg. Valgfrie kapsler til analyse eller markedsføring innføres først etter
-            samtykke der loven krever det. Innhold i cookie-banner og detaljert liste bør
-            spesifiseres når løsningen er endelig konfigurert.
+            Ved første besøk vises et valg om informasjonskapsler. <strong>Nødvendige</strong>{' '}
+            kapsler brukes for innlogging, sikkerhet og økt mot vår leverandør (f.eks. Supabase) –
+            uten disse fungerer ikke innlogget bruk som tiltenkt. Velger du «Kun nødvendige», bruker
+            vi ikke valgfrie kapsler til analyse eller markedsføring. Velger du «Godta alle»,
+            samtykker du i tillegg til slike valgfrie formål når de tas i bruk. Du kan når som helst
+            endre valget via «Informasjonskapsler» i bunnteksten på siden. Enkelte innstillinger
+            (f.eks. språk) kan også lagres lokalt i nettleseren; det følger av hvordan du bruker
+            tjenesten.
           </p>
 
           <h2 style={h2}>8. Sikkerhet</h2>

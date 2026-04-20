@@ -10,6 +10,7 @@ import { useLanguage } from '../../context/LanguageContext'
 import { bolyLocaleToSignicatUi } from '../lib/signicatLocale'
 import { isKommuneStaffRole } from '../lib/kommuneRoles'
 import { Button } from '../components/ui/Button'
+import { devWarn } from '@/app/lib/appLogger'
 
 const AUTH_NETWORK_MS = 25000
 
@@ -55,6 +56,7 @@ function LoginPageContent() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/'
   const emailNotConfirmedReason = searchParams.get('reason') === 'email_not_confirmed'
+  const passwordResetSuccess = searchParams.get('reset') === 'success'
   const [loading, setLoading] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
@@ -69,6 +71,12 @@ function LoginPageContent() {
       setMessage({ type: 'error', text: t('loginEmailNotConfirmed') })
     }
   }, [emailNotConfirmedReason, t])
+
+  useEffect(() => {
+    if (passwordResetSuccess) {
+      setMessage({ type: 'success', text: t('loginPasswordResetSuccess') })
+    }
+  }, [passwordResetSuccess, t])
 
   useEffect(() => {
     let cancelled = false
@@ -168,12 +176,10 @@ function LoginPageContent() {
       if (err?.name === 'AuthTimeout' || err?.message === 'AUTH_TIMEOUT') {
         text = t('loginAuthNoResponse')
       } else if (isBrowserFetchNetworkError(error)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(
-            '[Boly] Login: request failed before response. Check NEXT_PUBLIC_SUPABASE_URL is reachable from the browser:',
-            process.env.NEXT_PUBLIC_SUPABASE_URL || '(missing)'
-          )
-        }
+        devWarn(
+          '[Boly] Login: request failed before response. Check NEXT_PUBLIC_SUPABASE_URL is reachable from the browser:',
+          process.env.NEXT_PUBLIC_SUPABASE_URL || '(missing)'
+        )
         text = t('loginAuthNetworkFailed')
       } else {
         const raw = (err?.message || '').toLowerCase()
@@ -447,7 +453,7 @@ function LoginPageContent() {
 
         {!isSignUp && (
           <div style={{ marginTop: 'var(--space-4)', textAlign: 'center' }}>
-            <Link href="/" style={{ fontSize: '0.9rem', color: 'var(--color-accent)' }}>
+            <Link href="/login/forgot-password" style={{ fontSize: '0.9rem', color: 'var(--color-accent)' }}>
               {t('forgotPassword')}
             </Link>
           </div>

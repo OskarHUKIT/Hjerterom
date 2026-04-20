@@ -15,6 +15,7 @@ import {
 } from '../../lib/kommuneRegions'
 import { isKommuneAdminRole } from '../../lib/kommuneRoles'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
+import { devWarn } from '@/app/lib/appLogger'
 
 const PDF_MAX_BYTES = 12 * 1024 * 1024
 
@@ -56,6 +57,7 @@ type TermsRow = {
   created_at: string | null
   pdf_bucket: string | null
   pdf_storage_path: string | null
+  approved_for_utleier_signing: boolean | null
 }
 
 type ListRow = { kind: 'storage_default' } | { kind: 'db'; row: TermsRow }
@@ -149,7 +151,7 @@ export default function TermsDocumentsPage() {
     const { data, error: err } = await supabase
       .from('terms_documents')
       .select(
-        'id, title, body, version, kommune_region, effective_from, created_at, pdf_bucket, pdf_storage_path'
+        'id, title, body, version, kommune_region, effective_from, created_at, pdf_bucket, pdf_storage_path, approved_for_utleier_signing'
       )
       .order('kommune_region', { ascending: true, nullsFirst: false })
       .order('version', { ascending: false })
@@ -248,18 +250,30 @@ export default function TermsDocumentsPage() {
       return
     }
 
-    const { error: insErr } = await supabase.from('terms_documents').insert({
-      title: title.trim(),
-      pdf_storage_path: path,
-      pdf_bucket: 'documents',
-      version: nextVersion,
-      kommune_region: kommuneRegion,
-    })
+    const { data: inserted, error: insErr } = await supabase
+      .from('terms_documents')
+      .insert({
+        title: title.trim(),
+        pdf_storage_path: path,
+        pdf_bucket: 'documents',
+        version: nextVersion,
+        kommune_region: kommuneRegion,
+      })
+      .select('id')
+      .maybeSingle()
     if (insErr) {
       await supabase.storage.from('documents').remove([path])
       setSaving(false)
       setError(insErr.message)
       return
+    }
+    if (inserted?.id) {
+      const { error: notifyErr } = await supabase.functions.invoke('notify-terms-central-review', {
+        body: { terms_document_id: inserted.id },
+      })
+      if (notifyErr) {
+        devWarn('notify-terms-central-review:', notifyErr.message)
+      }
     }
     setSaving(false)
     setPdfFile(null)
@@ -295,7 +309,13 @@ export default function TermsDocumentsPage() {
         <ArrowLeft size={18} /> {t('back')}
       </Link>
       <h1 style={{ fontSize: '2rem', marginBottom: 8 }}>{t('termsDocumentsTitle')}</h1>
-      <p style={{ color: 'var(--text-body)', marginBottom: 24, lineHeight: 1.5 }}>{desc}</p>
+      <p style={{ color: 'var(--text-body)', marginBottom: 12, lineHeight: 1.5 }}>{desc}</p>
+      <p
+        className="text-sm"
+        style={{ color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.5 }}
+      >
+        {t('termsCentralWorkflowNote')}
+      </p>
 
       {!kommuneCanEdit ? (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -316,7 +336,7 @@ export default function TermsDocumentsPage() {
               gap: 8,
             }}
           >
-            <Plus size={20} /> {t('termsPublish')}
+            <Plus size={20} /> {t('termsUploadNewVersionHeading')}
           </h2>
           {error && <p style={{ color: '#f87171', marginBottom: 12 }}>{error}</p>}
           {isAdmin && myRegions.length === 0 && (
@@ -435,7 +455,8 @@ export default function TermsDocumentsPage() {
               (isAdmin && (myRegions.length === 0 || adminSelectedRegions.length === 0))
             }
           >
-            <FileText size={18} /> {saving ? t('termsPublishing') : t('termsPublish')}
+            <FileText size={18} />{' '}
+            {saving ? t('termsPublishing') : t('termsSubmitForCentralReview')}
           </button>
         </form>
       )}
@@ -513,6 +534,27 @@ export default function TermsDocumentsPage() {
                   v{r.version}
                   {` · ${scopeLabel}`}
                   {r.effective_from ? ` · ${formatDateTimeNo(r.effective_from)}` : ''}
+                  {r.approved_for_utleier_signing ? (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        color: 'var(--text-muted)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      · {t('termsApprovedForLandlordsBadge')}
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        color: '#fbbf24',
+                        fontWeight: 600,
+                      }}
+                    >
+                      · {t('termsPendingCentralBadge')}
+                    </span>
+                  )}
                 </div>
                 <p
                   className="text-sm"

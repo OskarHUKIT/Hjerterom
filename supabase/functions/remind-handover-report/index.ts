@@ -1,19 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { buildCorsHeaders, handleCorsOptions } from "../_shared/cors.ts"
 import { edgeLog } from "../_shared/edgeLog.ts"
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-}
-
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+  const preflight = handleCorsOptions(req)
+  if (preflight) return preflight
 
   const cronSecret = Deno.env.get("CRON_SECRET")?.trim()
   if (cronSecret) {
@@ -24,7 +19,7 @@ serve(async (req) => {
       edgeLog("warn", "remind-handover-report unauthorized", {})
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
       })
     }
   }
@@ -33,7 +28,7 @@ serve(async (req) => {
     if (!SUPABASE_URL?.trim() || !SUPABASE_SERVICE_ROLE_KEY?.trim()) {
       return new Response(JSON.stringify({ error: "Missing Supabase configuration" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
       })
     }
 
@@ -56,14 +51,14 @@ serve(async (req) => {
       console.error("Error fetching availability:", availError)
       return new Response(
         JSON.stringify({ error: availError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
     if (!availabilities?.length) {
       return new Response(
         JSON.stringify({ message: "No formidlet periods starting tomorrow", notified: 0 }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
@@ -125,7 +120,7 @@ serve(async (req) => {
         message: `Checked ${availabilities.length} formidlet period(s), sent ${notified} reminder(s)`,
         notified,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
     )
   } catch (err: unknown) {
     edgeLog("error", "remind-handover-report", {
@@ -133,7 +128,7 @@ serve(async (req) => {
     })
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
     )
   }
 })

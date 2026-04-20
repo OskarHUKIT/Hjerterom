@@ -20,6 +20,7 @@ import {
   Send,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { logError } from '@/app/lib/appLogger'
 import { formatAuditLogDescription } from '../../lib/auditLogFormat'
 import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
@@ -277,7 +278,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
         setListings(listingsData || [])
         setHistory(logsData || [])
       } catch (err) {
-        console.error('Error fetching user profile:', err)
+        logError('Error fetching user profile:', err)
       } finally {
         setLoading(false)
       }

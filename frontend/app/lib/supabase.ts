@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Session, User } from '@supabase/supabase-js'
 import { createBrowserClient } from '@supabase/ssr'
+import { devWarn } from '@/app/lib/appLogger'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
@@ -8,8 +9,8 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 /** Uten URL/nøkkel henger ofte getSession/getUser — da blir hele appen «Laster…». */
 export const isSupabaseConfigured = Boolean(supabaseUrl.trim() && supabaseKey.trim())
 
-if (process.env.NODE_ENV === 'development' && !isSupabaseConfigured) {
-  console.warn(
+if (!isSupabaseConfigured) {
+  devWarn(
     '[Boly] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY — data will not load. Add them to frontend/.env.local'
   )
 }
@@ -151,11 +152,7 @@ if (!isSupabaseConfigured) {
       return result
     } catch (e) {
       if (isAuthOperationTimeout(e)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(
-            '[Boly] auth.getSession timed out — returning last known session (stale-while-revalidate)'
-          )
-        }
+        devWarn('[Boly] auth.getSession timed out — returning last known session (stale-while-revalidate)')
         return {
           data: { session: lastSessionMemory },
           error: null,
@@ -178,11 +175,7 @@ if (!isSupabaseConfigured) {
       return result
     } catch (e) {
       if (isAuthOperationTimeout(e)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(
-            '[Boly] auth.getUser timed out — returning last known user (stale-while-revalidate)'
-          )
-        }
+        devWarn('[Boly] auth.getUser timed out — returning last known user (stale-while-revalidate)')
         return {
           data: { user: lastUserMemory },
           error: null,
@@ -203,11 +196,9 @@ if (!isSupabaseConfigured) {
       return await withAuthTimeout(originalRefreshSession(), AUTH_OPERATION_TIMEOUT_MS)
     } catch (e) {
       if (isAuthOperationTimeout(e)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(
-            '[Boly] auth.refreshSession timed out — returning last known session (stale-while-revalidate)'
-          )
-        }
+        devWarn(
+          '[Boly] auth.refreshSession timed out — returning last known session (stale-while-revalidate)'
+        )
         return {
           data: { session: lastSessionMemory, user: lastUserMemory },
           error: null,

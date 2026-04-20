@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Starting Bo.ly Frontend Development
+echo Starting Boly Frontend Development
 echo ========================================
 echo.
 echo Frontend will be available at: http://localhost:3000

@@ -55,6 +55,7 @@ import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
 import type { PostgrestError } from '@supabase/supabase-js'
+import { logError } from '@/app/lib/appLogger'
 import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
 
 function navDbErrMessage(err: unknown): string {
@@ -63,9 +64,14 @@ function navDbErrMessage(err: unknown): string {
 
 type NavDbViewMode = 'table' | 'map' | 'timeline' | 'list'
 
-const MOBILE_DB_VIEW_KEY = 'boly-nav-db-view-mobile'
+const mobileNavDbViewKey = 'boly-nav-db-view-mobile'
 /** Gjenopprett tabell/kart/tidslinje etter retur fra listing (samme fane). */
-const SESSION_NAV_DB_VIEW_KEY = 'boly-nav-db-view-session'
+const sessionNavDbViewSessionKey = 'boly-nav-db-view-session'
+
+/** Maks rader per Supabase-kall; flere sider hentes i én `fetchListings`-kjøring. */
+const navDbListingsPageSize = 800
+/** Slutt å hente flere sider etter dette (sikkerhetsgrense). */
+const navDbListingsMaxRows = 30_000
 
 // Dynamically import Map component to avoid SSR issues
 const MapView = dynamic(() => import('../../components/MapView'), {
@@ -272,28 +278,28 @@ export default function NavDatabase() {
       if (new URLSearchParams(window.location.search).get('focusListing')?.trim()) {
         setViewMode('map')
         try {
-          localStorage.setItem(MOBILE_DB_VIEW_KEY, 'map')
+          localStorage.setItem(mobileNavDbViewKey, 'map')
         } catch {
           /* ignore */
         }
         return
       }
       const narrow = window.matchMedia('(max-width: 480px)').matches
-      const s = localStorage.getItem(MOBILE_DB_VIEW_KEY)
+      const s = localStorage.getItem(mobileNavDbViewKey)
       let next: NavDbViewMode = 'list'
       if (s === 'map') next = 'map'
       else if (s === 'list') next = 'list'
       else if (s === 'timeline' && !narrow) next = 'timeline'
       setViewMode(next)
       try {
-        localStorage.setItem(MOBILE_DB_VIEW_KEY, next)
+        localStorage.setItem(mobileNavDbViewKey, next)
       } catch {
         /* ignore */
       }
     } catch {
       setViewMode('list')
       try {
-        localStorage.setItem(MOBILE_DB_VIEW_KEY, 'list')
+        localStorage.setItem(mobileNavDbViewKey, 'list')
       } catch {
         /* ignore */
       }
@@ -305,7 +311,7 @@ export default function NavDatabase() {
     sessionDbViewRestoredRef.current = true
     if (focusListingId) return
     try {
-      const s = sessionStorage.getItem(SESSION_NAV_DB_VIEW_KEY)
+      const s = sessionStorage.getItem(sessionNavDbViewSessionKey)
       if (s === 'table' || s === 'map' || s === 'timeline' || s === 'list') {
         setViewMode(s)
       }
@@ -317,7 +323,7 @@ export default function NavDatabase() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     try {
-      sessionStorage.setItem(SESSION_NAV_DB_VIEW_KEY, viewMode)
+      sessionStorage.setItem(sessionNavDbViewSessionKey, viewMode)
     } catch {
       /* ignore */
     }
@@ -326,7 +332,7 @@ export default function NavDatabase() {
   const persistMobileDbView = useCallback((mode: NavDbViewMode) => {
     if (mode === 'table') return
     try {
-      localStorage.setItem(MOBILE_DB_VIEW_KEY, mode)
+      localStorage.setItem(mobileNavDbViewKey, mode)
     } catch {
       /* ignore */
     }
@@ -526,19 +532,100 @@ export default function NavDatabase() {
 
       setKommuneFetchError(null)
       if (isAuthorized && isKommuneStaffRole(userRole)) {
-        const res = await supabase.rpc('get_listings_for_kommune')
-        const raw = res.data
-        data = (Array.isArray(raw) ? raw : raw != null ? [raw] : []) as NavDatabaseListingRow[]
-        if (res.error) {
-          setKommuneFetchError(res.error.message || t('dbRpcFetchErrorHint'))
+        const acc: NavDatabaseListingRow[] = []
+        let offset = 0
+        let done = false
+        while (!done && offset < navDbListingsMaxRows) {
+          const res = await supabase.rpc('get_listings_for_kommune_paged', {
+            p_limit: navDbListingsPageSize,
+            p_offset: offset,
+          })
+          if (res.error) {
+            const msg = res.error.message || ''
+            const missingFn =
+              res.error.code === '42883' ||
+              /function.*does not exist|Could not find the function/i.test(msg)
+            if (missingFn && acc.length === 0) {
+              const legacy = await supabase.rpc('get_listings_for_kommune')
+              if (legacy.error) {
+                setKommuneFetchError(legacy.error.message || t('dbRpcFetchErrorHint'))
+                error = legacy.error
+                data = []
+              } else {
+                const raw = legacy.data
+                data = (Array.isArray(raw) ? raw : raw != null ? [raw] : []) as NavDatabaseListingRow[]
+                error = null
+              }
+            } else {
+              setKommuneFetchError(res.error.message || t('dbRpcFetchErrorHint'))
+              error = acc.length > 0 ? null : res.error
+              data = acc
+            }
+            done = true
+            break
+          }
+          const raw = res.data
+          const batch = (Array.isArray(raw) ? raw : raw != null ? [raw] : []) as NavDatabaseListingRow[]
+          acc.push(...batch)
+          if (batch.length < navDbListingsPageSize) {
+            data = acc
+            error = null
+            done = true
+            break
+          }
+          offset += batch.length
+          if (offset >= navDbListingsMaxRows) {
+            data = acc
+            error = null
+            if (batch.length === navDbListingsPageSize) {
+              logError('[nav/database] listings fetch stopped at row cap', navDbListingsMaxRows)
+            }
+            done = true
+          }
+        }
+        if (!done && acc.length > 0 && data.length === 0) {
+          data = acc
           error = null
-        } else {
-          error = res.error
         }
       } else {
-        const result = await supabase.from('listings').select('*')
-        data = (result.data || []) as NavDatabaseListingRow[]
-        error = result.error
+        const acc: NavDatabaseListingRow[] = []
+        let from = 0
+        let done = false
+        while (!done && from < navDbListingsMaxRows) {
+          const to = from + navDbListingsPageSize - 1
+          const result = await supabase
+            .from('listings')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .range(from, to)
+          if (result.error) {
+            error = result.error
+            data = acc.length > 0 ? acc : ((result.data || []) as NavDatabaseListingRow[])
+            done = true
+            break
+          }
+          const batch = (result.data || []) as NavDatabaseListingRow[]
+          acc.push(...batch)
+          if (batch.length === 0 || batch.length < navDbListingsPageSize) {
+            data = acc
+            error = null
+            done = true
+            break
+          }
+          from += batch.length
+          if (from >= navDbListingsMaxRows) {
+            data = acc
+            error = null
+            if (batch.length === navDbListingsPageSize) {
+              logError('[nav/database] listings fetch stopped at row cap', navDbListingsMaxRows)
+            }
+            done = true
+          }
+        }
+        if (!done && acc.length > 0 && data.length === 0) {
+          data = acc
+          error = null
+        }
       }
 
       if (error) throw error
@@ -666,7 +753,7 @@ export default function NavDatabase() {
       }))
       setInitialLoad(false)
     } catch (err: unknown) {
-      console.error('Error fetching listings:', err)
+      logError('Error fetching listings:', err)
     } finally {
       setLoading(false)
     }

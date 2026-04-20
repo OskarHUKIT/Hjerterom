@@ -11,6 +11,32 @@ import { getOverviewBackLink } from '../../lib/overviewBackNav'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { Button } from '../../components/ui/Button'
 import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
+import { logError } from '@/app/lib/appLogger'
+
+const REGION_LISTINGS_PAGE = 800
+const REGION_LISTINGS_MAX = 30_000
+
+/** Eiere og listing-id-er i saksbehandlers kommune (RPC er regionfiltrert etter DB-migrasjon). */
+async function fetchKommuneRegionListingIndex() {
+  const ownerIds = new Set<string>()
+  const listingIds = new Set<string>()
+  let offset = 0
+  while (offset < REGION_LISTINGS_MAX) {
+    const { data: batch, error } = await supabase.rpc('get_listings_for_kommune_paged', {
+      p_limit: REGION_LISTINGS_PAGE,
+      p_offset: offset,
+    })
+    if (error) throw error
+    const rows = batch || []
+    for (const l of rows as { id?: string; owner_id?: string }[]) {
+      if (l.owner_id) ownerIds.add(l.owner_id)
+      if (l.id) listingIds.add(l.id)
+    }
+    if (rows.length === 0 || rows.length < REGION_LISTINGS_PAGE) break
+    offset += rows.length
+  }
+  return { ownerIds, listingIds }
+}
 
 export default function NavExpired() {
   const { t } = useLanguage()
@@ -40,17 +66,23 @@ export default function NavExpired() {
   const fetchData = async () => {
     setLoading(true)
     try {
+      const { ownerIds: ownersInRegion, listingIds: listingsInRegion } =
+        await fetchKommuneRegionListingIndex()
+
       const { data: termAgreements } = await supabase
         .from('user_agreements')
         .select('user_id, terminated_at')
         .eq('is_terminated', true)
 
-      const userIds = termAgreements?.map((a) => a.user_id) || []
-      const usersWithTerminated = (termAgreements || []).map((a) => ({
+      const inScopeAgreements = (termAgreements || []).filter((a) => ownersInRegion.has(a.user_id))
+
+      const usersWithTerminated = inScopeAgreements.map((a) => ({
         id: a.user_id,
         terminated_at: a.terminated_at,
         profiles: { full_name: null as string | null },
       }))
+
+      const userIds = usersWithTerminated.map((u) => u.id)
 
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
@@ -70,12 +102,14 @@ export default function NavExpired() {
           .from('listings')
           .select('*')
           .in('owner_id', userIds)
-        setExpiredListings(listings || [])
+        const scoped =
+          (listings || []).filter((l: { id?: string }) => l.id && listingsInRegion.has(l.id)) || []
+        setExpiredListings(scoped)
       } else {
         setExpiredListings([])
       }
     } catch (err) {
-      console.error('Error fetching expired data:', err)
+      logError('Error fetching expired data:', err)
     } finally {
       setLoading(false)
     }

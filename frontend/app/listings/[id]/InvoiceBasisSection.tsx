@@ -8,6 +8,7 @@ import { formatDateNo } from '../../lib/dateFormat'
 import { pdf } from '@react-pdf/renderer'
 import { InvoiceBasisDocument } from '../../lib/pdf/InvoiceBasisDocument'
 import { buildInvoiceBasisPdfPayload } from '../../lib/pdf/invoiceBasisPayload'
+import { logError } from '@/app/lib/appLogger'
 
 type TFn = (key: TranslationKey) => string
 
@@ -179,7 +180,7 @@ export default function InvoiceBasisSection(props: {
         setMediationPeriodId(periods.length === 1 ? periods[0].id : '')
       }
     } catch (e) {
-      console.error(e)
+      logError(e)
     } finally {
       setLoading(false)
     }

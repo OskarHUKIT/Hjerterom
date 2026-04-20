@@ -31,6 +31,7 @@ import {
   isKommuneStaffRole,
   kommuneNavUsesAccountsLabel,
 } from '../lib/kommuneRoles'
+import { devInfo, logError } from '@/app/lib/appLogger'
 import MobileBottomNav from './MobileBottomNav'
 
 export default function Header() {
@@ -74,7 +75,7 @@ export default function Header() {
 
   useEffect(() => {
     if (headerBundleQ.isError) {
-      console.error('Header bundle:', headerBundleQ.error)
+      logError('Header bundle:', headerBundleQ.error)
       setLoading(false)
     }
   }, [headerBundleQ.isError, headerBundleQ.error])
@@ -138,14 +139,12 @@ export default function Header() {
     setLogoutPending(true)
     setIsMenuOpen(false)
     closeMobileNav()
-    if (process.env.NODE_ENV === 'development') {
-      console.info('[Boly/auth] logout: local signOut + redirect')
-    }
+    devInfo('[Boly/auth] logout: local signOut + redirect')
     void (async () => {
       try {
         await supabase.auth.signOut({ scope: 'local' })
       } catch (e) {
-        console.error('signOut:', e)
+        logError('signOut:', e)
       }
       window.location.assign('/')
     })()

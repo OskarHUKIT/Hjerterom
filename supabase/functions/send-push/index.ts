@@ -1,18 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import webpush from "npm:web-push@3.6.7"
+import { buildCorsHeaders, handleCorsOptions } from "../_shared/cors.ts"
 import { edgeLog } from "../_shared/edgeLog.ts"
 import { notificationWebhookPayloadSchema } from "../_shared/webhookSchemas.ts"
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-}
-
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+  const preflight = handleCorsOptions(req)
+  if (preflight) return preflight
 
   try {
     let raw: unknown
@@ -21,7 +16,7 @@ serve(async (req) => {
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
       })
     }
 
@@ -30,7 +25,7 @@ serve(async (req) => {
       edgeLog("warn", "send-push validation", { issues: parsed.error.flatten() })
       return new Response(
         JSON.stringify({ error: "Invalid webhook payload", issues: parsed.error.flatten() }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
       )
     }
     const payload = parsed.data
@@ -38,7 +33,7 @@ serve(async (req) => {
     if (payload.table !== "notifications" || payload.type !== "INSERT") {
       return new Response(
         JSON.stringify({ ok: true, skipped: "not a notification insert" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
@@ -54,7 +49,7 @@ serve(async (req) => {
       console.error("VAPID_KEY (eller VAPID_PRIVATE_KEY) mangler i Supabase Secrets")
       return new Response(
         JSON.stringify({ error: "VAPID key not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
@@ -71,7 +66,7 @@ serve(async (req) => {
     if (subError || !subscriptions?.length) {
       return new Response(
         JSON.stringify({ ok: true, sent: 0, reason: "no subscriptions for user" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
@@ -119,14 +114,14 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ ok: true, sent, total: subscriptions.length, errors: errors.slice(0, 3) }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
     )
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     edgeLog("error", "send-push", { message: msg })
     return new Response(
       JSON.stringify({ error: msg }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
     )
   }
 })

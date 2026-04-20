@@ -55,6 +55,24 @@ const eslintConfig = [
       'tailwindcss/no-custom-classname': 'warn',
     },
   },
+  // Sinking Ship / launch: ingen console.* i prod-kode — bruk app/lib/appLogger.ts.
+  {
+    files: [
+      'app/**/*.{ts,tsx}',
+      'context/**/*.{ts,tsx}',
+      'middleware.ts',
+      'lib/**/*.{ts,tsx}',
+    ],
+    rules: {
+      'no-console': 'error',
+    },
+  },
+  {
+    files: ['app/lib/appLogger.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
   eslintConfigPrettier,
 ]
 

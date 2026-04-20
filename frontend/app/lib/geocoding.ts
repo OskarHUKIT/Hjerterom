@@ -3,6 +3,8 @@
  * Se https://operations.osmfoundation.org/policies/nominatim/ — bruk identifiserende User-Agent og ikke overbelast API-et.
  */
 
+import { devWarn } from '@/app/lib/appLogger'
+
 const USER_AGENT = 'Boly/1.0 (https://bolynorge.no; contact: support)'
 
 export type GeocodeHit = {
@@ -124,7 +126,7 @@ export async function searchNorwegianAddress(
     },
   })
   if (!response.ok) {
-    console.warn('Nominatim error', response.status)
+    devWarn('Nominatim error', response.status)
     return []
   }
   const data = await response.json()

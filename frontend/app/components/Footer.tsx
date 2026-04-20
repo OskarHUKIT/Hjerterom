@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Mail, Info, Shield, FileText, Activity } from 'lucide-react'
+import { Mail, Info, Shield, FileText, Activity, Cookie } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
+import { useCookieConsent } from '../../context/CookieConsentContext'
 
 export default function Footer() {
   const { t } = useLanguage()
   const { theme } = useTheme()
+  const { reopenCookieSettings } = useCookieConsent()
   const narvikLogoSrc = theme === 'light' ? '/Logonavnarvik.png' : '/Logonavnarvikhvit.png'
 
   const [gameChangingFailed, setGameChangingFailed] = useState(false)
@@ -128,11 +130,18 @@ export default function Footer() {
             </h3>
             <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
               <Link
-                href="/brukervilkar/"
+                href="/homeowner/sign-terms"
                 className="footer-link"
                 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
               >
                 <FileText size={16} /> {t('termsOfUse')}
+              </Link>
+              <Link
+                href="/brukervilkar/"
+                className="footer-link"
+                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+              >
+                <FileText size={16} /> {t('termsPreliminaryBrowsing')}
               </Link>
               <Link
                 href="/personvern/"
@@ -141,6 +150,25 @@ export default function Footer() {
               >
                 <Shield size={16} /> {t('privacy')}
               </Link>
+              <button
+                type="button"
+                className="footer-link"
+                onClick={() => reopenCookieSettings()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  color: 'inherit',
+                  textAlign: 'left',
+                }}
+              >
+                <Cookie size={16} aria-hidden /> {t('footerCookieSettings')}
+              </button>
               <Link
                 href="/om-boly/"
                 className="footer-link"

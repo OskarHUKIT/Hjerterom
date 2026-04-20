@@ -34,6 +34,8 @@ import {
 } from '../../lib/geocoding'
 import { savePendingFirstListingDraft } from '../lib/pendingFirstListing'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import { logError } from '@/app/lib/appLogger'
+import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 
 export default function HomeownerRegister() {
   const { t } = useLanguage()
@@ -41,6 +43,7 @@ export default function HomeownerRegister() {
   const [loading, setLoading] = useState(false)
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [houseRulesFile, setHouseRulesFile] = useState<File | null>(null)
   const [hasSignedTerms, setHasSignedTerms] = useState<boolean | null>(null)
 
   const [formData, setFormData] = useState({
@@ -211,7 +214,7 @@ export default function HomeownerRegister() {
       setGeocodeCandidates(hits)
       setFormData((prev) => ({ ...prev, latitude: null, longitude: null }))
     } catch (err) {
-      console.error('Geocoding error:', err)
+      logError('Geocoding error:', err)
       setGeocodeError(t('regGeocodeFailed'))
     } finally {
       setGeocodeLoading(false)
@@ -437,6 +440,28 @@ export default function HomeownerRegister() {
         throw new Error(t('regSaveNoIdError'))
       }
 
+      if (houseRulesFile) {
+        const hr = await uploadHouseRulesPdf(supabase, listingId, houseRulesFile)
+        if ('error' in hr) {
+          const msg =
+            hr.error === 'type'
+              ? t('houseRulesValidationType')
+              : hr.error === 'size'
+                ? t('houseRulesValidationSize')
+                : t('houseRulesUploadError') + (typeof hr.error === 'string' ? hr.error : '')
+          alert(msg)
+        } else {
+          const { error: hrDbErr } = await supabase
+            .from('listings')
+            .update({ house_rules_pdf_path: hr.path })
+            .eq('id', listingId)
+          if (hrDbErr) {
+            logError('house_rules_pdf_path update', hrDbErr)
+            alert(t('houseRulesUploadError'))
+          }
+        }
+      }
+
       // Logg handling inkl. viktige bekreftelser (forsikring akseptert ved publisering)
       await supabase.from('audit_logs').insert([
         {
@@ -493,7 +518,7 @@ export default function HomeownerRegister() {
         err?.message ??
         err?.error_description ??
         (typeof err === 'string' ? err : JSON.stringify(err))
-      console.error('Error saving listing:', message, err)
+      logError('Error saving listing:', message, err)
       alert(t('errSaveListing') + (message || t('errUnknown')))
     } finally {
       setLoading(false)
@@ -1337,6 +1362,60 @@ export default function HomeownerRegister() {
                   />
                   {t('regUploadImages')}
                 </label>
+              </div>
+              <div
+                style={{
+                  marginTop: 'var(--space-5)',
+                  padding: 'var(--space-4)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--bg-card)',
+                }}
+              >
+                <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FileText size={18} style={{ color: 'var(--color-sky-blue)' }} />{' '}
+                  {t('regHouseRulesLabel')}
+                </label>
+                <p
+                  className="text-sm"
+                  style={{ margin: 'var(--space-2) 0 var(--space-3)', opacity: 0.85 }}
+                >
+                  {t('regHouseRulesHint')}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+                  <label className="button button-secondary" style={{ cursor: 'pointer' }}>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0]
+                        setHouseRulesFile(f ?? null)
+                        e.target.value = ''
+                      }}
+                    />
+                    {t('houseRulesChooseFile')}
+                  </label>
+                  {houseRulesFile && (
+                    <span className="text-sm" style={{ color: 'var(--text-body)' }}>
+                      {houseRulesFile.name}
+                      <button
+                        type="button"
+                        onClick={() => setHouseRulesFile(null)}
+                        style={{
+                          marginLeft: 8,
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--color-accent)',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                        }}
+                      >
+                        {t('regHouseRulesClear')}
+                      </button>
+                    </span>
+                  )}
+                </div>
               </div>
               <div style={{ marginTop: 'var(--space-4)' }}>
                 <label className="label">{t('regAdditionalInfo')}</label>

@@ -15,6 +15,7 @@ import {
   Home,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { devWarn } from '@/app/lib/appLogger'
 import { formatDateTimeNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
 import { listingCityMatchesRegions, parseKommuneRegions } from '../../lib/kommuneRegions'
@@ -57,6 +58,49 @@ async function fetchKommuneStaffIdsForLandlord(ownerId: string): Promise<string[
     .map((p) => p.id)
 }
 
+/** Én «bøtte» per kommune (listing.city) der det finnes minst én saksbehandler. */
+type LandlordKommuneBucket = {
+  city: string
+  cityDisplay: string
+  staffIds: string[]
+}
+
+async function fetchKommuneStaffBucketsForLandlord(
+  ownerId: string
+): Promise<LandlordKommuneBucket[]> {
+  const { data: listings } = await supabase.from('listings').select('city').eq('owner_id', ownerId)
+  const cityDisplayByLower = new Map<string, string>()
+  for (const l of listings || []) {
+    const raw = (l.city || '').trim()
+    if (!raw) continue
+    const low = raw.toLowerCase()
+    if (!cityDisplayByLower.has(low)) cityDisplayByLower.set(low, raw)
+  }
+  if (cityDisplayByLower.size === 0) return []
+
+  const { data: staff } = await supabase
+    .from('profiles')
+    .select('id, kommune_region, role')
+    .in('role', ['kommune_ansatt', 'kommune_admin'])
+
+  const buckets: LandlordKommuneBucket[] = []
+  for (const [cityLower, cityDisplay] of cityDisplayByLower) {
+    const staffIds = (staff || [])
+      .filter((p) => parseKommuneRegions(p.kommune_region).includes(cityLower))
+      .sort((a, b) => {
+        if (a.role === 'kommune_admin' && b.role !== 'kommune_admin') return -1
+        if (b.role === 'kommune_admin' && a.role !== 'kommune_admin') return 1
+        return 0
+      })
+      .map((p) => p.id)
+    if (staffIds.length > 0) {
+      buckets.push({ city: cityLower, cityDisplay, staffIds })
+    }
+  }
+  buckets.sort((a, b) => a.cityDisplay.localeCompare(b.cityDisplay, 'nb'))
+  return buckets
+}
+
 function MessagesContent() {
   const { t } = useLanguage()
   const router = useRouter()
@@ -90,6 +134,10 @@ function MessagesContent() {
   const [messagesPickerTab, setMessagesPickerTab] = useState<'landlords' | 'staff'>('landlords')
   const [messagesContactSearch, setMessagesContactSearch] = useState('')
   const messagesScrollRef = useRef<HTMLDivElement>(null)
+  /** Utleier: saksbehandlere gruppert på listing.city (kun når flere kommuner treffer). */
+  const [landlordKommuneBuckets, setLandlordKommuneBuckets] = useState<LandlordKommuneBucket[]>([])
+  const [landlordSelectedCityKey, setLandlordSelectedCityKey] = useState<string | null>(null)
+  const [landlordBucketsLoaded, setLandlordBucketsLoaded] = useState(false)
   const isKommune = role === 'kommune_ansatt' || role === 'kommune_admin'
   const peerIsKommuneColleague = peerRole === 'kommune_ansatt' || peerRole === 'kommune_admin'
   const readonlyBlocksReply =
@@ -105,6 +153,33 @@ function MessagesContent() {
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
   }, [])
+
+  useEffect(() => {
+    if (!profileResolved || !currentUser?.id || isKommune) {
+      setLandlordKommuneBuckets([])
+      setLandlordSelectedCityKey(null)
+      setLandlordBucketsLoaded(false)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      setLandlordBucketsLoaded(false)
+      const buckets = await fetchKommuneStaffBucketsForLandlord(currentUser.id)
+      if (cancelled) return
+      setLandlordKommuneBuckets(buckets)
+      if (buckets.length > 1) {
+        setLandlordSelectedCityKey((prev) =>
+          prev && buckets.some((b) => b.city === prev) ? prev : buckets[0].city
+        )
+      } else {
+        setLandlordSelectedCityKey(null)
+      }
+      setLandlordBucketsLoaded(true)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [profileResolved, currentUser?.id, isKommune])
 
   useEffect(() => {
     if (!profileResolved) return
@@ -330,10 +405,20 @@ function MessagesContent() {
       }
       loadPeer()
     } else {
-      setOtherUser({ id: null, name: t('messagesKommuneBroadcast') })
+      const b =
+        landlordKommuneBuckets.length > 1 && landlordSelectedCityKey
+          ? landlordKommuneBuckets.find((x) => x.city === landlordSelectedCityKey)
+          : null
+      setOtherUser({
+        id: null,
+        name: b
+          ? `${t('messagesKommuneBroadcast')} (${b.cityDisplay})`
+          : t('messagesKommuneBroadcast'),
+      })
     }
 
     const fetchMessages = async () => {
+      if (isHomeownerChat && !withUserId && !landlordBucketsLoaded) return
       let query = supabase.from('chat_messages').select('*')
       if (isHomeownerChat) {
         if (withUserId) {
@@ -341,7 +426,15 @@ function MessagesContent() {
             `and(sender_id.eq.${currentUser.id},receiver_id.eq.${withUserId}),and(sender_id.eq.${withUserId},receiver_id.eq.${currentUser.id})`
           )
         } else {
-          const staffIds = await fetchKommuneStaffIdsForLandlord(currentUser.id)
+          let staffIds: string[] = []
+          if (landlordKommuneBuckets.length > 1 && landlordSelectedCityKey) {
+            const b = landlordKommuneBuckets.find((x) => x.city === landlordSelectedCityKey)
+            staffIds = b?.staffIds ?? []
+          } else if (landlordKommuneBuckets.length === 1) {
+            staffIds = landlordKommuneBuckets[0].staffIds
+          } else {
+            staffIds = await fetchKommuneStaffIdsForLandlord(currentUser.id)
+          }
           if (staffIds.length === 0) {
             query = query.or(
               `and(sender_id.eq.${currentUser.id},receiver_id.is.null),receiver_id.eq.${currentUser.id}`
@@ -369,7 +462,7 @@ function MessagesContent() {
     document.addEventListener('visibilitychange', onVisibleRefetch)
 
     const channelId = isHomeownerChat
-      ? `chat:${currentUser.id}:kommune:${withUserId || 'all'}`
+      ? `chat:${currentUser.id}:kommune:${withUserId || landlordSelectedCityKey || 'all'}`
       : `chat:${currentUser.id}:${withUserId}`
     const sub = supabase
       .channel(channelId)
@@ -379,7 +472,7 @@ function MessagesContent() {
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') return
         if (process.env.NODE_ENV === 'development' && err) {
-          console.warn('[Boly/chat] realtime', status, err)
+          devWarn('[Boly/chat] realtime', status, err)
         }
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           void fetchMessages()
@@ -390,7 +483,16 @@ function MessagesContent() {
       document.removeEventListener('visibilitychange', onVisibleRefetch)
       void sub.unsubscribe()
     }
-  }, [profileResolved, currentUser, withUserId, isKommune, t])
+  }, [
+    profileResolved,
+    currentUser,
+    withUserId,
+    isKommune,
+    t,
+    landlordKommuneBuckets,
+    landlordSelectedCityKey,
+    landlordBucketsLoaded,
+  ])
 
   useEffect(() => {
     if (!currentUser) return
@@ -443,7 +545,26 @@ function MessagesContent() {
     if ((!content && !hasImages) || !currentUser) return
     if (readonlyBlocksReply) return
     setSending(true)
-    const effectiveReceiver = withUserId ?? null
+    let effectiveReceiver: string | null = withUserId ?? null
+    let notifyUserIds: string[] = []
+    if (!isKommune && !effectiveReceiver) {
+      if (landlordKommuneBuckets.length > 1 && landlordSelectedCityKey) {
+        const b = landlordKommuneBuckets.find((x) => x.city === landlordSelectedCityKey)
+        if (b?.staffIds?.length) {
+          effectiveReceiver = b.staffIds[0]
+          notifyUserIds = [...b.staffIds]
+        }
+      } else if (landlordKommuneBuckets.length === 1 && landlordKommuneBuckets[0].staffIds.length) {
+        effectiveReceiver = landlordKommuneBuckets[0].staffIds[0]
+        notifyUserIds = [...landlordKommuneBuckets[0].staffIds]
+      } else {
+        const all = await fetchKommuneStaffIdsForLandlord(currentUser.id)
+        effectiveReceiver = all[0] ?? null
+        notifyUserIds = all.length ? [...all] : effectiveReceiver ? [effectiveReceiver] : []
+      }
+    } else if (effectiveReceiver) {
+      notifyUserIds = [effectiveReceiver]
+    }
     try {
       let imageUrls: string[] = []
       if (pendingImages.length > 0) {
@@ -493,16 +614,17 @@ function MessagesContent() {
         currentUser.user_metadata?.full_name ||
         currentUser.email?.split('@')[0] ||
         (isKommune ? 'Kommune' : 'En utleier')
-      if (effectiveReceiver) {
-        const text = content.trim()
-        const msgBody =
-          text.length > 0
-            ? `${senderName}:\n\n${text}${imageUrls.length > 0 ? '\n\n(Bilde vedlagt)' : ''}`
-            : imageUrls.length > 0
-              ? `${senderName} sendte et bilde.`
-              : `${senderName} har sendt deg en melding.`
+      const text = content.trim()
+      const msgBody =
+        text.length > 0
+          ? `${senderName}:\n\n${text}${imageUrls.length > 0 ? '\n\n(Bilde vedlagt)' : ''}`
+          : imageUrls.length > 0
+            ? `${senderName} sendte et bilde.`
+            : `${senderName} har sendt deg en melding.`
+      const uniqNotify = [...new Set(notifyUserIds)]
+      for (const oid of uniqNotify) {
         await supabase.from('notifications').insert({
-          owner_id: effectiveReceiver,
+          owner_id: oid,
           type: 'NEW_MESSAGE',
           title: `Ny melding fra ${senderName}`,
           message: msgBody,
@@ -661,6 +783,19 @@ function MessagesContent() {
           <ArrowLeft size={18} /> {t('back')}
         </Link>
         <h1 style={{ fontSize: '2rem', marginTop: 'var(--space-2)' }}>{t('messages')}</h1>
+        <p
+          role="note"
+          style={{
+            marginTop: 'var(--space-2)',
+            marginBottom: 0,
+            maxWidth: '42rem',
+            fontSize: '0.8125rem',
+            lineHeight: 1.5,
+            color: 'var(--text-muted)',
+          }}
+        >
+          {t('messagesSensitiveDataNotice')}
+        </p>
       </div>
 
       <div
@@ -1061,6 +1196,66 @@ function MessagesContent() {
                       : t('messagesKommuneBroadcast')}
                 </span>
               </div>
+              {!isKommune && !withUserId && landlordKommuneBuckets.length > 1 && (
+                <div
+                  role="group"
+                  aria-label={t('messagesLandlordRegionPickerAria')}
+                  style={{
+                    padding: 'var(--space-3) var(--space-4)',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    background: 'var(--bg-subtle)',
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: '0 0 var(--space-2)',
+                      fontSize: '0.8125rem',
+                      lineHeight: 1.45,
+                      color: 'var(--text-muted)',
+                    }}
+                  >
+                    {t('messagesLandlordMultiRegionHint')}
+                  </p>
+                  <div
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      marginBottom: 'var(--space-2)',
+                      color: 'var(--text-body)',
+                    }}
+                  >
+                    {t('messagesSendToKommuneLabel')}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {landlordKommuneBuckets.map((b) => {
+                      const selected = landlordSelectedCityKey === b.city
+                      return (
+                        <button
+                          key={b.city}
+                          type="button"
+                          onClick={() => setLandlordSelectedCityKey(b.city)}
+                          style={{
+                            padding: '8px 14px',
+                            borderRadius: '999px',
+                            border: selected
+                              ? '1px solid rgba(59, 130, 246, 0.65)'
+                              : '1px solid var(--border-subtle)',
+                            background: selected
+                              ? 'rgba(59, 130, 246, 0.2)'
+                              : 'rgba(255,255,255,0.04)',
+                            color: 'var(--text-main)',
+                            fontWeight: 600,
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {b.cityDisplay}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
               {showReadonlyBanner && (
                 <div
                   role="status"

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { fetchAuthUserForQueryClient } from '../../lib/queries/authUserQuery'
 import { supabase } from '../../lib/supabase'
+import { logError } from '@/app/lib/appLogger'
 import { formatDateNo } from '../../lib/dateFormat'
 import { formatKommuneRegionsForDisplay, listingCityMatchesRegions } from '../../lib/kommuneRegions'
 import UserProfileClient from './UserProfileClient'
@@ -245,7 +246,7 @@ function NavUsersContent() {
 
       setUsers(mappedUsers)
     } catch (err: any) {
-      console.error('Error fetching users:', err)
+      logError('Error fetching users:', err)
       setUseAccountsNavCopy(false)
     } finally {
       setLoading(false)
@@ -264,7 +265,7 @@ function NavUsersContent() {
       setStaffLoading(true)
       const { data, error } = await supabase.rpc('get_kommune_staff_for_admin')
       if (cancelled) return
-      if (error) console.error(error)
+      if (error) logError(error)
       setStaffRows((data as typeof staffRows) || [])
       setStaffLoading(false)
     })()

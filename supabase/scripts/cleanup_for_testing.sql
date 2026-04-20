@@ -1,5 +1,5 @@
 -- =============================================================================
--- BOLY: Cleanup script for testing period
+-- Boly: Cleanup script for testing period
 -- Run this in Supabase Dashboard → SQL Editor to remove ALL user data
 -- WARNING: This permanently deletes all listings, users, messages, etc.
 -- =============================================================================

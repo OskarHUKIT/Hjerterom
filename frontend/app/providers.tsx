@@ -5,9 +5,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthSessionProvider } from '../context/AuthSessionContext'
 import { LanguageProvider } from '../context/LanguageContext'
 import { ThemeProvider } from '../context/ThemeContext'
+import { CookieConsentProvider } from '../context/CookieConsentContext'
 import NavigationProgress from './components/NavigationProgress'
 import AuthQuerySync from './components/AuthQuerySync'
 import PrefetchAuthUser from './components/PrefetchAuthUser'
+import CookieBanner from './components/CookieBanner'
 
 function makeQueryClient() {
   return new QueryClient({
@@ -30,10 +32,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthSessionProvider>
         <ThemeProvider>
           <LanguageProvider>
-            <PrefetchAuthUser />
-            <AuthQuerySync />
-            <NavigationProgress />
-            {children}
+            <CookieConsentProvider>
+              <PrefetchAuthUser />
+              <AuthQuerySync />
+              <NavigationProgress />
+              {children}
+              <CookieBanner />
+            </CookieConsentProvider>
           </LanguageProvider>
         </ThemeProvider>
       </AuthSessionProvider>

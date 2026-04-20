@@ -1,16 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { z } from "https://esm.sh/zod@3.23.8"
+import { buildCorsHeaders, handleCorsOptions } from "../_shared/cors.ts"
 import { edgeLog } from "../_shared/edgeLog.ts"
 import { resolveBaseWebUrl } from "../_shared/safeRedirect.ts"
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-}
 
 const citySchema = z.string().max(200).optional()
 
@@ -43,15 +39,14 @@ function parseCallbackQuery(url: URL) {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders })
-  }
+  const preflight = handleCorsOptions(req)
+  if (preflight) return preflight
 
   if (!SUPABASE_URL?.trim() || !SUPABASE_SERVICE_ROLE_KEY?.trim()) {
     edgeLog("error", "sign-callback missing env", {})
     return new Response(JSON.stringify({ error: "Server configuration error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
     })
   }
 

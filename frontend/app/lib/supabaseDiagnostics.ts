@@ -312,17 +312,23 @@ export async function runSupabaseDiagnostics(): Promise<SupabaseDiagnosticReport
       })
     } else if (res) {
       const snippet = await res.text()
-      /** Ny Data API / publishable: rot på /rest/v1/ kan svare 401 «schema forbidden» selv med gyldig nøkkel — ikke samme som tabell-kall via klient. */
-      const schemaRootBlocked =
+      /**
+       * Rot-URL `/rest/v1/` er ikke det samme som `from('tabell')`. Med **anon**-nøkkel svarer
+       * ofte 401 (eldre: «schema forbidden», nyere: «Secret API key required») — forventet og ufarlig.
+       * Ekte data går via tabell-endepunkter fra supabase-js.
+       */
+      const restRoot401ExpectedForAnon =
         res.status === 401 &&
-        /schema is forbidden|Access to schema|only allowed using a secret/i.test(snippet)
-      if (schemaRootBlocked) {
+        /schema is forbidden|Access to schema|only allowed using a secret|Secret API key required|Only secret API keys can be used for this endpoint/i.test(
+          snippet
+        )
+      if (restRoot401ExpectedForAnon) {
         push({
           id: 'http_rest_root',
           label: 'HTTP GET /rest/v1/ (rot)',
           status: 'ok',
-          detail: `HTTP ${res.status} forventet for mange prosjekter: åpen API-rot krever ofte ikke publishable. Appen bruker supabase-js mot tabeller — ikke denne URL-en. Auth health over er det som teller.`,
-          code: 'HTTP_REST_ROOT_SCHEMA_FORBIDDEN_OK',
+          detail: `HTTP ${res.status} forventet med anon-nøkkel på API-rot (ikke tabell-kall). Appen bruker supabase-js mot konkrete tabeller — ikke denne URL-en. Se GET /auth/v1/health over.`,
+          code: 'HTTP_REST_ROOT_ANON_401_EXPECTED_OK',
           ms,
         })
       } else {

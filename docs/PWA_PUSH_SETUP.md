@@ -82,12 +82,12 @@ Når en bruker har slått på **«Send også varsler på e-post»** under Varsle
 | `NOTIFICATION_FROM_NAME` | Valgfritt visningsnavn, standard `Boly` |
 | `NOTIFICATION_APP_BASE_URL` | Valgfritt: produksjons-URL uten trailing slash (f.eks. `https://bolynorge.no`) for lenke i e-posten |
 
-Uten SMTP *eller* Resend (se under) returnerer funksjonen «skipped».
+Uten SMTP *eller* Mailjet REST (se under) returnerer funksjonen «skipped».
 
-**Alternativ uten SMTP (anbefalt hvis du får 500 / tilkoblingsfeil mot Gmail):**  
-Legg til **Edge Function secrets** `RESEND_API_KEY` (fra [resend.com](https://resend.com)) og `SMTP_FROM` (eller `RESEND_FROM`) med en **verifisert avsender** i Resend. Funksjonen bruker da Resend over HTTPS (port 443) og trenger ikke `SMTP_*`.
+**Alternativ uten SMTP (anbefalt hvis du får 500 / tilkoblingsfeil mot SMTP):**  
+Legg til **Edge Function secrets** `MAILJET_API_KEY` og `MAILJET_SECRET_KEY` (fra [Mailjet](https://www.mailjet.com/) → API Keys) pluss `NOTIFICATION_FROM_EMAIL` med en **verifisert avsender**. Funksjonen bruker da Mailjet REST over HTTPS (port 443) og trenger ikke `SMTP_*`.
 
-**Merk:** Noen miljøer blokkerer utgående SMTP på 587/465. Da vil **SMTP** feile med 500 i loggene; bruk **Resend** som over.
+**Merk:** Noen miljøer blokkerer utgående SMTP på 587/465. Da vil **SMTP** feile med 500 i loggene; bruk **Mailjet REST** som over.
 
 ### Steg B: Deploy
 
@@ -108,7 +108,7 @@ Da kjøres både push og e-post uavhengig av hverandre når et varsel opprettes.
 
 **Skal fungere for alle kontoer uten manuell SQL:** Når en bruker slår på «Send også varsler på e-post», lagres `profiles.email_notifications_enabled` automatisk. Hvert **INSERT** i `notifications` med riktig `owner_id` skal utløse webhook/trigger og Edge-funksjonen. Du trenger **ikke** sette UUID manuelt.
 
-**Hvis ingen e-post:** (1) Bekreft at **webhook eller trigger** faktisk kjører (tomme Edge-logger = ingen HTTP-kall). (2) Sjekk **Edge → Logs** ved et varsel – skal ikke være `skip` med feil årsak. (3) Bruk **Resend** (`RESEND_API_KEY`) hvis SMTP feiler fra Edge. Diagnostikk-SQL: `supabase/scripts/email_notification_pipeline_check.sql`.
+**Hvis ingen e-post:** (1) Bekreft at **webhook eller trigger** faktisk kjører (tomme Edge-logger = ingen HTTP-kall). (2) Sjekk **Edge → Logs** ved et varsel – skal ikke være `skip` med feil årsak. (3) Bruk **Mailjet** (`MAILJET_API_KEY` + `MAILJET_SECRET_KEY` + `NOTIFICATION_FROM_EMAIL`) hvis SMTP feiler fra Edge. Diagnostikk-SQL: `supabase/scripts/email_notification_pipeline_check.sql`.
 
 ---
 

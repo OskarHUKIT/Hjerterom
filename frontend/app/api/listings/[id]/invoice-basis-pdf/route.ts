@@ -5,6 +5,7 @@ import { pdf } from '@react-pdf/renderer'
 import { z } from 'zod'
 import { InvoiceBasisDocument } from '../../../../lib/pdf/InvoiceBasisDocument'
 import { buildInvoiceBasisPdfPayload } from '../../../../lib/pdf/invoiceBasisPayload'
+import { devLog, logError } from '@/app/lib/appLogger'
 
 const listingIdSchema = z.string().uuid()
 
@@ -99,7 +100,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     const buf = Buffer.from(await blob.arrayBuffer())
     const tAfterPdf = performance.now()
     const safeName = `fakturagrunnlag-${listingId.slice(0, 8)}.pdf`
-    console.log(
+    devLog(
       JSON.stringify({
         msg: 'invoice-basis-pdf ok',
         requestId,
@@ -121,7 +122,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
     })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'PDF-feil'
-    console.error(JSON.stringify({ msg: 'invoice-basis-pdf error', requestId, error: msg }))
+    logError(JSON.stringify({ msg: 'invoice-basis-pdf error', requestId, error: msg }))
     return NextResponse.json({ error: msg, requestId }, { status: 500 })
   }
 }

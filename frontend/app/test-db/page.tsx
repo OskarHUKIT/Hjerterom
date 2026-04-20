@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { logError } from '@/app/lib/appLogger'
 import Link from 'next/link'
 
 export default function TestDB() {
@@ -19,7 +20,7 @@ export default function TestDB() {
           setStatus('error')
           setMessage('Feil ved tilkobling til Supabase')
           setDetails(error.message)
-          console.error('Supabase error:', error)
+          logError('Supabase error:', error)
         } else {
           setStatus('success')
           setMessage('Tilkobling vellykket!')
@@ -29,7 +30,7 @@ export default function TestDB() {
         setStatus('error')
         setMessage('En uventet feil oppsto')
         setDetails(err.message)
-        console.error('Unexpected error:', err)
+        logError('Unexpected error:', err)
       }
     }
 

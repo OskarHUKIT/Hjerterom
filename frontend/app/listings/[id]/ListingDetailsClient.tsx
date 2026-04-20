@@ -6,6 +6,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { User as AuthUser } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
+import { devWarn, logError } from '@/app/lib/appLogger'
 import { useLanguage } from '../../../context/LanguageContext'
 import {
   MapPin,
@@ -56,6 +57,11 @@ import {
 import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
+import {
+  getHouseRulesPublicUrl,
+  removeHouseRulesPdfObject,
+  uploadHouseRulesPdf,
+} from '../../lib/houseRulesPdf'
 
 /** Synlig plassholder mens tyngre chunk lastes (unngår «tom side» / opplevd feil). */
 function DeferredChunkPlaceholder({ minHeight }: { minHeight: number }) {
@@ -155,7 +161,7 @@ export default function ListingDetailsClient() {
   const [kommuneCanEdit, setKommuneCanEdit] = useState(false)
   /** True når innlogget bruker er kommune (for meldingslenke til utleier utenfor nav-visning). */
   const [viewerIsKommuneStaff, setViewerIsKommuneStaff] = useState(false)
-  /** Utleierens user_agreements.is_terminated – blokkerer formidling og melding i NAV-visning */
+  /** Utleierens user_agreements.is_terminated – blokkerer formidling og melding i Nav-visning */
   const [ownerAgreementTerminated, setOwnerAgreementTerminated] = useState(false)
   const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{
     id: string
@@ -166,6 +172,7 @@ export default function ListingDetailsClient() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [houseRulesBusy, setHouseRulesBusy] = useState(false)
   const [isSaving, setIsSaving] = useState<string | null>(null)
 
   // Formidling state (kommune)
@@ -198,6 +205,17 @@ export default function ListingDetailsClient() {
   const showGalleryFormidlet =
     listing?.status === 'Formidla' || listingHasFormidlaPeriod(availability)
 
+  /** Utleier kan ikke endre boligdata (listings) når boligen er formidlet; fakturagrunnlag er egen tabell. */
+  const canOwnerEditListingDetail = isOwner && !isNavView && !showGalleryFormidlet
+
+  const hasHouseRulesPdf = Boolean(
+    listing?.house_rules_pdf_path && String(listing.house_rules_pdf_path).trim()
+  )
+  const houseRulesPublicUrl = hasHouseRulesPdf
+    ? getHouseRulesPublicUrl(supabase, listing?.house_rules_pdf_path)
+    : null
+  const showHouseRulesSection = hasHouseRulesPdf || (isOwner && !isNavView)
+
   const translateType = (type: string) => {
     if (!type) return ''
     const mapping: Record<string, string> = {
@@ -212,6 +230,11 @@ export default function ListingDetailsClient() {
 
   const handleUpdateField = async (field: string, value: unknown) => {
     if (!listing || !currentUser || !isOwner || isNavView) return
+
+    if (showGalleryFormidlet) {
+      alert(t('ownerCannotEditListingWhenFormidlet'))
+      return
+    }
 
     if (!hasActiveAgreement) {
       alert(t('signAgreementToEdit'))
@@ -270,6 +293,10 @@ export default function ListingDetailsClient() {
   /** Én atomisk lagring — to separate handleUpdateField-kall overskrev pet_policy med gammel state fra closure. */
   const handlePetPolicyChange = async (v: string) => {
     if (!listing || !isOwner || isNavView) return
+    if (showGalleryFormidlet) {
+      alert(t('ownerCannotEditListingWhenFormidlet'))
+      return
+    }
     if (!hasActiveAgreement) {
       alert(t('signAgreementToEdit'))
       router.push(
@@ -621,7 +648,7 @@ export default function ListingDetailsClient() {
           setViewerIsKommuneStaff(false)
         }
 
-        // Sjekk tilgang hvis NAV-visning (kommune må ha rolle og tillatelse til boligens kommune)
+        // Sjekk tilgang hvis Nav-visning (kommune må ha rolle og tillatelse til boligens kommune)
         let profileKommuneRegion: string | null = null
         if (isNavView && user) {
           const { data: profile } = await supabase
@@ -751,7 +778,7 @@ export default function ListingDetailsClient() {
           .order('start_date', { ascending: true })
         setAvailability(availData || [])
 
-        // Fetch NAV notes
+        // Fetch Nav notes
         if (user && isNavView) {
           const { data: notesData } = await supabase
             .from('nav_notes')
@@ -784,12 +811,12 @@ export default function ListingDetailsClient() {
             .eq('listing_id', id)
             .maybeSingle()
           if (tokenData.error)
-            console.warn('[listing_tenant_tokens] select:', tokenData.error.message)
+            devWarn('[listing_tenant_tokens] select:', tokenData.error.message)
           if (!tokenData.data?.token) {
             const up = await supabase
               .from('listing_tenant_tokens')
               .upsert([{ listing_id: id }], { onConflict: 'listing_id' })
-            if (up.error) console.warn('[listing_tenant_tokens] upsert:', up.error.message)
+            if (up.error) devWarn('[listing_tenant_tokens] upsert:', up.error.message)
             tokenData = await supabase
               .from('listing_tenant_tokens')
               .select('token')
@@ -801,7 +828,7 @@ export default function ListingDetailsClient() {
           setTenantReportToken(null)
         }
       } catch (err) {
-        console.error('Error fetching listing:', err)
+        logError('Error fetching listing:', err)
       } finally {
         setLoading(false)
       }
@@ -848,6 +875,11 @@ export default function ListingDetailsClient() {
       return
     }
 
+    if (showGalleryFormidlet) {
+      alert(t('ownerCannotEditListingWhenFormidlet'))
+      return
+    }
+
     setUploading(true)
     try {
       const files = Array.from(e.target.files)
@@ -890,6 +922,74 @@ export default function ListingDetailsClient() {
       alert(t('errorUploading') + errMessage(err))
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleHouseRulesFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !listing || !isOwner || isNavView) return
+    if (!hasActiveAgreement) {
+      alert(t('signAgreementToEdit'))
+      router.push(
+        `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
+      )
+      return
+    }
+    if (!canOwnerEditListingDetail) {
+      alert(t('ownerCannotEditListingWhenFormidlet'))
+      return
+    }
+    setHouseRulesBusy(true)
+    try {
+      const up = await uploadHouseRulesPdf(supabase, String(id), file)
+      if ('error' in up) {
+        const msg =
+          up.error === 'type'
+            ? t('houseRulesValidationType')
+            : up.error === 'size'
+              ? t('houseRulesValidationSize')
+              : t('houseRulesUploadError') + (typeof up.error === 'string' ? up.error : '')
+        alert(msg)
+        return
+      }
+      const prevPath = listing.house_rules_pdf_path
+      if (prevPath) await removeHouseRulesPdfObject(supabase, String(prevPath))
+      const { error } = await supabase
+        .from('listings')
+        .update({ house_rules_pdf_path: up.path })
+        .eq('id', id)
+      if (error) throw error
+      setListing({ ...listing, house_rules_pdf_path: up.path })
+    } catch (err: unknown) {
+      alert(t('houseRulesUploadError') + errMessage(err))
+    } finally {
+      setHouseRulesBusy(false)
+    }
+  }
+
+  const handleHouseRulesRemove = async () => {
+    if (!listing?.house_rules_pdf_path || !canOwnerEditListingDetail) return
+    if (!hasActiveAgreement) {
+      alert(t('signAgreementToEdit'))
+      router.push(
+        `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
+      )
+      return
+    }
+    setHouseRulesBusy(true)
+    try {
+      await removeHouseRulesPdfObject(supabase, listing.house_rules_pdf_path)
+      const { error } = await supabase
+        .from('listings')
+        .update({ house_rules_pdf_path: null })
+        .eq('id', id)
+      if (error) throw error
+      setListing({ ...listing, house_rules_pdf_path: null })
+    } catch (err: unknown) {
+      alert(t('errorSaving') + errMessage(err))
+    } finally {
+      setHouseRulesBusy(false)
     }
   }
 
@@ -1220,7 +1320,7 @@ export default function ListingDetailsClient() {
                 )}
               </button>
             )}
-            {isOwner && !isNavView ? (
+            {canOwnerEditListingDetail ? (
               <input
                 value={listing.address}
                 onChange={(e) => setListing({ ...listing, address: e.target.value })}
@@ -1249,6 +1349,23 @@ export default function ListingDetailsClient() {
               >
                 {listing.address}
               </h2>
+            )}
+            {isOwner && !isNavView && showGalleryFormidlet && (
+              <p
+                role="status"
+                style={{
+                  margin: '0 0 var(--space-3)',
+                  padding: 'var(--space-3) var(--space-4)',
+                  fontSize: '0.9rem',
+                  lineHeight: 1.5,
+                  color: 'var(--text-body)',
+                  background: 'rgba(59, 130, 246, 0.08)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  borderRadius: '12px',
+                }}
+              >
+                {t('ownerCannotEditListingWhenFormidlet')}
+              </p>
             )}
             <div
               className="listing-city-line"
@@ -1315,7 +1432,7 @@ export default function ListingDetailsClient() {
                     </a>
                   )
                 })()}
-              {isOwner && !isNavView ? (
+              {canOwnerEditListingDetail ? (
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <input
                     value={listing.city}
@@ -1476,7 +1593,7 @@ export default function ListingDetailsClient() {
                   size={20}
                   style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }}
                 />
-                {isOwner && !isNavView ? (
+                {canOwnerEditListingDetail ? (
                   <select
                     value={listing.type}
                     onChange={(e) => {
@@ -1518,7 +1635,7 @@ export default function ListingDetailsClient() {
                   size={20}
                   style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }}
                 />
-                {isOwner && !isNavView ? (
+                {canOwnerEditListingDetail ? (
                   <div
                     className="listing-metric-size-input"
                     style={{
@@ -1560,7 +1677,7 @@ export default function ListingDetailsClient() {
               </div>
               <div className="listing-metric-cell" style={{ textAlign: 'center' }}>
                 <Bed size={20} style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }} />
-                {isOwner && !isNavView ? (
+                {canOwnerEditListingDetail ? (
                   <input
                     type="number"
                     value={listing.bedrooms}
@@ -1594,7 +1711,7 @@ export default function ListingDetailsClient() {
                   size={20}
                   style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }}
                 />
-                {isOwner && !isNavView ? (
+                {canOwnerEditListingDetail ? (
                   <input
                     type="number"
                     value={listing.max_occupants}
@@ -1634,7 +1751,7 @@ export default function ListingDetailsClient() {
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 6 }}>
                 {t('paymentMethodLabel')}
               </div>
-              {isOwner && !isNavView ? (
+              {canOwnerEditListingDetail ? (
                 <select
                   value={listing.payment_method === 'konto' ? 'konto' : 'faktura'}
                   onChange={(e) => {
@@ -1673,7 +1790,7 @@ export default function ListingDetailsClient() {
                 <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
                     <strong>Etasje:</strong>{' '}
-                    {isOwner && !isNavView ? (
+                    {canOwnerEditListingDetail ? (
                       <input
                         value={listing.floor_number}
                         onChange={(e) => setListing({ ...listing, floor_number: e.target.value })}
@@ -1695,7 +1812,7 @@ export default function ListingDetailsClient() {
                   </div>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
                     <strong>Møblering:</strong>{' '}
-                    {isOwner && !isNavView ? (
+                    {canOwnerEditListingDetail ? (
                       <select
                         value={listing.furnishing}
                         onChange={(e) => {
@@ -1728,7 +1845,7 @@ export default function ListingDetailsClient() {
                   </div>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
                     <strong>Mulighet for husdyr:</strong>{' '}
-                    {isOwner && !isNavView ? (
+                    {canOwnerEditListingDetail ? (
                       <>
                         <select
                           value={listing.pet_policy || 'Ingen dyr tillatt'}
@@ -1788,7 +1905,7 @@ export default function ListingDetailsClient() {
                   </div>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
                     <strong>Parkering:</strong>{' '}
-                    {isOwner && !isNavView ? (
+                    {canOwnerEditListingDetail ? (
                       <input
                         value={listing.parking_info}
                         onChange={(e) => setListing({ ...listing, parking_info: e.target.value })}
@@ -1810,7 +1927,7 @@ export default function ListingDetailsClient() {
                   </div>
                   <div className="text-sm" style={{ color: 'var(--text-body)' }}>
                     <strong>Fysisk tilrettelegging:</strong>{' '}
-                    {isOwner && !isNavView ? (
+                    {canOwnerEditListingDetail ? (
                       <div
                         style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}
                       >
@@ -1869,7 +1986,7 @@ export default function ListingDetailsClient() {
                   Inkludert i leie
                 </h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-                  {isOwner && !isNavView ? (
+                  {canOwnerEditListingDetail ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                       {[
                         'Strøm',
@@ -1950,7 +2067,7 @@ export default function ListingDetailsClient() {
               >
                 Beskrivelse
               </h3>
-              {isOwner && !isNavView ? (
+              {canOwnerEditListingDetail ? (
                 <textarea
                   value={listing.additional_info}
                   onChange={(e) => setListing({ ...listing, additional_info: e.target.value })}
@@ -1998,7 +2115,7 @@ export default function ListingDetailsClient() {
             >
               <Tag size={20} style={{ color: 'var(--color-accent)' }} /> Prisnivåer
             </h3>
-            {isOwner && !isNavView ? (
+            {canOwnerEditListingDetail ? (
               <div
                 style={{
                   padding: 'var(--space-4)',
@@ -2321,7 +2438,7 @@ export default function ListingDetailsClient() {
               <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
                 {availability.map((p) => {
                   const canDelete =
-                    (isOwner && !isNavView && p.status !== 'Formidla') ||
+                    (canOwnerEditListingDetail && p.status !== 'Formidla') ||
                     (isNavView && kommuneCanEdit && !ownerAgreementTerminated)
                   return (
                     <div
@@ -3022,6 +3139,102 @@ export default function ListingDetailsClient() {
             </a>
           </section>
 
+          {showHouseRulesSection && listing && (
+            <section
+              className="card no-hover listing-detail-card"
+              style={{ padding: 'var(--space-6)' }}
+            >
+              <h3
+                style={{
+                  margin: '0 0 var(--space-3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                  color: 'var(--text-main)',
+                  fontSize: '1.05rem',
+                }}
+              >
+                <FileText size={20} style={{ color: 'var(--color-sky-blue)' }} /> {t('houseRulesTitle')}
+              </h3>
+              <p
+                style={{
+                  margin: '0 0 var(--space-4)',
+                  color: 'var(--text-body)',
+                  fontSize: '0.9rem',
+                  lineHeight: 1.55,
+                }}
+              >
+                {t('houseRulesHelp')}
+              </p>
+              {hasHouseRulesPdf && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', alignItems: 'center' }}>
+                  {houseRulesPublicUrl && (
+                  <a
+                    href={houseRulesPublicUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="button"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                  >
+                    <FileText size={18} /> {t('houseRulesOpenPdf')}
+                  </a>
+                  )}
+                  {canOwnerEditListingDetail && (
+                    <>
+                      <label className="button button-secondary" style={{ cursor: houseRulesBusy ? 'wait' : 'pointer' }}>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          disabled={houseRulesBusy}
+                          style={{ display: 'none' }}
+                          onChange={(e) => void handleHouseRulesFileChange(e)}
+                        />
+                        {houseRulesBusy ? '…' : t('houseRulesReplace')}
+                      </label>
+                      <button
+                        type="button"
+                        className="button"
+                        disabled={houseRulesBusy}
+                        onClick={() => void handleHouseRulesRemove()}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          color: '#b91c1c',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
+                        }}
+                      >
+                        {t('houseRulesRemove')}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+              {!hasHouseRulesPdf && isOwner && !isNavView && (
+                <div>
+                  <p className="text-sm" style={{ margin: '0 0 var(--space-3)', color: 'var(--text-muted)' }}>
+                    {t('houseRulesNone')}
+                  </p>
+                  {canOwnerEditListingDetail && (
+                    <label className="button" style={{ cursor: houseRulesBusy ? 'wait' : 'pointer' }}>
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        disabled={houseRulesBusy}
+                        style={{ display: 'none' }}
+                        onChange={(e) => void handleHouseRulesFileChange(e)}
+                      />
+                      {houseRulesBusy ? '…' : t('houseRulesChooseFile')}
+                    </label>
+                  )}
+                  {!canOwnerEditListingDetail && showGalleryFormidlet && (
+                    <p className="text-sm" style={{ margin: 0, color: 'var(--text-muted)' }}>
+                      {t('ownerCannotEditListingWhenFormidlet')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
           <InvoiceBasisSection
             listingId={String(id)}
             paymentMethod={listing.payment_method}
@@ -3638,10 +3851,10 @@ export default function ListingDetailsClient() {
               </>
             ) : (
               <label
-                className={`listing-image-placeholder${isOwner ? 'is-clickable' : ''}`}
+                className={`listing-image-placeholder${canOwnerEditListingDetail ? 'is-clickable' : ''}`}
                 style={{ width: '100%', height: '100%' }}
               >
-                {isOwner && (
+                {canOwnerEditListingDetail && (
                   <input
                     type="file"
                     multiple
@@ -3657,12 +3870,12 @@ export default function ListingDetailsClient() {
                   aria-hidden
                 />
                 <p className="listing-image-placeholder-text">
-                  {isOwner ? 'Klikk for å legge til bilder' : 'Ingen bilder lagt til'}
+                  {canOwnerEditListingDetail ? 'Klikk for å legge til bilder' : 'Ingen bilder lagt til'}
                 </p>
               </label>
             )}
 
-            {isOwner && (
+            {canOwnerEditListingDetail && (
               <label
                 style={{
                   position: 'absolute',

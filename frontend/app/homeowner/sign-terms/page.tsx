@@ -22,8 +22,8 @@ import {
 import { formatDateNo } from '../../lib/dateFormat'
 import type { TranslationKey } from '../../../lib/translations'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import { logError } from '@/app/lib/appLogger'
 import { publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
-import { BrukervilkarContent } from '../../components/legal/BrukervilkarContent'
 
 type SignedTermsCard = {
   id: string
@@ -398,7 +398,7 @@ function SignTermsContent() {
         if (!result) return
         router.replace('/homeowner/manage')
       } catch (e: unknown) {
-        console.error(e)
+        logError(e)
         const msg = e instanceof Error ? e.message : String(e)
         alert(t('signTermsListingAfterSignError') + msg)
       } finally {
@@ -448,13 +448,17 @@ function SignTermsContent() {
         .getPublicUrl(termsDoc.pdf_storage_path).data.publicUrl
     : null
   const docRowMissingContent = !!(termsDoc && !termsPdfUrl && !termsDoc.body?.trim())
-  const canProceedToSign = docRowMissingContent
-    ? false
-    : termsPdfUrl
-      ? pdfReadConfirmed
-      : hasScrolledToBottom
+  const canProceedToSign = !!(
+    termsDoc &&
+    !docRowMissingContent &&
+    (termsPdfUrl ? pdfReadConfirmed : hasScrolledToBottom)
+  )
 
   const handleSign = async () => {
+    if (!termsDoc) {
+      alert(t('signTermsNoApprovedDocument'))
+      return
+    }
     if (!canProceedToSign) {
       alert(termsPdfUrl ? t('termsConfirmReadPdf') : t('termsScrollBeforeSign'))
       return
@@ -887,14 +891,16 @@ function SignTermsContent() {
             <ArrowLeft size={18} /> Avbryt og gå tilbake
           </Link>
           <h1 style={{ fontSize: '2.5rem', marginBottom: 'var(--space-2)' }}>
-            Signering av vilkår
+            {t('signTermsPageTitle')}
           </h1>
-          <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>
+          <p style={{ fontSize: '1.125rem', opacity: 0.85, lineHeight: 1.55 }}>
             {isSigned
-              ? 'Du har allerede en aktiv utleieravtale. Her signer du kun det som mangler for valgt område (grunnavtale og/eller regional avtale), med BankID.'
-              : 'For å bruke Boly må du lese og signere kommunens vilkårsavtale med BankID.'}
+              ? t('signTermsIntroAdditionalSigning')
+              : signCity.trim()
+                ? t('signTermsIntroFirstTimeWithCity').replace('{city}', signCity.trim())
+                : t('signTermsIntroFirstTimeNoCity')}
           </p>
-          {signCity.trim() ? (
+          {isSigned && signCity.trim() ? (
             <p
               style={{
                 fontSize: '1rem',
@@ -930,7 +936,9 @@ function SignTermsContent() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
               <FileText size={18} style={{ color: '#0f172a' }} />
               <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                {termsDoc ? `${termsDoc.title} · v${termsDoc.version}` : 'Vilkårsavtale Boly v1.0'}
+                {termsDoc
+                  ? `${termsDoc.title} · v${termsDoc.version}`
+                  : t('signTermsNoDocCardTitle')}
               </span>
             </div>
             {termsPdfUrl
@@ -947,7 +955,8 @@ function SignTermsContent() {
                     <ChevronDown size={14} /> {t('termsConfirmReadPdf')}
                   </div>
                 )
-              : !hasScrolledToBottom && (
+              : !hasScrolledToBottom &&
+                termsDoc && (
                   <div
                     style={{
                       fontSize: '0.85rem',
@@ -957,7 +966,7 @@ function SignTermsContent() {
                       gap: '4px',
                     }}
                   >
-                    <ChevronDown size={14} /> Les helt til bunnen for å aktivere signering
+                    <ChevronDown size={14} /> {t('signTermsScrollHint')}
                   </div>
                 )}
           </div>
@@ -976,7 +985,25 @@ function SignTermsContent() {
               fontSize: '1.1rem',
             }}
           >
-            {termsPdfUrl ? (
+            {!termsDoc ? (
+              <div
+                style={{
+                  padding: 'var(--space-6)',
+                  background: '#fffbeb',
+                  border: '1px solid #fcd34d',
+                  borderRadius: 12,
+                  color: '#78350f',
+                  lineHeight: 1.6,
+                }}
+              >
+                <p style={{ margin: 0, fontWeight: 600 }}>{t('signTermsNoApprovedDocument')}</p>
+                <p style={{ margin: '12px 0 0', fontSize: '0.95rem' }}>
+                  <Link href="/homeowner/manage" className="nav-link" style={{ fontWeight: 600 }}>
+                    {t('myProperties')}
+                  </Link>
+                </p>
+              </div>
+            ) : termsPdfUrl ? (
               <>
                 <h2
                   style={{
@@ -1018,30 +1045,26 @@ function SignTermsContent() {
                   <span>{t('termsConfirmReadPdf')}</span>
                 </label>
               </>
-            ) : termsDoc ? (
-              termsDoc.body && termsDoc.body.trim() ? (
-                <>
-                  <h2
-                    style={{
-                      color: '#0f172a',
-                      fontSize: '1.6rem',
-                      marginBottom: 'var(--space-6)',
-                      borderBottom: '2px solid #f1f5f9',
-                      paddingBottom: 'var(--space-2)',
-                    }}
-                  >
-                    {termsDoc.title}
-                  </h2>
-                  <div style={{ color: '#334155', whiteSpace: 'pre-wrap' }}>{termsDoc.body}</div>
-                </>
-              ) : (
-                <p style={{ color: '#64748b' }}>{t('termsNoPdfOrText')}</p>
-              )
+            ) : termsDoc.body && termsDoc.body.trim() ? (
+              <>
+                <h2
+                  style={{
+                    color: '#0f172a',
+                    fontSize: '1.6rem',
+                    marginBottom: 'var(--space-6)',
+                    borderBottom: '2px solid #f1f5f9',
+                    paddingBottom: 'var(--space-2)',
+                  }}
+                >
+                  {termsDoc.title}
+                </h2>
+                <div style={{ color: '#334155', whiteSpace: 'pre-wrap' }}>{termsDoc.body}</div>
+              </>
             ) : (
-              <BrukervilkarContent showDisclaimer />
+              <p style={{ color: '#64748b' }}>{t('termsNoPdfOrText')}</p>
             )}
 
-            {!termsPdfUrl && (
+            {termsDoc && !termsPdfUrl && (
               <div
                 style={{
                   marginTop: 'var(--space-10)',
@@ -1057,11 +1080,9 @@ function SignTermsContent() {
                   style={{ color: '#059669', margin: '0 auto var(--space-4)' }}
                 />
                 <p style={{ fontWeight: 800, fontSize: '1.2rem', color: '#0f172a', margin: 0 }}>
-                  Du har nå gjennomgått hele avtalen.
+                  {t('signTermsReadThroughTitle')}
                 </p>
-                <p style={{ color: '#64748b', marginTop: '4px' }}>
-                  Vennligst bekreft nedenfor for å fortsette.
-                </p>
+                <p style={{ color: '#64748b', marginTop: '4px' }}>{t('signTermsReadThroughSub')}</p>
               </div>
             )}
           </div>
@@ -1089,10 +1110,10 @@ function SignTermsContent() {
               </div>
               <div>
                 <p style={{ fontWeight: 700, fontSize: '1.1rem', margin: 0, color: '#0f172a' }}>
-                  Jeg bekrefter at jeg har lest og forstått vilkårene
+                  {t('signTermsConfirmReadDocument')}
                 </p>
                 <p style={{ fontSize: '0.9rem', color: '#475569', marginTop: '2px' }}>
-                  Ved å trykke på knappen nedenfor signerer du avtalen digitalt med BankID.
+                  {t('signTermsConfirmBankIdLine')}
                 </p>
               </div>
             </div>

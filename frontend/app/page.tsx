@@ -165,7 +165,7 @@ export default function Home() {
             >
               <div>
                 <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                  Tina Olsen, NAV Narvik
+                  Tina Olsen, Nav Narvik
                 </div>
                 <a href="mailto:Tina.Olsen@nav.no" style={{ color: 'var(--color-accent)' }}>
                   Tina.Olsen@nav.no

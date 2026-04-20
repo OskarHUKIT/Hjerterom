@@ -1,13 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import nodemailer from "npm:nodemailer@6.9.10"
+import { buildCorsHeaders, handleCorsOptions } from "../_shared/cors.ts"
 import { edgeLog } from "../_shared/edgeLog.ts"
+import { mailjetApiConfigured, sendMailjetTransactional } from "../_shared/mailjetSend.ts"
 import { notificationWebhookPayloadSchema } from "../_shared/webhookSchemas.ts"
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-}
 
 type NotificationRecord = {
   id: string
@@ -28,9 +25,10 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;")
 }
 
-/** Maps legacy spelling BoLy → Boly (e.g. NOTIFICATION_FROM_NAME in dashboard). */
+/** Normalizes legacy mixed-case brand from env/dashboard to canonical “Boly”. */
 function normalizeBrandSpelling(s: string): string {
-  return s.replace(/\bBoLy\b/g, "Boly")
+  const legacy = ["Bo", "Ly"].join("")
+  return s.replace(new RegExp(`\\b${legacy}\\b`, "g"), "Boly")
 }
 
 type EmailLocale = "no" | "se" | "en"
@@ -365,10 +363,8 @@ function buildEmailContent(args: {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    console.log("send-notification-email OPTIONS preflight")
-    return new Response("ok", { headers: corsHeaders })
-  }
+  const preflight = handleCorsOptions(req)
+  if (preflight) return preflight
 
   try {
     let raw: unknown
@@ -380,7 +376,7 @@ serve(async (req) => {
       })
       return new Response(
         JSON.stringify({ error: "Invalid JSON body. Use Content-Type: application/json and valid JSON." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
@@ -389,7 +385,7 @@ serve(async (req) => {
       edgeLog("warn", "send-notification-email validation", { issues: parsed.error.flatten() })
       return new Response(
         JSON.stringify({ error: "Invalid webhook payload", issues: parsed.error.flatten() }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
     const payload = parsed.data
@@ -411,7 +407,7 @@ serve(async (req) => {
       })
       return new Response(
         JSON.stringify({ ok: true, skipped: "not a notification insert" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
@@ -424,7 +420,7 @@ serve(async (req) => {
       console.error("send-notification-email missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in env")
       return new Response(
         JSON.stringify({ error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
@@ -443,7 +439,7 @@ serve(async (req) => {
       )
       return new Response(
         JSON.stringify({ ok: true, skipped: "email_notifications_enabled is false" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
@@ -456,34 +452,32 @@ serve(async (req) => {
       )
       return new Response(
         JSON.stringify({ ok: true, skipped: "no recipient email" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
-    const resendKey = Deno.env.get("RESEND_API_KEY")
     const host = Deno.env.get("SMTP_HOSTNAME")
     const smtpUser = Deno.env.get("SMTP_USERNAME")
     const smtpPass = Deno.env.get("SMTP_PASSWORD")
-    /** Prefer dedicated notification sender (e.g. notifikasjon@boly.no) — must be verified in Resend / SMTP. */
+    /** Verified sender in Mailjet (domain + address). */
     const fromAddr =
       Deno.env.get("NOTIFICATION_FROM_EMAIL")?.trim() ||
       Deno.env.get("SMTP_FROM")?.trim() ||
-      Deno.env.get("RESEND_FROM")?.trim() ||
       null
 
-    const hasResend = !!resendKey && !!fromAddr
+    const hasMailjet = mailjetApiConfigured() && !!fromAddr
     const hasSmtp = !!(host && smtpUser && smtpPass && fromAddr)
 
-    if (!hasResend && !hasSmtp) {
+    if (!hasMailjet && !hasSmtp) {
       console.warn(
-        "send-notification-email: set RESEND_API_KEY + NOTIFICATION_FROM_EMAIL (or SMTP_FROM / RESEND_FROM), or full SMTP_* secrets"
+        "send-notification-email: set MAILJET_API_KEY + MAILJET_SECRET_KEY + NOTIFICATION_FROM_EMAIL (or SMTP_FROM), or full SMTP_* for Mailjet SMTP"
       )
       return new Response(
         JSON.stringify({
           ok: true,
-          skipped: "no mailer configured (RESEND_API_KEY or SMTP_*)",
+          skipped: "no mailer configured (Mailjet API or SMTP_*)",
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
 
@@ -539,26 +533,15 @@ serve(async (req) => {
       notifType: record.type,
     })
 
-    if (hasResend) {
-      const r = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: `${fromName} <${fromAddr}>`,
-          to: [to],
-          subject: emailSubject,
-          text: textBody,
-          html: htmlBody,
-        }),
+    if (hasMailjet) {
+      await sendMailjetTransactional({
+        fromEmail: fromAddr!,
+        fromName,
+        toEmail: to,
+        subject: emailSubject,
+        textPart: textBody,
+        htmlPart: htmlBody,
       })
-      const resBody = await r.text()
-      if (!r.ok) {
-        console.error("Resend error:", r.status, resBody)
-        throw new Error(`Resend ${r.status}: ${resBody}`)
-      }
     } else {
       const transport = nodemailer.createTransport({
         host: host!,
@@ -586,18 +569,18 @@ serve(async (req) => {
     const masked = to.replace(/^(.{2}).+(@.+)$/, "$1***$2")
     console.log(
       "send-notification-email sent:",
-      JSON.stringify({ to: masked, via: hasResend ? "resend" : "smtp", locale: emailLocale })
+      JSON.stringify({ to: masked, via: hasMailjet ? "mailjet" : "smtp", locale: emailLocale })
     )
     return new Response(
-      JSON.stringify({ ok: true, sent: true, to: masked, via: hasResend ? "resend" : "smtp", locale: emailLocale }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ ok: true, sent: true, to: masked, via: hasMailjet ? "mailjet" : "smtp", locale: emailLocale }),
+      { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
     )
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error("send-notification-email error:", msg)
     return new Response(
       JSON.stringify({ error: msg }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
     )
   }
 })

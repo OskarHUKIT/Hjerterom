@@ -7,6 +7,7 @@ import { Bell, CheckCircle2 } from 'lucide-react'
 import { useAuthSession } from '../../context/AuthSessionContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { isMobileUserAgent } from '../lib/mobile'
+import { devWarn } from '@/app/lib/appLogger'
 
 type Status = 'loading' | 'show-button' | 'granted' | 'unsupported'
 
@@ -85,7 +86,7 @@ export default function PushPermissionCard() {
       await savePushSubscription(u.id, sub)
       setStatus('granted')
     } catch (err) {
-      console.warn('Push subscription:', err)
+      devWarn('Push subscription:', err)
     } finally {
       setLoading(false)
     }

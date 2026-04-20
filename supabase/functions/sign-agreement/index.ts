@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { z } from "https://esm.sh/zod@3.23.8"
+import { assertAllowedBrowserOrigin, buildCorsHeaders, handleCorsOptions } from "../_shared/cors.ts"
 import { edgeLog } from "../_shared/edgeLog.ts"
 import { sanitizeOriginQueryValue } from "../_shared/safeRedirect.ts"
 import { signicatUiLanguageFromAppLocale } from "../_shared/signicatUiLanguage.ts"
@@ -13,11 +14,6 @@ const signAgreementBodySchema = z.object({
   /** Boly UI language: drives Signicat Sign API `ui.language` (no/en; se → no). */
   appLocale: z.enum(["no", "se", "en"]).optional(),
 })
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 /** Must match the API client in Signicat Dashboard → Settings → API clients (same client as SIGNICAT_SECRET_SIGN). */
 const CLIENT_ID =
@@ -36,8 +32,12 @@ function fallbackPdfUrl(): string {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  const preflight = handleCorsOptions(req)
+  if (preflight) return preflight
+
+  if (req.method === "POST") {
+    const originDenied = assertAllowedBrowserOrigin(req)
+    if (originDenied) return originDenied
   }
 
   let currentStep = "Initialisering"
@@ -58,7 +58,7 @@ serve(async (req) => {
           message: 'Validering av body feilet',
           issues: parsedBody.error.flatten(),
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        { status: 400, headers: { ...buildCorsHeaders(req), 'Content-Type': 'application/json' } },
       )
     }
     const { userId, origin, city, appLocale } = parsedBody.data
@@ -93,7 +93,7 @@ serve(async (req) => {
             message:
               "Avtalen er sagt opp av kommunen. Be om å få signere på nytt under Mine boliger og vent på godkjenning før du prøver igjen.",
           }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          { status: 403, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
         )
       }
       return new Response(
@@ -102,7 +102,7 @@ serve(async (req) => {
           message:
             "Avtalen er avsluttet. Ta kontakt med kommunen eller logg inn på utleierkontoen for neste steg.",
         }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 403, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
       )
     }
 
@@ -123,7 +123,7 @@ serve(async (req) => {
           message:
             "Alle påkrevde vilkår for dette området er allerede signert, eller det finnes ingen publiserte vilkår.",
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
       )
     }
 
@@ -144,7 +144,7 @@ serve(async (req) => {
           error: "For mange forsøk",
           message: "Vent noen minutter før du prøver å signere på nytt.",
         }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 429, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
       )
     }
 
@@ -162,10 +162,21 @@ serve(async (req) => {
 
     if (docId && typeof docId === "string") {
       const { data: row } = await supabaseAdmin
-        .from('terms_documents')
-        .select('title, pdf_bucket, pdf_storage_path')
-        .eq('id', docId)
+        .from("terms_documents")
+        .select("title, pdf_bucket, pdf_storage_path, approved_for_utleier_signing")
+        .eq("id", docId)
         .maybeSingle()
+
+      if (row && row.approved_for_utleier_signing !== true) {
+        return new Response(
+          JSON.stringify({
+            error: "Signering ikke tilgjengelig",
+            message:
+              "Dette vilkårsdokumentet er ikke godkjent for utleiersignering ennå. Ta kontakt med kommunen eller prøv igjen senere.",
+          }),
+          { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
+        )
+      }
 
       if (row?.pdf_storage_path?.trim()) {
         const bucket = (row.pdf_bucket || 'documents').trim()
@@ -273,7 +284,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ url: signatureUrl }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" }
     })
 
   } catch (err) {
@@ -284,7 +295,7 @@ serve(async (req) => {
       message 
     }), { 
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" }
     })
   }
 })

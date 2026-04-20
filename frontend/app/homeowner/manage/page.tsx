@@ -34,6 +34,7 @@ import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import BottomSheet from '../../components/BottomSheet'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
 import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
+import { logError } from '@/app/lib/appLogger'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
@@ -169,7 +170,7 @@ export default function HomeownerManage() {
         }
       }
     } catch (err: any) {
-      console.error('Unexpected error:', err)
+      logError('Unexpected error:', err)
       setFetchError(err?.message || 'error')
     } finally {
       setLoading(false)
@@ -258,7 +259,7 @@ export default function HomeownerManage() {
         userResp = await supabase.auth.getUser()
       } catch (e: unknown) {
         if (cancelled) return
-        console.error(e)
+        logError(e)
         setFetchError(e instanceof Error ? e.message : 'error')
         setPageGate('ready')
         setLoading(false)
@@ -357,6 +358,12 @@ export default function HomeownerManage() {
   const executeDeleteListing = async () => {
     if (!pendingDeleteListing) return
     const { id, address } = pendingDeleteListing
+    const listingRow = myListings.find((l) => l.id === id)
+    if (listingRow && getEffectiveStatus(listingRow) === 'Formidla') {
+      alert(t('ownerCannotEditListingWhenFormidlet'))
+      setPendingDeleteListing(null)
+      return
+    }
 
     const prevListings = myListings
     setMyListings((prev) => prev.filter((item) => item.id !== id))
@@ -1194,7 +1201,8 @@ export default function HomeownerManage() {
                               />
                             </>
                           )}
-                          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                            {getEffectiveStatus(listing) !== 'Formidla' && (
+                            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                             <button
                               type="button"
                               onClick={() => {
@@ -1259,6 +1267,7 @@ export default function HomeownerManage() {
                               <Trash2 size={18} aria-hidden />
                             </button>
                           </div>
+                            )}
                         </>
                       )}
                     </div>
@@ -1688,72 +1697,97 @@ export default function HomeownerManage() {
                 )}
               </div>
             )}
-            <button
-              type="button"
-              className="button"
-              style={{
-                width: '100%',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-3) var(--space-4)',
-              }}
-              onClick={() => {
-                setEditingAvailability(
-                  editingAvailability === actionSheetListing.id ? null : actionSheetListing.id
-                )
-                setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
-                setActionSheetListingId(null)
-              }}
-            >
-              <Clock size={18} aria-hidden />
-              {t('managePeriods')}
-            </button>
-            <button
-              type="button"
-              className="button button-secondary"
-              style={{
-                width: '100%',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-3) var(--space-4)',
-              }}
-              onClick={() => {
-                router.push(`/listings/${actionSheetListing.id}?view=owner`)
-                setActionSheetListingId(null)
-              }}
-            >
-              <Edit3 size={18} aria-hidden />
-              {t('editListing')}
-            </button>
-            <button
-              type="button"
-              className="button"
-              style={{
-                width: '100%',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-3) var(--space-4)',
-                background: 'rgba(239, 68, 68, 0.08)',
-                color: '#ef4444',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-              }}
-              onClick={() => {
-                setPendingDeleteListing({
-                  id: actionSheetListing.id,
-                  address: actionSheetListing.address,
-                })
-                setActionSheetListingId(null)
-              }}
-            >
-              <Trash2 size={18} aria-hidden />
-              {t('delete')}
-            </button>
+            {getEffectiveStatus(actionSheetListing) !== 'Formidla' && (
+              <>
+                <button
+                  type="button"
+                  className="button"
+                  style={{
+                    width: '100%',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 'var(--space-2)',
+                    padding: 'var(--space-3) var(--space-4)',
+                  }}
+                  onClick={() => {
+                    setEditingAvailability(
+                      editingAvailability === actionSheetListing.id ? null : actionSheetListing.id
+                    )
+                    setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
+                    setActionSheetListingId(null)
+                  }}
+                >
+                  <Clock size={18} aria-hidden />
+                  {t('managePeriods')}
+                </button>
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  style={{
+                    width: '100%',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 'var(--space-2)',
+                    padding: 'var(--space-3) var(--space-4)',
+                  }}
+                  onClick={() => {
+                    router.push(`/listings/${actionSheetListing.id}?view=owner`)
+                    setActionSheetListingId(null)
+                  }}
+                >
+                  <Edit3 size={18} aria-hidden />
+                  {t('editListing')}
+                </button>
+                <button
+                  type="button"
+                  className="button"
+                  style={{
+                    width: '100%',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 'var(--space-2)',
+                    padding: 'var(--space-3) var(--space-4)',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                  }}
+                  onClick={() => {
+                    setPendingDeleteListing({
+                      id: actionSheetListing.id,
+                      address: actionSheetListing.address,
+                    })
+                    setActionSheetListingId(null)
+                  }}
+                >
+                  <Trash2 size={18} aria-hidden />
+                  {t('delete')}
+                </button>
+              </>
+            )}
+            {getEffectiveStatus(actionSheetListing) === 'Formidla' && (
+              <button
+                type="button"
+                className="button button-secondary"
+                style={{
+                  width: '100%',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 'var(--space-2)',
+                  padding: 'var(--space-3) var(--space-4)',
+                }}
+                onClick={() => {
+                  router.push(`/listings/${actionSheetListing.id}?view=owner`)
+                  setActionSheetListingId(null)
+                }}
+              >
+                <Edit3 size={18} aria-hidden />
+                {t('viewListing')}
+              </button>
+            )}
           </div>
         </BottomSheet>
       )}
