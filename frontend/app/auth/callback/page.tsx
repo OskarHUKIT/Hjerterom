@@ -31,6 +31,8 @@ function AuthCallbackInner() {
 
     const run = async () => {
       const code = params.get('code')
+      const tokenHash = params.get('token_hash')
+      const otpType = params.get('type')
       const errorDescription = params.get('error_description') || params.get('error')
       const next = params.get('next') || '/'
 
@@ -43,6 +45,27 @@ function AuthCallbackInner() {
 
       if (!isSupabaseConfigured) {
         if (!cancelled) setStatus('error')
+        return
+      }
+
+      /**
+       * Token-hash-flyt for signup- og email-change-bekreftelse. Bruker samme mønster som
+       * passord-reset: e-post-lenken peker på vår domenet og verifiseres kun når JS kjører,
+       * så e-post-skannere ikke forbruker tokenet.
+       */
+      if (tokenHash && (otpType === 'signup' || otpType === 'email_change' || otpType === 'magiclink' || otpType === 'invite')) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: otpType,
+        })
+        if (cancelled) return
+        if (error) {
+          const target = new URL('/auth/auth-code-error', window.location.origin)
+          target.searchParams.set('reason', error.message || 'verify_failed')
+          window.location.replace(target.toString())
+          return
+        }
+        router.replace(next.startsWith('/') ? next : '/')
         return
       }
 
