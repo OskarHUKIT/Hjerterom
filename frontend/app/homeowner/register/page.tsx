@@ -237,6 +237,7 @@ export default function HomeownerRegister() {
       ...prev,
       latitude: c.lat,
       longitude: c.lon,
+      ...(c.street && { address: c.street }),
       ...(c.postal_code && { postal_code: c.postal_code }),
       ...(c.city && { city: c.city }),
     }))
@@ -277,7 +278,7 @@ export default function HomeownerRegister() {
       ...prev,
       latitude: h.lat,
       longitude: h.lon,
-      address: prev.address,
+      address: h.street || prev.address,
       ...(h.postal_code && { postal_code: h.postal_code }),
       ...(h.city && { city: h.city }),
     }))

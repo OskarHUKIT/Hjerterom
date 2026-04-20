@@ -20,8 +20,10 @@ import { devWarn } from '@/app/lib/appLogger'
 export type GeocodeHit = {
   lat: number
   lon: number
-  /** Kort visningstekst */
+  /** Kort visningstekst, f.eks. "Lavangsnesveien 10 · 9350 · Sjovegan" */
   displayLabel: string
+  /** Bare gatedelen, f.eks. "Lavangsnesveien 10" – brukes som adressefelt i skjema */
+  street: string
   city: string
   postal_code: string
   raw: Record<string, unknown>
@@ -76,6 +78,7 @@ export function rawResultToGeocodeHit(hit: Record<string, unknown>): GeocodeHit 
     lat,
     lon,
     displayLabel,
+    street,
     city,
     postal_code: postal,
     raw: hit,
