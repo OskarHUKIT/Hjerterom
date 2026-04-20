@@ -85,7 +85,13 @@ export default function ForgotPasswordPage() {
       return
     }
 
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent('/login/update-password')}`
+    /**
+     * Med `flowType: 'implicit'` sender Supabase brukeren til `redirectTo` med
+     * `#access_token=...&type=recovery` i URL-hashen. supabase-js leser dette automatisk når
+     * siden lastes, og fyrer `PASSWORD_RECOVERY`. Derfor peker vi rett på skjemaet – ingen
+     * behov for en ekstra utveksling via /auth/callback.
+     */
+    const redirectTo = `${window.location.origin}/login/update-password`
 
     try {
       let lastError: unknown = null

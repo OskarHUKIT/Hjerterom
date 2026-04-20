@@ -57,25 +57,38 @@ export default function UpdatePasswordPage() {
 
   useEffect(() => {
     let cancelled = false
+
+    /**
+     * Supabase-klienten leser hash/?code=-tokens og skyter PASSWORD_RECOVERY-event. Lytt på dette
+     * samtidig som vi polle'r getSession slik at vi godtar økten uansett hvilken flow som er brukt.
+     */
+    const { data: listener } = supabase.auth.onAuthStateChange((event, s) => {
+      if (cancelled) return
+      if (event === 'PASSWORD_RECOVERY' || s?.user) {
+        setSessionReady(true)
+      }
+    })
+
     const check = async () => {
       if (!isSupabaseConfigured) {
         if (!cancelled) setSessionReady(false)
         return
       }
-      const { data } = await supabase.auth.getSession()
-      if (cancelled) return
-      if (data.session?.user) {
-        setSessionReady(true)
-        return
+      for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
+        const { data } = await supabase.auth.getSession()
+        if (cancelled) return
+        if (data.session?.user) {
+          setSessionReady(true)
+          return
+        }
+        await new Promise((r) => setTimeout(r, 400))
       }
-      await new Promise((r) => setTimeout(r, 400))
-      if (cancelled) return
-      const { data: retry } = await supabase.auth.getSession()
-      setSessionReady(!!retry.session?.user)
+      if (!cancelled) setSessionReady(false)
     }
     void check()
     return () => {
       cancelled = true
+      listener.subscription.unsubscribe()
     }
   }, [])
 

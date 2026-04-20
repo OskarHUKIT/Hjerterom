@@ -54,7 +54,7 @@ export default function CookieBanner() {
               style={{
                 margin: '0 0 var(--space-2)',
                 fontSize: '1rem',
-                fontWeight: 700,
+                fontWeight: 500,
                 color: 'var(--text-main, #f8fafc)',
               }}
             >

@@ -5,11 +5,11 @@ import Link from 'next/link'
 import { PreliminaryLegalDisclaimer } from './PreliminaryLegalDisclaimer'
 
 const sectionTitle: CSSProperties = {
-  color: '#0f172a',
+  color: 'var(--text-main)',
   fontSize: '1.25rem',
   marginBottom: 'var(--space-2)',
 }
-const body: CSSProperties = { color: '#334155' }
+const body: CSSProperties = { color: 'var(--text-body)' }
 const sectionGap: CSSProperties = { marginBottom: 'var(--space-6)' }
 
 /**
@@ -22,10 +22,10 @@ export function BrukervilkarContent({ showDisclaimer = true }: { showDisclaimer?
 
       <h2
         style={{
-          color: '#0f172a',
+          color: 'var(--text-main)',
           fontSize: '1.6rem',
           marginBottom: 'var(--space-6)',
-          borderBottom: '2px solid #f1f5f9',
+          borderBottom: '2px solid var(--border-subtle)',
           paddingBottom: 'var(--space-2)',
         }}
       >
@@ -88,7 +88,7 @@ export function BrukervilkarContent({ showDisclaimer = true }: { showDisclaimer?
         <p style={body}>
           Behandling av personopplysninger beskrives nærmere i den preliminære personvernerklæringen
           på{' '}
-          <Link href="/personvern/" style={{ color: 'var(--color-royal-blue, #2563eb)' }}>
+          <Link href="/personvern/" style={{ color: 'var(--color-accent)' }}>
             personvernsiden
           </Link>
           . Ved motstrid mellom korte henvisninger her og personvernerklæringen, skal
@@ -120,7 +120,7 @@ export function BrukervilkarContent({ showDisclaimer = true }: { showDisclaimer?
         <p style={body}>
           Spørsmål om tjenesten kan rettes til den kontaktkanalen kommunen eller driftspartner angir
           i tjenesten, for eksempel{' '}
-          <a href="mailto:info@bolynorge.no" style={{ color: 'var(--color-royal-blue, #2563eb)' }}>
+          <a href="mailto:info@bolynorge.no" style={{ color: 'var(--color-accent)' }}>
             info@bolynorge.no
           </a>
           .

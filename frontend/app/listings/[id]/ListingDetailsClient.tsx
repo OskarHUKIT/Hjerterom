@@ -1119,15 +1119,25 @@ export default function ListingDetailsClient() {
   }
 
   if (!listing) {
+    const notFoundHref = isNavView
+      ? '/nav/database'
+      : currentUser
+        ? '/homeowner/manage'
+        : '/'
+    const notFoundLabel = isNavView
+      ? t('backToHousingBank')
+      : currentUser
+        ? t('backToMyProperties')
+        : t('backToHome')
     return (
       <div className="container" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
         <h2 style={{ color: 'var(--text-main)' }}>Boligen ble ikke funnet</h2>
         <Link
-          href={isNavView ? '/nav/database' : '/homeowner/manage'}
+          href={notFoundHref}
           className="button"
           style={{ marginTop: 'var(--space-4)' }}
         >
-          {isNavView ? t('backToHousingBank') : t('backToMyProperties')}
+          {notFoundLabel}
         </Link>
       </div>
     )

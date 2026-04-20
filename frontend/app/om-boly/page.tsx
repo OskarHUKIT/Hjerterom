@@ -1,5 +1,16 @@
+import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import { PreliminaryLegalDisclaimer } from '../components/legal/PreliminaryLegalDisclaimer'
+
+const h2: CSSProperties = {
+  color: 'var(--text-main)',
+  fontSize: '1.35rem',
+  marginTop: 'var(--space-6)',
+  marginBottom: 'var(--space-3)',
+  borderBottom: '2px solid var(--border-subtle)',
+  paddingBottom: 'var(--space-2)',
+}
+const p: CSSProperties = { color: 'var(--text-body)', marginBottom: 'var(--space-4)' }
 
 export default function OmBolyPage() {
   return (
@@ -37,26 +48,14 @@ export default function OmBolyPage() {
           className="card"
           style={{
             padding: 'var(--space-8)',
-            background: '#ffffff',
-            color: '#1e293b',
             lineHeight: 1.75,
             fontSize: '1.05rem',
           }}
         >
           <PreliminaryLegalDisclaimer />
 
-          <h2
-            style={{
-              color: '#0f172a',
-              fontSize: '1.35rem',
-              marginBottom: 'var(--space-3)',
-              borderBottom: '2px solid #f1f5f9',
-              paddingBottom: 'var(--space-2)',
-            }}
-          >
-            Hva er Boly?
-          </h2>
-          <p style={{ color: '#334155', marginBottom: 'var(--space-4)' }}>
+          <h2 style={{ ...h2, marginTop: 0 }}>Hva er Boly?</h2>
+          <p style={p}>
             Boly er en digital tjeneste som hjelper kommuner med å finne og formidle egnede boliger
             fra private utleiere til personer som trenger bostøtte eller annen kommunal bistand til
             bolig. Utleiere kan registrere boliger og relevant informasjon, mens autorisert
@@ -64,54 +63,29 @@ export default function OmBolyPage() {
             og interne rutiner.
           </p>
 
-          <h2
-            style={{
-              color: '#0f172a',
-              fontSize: '1.35rem',
-              marginTop: 'var(--space-6)',
-              marginBottom: 'var(--space-3)',
-              borderBottom: '2px solid #f1f5f9',
-              paddingBottom: 'var(--space-2)',
-            }}
-          >
-            Samarbeid og utvikling
-          </h2>
-          <p style={{ color: '#334155', marginBottom: 'var(--space-4)' }}>
+          <h2 style={h2}>Samarbeid og utvikling</h2>
+          <p style={p}>
             Løsningen er utviklet i et samarbeid mellom Nav Narvik og Gamechanging, med støtte fra
             Narvik kommune i tråd med prosjektets mandat. Den endelige ansvarsfordelingen mellom
             kommune, leverandører og brukere reguleres av avtaler og vilkår som fastsettes for
             produksjon.
           </p>
 
-          <h2
-            style={{
-              color: '#0f172a',
-              fontSize: '1.35rem',
-              marginTop: 'var(--space-6)',
-              marginBottom: 'var(--space-3)',
-              borderBottom: '2px solid #f1f5f9',
-              paddingBottom: 'var(--space-2)',
-            }}
-          >
-            Mer informasjon
-          </h2>
-          <p style={{ color: '#334155', marginBottom: 'var(--space-3)' }}>
+          <h2 style={h2}>Mer informasjon</h2>
+          <p style={{ ...p, marginBottom: 'var(--space-3)' }}>
             For juridiske temaer viser vi til de preliminære sidene for{' '}
-            <Link href="/brukervilkar/" style={{ color: 'var(--color-royal-blue, #2563eb)' }}>
+            <Link href="/brukervilkar/" style={{ color: 'var(--color-accent)' }}>
               brukervilkår
             </Link>{' '}
             og{' '}
-            <Link href="/personvern/" style={{ color: 'var(--color-royal-blue, #2563eb)' }}>
+            <Link href="/personvern/" style={{ color: 'var(--color-accent)' }}>
               personvern
             </Link>
             .
           </p>
-          <p style={{ color: '#334155', marginBottom: 0 }}>
+          <p style={{ ...p, marginBottom: 0 }}>
             Generelle spørsmål:{' '}
-            <a
-              href="mailto:info@bolynorge.no"
-              style={{ color: 'var(--color-royal-blue, #2563eb)' }}
-            >
+            <a href="mailto:info@bolynorge.no" style={{ color: 'var(--color-accent)' }}>
               info@bolynorge.no
             </a>
           </p>

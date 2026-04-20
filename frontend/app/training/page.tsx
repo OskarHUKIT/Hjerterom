@@ -34,13 +34,13 @@ export default function Training() {
           style={{
             fontSize: '2.5rem',
             fontWeight: 700,
-            color: 'var(--color-dark-navy)',
+            color: 'var(--text-main)',
             marginBottom: '0.5rem',
           }}
         >
           IT Kunnskapstrening
         </h1>
-        <p style={{ fontSize: '1.1rem', color: 'var(--color-dark-navy)', opacity: 0.8 }}>
+        <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>
           Treningsmateriale og kunnskapsbase for IT-systemer
         </p>
       </div>
@@ -74,14 +74,13 @@ export default function Training() {
             📚
           </div>
           <div style={{ flex: 1 }}>
-            <h3 style={{ margin: 0, marginBottom: '0.5rem', color: 'var(--color-dark-navy)' }}>
+            <h3 style={{ margin: 0, marginBottom: '0.5rem', color: 'var(--text-main)' }}>
               Behov boligbank – Kunnskapstrening IT
             </h3>
             <p
               style={{
                 margin: 0,
-                color: 'var(--color-dark-navy)',
-                opacity: 0.7,
+                color: 'var(--text-muted)',
                 fontSize: '0.95rem',
               }}
             >
@@ -142,7 +141,7 @@ export default function Training() {
               <h4
                 style={{
                   marginBottom: '0.75rem',
-                  color: 'var(--color-dark-navy)',
+                  color: 'var(--text-main)',
                   fontSize: '1.1rem',
                   fontWeight: 600,
                 }}
@@ -151,8 +150,7 @@ export default function Training() {
               </h4>
               <p
                 style={{
-                  color: 'var(--color-dark-navy)',
-                  opacity: 0.8,
+                  color: 'var(--text-muted)',
                   fontSize: '0.95rem',
                   lineHeight: '1.6',
                   margin: 0,

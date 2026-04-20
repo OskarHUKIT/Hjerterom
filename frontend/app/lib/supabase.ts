@@ -59,11 +59,22 @@ const supabaseGlobalOptions = {
 /**
  * Cookie-basert klient via @supabase/ssr — samme økt som Next middleware leser,
  * slik at server-side rutebeskyttelse og token-refresh fungerer.
+ *
+ * `flowType: 'implicit'` for auth:
+ *   Standard i @supabase/ssr er PKCE, som krever at `code_verifier` lagres mellom
+ *   forespørsel og callback. Dette gjør e-postbaserte flyter (passord-reset, signup-
+ *   bekreftelse) skjøre — minste endring i browser-storage/cookies mellom bestilling
+ *   og klikk gir «PKCE code verifier not found in storage». Implicit flow bruker i
+ *   stedet access_token i URL-hashen og krever ingen lokal verifier. BankID-innlogging
+ *   går via egen Signicat-edge-funksjon og påvirkes ikke av dette valget.
  */
 const client = isSupabaseConfigured
   ? createBrowserClient(supabaseUrl, supabaseKey, {
       isSingleton: true,
       ...supabaseGlobalOptions,
+      auth: {
+        flowType: 'implicit',
+      },
     })
   : createClient(supabaseUrl, supabaseKey, { ...supabaseGlobalOptions })
 
@@ -90,6 +101,17 @@ const AUTH_TIMEOUT_MESSAGE = 'AUTH_OPERATION_TIMEOUT'
 
 function isAuthOperationTimeout(err: unknown): boolean {
   return err instanceof Error && err.message === AUTH_TIMEOUT_MESSAGE
+}
+
+/** Supabase kaster/rapporterer «Auth session missing!» for utloggede kall — ikke en reell feil. */
+function isAuthSessionMissingLike(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  const name = (err as { name?: string }).name
+  const msg = (err as { message?: string }).message ?? ''
+  return (
+    name === 'AuthSessionMissingError' ||
+    /auth session missing|session[_ ]?not[_ ]?found|not.*authenticated/i.test(msg)
+  )
 }
 
 function withAuthTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -166,7 +188,7 @@ if (!isSupabaseConfigured) {
     }
   }
 
-  // Wrapper getUser – timeout + ugyldig refresh token
+  // Wrapper getUser – timeout + ugyldig refresh token + stille «ingen sesjon»
   const originalGetUser = client.auth.getUser.bind(client.auth)
   client.auth.getUser = async () => {
     try {
@@ -178,6 +200,13 @@ if (!isSupabaseConfigured) {
         devWarn('[Boly] auth.getUser timed out — returning last known user (stale-while-revalidate)')
         return {
           data: { user: lastUserMemory },
+          error: null,
+        } as unknown as Awaited<ReturnType<typeof originalGetUser>>
+      }
+      if (isAuthSessionMissingLike(e)) {
+        // Utlogget bruker på offentlig side: returner tomt i stedet for å kaste.
+        return {
+          data: { user: null },
           error: null,
         } as unknown as Awaited<ReturnType<typeof originalGetUser>>
       }
@@ -225,8 +254,15 @@ export async function getAuthUserDeduped(): Promise<User | null> {
     inflightGetUser = client.auth
       .getUser()
       .then(({ data, error }) => {
-        if (error) throw error
+        if (error) {
+          if (isAuthSessionMissingLike(error)) return null
+          throw error
+        }
         return data.user ?? null
+      })
+      .catch((e) => {
+        if (isAuthSessionMissingLike(e)) return null
+        throw e
       })
     void inflightGetUser.finally(() => {
       inflightGetUser = null

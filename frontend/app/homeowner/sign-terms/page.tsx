@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ShieldCheck,
   FileText,
-  ChevronDown,
   CheckCircle2,
   Lock,
   ArrowLeft,
@@ -170,7 +169,6 @@ function SignTermsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
-  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
   const [pageReady, setPageReady] = useState(false)
   const [isSigned, setIsSigned] = useState(false)
   const [signCity, setSignCity] = useState('')
@@ -182,9 +180,7 @@ function SignTermsContent() {
     pdf_bucket?: string | null
     pdf_storage_path?: string | null
   } | null>(null)
-  const [pdfReadConfirmed, setPdfReadConfirmed] = useState(false)
   const [signedAcceptances, setSignedAcceptances] = useState<SignedTermsCard[]>([])
-  const scrollRef = useRef<HTMLDivElement>(null)
 
   const fallbackTermsPdfHref = publicDocumentsFileUrl('VilkarsavtaleBoligbanken.pdf')
 
@@ -428,39 +424,11 @@ function SignTermsContent() {
     router.replace('/homeowner/register')
   }, [searchParams, router, t])
 
-  useEffect(() => {
-    setPdfReadConfirmed(false)
-  }, [termsDoc?.id])
-
-  const handleScroll = () => {
-    if (scrollRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-      // If within 50px of bottom, consider it scrolled
-      if (scrollTop + clientHeight >= scrollHeight - 50) {
-        setHasScrolledToBottom(true)
-      }
-    }
-  }
-
-  const termsPdfUrl = termsDoc?.pdf_storage_path
-    ? supabase.storage
-        .from(termsDoc.pdf_bucket || 'documents')
-        .getPublicUrl(termsDoc.pdf_storage_path).data.publicUrl
-    : null
-  const docRowMissingContent = !!(termsDoc && !termsPdfUrl && !termsDoc.body?.trim())
-  const canProceedToSign = !!(
-    termsDoc &&
-    !docRowMissingContent &&
-    (termsPdfUrl ? pdfReadConfirmed : hasScrolledToBottom)
-  )
+  const canProceedToSign = !!termsDoc
 
   const handleSign = async () => {
     if (!termsDoc) {
       alert(t('signTermsNoApprovedDocument'))
-      return
-    }
-    if (!canProceedToSign) {
-      alert(termsPdfUrl ? t('termsConfirmReadPdf') : t('termsScrollBeforeSign'))
       return
     }
 
@@ -917,228 +885,70 @@ function SignTermsContent() {
         <div
           className="card"
           style={{
-            padding: 0,
-            overflow: 'hidden',
+            padding: 'var(--space-6) var(--space-8)',
             border: '1px solid var(--border-medium)',
             background: '#ffffff',
           }}
         >
-          <div
-            style={{
-              padding: 'var(--space-4) var(--space-6)',
-              background: '#f1f5f9',
-              borderBottom: '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <FileText size={18} style={{ color: '#0f172a' }} />
-              <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                {termsDoc
-                  ? `${termsDoc.title} · v${termsDoc.version}`
-                  : t('signTermsNoDocCardTitle')}
-              </span>
-            </div>
-            {termsPdfUrl
-              ? !pdfReadConfirmed && (
-                  <div
-                    style={{
-                      fontSize: '0.85rem',
-                      color: '#475569',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <ChevronDown size={14} /> {t('termsConfirmReadPdf')}
-                  </div>
-                )
-              : !hasScrolledToBottom &&
-                termsDoc && (
-                  <div
-                    style={{
-                      fontSize: '0.85rem',
-                      color: '#475569',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <ChevronDown size={14} /> {t('signTermsScrollHint')}
-                  </div>
-                )}
-          </div>
-
-          <div
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="sign-terms-scroll"
-            style={{
-              height: '450px',
-              overflowY: 'auto',
-              padding: 'var(--space-8)',
-              background: '#ffffff',
-              color: '#1e293b',
-              lineHeight: '1.8',
-              fontSize: '1.1rem',
-            }}
-          >
-            {!termsDoc ? (
-              <div
-                style={{
-                  padding: 'var(--space-6)',
-                  background: '#fffbeb',
-                  border: '1px solid #fcd34d',
-                  borderRadius: 12,
-                  color: '#78350f',
-                  lineHeight: 1.6,
-                }}
-              >
-                <p style={{ margin: 0, fontWeight: 600 }}>{t('signTermsNoApprovedDocument')}</p>
-                <p style={{ margin: '12px 0 0', fontSize: '0.95rem' }}>
-                  <Link href="/homeowner/manage" className="nav-link" style={{ fontWeight: 600 }}>
-                    {t('myProperties')}
-                  </Link>
-                </p>
-              </div>
-            ) : termsPdfUrl ? (
-              <>
-                <h2
-                  style={{
-                    color: '#0f172a',
-                    fontSize: '1.6rem',
-                    marginBottom: 'var(--space-4)',
-                    borderBottom: '2px solid #f1f5f9',
-                    paddingBottom: 'var(--space-2)',
-                  }}
-                >
-                  {termsDoc?.title}
-                </h2>
-                <iframe
-                  title={t('termsPdfTooltip')}
-                  src={termsPdfUrl}
-                  style={{
-                    width: '100%',
-                    height: '320px',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: 8,
-                  }}
-                />
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 10,
-                    marginTop: 16,
-                    cursor: 'pointer',
-                    color: '#334155',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={pdfReadConfirmed}
-                    onChange={(e) => setPdfReadConfirmed(e.target.checked)}
-                    style={{ marginTop: 4 }}
-                  />
-                  <span>{t('termsConfirmReadPdf')}</span>
-                </label>
-              </>
-            ) : termsDoc.body && termsDoc.body.trim() ? (
-              <>
-                <h2
-                  style={{
-                    color: '#0f172a',
-                    fontSize: '1.6rem',
-                    marginBottom: 'var(--space-6)',
-                    borderBottom: '2px solid #f1f5f9',
-                    paddingBottom: 'var(--space-2)',
-                  }}
-                >
-                  {termsDoc.title}
-                </h2>
-                <div style={{ color: '#334155', whiteSpace: 'pre-wrap' }}>{termsDoc.body}</div>
-              </>
-            ) : (
-              <p style={{ color: '#64748b' }}>{t('termsNoPdfOrText')}</p>
-            )}
-
-            {termsDoc && !termsPdfUrl && (
-              <div
-                style={{
-                  marginTop: 'var(--space-10)',
-                  padding: 'var(--space-8)',
-                  background: '#f8fafc',
-                  borderRadius: '16px',
-                  textAlign: 'center',
-                  border: '2px solid #e2e8f0',
-                }}
-              >
-                <ShieldCheck
-                  size={48}
-                  style={{ color: '#059669', margin: '0 auto var(--space-4)' }}
-                />
-                <p style={{ fontWeight: 800, fontSize: '1.2rem', color: '#0f172a', margin: 0 }}>
-                  {t('signTermsReadThroughTitle')}
-                </p>
-                <p style={{ color: '#64748b', marginTop: '4px' }}>{t('signTermsReadThroughSub')}</p>
-              </div>
-            )}
-          </div>
-
-          <div
-            style={{
-              padding: 'var(--space-6) var(--space-8)',
-              background: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
-            }}
-          >
+          {!termsDoc ? (
             <div
               style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 'var(--space-4)',
+                padding: 'var(--space-6)',
+                background: '#fffbeb',
+                border: '1px solid #fcd34d',
+                borderRadius: 12,
+                color: '#78350f',
+                lineHeight: 1.6,
                 marginBottom: 'var(--space-6)',
               }}
             >
-              <div style={{ marginTop: '4px' }}>
-                <CheckCircle2
-                  size={20}
-                  style={{ color: canProceedToSign ? '#059669' : '#94a3b8' }}
-                />
-              </div>
-              <div>
-                <p style={{ fontWeight: 700, fontSize: '1.1rem', margin: 0, color: '#0f172a' }}>
-                  {t('signTermsConfirmReadDocument')}
-                </p>
-                <p style={{ fontSize: '0.9rem', color: '#475569', marginTop: '2px' }}>
-                  {t('signTermsConfirmBankIdLine')}
-                </p>
-              </div>
+              <p style={{ margin: 0, fontWeight: 600 }}>{t('signTermsNoApprovedDocument')}</p>
+              <p style={{ margin: '12px 0 0', fontSize: '0.95rem' }}>
+                <Link href="/homeowner/manage" className="nav-link" style={{ fontWeight: 600 }}>
+                  {t('myProperties')}
+                </Link>
+              </p>
             </div>
-
-            <button
-              onClick={handleSign}
-              disabled={!canProceedToSign || loading}
-              className="button"
+          ) : (
+            <div
               style={{
-                width: '100%',
-                padding: 'var(--space-4)',
-                fontSize: '1.1rem',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
                 gap: 'var(--space-3)',
-                background: canProceedToSign ? 'var(--color-royal-blue)' : '#e2e8f0',
-                color: canProceedToSign ? 'white' : '#94a3b8',
-                cursor: canProceedToSign ? 'pointer' : 'not-allowed',
+                padding: 'var(--space-4) var(--space-5)',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                borderRadius: 12,
+                marginBottom: 'var(--space-6)',
               }}
             >
-              {loading ? <Lock size={20} style={{ opacity: 0.7 }} /> : <ShieldCheck size={20} />}
-              {loading ? 'Signerer med BankID...' : 'Signer med BankID'}
-            </button>
-          </div>
+              <FileText size={20} style={{ color: '#0f172a', flexShrink: 0 }} />
+              <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                {termsDoc.title} · v{termsDoc.version}
+              </span>
+            </div>
+          )}
+
+          <button
+            onClick={handleSign}
+            disabled={!canProceedToSign || loading}
+            className="button"
+            style={{
+              width: '100%',
+              padding: 'var(--space-4)',
+              fontSize: '1.1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'var(--space-3)',
+              background: canProceedToSign ? 'var(--color-royal-blue)' : '#e2e8f0',
+              color: canProceedToSign ? 'white' : '#94a3b8',
+              cursor: canProceedToSign ? 'pointer' : 'not-allowed',
+            }}
+          >
+            {loading ? <Lock size={20} style={{ opacity: 0.7 }} /> : <ShieldCheck size={20} />}
+            {loading ? 'Signerer med BankID...' : 'Signer med BankID'}
+          </button>
         </div>
 
         <div

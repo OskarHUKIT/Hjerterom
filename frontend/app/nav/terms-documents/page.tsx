@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, FileText, Plus, ExternalLink, Info } from 'lucide-react'
+import { ArrowLeft, FileText, Plus, ExternalLink, Info, Check } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateTimeNo } from '../../lib/dateFormat'
@@ -62,6 +62,8 @@ type TermsRow = {
 
 type ListRow = { kind: 'storage_default' } | { kind: 'db'; row: TermsRow }
 
+type ApprovalFilter = 'all' | 'pending' | 'approved'
+
 export default function TermsDocumentsPage() {
   const { t } = useLanguage()
   const router = useRouter()
@@ -78,6 +80,7 @@ export default function TermsDocumentsPage() {
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [approvalFilter, setApprovalFilter] = useState<ApprovalFilter>('all')
 
   const isAdmin = isKommuneAdminRole(userRole)
 
@@ -180,13 +183,31 @@ export default function TermsDocumentsPage() {
     })
   }, [rows, myRegions])
 
+  const pendingDbCount = useMemo(
+     
+    () => visibleDbRows.filter((r) => r.approved_for_utleier_signing !== true).length,
+    [visibleDbRows]
+  )
+  const approvedDbCount = visibleDbRows.length - pendingDbCount
+
+  const filteredDbRows = useMemo(() => {
+    if (approvalFilter === 'pending') {
+      return visibleDbRows.filter((r) => r.approved_for_utleier_signing !== true)
+    }
+    if (approvalFilter === 'approved') {
+      return visibleDbRows.filter((r) => r.approved_for_utleier_signing === true)
+    }
+    return visibleDbRows
+  }, [visibleDbRows, approvalFilter])
+
+  /** The storage-default row is always relevant context and stays visible across filters. */
   const listRows: ListRow[] = useMemo(() => {
     const out: ListRow[] = [{ kind: 'storage_default' }]
-    for (const row of visibleDbRows) {
+    for (const row of filteredDbRows) {
       out.push({ kind: 'db', row })
     }
     return out
-  }, [visibleDbRows])
+  }, [filteredDbRows])
 
   const publicPdfUrl = (row: TermsRow) => {
     const bucket = row.pdf_bucket || 'documents'
@@ -464,11 +485,82 @@ export default function TermsDocumentsPage() {
       <h2 style={{ fontSize: '1.15rem', marginBottom: 12 }}>{t('termsListHeading')}</h2>
       <p
         className="text-sm"
-        style={{ color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.5 }}
+        style={{ color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}
       >
         <Info size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
         {t('termsSigningPriorityHint')}
       </p>
+      {pendingDbCount > 0 && (
+        <div
+          role="status"
+          style={{
+            padding: 'var(--space-3) var(--space-4)',
+            marginBottom: 'var(--space-4)',
+            background: '#fffbeb',
+            border: '1px solid #fcd34d',
+            borderRadius: 12,
+            color: '#78350f',
+            lineHeight: 1.5,
+            fontWeight: 600,
+          }}
+        >
+          {pendingDbCount === 1
+            ? t('termsOverviewPendingBannerOne')
+            : t('termsOverviewPendingBannerMany').replace('{count}', String(pendingDbCount))}
+        </div>
+      )}
+      <div
+        role="tablist"
+        aria-label={t('termsListHeading')}
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 8,
+          marginBottom: 16,
+        }}
+      >
+        {(
+          [
+            { id: 'all' as ApprovalFilter, label: t('termsOverviewFilterAll'), count: visibleDbRows.length },
+            { id: 'pending' as ApprovalFilter, label: t('termsOverviewFilterPending'), count: pendingDbCount },
+            { id: 'approved' as ApprovalFilter, label: t('termsOverviewFilterApproved'), count: approvedDbCount },
+          ]
+        ).map((tab) => {
+          const active = approvalFilter === tab.id
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setApprovalFilter(tab.id)}
+              className="button"
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.9rem',
+                background: active ? 'var(--brand-primary)' : 'var(--bg-app)',
+                color: active ? 'var(--text-on-brand, #fff)' : 'var(--text-body)',
+                border: active ? '1px solid var(--brand-primary)' : '1px solid var(--border-subtle)',
+                borderRadius: 999,
+              }}
+            >
+              {tab.label} · {tab.count}
+            </button>
+          )
+        })}
+      </div>
+      {approvalFilter !== 'all' && filteredDbRows.length === 0 && (
+        <p
+          className="text-sm"
+          style={{
+            color: 'var(--text-muted)',
+            marginBottom: 12,
+            fontStyle: 'italic',
+          }}
+        >
+          {t('termsOverviewEmptyFiltered')}
+        </p>
+      )}
       {listRows.length === 0 ? (
         <p style={{ color: 'var(--text-muted)' }}>{t('termsEmpty')}</p>
       ) : (
@@ -527,34 +619,64 @@ export default function TermsDocumentsPage() {
               )
             }
 
+            const isApproved = r.approved_for_utleier_signing === true
+            const badgeStyle = isApproved
+              ? {
+                  background: '#dcfce7',
+                  color: '#14532d',
+                  border: '1px solid #86efac',
+                }
+              : {
+                  background: '#fef3c7',
+                  color: '#78350f',
+                  border: '1px solid #fcd34d',
+                }
+
             return (
-              <li key={r.id} className="card" style={{ padding: 'var(--space-4)' }}>
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>{r.title}</div>
-                <div className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 6 }}>
+              <li
+                key={r.id}
+                className="card"
+                style={{
+                  padding: 'var(--space-4)',
+                  borderLeft: `4px solid ${isApproved ? '#22c55e' : '#f59e0b'}`,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    flexWrap: 'wrap',
+                    marginBottom: 8,
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{r.title}</div>
+                  <span
+                    style={{
+                      ...badgeStyle,
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    {isApproved ? <Check size={14} /> : <Info size={14} />}
+                    {isApproved
+                      ? t('termsApprovedForLandlordsBadge')
+                      : t('termsPendingCentralBadge')}
+                  </span>
+                </div>
+                <div className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 12 }}>
                   v{r.version}
                   {` · ${scopeLabel}`}
-                  {r.effective_from ? ` · ${formatDateTimeNo(r.effective_from)}` : ''}
-                  {r.approved_for_utleier_signing ? (
-                    <span
-                      style={{
-                        marginLeft: 8,
-                        color: 'var(--text-muted)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      · {t('termsApprovedForLandlordsBadge')}
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        marginLeft: 8,
-                        color: '#fbbf24',
-                        fontWeight: 600,
-                      }}
-                    >
-                      · {t('termsPendingCentralBadge')}
-                    </span>
-                  )}
+                  {r.effective_from
+                    ? ` · ${t('termsOverviewUploadedAt').replace('{date}', formatDateTimeNo(r.effective_from))}`
+                    : ''}
                 </div>
                 <p
                   className="text-sm"

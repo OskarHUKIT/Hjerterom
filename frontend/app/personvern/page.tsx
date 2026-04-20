@@ -3,16 +3,16 @@ import Link from 'next/link'
 import { PreliminaryLegalDisclaimer } from '../components/legal/PreliminaryLegalDisclaimer'
 
 const h2: CSSProperties = {
-  color: '#0f172a',
+  color: 'var(--text-main)',
   fontSize: '1.35rem',
   marginTop: 'var(--space-8)',
   marginBottom: 'var(--space-3)',
-  borderBottom: '2px solid #f1f5f9',
+  borderBottom: '2px solid var(--border-subtle)',
   paddingBottom: 'var(--space-2)',
 }
-const p: CSSProperties = { color: '#334155', marginBottom: 'var(--space-3)' }
+const p: CSSProperties = { color: 'var(--text-body)', marginBottom: 'var(--space-3)' }
 const ul: CSSProperties = {
-  color: '#334155',
+  color: 'var(--text-body)',
   paddingLeft: '1.25rem',
   marginBottom: 'var(--space-4)',
 }
@@ -54,8 +54,6 @@ export default function PersonvernPage() {
           className="card"
           style={{
             padding: 'var(--space-8)',
-            background: '#ffffff',
-            color: '#1e293b',
             lineHeight: 1.75,
             fontSize: '1.05rem',
           }}
@@ -140,7 +138,7 @@ export default function PersonvernPage() {
               href="https://www.datatilsynet.no/"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: 'var(--color-royal-blue, #2563eb)' }}
+              style={{ color: 'var(--color-accent)' }}
             >
               datatilsynet.no
             </a>
@@ -171,7 +169,7 @@ export default function PersonvernPage() {
             For henvendelser om personvern kan du kontakte oss på{' '}
             <a
               href="mailto:info@bolynorge.no"
-              style={{ color: 'var(--color-royal-blue, #2563eb)' }}
+              style={{ color: 'var(--color-accent)' }}
             >
               info@bolynorge.no
             </a>

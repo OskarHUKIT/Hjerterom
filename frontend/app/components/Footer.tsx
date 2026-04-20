@@ -54,7 +54,7 @@ export default function Footer() {
                       height={120}
                       sizes="(max-width: 480px) 90vw, 360px"
                       style={{
-                        height: '100px',
+                        height: '110px',
                         width: 'auto',
                         maxWidth: '100%',
                         maxHeight: '100%',
@@ -85,7 +85,7 @@ export default function Footer() {
                       height={160}
                       sizes="(max-width: 480px) 90vw, 400px"
                       style={{
-                        height: '140px',
+                        height: '110px',
                         width: 'auto',
                         maxWidth: '100%',
                         maxHeight: '100%',
@@ -148,15 +148,13 @@ export default function Footer() {
                 className="footer-link"
                 onClick={() => reopenCookieSettings()}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
                   background: 'none',
                   border: 'none',
                   padding: 0,
                   cursor: 'pointer',
-                  font: 'inherit',
-                  color: 'inherit',
+                  fontFamily: 'inherit',
+                  fontSize: 'inherit',
+                  fontWeight: 400,
                   textAlign: 'left',
                 }}
               >

@@ -791,6 +791,25 @@ p {
   align-self: center;
 }
 
+/* Gjest-header: hindre at primær-CTA wrapper på smale skjermer. */
+.header-guest-toolbar .button {
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .header-guest-toolbar {
+    gap: var(--space-1) !important;
+    margin-left: 0 !important;
+  }
+  .header-guest-toolbar .button {
+    padding: 0 var(--space-3) !important;
+    font-size: 0.8rem !important;
+  }
+  .header-guest-lang-select {
+    font-size: 0.8rem !important;
+    max-width: 110px !important;
+  }
+}
+
 .nav-link:hover {
   background: rgba(125, 211, 252, 0.1);
   color: var(--color-accent);
@@ -893,7 +912,7 @@ select optgroup {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-10);
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   width: 100%;
 }
@@ -911,7 +930,7 @@ select optgroup {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 140px;
+  height: 120px;
   color: var(--text-main);
   font-weight: 600;
   font-size: 1rem;
@@ -1119,8 +1138,9 @@ select optgroup {
 }
 
 @media (max-width: 480px) {
-  .grid-portal {
-    grid-template-columns: 1fr;
+  .grid-portal,
+  .home-landing .grid-portal {
+    grid-template-columns: 1fr !important;
     gap: var(--space-6);
     padding-left: max(var(--space-3), env(safe-area-inset-left));
     padding-right: max(var(--space-3), env(safe-area-inset-right));

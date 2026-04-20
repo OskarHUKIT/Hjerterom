@@ -31,6 +31,49 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
+    /**
+     * Supabase legger ev. feil på `redirect_to` (eller Site URL når allowlist ikke matcher) som
+     * ?error_code=...&error_description=... OG gjentar det i hash-fragmentet. Fang dette opp
+     * tidlig slik at brukeren ikke bare lander på en stille forside.
+     */
+    if (typeof window !== 'undefined') {
+      const parseParams = (raw: string) => new URLSearchParams(raw.startsWith('#') ? raw.slice(1) : raw)
+      const q = parseParams(window.location.search)
+      const h = parseParams(window.location.hash)
+      const errorCode = q.get('error_code') || h.get('error_code')
+      const errorDescription = q.get('error_description') || h.get('error_description')
+      if (errorCode || errorDescription) {
+        const reason = errorDescription
+          ? decodeURIComponent(errorDescription.replace(/\+/g, ' '))
+          : errorCode || 'auth_error'
+        const target = new URL('/auth/auth-code-error', window.location.origin)
+        target.searchParams.set('reason', reason)
+        window.location.replace(target.toString())
+        return
+      }
+
+      /**
+       * Supabase leverer av og til PKCE-koden rett til Site URL (f.eks. `/?code=...`) i stedet for
+       * `/auth/callback` – typisk fordi Redirect URL-allowlisten ikke matcher. Når vi ser en `code`
+       * i URL-en og ikke allerede er på auth-callback eller update-password, videresender vi til
+       * `/auth/callback` (client-side page) som kan bytte koden inn i en sesjon med det
+       * browserlagrede PKCE code_verifier og rute videre til `/login/update-password`.
+       */
+      const codeParam = q.get('code')
+      const path = window.location.pathname
+      if (
+        codeParam &&
+        !path.startsWith('/auth/callback') &&
+        !path.startsWith('/login/update-password')
+      ) {
+        const target = new URL('/auth/callback', window.location.origin)
+        target.searchParams.set('code', codeParam)
+        target.searchParams.set('next', '/login/update-password')
+        window.location.replace(target.toString())
+        return
+      }
+    }
+
     void supabase.auth
       .getSession()
       .then(({ data: { session: s } }) => {
@@ -44,9 +87,22 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s ?? null)
       setIsReady(true)
+      /**
+       * Sikkerhetsnett for «glemt passord»-lenke: Supabase kan (avhengig av Redirect URL-allowlist
+       * og klient-flow) sende brukeren til Site URL i stedet for /auth/callback. I så fall får vi
+       * likevel en PASSWORD_RECOVERY-event når hash-/query-tokenet leses inn – send da videre til
+       * skjemaet for å sette nytt passord.
+       */
+      if (
+        event === 'PASSWORD_RECOVERY' &&
+        typeof window !== 'undefined' &&
+        !window.location.pathname.startsWith('/login/update-password')
+      ) {
+        window.location.replace('/login/update-password')
+      }
     })
 
     return () => {

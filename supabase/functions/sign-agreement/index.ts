@@ -11,7 +11,7 @@ const signAgreementBodySchema = z.object({
   origin: z.string().max(512).optional(),
   city: z.string().max(200).optional(),
   agreementVersion: z.string().max(32).optional(),
-  /** Boly UI language: drives Signicat Sign API `ui.language` (no/en; se → no). */
+  /** Boly UI language: drives Signicat Sign API `ui.language` (nb/en; se → nb, since Sign API rejects "no"). */
   appLocale: z.enum(["no", "se", "en"]).optional(),
 })
 
