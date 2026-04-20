@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Mail, Info, Shield, FileText, Activity, Cookie } from 'lucide-react'
+import { Mail, Info, Shield, Activity, Cookie } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useCookieConsent } from '../../context/CookieConsentContext'
@@ -129,20 +129,17 @@ export default function Footer() {
               {t('info')}
             </h3>
             <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
-              <Link
-                href="/homeowner/sign-terms"
-                className="footer-link"
-                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+              <p
+                style={{
+                  margin: '0 0 var(--space-2)',
+                  fontSize: '0.875rem',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.45,
+                  maxWidth: '22rem',
+                }}
               >
-                <FileText size={16} /> {t('termsOfUse')}
-              </Link>
-              <Link
-                href="/brukervilkar/"
-                className="footer-link"
-                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
-              >
-                <FileText size={16} /> {t('termsPreliminaryBrowsing')}
-              </Link>
+                {t('footerTermsScopeNote')}
+              </p>
               <Link
                 href="/personvern/"
                 className="footer-link"

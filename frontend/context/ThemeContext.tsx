@@ -67,10 +67,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (cancelled) return
-      applyForUser(session?.user?.id ?? null)
-    })
+    void supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (cancelled) return
+        applyForUser(session?.user?.id ?? null)
+      })
+      .catch(() => {
+        if (cancelled) return
+        applyForUser(null)
+      })
 
     const {
       data: { subscription },

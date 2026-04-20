@@ -9,24 +9,15 @@ import { useLanguage } from '../../../context/LanguageContext'
 import { Button } from '../../components/ui/Button'
 import { devWarn } from '@/app/lib/appLogger'
 
-const AUTH_NETWORK_MS = 25000
+/**
+ * Password recovery can exceed normal login time (email pipeline, cold Auth).
+ * Browser test on production showed HTTP 504 on /auth/v1/recover — retries help transient gateway timeouts.
+ */
+const RECOVER_ATTEMPT_MS = 90_000
+const RECOVER_MAX_ATTEMPTS = 3
 
-function withNetworkTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const id = window.setTimeout(() => {
-      reject(Object.assign(new Error('AUTH_TIMEOUT'), { name: 'AuthTimeout' }))
-    }, ms)
-    Promise.resolve(promise).then(
-      (v) => {
-        window.clearTimeout(id)
-        resolve(v)
-      },
-      (e) => {
-        window.clearTimeout(id)
-        reject(e)
-      }
-    )
-  })
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms))
 }
 
 function isBrowserFetchNetworkError(error: unknown): boolean {
@@ -44,6 +35,37 @@ function isBrowserFetchNetworkError(error: unknown): boolean {
     return m.includes('failed to fetch') || m.includes('networkerror') || m.includes('load failed')
   }
   return false
+}
+
+function isRetriablePasswordResetError(err: unknown): boolean {
+  if (err && typeof err === 'object') {
+    const status = (err as { status?: number }).status
+    if (status === 504 || status === 502 || status === 503) return true
+    const msg = String((err as { message?: string }).message || '')
+    if (/504|502|503|gateway|timeout|timed out|temporar|rate limit/i.test(msg)) return true
+  }
+  if (err instanceof Error && err.name === 'AuthTimeout') return true
+  if (err && typeof err === 'object' && (err as { message?: string }).message === 'AUTH_TIMEOUT')
+    return true
+  return isBrowserFetchNetworkError(err)
+}
+
+function withNetworkTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const id = window.setTimeout(() => {
+      reject(Object.assign(new Error('AUTH_TIMEOUT'), { name: 'AuthTimeout' }))
+    }, ms)
+    Promise.resolve(promise).then(
+      (v) => {
+        window.clearTimeout(id)
+        resolve(v)
+      },
+      (e) => {
+        window.clearTimeout(id)
+        reject(e)
+      }
+    )
+  })
 }
 
 export default function ForgotPasswordPage() {
@@ -66,25 +88,51 @@ export default function ForgotPasswordPage() {
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent('/login/update-password')}`
 
     try {
-      const { error } = await withNetworkTimeout(
-        supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo }),
-        AUTH_NETWORK_MS
-      )
-      if (error) throw error
-      setMessage({ type: 'success', text: t('passwordResetEmailSent') })
+      let lastError: unknown = null
+      for (let attempt = 1; attempt <= RECOVER_MAX_ATTEMPTS; attempt++) {
+        try {
+          const { error } = await withNetworkTimeout(
+            supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo }),
+            RECOVER_ATTEMPT_MS
+          )
+          if (!error) {
+            setMessage({ type: 'success', text: t('passwordResetEmailSent') })
+            return
+          }
+          lastError = error
+          if (attempt < RECOVER_MAX_ATTEMPTS && isRetriablePasswordResetError(error)) {
+            devWarn('[Boly] Forgot password: retry after API error', attempt, error)
+            await sleep(1200 * attempt)
+            continue
+          }
+          throw error
+        } catch (e) {
+          lastError = e
+          if (attempt < RECOVER_MAX_ATTEMPTS && isRetriablePasswordResetError(e)) {
+            devWarn('[Boly] Forgot password: retry after exception', attempt, e)
+            await sleep(1200 * attempt)
+            continue
+          }
+          throw e
+        }
+      }
+      throw lastError ?? new Error('password reset failed')
     } catch (error: unknown) {
-      const err = error as { message?: string; name?: string }
+      const err = error as { message?: string; name?: string; status?: number }
       let text: string
-      if (err?.name === 'AuthTimeout' || err?.message === 'AUTH_TIMEOUT') {
-        text = t('loginAuthNoResponse')
+      const st = err?.status
+      if (st === 504 || st === 502 || st === 503) {
+        text = t('forgotPasswordGatewayError')
+      } else if (err?.name === 'AuthTimeout' || err?.message === 'AUTH_TIMEOUT') {
+        text = t('forgotPasswordAuthNoResponse')
       } else if (isBrowserFetchNetworkError(error)) {
         devWarn(
           '[Boly] Forgot password: request failed before response:',
           process.env.NEXT_PUBLIC_SUPABASE_URL || '(missing)'
         )
-        text = t('loginAuthNetworkFailed')
+        text = t('forgotPasswordAuthNetworkFailed')
       } else {
-        text = err?.message || t('loginAuthNoResponse')
+        text = err?.message || t('forgotPasswordAuthNoResponse')
       }
       setMessage({ type: 'error', text })
     } finally {

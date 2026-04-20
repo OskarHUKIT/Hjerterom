@@ -181,8 +181,8 @@ export const translations = {
     inCollaborationWith: 'i samarbeid med',
     contactUs: 'Kontakt oss',
     info: 'Informasjon',
-    termsOfUse: 'Vilkårsavtale du signerer (BankID)',
-    termsPreliminaryBrowsing: 'Preliminære brukervilkår (informasjon)',
+    footerTermsScopeNote:
+      'Vilkårsavtalen bestemmes av kommunene der boligen din befinner seg.',
     privacy: 'Personvern',
     aboutBoly: 'Om Boly',
     comingSoon: 'Kommer snart',
@@ -412,6 +412,12 @@ export const translations = {
     passwordResetEmailSent:
       'Hvis du har en konto med denne e-postadressen, har vi sendt en lenke. Sjekk innboks og søppelpost.',
     forgotPasswordBackToLogin: '← Tilbake til innlogging',
+    forgotPasswordAuthNoResponse:
+      'Tilbakestilling av passord fikk ikke svar i tide. Sjekk internett, VPN/brannmur og at NEXT_PUBLIC_SUPABASE_URL og anon-nøkkel i .env.local (eller Vercel) matcher Supabase-prosjektet. Under Authentication → URL Configuration må omdirigerings-URL tillates for denne nettadressen. Prøv igjen om et øyeblikk.',
+    forgotPasswordAuthNetworkFailed:
+      'Kunne ikke nå passordtjenesten (nettverksfeil). Sjekk tilkoblingen og at NEXT_PUBLIC_SUPABASE_URL peker på et tilgjengelig Supabase-prosjekt.',
+    forgotPasswordGatewayError:
+      'Innloggingstjenesten var midlertidig opptatt (gateway-feil). Vi prøvde automatisk på nytt. Vent litt og trykk «Send lenke» igjen, eller sjekk status på supabase.com hvis det vedvarer.',
     updatePasswordPageTitle: 'Velg nytt passord',
     updatePasswordPageDesc: 'Skriv inn passordet du vil bruke fra nå av.',
     confirmPasswordLabel: 'Bekreft passord',
@@ -1052,8 +1058,8 @@ export const translations = {
     inCollaborationWith: 'samen oažžun',
     contactUs: 'Ozažat',
     info: 'Dieđut',
-    termsOfUse: 'Oaivámuš maid vuolláičáhpat (BankID)',
-    termsPreliminaryBrowsing: 'Ovddit geavahaneaktut (dieđihan)',
+    footerTermsScopeNote:
+      'Oaivámuš mearrida kommuvnnat main dávvirat leat.',
     privacy: 'Iešdovdus',
     aboutBoly: 'Boly birra',
     comingSoon: 'Boatná beaivi',
@@ -1279,6 +1285,12 @@ export const translations = {
     passwordResetEmailSent:
       'Jus dus lea kontu dán e-poasttain, leat sáddejuvvon liŋkka. Geahčal sisačujuhusa ja suohpánbáikái.',
     forgotPasswordBackToLogin: '← Máhcat sisačáliheapmái',
+    forgotPasswordAuthNoResponse:
+      'Sálti ođčasheapmi ii ožžon vástádusa oktanaga. Geahčal fierpmádat, VPN/brannmur ja Supabase-čadnon. Geahčal maiddái ahte ođđasmahttin-URL lea dohkkehuvvon.',
+    forgotPasswordAuthNetworkFailed:
+      'Ii sáhttán olláhit sáltibálvalusa (fierpmádatfeaila). Geahčal fierpmádatoktavuođa.',
+    forgotPasswordGatewayError:
+      'Sisačálihanbálvalus lei gaskaboddosaš báiki (gateway). Mii geahčalaimet automáhtalaččat. Vuordde ja deaddil «Sádde liŋkka» fas.',
     updatePasswordPageTitle: 'Vállje ođđa sálti',
     updatePasswordPageDesc: 'Čále sálti maid hálat geavahit dál rájes.',
     confirmPasswordLabel: 'Nannet sálti',
@@ -1908,8 +1920,8 @@ export const translations = {
     inCollaborationWith: 'in collaboration with',
     contactUs: 'Contact us',
     info: 'Information',
-    termsOfUse: 'Agreement you sign (BankID)',
-    termsPreliminaryBrowsing: 'Preliminary terms of use (information)',
+    footerTermsScopeNote:
+      'The terms agreement depends on the municipalities where your property is located.',
     privacy: 'Privacy',
     aboutBoly: 'About Boly',
     comingSoon: 'Coming soon',
@@ -2136,6 +2148,12 @@ export const translations = {
     passwordResetEmailSent:
       'If you have an account with this email, we have sent a link. Check your inbox and spam folder.',
     forgotPasswordBackToLogin: '← Back to sign in',
+    forgotPasswordAuthNoResponse:
+      'Password reset did not get a response in time. Check your connection, VPN/firewall, and that NEXT_PUBLIC_SUPABASE_URL and the anon key in .env.local (or Vercel) match your Supabase project. Under Authentication → URL Configuration, allow the redirect URL for this site. Try again shortly.',
+    forgotPasswordAuthNetworkFailed:
+      'Could not reach the password service (network error). Check your connection and that NEXT_PUBLIC_SUPABASE_URL points to a reachable Supabase project.',
+    forgotPasswordGatewayError:
+      'The auth service was temporarily unavailable (gateway error). We retried automatically. Wait a moment and tap «Send link» again, or check status.supabase.com if it persists.',
     updatePasswordPageTitle: 'Choose a new password',
     updatePasswordPageDesc: 'Enter the password you want to use from now on.',
     confirmPasswordLabel: 'Confirm password',
