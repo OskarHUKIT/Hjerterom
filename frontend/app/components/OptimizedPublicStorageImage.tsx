@@ -21,10 +21,18 @@ export type OptimizedPublicStorageImageProps = FillVariant | FixedVariant
 
 /**
  * next/image når URL er Supabase public storage; ellers <img> (blob, data, annen host).
+ *
+ * Lazy-loading:
+ *   - next/image sender automatisk `loading="lazy"` når `priority=false` (default).
+ *   - For raw <img>-fallback (blob/data/ekstern host) legger vi på `loading` og
+ *     `decoding` eksplisitt for å unngå blocking paint og redusere LCP på mobil.
+ *     Priority-bilder (f.eks. første galleri-bilde) lastes eagerly/sync for LCP.
  */
 export function OptimizedPublicStorageImage(props: OptimizedPublicStorageImageProps) {
   const { src, alt, sizes, priority, className, style } = props
   const ok = listingImageSupportsNextOptimization(src)
+  const rawLoading: 'eager' | 'lazy' = priority ? 'eager' : 'lazy'
+  const rawDecoding: 'sync' | 'async' = priority ? 'sync' : 'async'
 
   if (props.variant === 'fill') {
     if (ok) {
@@ -44,6 +52,8 @@ export function OptimizedPublicStorageImage(props: OptimizedPublicStorageImagePr
       <img
         src={src}
         alt={alt}
+        loading={rawLoading}
+        decoding={rawDecoding}
         className={className}
         style={{
           width: '100%',
@@ -77,6 +87,8 @@ export function OptimizedPublicStorageImage(props: OptimizedPublicStorageImagePr
       alt={alt}
       width={width}
       height={height}
+      loading={rawLoading}
+      decoding={rawDecoding}
       className={className}
       style={style}
     />

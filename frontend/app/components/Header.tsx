@@ -766,6 +766,20 @@ export default function Header() {
             margin-left: 0 !important;
           }
         }
+        /**
+         * P2-4: på trange skjermer (<=380px) konkurrerer språkvelger + "Logg inn"
+         * + hamburger om plass. Skjul språk i toppbar, flytt den inn i drawer så
+         * primær-CTA ("Logg inn") beholder pusterom. Hamburger åpner drawer der
+         * språkvalg er tilgjengelig.
+         */
+        @media (max-width: 380px) {
+          .header-mobile-actions .header-guest-lang {
+            display: none !important;
+          }
+          .header-nav-mobile .header-guest-lang-row {
+            display: flex !important;
+          }
+        }
         .menu-item {
           display: flex;
           align-items: center;

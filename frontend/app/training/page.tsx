@@ -32,7 +32,7 @@ export default function Training() {
         </Link>
         <h1
           style={{
-            fontSize: '2.5rem',
+            fontSize: 'clamp(1.75rem, 1.2rem + 2vw, 2.5rem)',
             fontWeight: 700,
             color: 'var(--text-main)',
             marginBottom: '0.5rem',
@@ -40,7 +40,12 @@ export default function Training() {
         >
           IT Kunnskapstrening
         </h1>
-        <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)' }}>
+        <p
+          style={{
+            fontSize: 'clamp(0.95rem, 0.9rem + 0.3vw, 1.1rem)',
+            color: 'var(--text-muted)',
+          }}
+        >
           Treningsmateriale og kunnskapsbase for IT-systemer
         </p>
       </div>
@@ -96,6 +101,7 @@ export default function Training() {
       <div className="card">
         <h2 style={{ marginBottom: '1.5rem' }}>Treningsmoduler</h2>
         <div
+          className="training-modules-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
@@ -105,6 +111,7 @@ export default function Training() {
           {modules.map((module, index) => (
             <div
               key={index}
+              className="training-module-card"
               style={{
                 padding: '1.5rem',
                 background:
@@ -113,6 +120,7 @@ export default function Training() {
                 border: `2px solid ${module.color}40`,
                 transition: 'all 0.3s',
                 cursor: 'pointer',
+                minHeight: 'var(--touch-target)',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)'

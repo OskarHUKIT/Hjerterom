@@ -1230,6 +1230,17 @@ select optgroup {
   }
 }
 
+/** P2-10: /training — full-bredde kort + større touch-target på mobil. */
+@media (max-width: 640px) {
+  .training-modules-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-3) !important;
+  }
+  .training-module-card {
+    padding: var(--space-4) !important;
+  }
+}
+
 /** Sticky CTA-footer (f.eks. i lange skjemaer) — klistres til bunnen over tastaturet ikke er åpent. */
 .sticky-cta-footer {
   position: sticky;
@@ -1352,6 +1363,17 @@ body {
   .hm-nav-card div {
     flex: 1 1 auto !important;
     min-width: fit-content !important;
+  }
+}
+
+/**
+ * P2-2: På ≤768px er MobileBottomNav aktiv (Home/Meldinger/Varsler/Mer) og
+ * hamburger-drawer håndterer resten. Sidebar-navigasjonen på manage-siden
+ * dupliserer de samme lenkene og stjeler thumb-zone over folden. Skjules.
+ */
+@media (max-width: 768px) {
+  .hm-sidebar {
+    display: none !important;
   }
 }
 
@@ -1571,6 +1593,14 @@ body {
 @media (max-width: 768px) {
   .listing-details-grid {
     grid-template-columns: 1fr !important;
+  }
+  /**
+   * P2-1: Mobil — løft bildegalleri til toppen av detaljsiden så primær-visuell
+   * info treffer "above-the-fold". Rekkefølgen på desktop beholdes (visuell
+   * hierarki: address → info → bilder til høyre/sist på stack).
+   */
+  .listing-image-gallery {
+    order: -1;
   }
   .listing-details-header {
     flex-direction: column;
