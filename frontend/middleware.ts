@@ -69,10 +69,16 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  /**
+   * Middleware kjører kun på beskyttede prefikser — ikke på offentlige ruter
+   * (`/`, `/login`, `/brukervilkar`, `/personvern`, `/om-boly`, `/listings/*`).
+   * Unngår unødvendig Vercel→Supabase `getUser()`-rundtur på hver navigasjon,
+   * som ellers koster transatlantisk RTT når Vercel-region ikke matcher EU-Supabase.
+   * Cookie-/token-refresh på klientsiden håndteres fortsatt av `@supabase/ssr` (browser client).
+   */
   matcher: [
-    /*
-     * Match alle forespørsler unntatt statiske filer og bilder.
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/homeowner/:path*',
+    '/nav/:path*',
+    '/documents/:path*',
   ],
 }

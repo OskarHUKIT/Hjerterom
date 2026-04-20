@@ -223,13 +223,14 @@ function LoginPageContent() {
     <main
       className="login-page"
       style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 'var(--space-6)',
         paddingLeft: 'max(var(--space-6), env(safe-area-inset-left))',
         paddingRight: 'max(var(--space-6), env(safe-area-inset-right))',
+        paddingBottom: 'max(var(--space-6), env(safe-area-inset-bottom))',
         background: 'var(--bg-app)',
       }}
     >
@@ -470,7 +471,7 @@ export default function LoginPage() {
         <div
           className="login-page"
           style={{
-            minHeight: '100vh',
+            minHeight: '100dvh',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

@@ -193,10 +193,14 @@ function SignTermsContent() {
     const checkAgreement = async () => {
       setPageReady(false)
       const signedParam = searchParams.get('signed')
-      // Etter Signicat: ofte tokens i sessionStorage. setSession() er nok da — ekstra refreshSession()
-      // er et nytt kall til Auth (kan ta mange sekunder på treg linje / lang geografisk avstand).
+      /**
+       * Token-restore kjøres KUN når signering faktisk fullførte (`signed=true`).
+       * Ved avbrudd (`signed=false`) eller browser-back går vi aldri via auth-refresh —
+       * det ville risikere å nullstille en gyldig økt og sende brukeren til /login
+       * (blink + utlogging). Cancel skal oppføre seg som vanlig navigasjon.
+       */
       let sessionReadyFromStorage = false
-      if (signedParam != null && typeof window !== 'undefined') {
+      if (signedParam === 'true' && typeof window !== 'undefined') {
         try {
           const bankIdStorage = window.sessionStorage.getItem('supabase-auth-bankid')
           if (bankIdStorage) {
@@ -216,6 +220,12 @@ function SignTermsContent() {
         if (!sessionReadyFromStorage) {
           await supabase.auth.refreshSession()
         }
+      }
+
+      /** Ved avbrudd fra Signicat: rydd `?signed=false&error=...` fra URL så det ikke henger igjen. */
+      if (signedParam === 'false' && typeof window !== 'undefined') {
+        const cleanUrl = window.location.pathname
+        window.history.replaceState({}, '', cleanUrl)
       }
       const {
         data: { user },

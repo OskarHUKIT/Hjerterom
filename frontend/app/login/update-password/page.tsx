@@ -168,7 +168,7 @@ function UpdatePasswordInner() {
       <main
         className="login-page"
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -185,11 +185,12 @@ function UpdatePasswordInner() {
       <main
         className="login-page"
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: 'var(--space-6)',
+          paddingBottom: 'max(var(--space-6), env(safe-area-inset-bottom))',
           background: 'var(--bg-app)',
         }}
       >
@@ -223,11 +224,12 @@ function UpdatePasswordInner() {
     <main
       className="login-page"
       style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 'var(--space-6)',
+        paddingBottom: 'max(var(--space-6), env(safe-area-inset-bottom))',
         background: 'var(--bg-app)',
       }}
     >
@@ -365,7 +367,7 @@ export default function UpdatePasswordPage() {
       fallback={
         <main
           style={{
-            minHeight: '100vh',
+            minHeight: '100dvh',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

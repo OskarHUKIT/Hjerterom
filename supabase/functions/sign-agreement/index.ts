@@ -127,18 +127,49 @@ serve(async (req) => {
       )
     }
 
-    const windowMs = 15 * 60 * 1000
-    const maxStarts = 8
-    const since = new Date(Date.now() - windowMs).toISOString()
-    const { count: recentCount, error: rateErr } = await supabaseAdmin
-      .from("audit_logs")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("action_type", "SIGN_INITIATED")
-      .gte("created_at", since)
+    /**
+     * To lag rate-limit på SIGN_INITIATED:
+     *   1) Burst-vindu: max 8 starter per 15 min (beskytter mot spam-klikk og Signicat-kvote).
+     *   2) Dagstak:     max 3 starter per 24 t per konto (produktkrav: begrens misbruk).
+     */
+    const burstWindowMs = 15 * 60 * 1000
+    const burstMaxStarts = 8
+    const dailyWindowMs = 24 * 60 * 60 * 1000
+    const dailyMaxStarts = 3
 
-    if (!rateErr && (recentCount ?? 0) >= maxStarts) {
-      edgeLog("warn", "sign-agreement rate limited", { userId, recentCount })
+    const burstSince = new Date(Date.now() - burstWindowMs).toISOString()
+    const dailySince = new Date(Date.now() - dailyWindowMs).toISOString()
+
+    const [{ count: burstCount, error: burstErr }, { count: dailyCount, error: dailyErr }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("audit_logs")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .eq("action_type", "SIGN_INITIATED")
+          .gte("created_at", burstSince),
+        supabaseAdmin
+          .from("audit_logs")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .eq("action_type", "SIGN_INITIATED")
+          .gte("created_at", dailySince),
+      ])
+
+    if (!dailyErr && (dailyCount ?? 0) >= dailyMaxStarts) {
+      edgeLog("warn", "sign-agreement daily cap", { userId, dailyCount })
+      return new Response(
+        JSON.stringify({
+          error: "Dagsgrense nådd",
+          message:
+            "Du har startet signering 3 ganger det siste døgnet. Prøv igjen i morgen, eller ta kontakt med kommunen hvis du trenger hjelp.",
+        }),
+        { status: 429, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
+      )
+    }
+
+    if (!burstErr && (burstCount ?? 0) >= burstMaxStarts) {
+      edgeLog("warn", "sign-agreement rate limited", { userId, burstCount })
       return new Response(
         JSON.stringify({
           error: "For mange forsøk",
@@ -153,7 +184,12 @@ serve(async (req) => {
       {
         user_id: userId,
         action_type: "SIGN_INITIATED",
-        details: { note: "rate_limit_window_15m", terms_document_id: docId },
+        details: {
+          note: "rate_limit_burst_15m_daily_3",
+          terms_document_id: docId,
+          burst_count_before: burstCount ?? 0,
+          daily_count_before: dailyCount ?? 0,
+        },
       },
     ])
 
