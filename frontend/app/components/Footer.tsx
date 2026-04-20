@@ -129,17 +129,6 @@ export default function Footer() {
               {t('info')}
             </h3>
             <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
-              <p
-                style={{
-                  margin: '0 0 var(--space-2)',
-                  fontSize: '0.875rem',
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.45,
-                  maxWidth: '22rem',
-                }}
-              >
-                {t('footerTermsScopeNote')}
-              </p>
               <Link
                 href="/brukervilkar/"
                 className="footer-link"
