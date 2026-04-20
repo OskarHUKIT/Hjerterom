@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Mail, Info, Shield, Activity, Cookie } from 'lucide-react'
+import { Mail, Info, Shield, Activity, Cookie, FileText } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useCookieConsent } from '../../context/CookieConsentContext'
@@ -140,6 +140,13 @@ export default function Footer() {
               >
                 {t('footerTermsScopeNote')}
               </p>
+              <Link
+                href="/brukervilkar/"
+                className="footer-link"
+                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+              >
+                <FileText size={16} /> {t('footerTermsAgreementLink')}
+              </Link>
               <Link
                 href="/personvern/"
                 className="footer-link"

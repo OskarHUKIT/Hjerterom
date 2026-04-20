@@ -183,6 +183,7 @@ export const translations = {
     info: 'Informasjon',
     footerTermsScopeNote:
       'Vilkårsavtalen bestemmes av kommunene der boligen din befinner seg.',
+    footerTermsAgreementLink: 'Vilkårsavtale',
     privacy: 'Personvern',
     aboutBoly: 'Om Boly',
     comingSoon: 'Kommer snart',
@@ -1060,6 +1061,7 @@ export const translations = {
     info: 'Dieđut',
     footerTermsScopeNote:
       'Oaivámuš mearrida kommuvnnat main dávvirat leat.',
+    footerTermsAgreementLink: 'Eavttuid soahpamuš',
     privacy: 'Iešdovdus',
     aboutBoly: 'Boly birra',
     comingSoon: 'Boatná beaivi',
@@ -1922,6 +1924,7 @@ export const translations = {
     info: 'Information',
     footerTermsScopeNote:
       'The terms agreement depends on the municipalities where your property is located.',
+    footerTermsAgreementLink: 'Terms agreement',
     privacy: 'Privacy',
     aboutBoly: 'About Boly',
     comingSoon: 'Coming soon',
