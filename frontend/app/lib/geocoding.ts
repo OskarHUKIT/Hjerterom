@@ -1,11 +1,21 @@
 /**
- * Nominatim (OpenStreetMap) geokoding for norske adresser.
- * Se https://operations.osmfoundation.org/policies/nominatim/ — bruk identifiserende User-Agent og ikke overbelast API-et.
+ * Geokoding for norske adresser via Kartverkets offisielle adresse-API (Geonorge).
+ *
+ * Kilde: https://ws.geonorge.no/adresser/v1/sok
+ * Doc:   https://kartverket.no/api-og-data/adresser (CC BY 4.0)
+ *
+ * Hvorfor ikke Nominatim (OpenStreetMap)?
+ *   Den offentlige Nominatim-instansen har 1 req/sek/IP og krever egen
+ *   User-Agent – men nettleseren kan ikke sette User-Agent via fetch. Derfor
+ *   blir vi raskt 429'et; 429-siden returnerer ingen CORS-header og fetch
+ *   kaster en generisk TypeError som brukeren ser som «Geokoding feilet».
+ *
+ * Geonorge er gratis, uten autentisering, dekker alle norske adresser og har
+ * svært rause grenser for offentlig bruk. Koordinatene er i EPSG:4258
+ * (ETRS89) – praktisk identisk med WGS84 for kart.
  */
 
 import { devWarn } from '@/app/lib/appLogger'
-
-const USER_AGENT = 'Boly/1.0 (https://bolynorge.no; contact: support)'
 
 export type GeocodeHit = {
   lat: number
@@ -17,41 +27,69 @@ export type GeocodeHit = {
   raw: Record<string, unknown>
 }
 
-function extractFromNominatimAddress(addr: Record<string, unknown>) {
-  const postcode = ((addr.postcode as string) || '').toString().replace(/\s/g, '').slice(0, 4)
-  const rawCity =
-    (addr.city as string) ||
-    (addr.town as string) ||
-    (addr.village as string) ||
-    (addr.municipality as string) ||
-    ''
-  const city = (rawCity || '').trim()
-  return { postcode, city }
+export type SearchAddressInput = {
+  address: string
+  postal_code?: string
+  city?: string
 }
 
-export function nominatimResultToGeocodeHit(hit: Record<string, unknown>): GeocodeHit {
-  const addr = (hit.address as Record<string, unknown>) || {}
-  const { postcode, city } = extractFromNominatimAddress(addr)
-  const parts = [
-    (addr.road as string) && (addr.house_number as string)
-      ? `${addr.road} ${addr.house_number}`
-      : (addr.road as string) || (hit.name as string),
-    postcode,
-    city,
-  ].filter(Boolean)
-  const displayLabel = parts.length ? parts.join(' · ') : String(hit.display_name || 'Treff')
+type GeonorgeAddress = {
+  adressetekst?: string
+  adressenavn?: string
+  nummer?: number
+  bokstav?: string
+  postnummer?: string
+  poststed?: string
+  kommunenavn?: string
+  representasjonspunkt?: { lat?: number; lon?: number; epsg?: string }
+}
+
+/** Kartverket returnerer stedsnavn i UPPERCASE; brukergrensesnittet ønsker Title Case. */
+function toTitleCaseNo(input: string): string {
+  if (!input) return ''
+  const lower = input.toLowerCase()
+  return lower.replace(/([\p{L}])([\p{L}']*)/gu, (_, first, rest) => first.toUpperCase() + rest)
+}
+
+function extractHit(hit: Record<string, unknown>) {
+  const a = hit as GeonorgeAddress
+  const postal = String(a.postnummer || '')
+    .replace(/\s/g, '')
+    .slice(0, 4)
+  const city = toTitleCaseNo(a.poststed || a.kommunenavn || '').trim()
+  const lat = Number(a.representasjonspunkt?.lat)
+  const lon = Number(a.representasjonspunkt?.lon)
+  const street =
+    a.adressetekst ||
+    (a.adressenavn
+      ? `${a.adressenavn}${a.nummer != null ? ` ${a.nummer}` : ''}${a.bokstav || ''}`
+      : '')
+  return { postal, city, lat, lon, street }
+}
+
+/** Konverter ett råresultat fra Geonorge til vår interne GeocodeHit-type. */
+export function rawResultToGeocodeHit(hit: Record<string, unknown>): GeocodeHit {
+  const { postal, city, lat, lon, street } = extractHit(hit)
+  const parts = [street, postal, city].filter(Boolean)
+  const displayLabel = parts.length ? parts.join(' · ') : 'Treff'
   return {
-    lat: parseFloat(String(hit.lat)),
-    lon: parseFloat(String(hit.lon)),
+    lat,
+    lon,
     displayLabel,
     city,
-    postal_code: postcode,
+    postal_code: postal,
     raw: hit,
   }
 }
 
-/** Velg beste treff når bruker har fylt inn postnummer/kommune (f.eks. etter manuell retting). */
-export function pickBestNominatimHit(
+/**
+ * Bakoverkompatibelt alias: tidligere var geokodingen basert på Nominatim, og
+ * kallstedene importerer fortsatt `nominatimResultToGeocodeHit`.
+ */
+export const nominatimResultToGeocodeHit = rawResultToGeocodeHit
+
+/** Velg beste treff når bruker har fylt inn postnummer/kommune. */
+export function pickBestHit(
   hits: Record<string, unknown>[],
   postalCode?: string,
   city?: string
@@ -59,78 +97,82 @@ export function pickBestNominatimHit(
   if (!hits.length) return null
   const pc = (postalCode || '').replace(/\s/g, '').slice(0, 4)
   const cityLower = (city || '').trim().toLowerCase()
+
   if (pc && /^\d{4}$/.test(pc)) {
     const byPc = hits.find((h) => {
-      const a = (h.address as Record<string, unknown>) || {}
-      const p = String(a.postcode || '')
+      const p = String((h as GeonorgeAddress).postnummer || '')
         .replace(/\s/g, '')
         .slice(0, 4)
       return p === pc
     })
     if (byPc) return byPc
   }
+
   if (cityLower) {
     const byCity = hits.find((h) => {
-      const a = (h.address as Record<string, unknown>) || {}
-      const c = String(a.city || a.town || a.municipality || '')
-        .trim()
-        .toLowerCase()
-      return c && (c === cityLower || c.includes(cityLower) || cityLower.includes(c))
+      const ps = String((h as GeonorgeAddress).poststed || '').toLowerCase()
+      const kn = String((h as GeonorgeAddress).kommunenavn || '').toLowerCase()
+      return (
+        (!!ps && (ps === cityLower || ps.includes(cityLower) || cityLower.includes(ps))) ||
+        (!!kn && (kn === cityLower || kn.includes(cityLower) || cityLower.includes(kn)))
+      )
     })
     if (byCity) return byCity
   }
+
   return hits[0]
 }
 
-export type SearchAddressInput = {
-  address: string
-  postal_code?: string
-  city?: string
-}
+export const pickBestNominatimHit = pickBestHit
 
-/**
- * Bygger søkestreng: postnr + kommune gir oftest entydig treff i Norge.
- */
-export function buildNominatimQuery(input: SearchAddressInput): string {
-  const addr = input.address?.trim() || ''
+/** Bygger Geonorge-søkestreng. API-et håndterer både adresser, postnr og stedsnavn. */
+export function buildGeonorgeQuery(input: SearchAddressInput): string {
+  const addr = (input.address || '').trim()
+  if (addr.length < 2) return ''
   const pc = (input.postal_code || '').replace(/\s/g, '').slice(0, 4)
   const city = (input.city || '').trim()
-  if (addr.length < 2) return ''
-  if (/^\d{4}$/.test(pc) && city) {
-    return `${addr}, ${pc} ${city}, Norway`
-  }
-  if (/^\d{4}$/.test(pc)) {
-    return `${addr}, ${pc}, Norway`
-  }
-  if (city) {
-    return `${addr}, ${city}, Norway`
-  }
-  return `${addr}, Norway`
+  if (/^\d{4}$/.test(pc) && city) return `${addr} ${pc} ${city}`
+  if (/^\d{4}$/.test(pc)) return `${addr} ${pc}`
+  if (city) return `${addr} ${city}`
+  return addr
 }
 
+export const buildNominatimQuery = buildGeonorgeQuery
+
 /**
- * Henter opptil `limit` treff i Norge (countrycodes=no).
+ * Henter opptil `limit` adresser i Norge fra Geonorge. Kaster aldri – ved
+ * nettverksfeil eller ikke-2xx returneres tom liste og det logges som warning.
  */
 export async function searchNorwegianAddress(
   input: SearchAddressInput,
   limit = 10
 ): Promise<Record<string, unknown>[]> {
-  const query = buildNominatimQuery(input)
-  if (!query || query.length < 5) return []
+  const query = buildGeonorgeQuery(input)
+  if (!query || query.length < 3) return []
 
-  const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(query)}&limit=${limit}&countrycodes=no`
-  const response = await fetch(url, {
-    headers: {
-      'Accept-Language': 'no,nb',
-      'User-Agent': USER_AGENT,
-    },
+  const params = new URLSearchParams({
+    sok: query,
+    treffPerSide: String(limit),
+    utkoordsys: '4258',
+    asciiKompatibel: 'true',
   })
-  if (!response.ok) {
-    devWarn('Nominatim error', response.status)
+  const url = `https://ws.geonorge.no/adresser/v1/sok?${params.toString()}`
+
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) {
+      devWarn('Geonorge error', response.status)
+      return []
+    }
+    const data = (await response.json()) as { adresser?: GeonorgeAddress[] }
+    const adresser = Array.isArray(data.adresser) ? data.adresser : []
+    return adresser as unknown as Record<string, unknown>[]
+  } catch (err) {
+    devWarn('Geonorge fetch failed', err)
     return []
   }
-  const data = await response.json()
-  return Array.isArray(data) ? data : []
 }
 
 /**
@@ -139,15 +181,13 @@ export async function searchNorwegianAddress(
 export async function geocodeAddressBestEffort(
   input: SearchAddressInput
 ): Promise<GeocodeHit | null> {
-  const hits = await searchNorwegianAddress(input, 10)
+  let hits = await searchNorwegianAddress(input, 10)
   if (!hits.length) {
-    const fallback = await searchNorwegianAddress(
+    hits = await searchNorwegianAddress(
       { address: input.address, postal_code: undefined, city: undefined },
       5
     )
-    const best = pickBestNominatimHit(fallback, input.postal_code, input.city)
-    return best ? nominatimResultToGeocodeHit(best) : null
   }
-  const best = pickBestNominatimHit(hits, input.postal_code, input.city)
-  return best ? nominatimResultToGeocodeHit(best) : null
+  const best = pickBestHit(hits, input.postal_code, input.city)
+  return best ? rawResultToGeocodeHit(best) : null
 }
