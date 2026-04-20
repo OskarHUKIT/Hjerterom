@@ -29,9 +29,8 @@ export default function BrukervilkarPage() {
             Brukervilkår
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'var(--text-body)', lineHeight: 1.6 }}>
-            Her er de preliminære brukervilkårene for Boly. Selve signeringen skjer via BankID
-            hos Signicat – der vises det endelige dokumentet som kommunen har godkjent for din
-            region.
+            Her er brukervilkårene for Boly. Selve signeringen skjer via BankID hos Signicat – der
+            vises det endelige dokumentet som kommunen har godkjent for din region.
           </p>
         </div>
 
@@ -43,7 +42,7 @@ export default function BrukervilkarPage() {
             fontSize: '1.05rem',
           }}
         >
-          <BrukervilkarContent showDisclaimer />
+          <BrukervilkarContent />
         </div>
       </div>
     </main>

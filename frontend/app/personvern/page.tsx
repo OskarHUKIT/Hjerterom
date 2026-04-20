@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
-import { PreliminaryLegalDisclaimer } from '../components/legal/PreliminaryLegalDisclaimer'
 
 const h2: CSSProperties = {
   color: 'var(--text-main)',
@@ -45,8 +44,8 @@ export default function PersonvernPage() {
             Personvern og informasjonskapsler
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'var(--text-body)', lineHeight: 1.6 }}>
-            Preliminær personvernerklæring for Boly, tilpasset norsk personopplysningslov og GDPR
-            der det er relevant.
+            Personvernerklæring for Boly, tilpasset norsk personopplysningslov og GDPR der det er
+            relevant.
           </p>
         </div>
 
@@ -58,8 +57,6 @@ export default function PersonvernPage() {
             fontSize: '1.05rem',
           }}
         >
-          <PreliminaryLegalDisclaimer />
-
           <h2 style={{ ...h2, marginTop: 0 }}>1. Formål og behandlingsgrunnlag</h2>
           <p style={p}>
             Vi behandler personopplysninger for å levere boligformidlingstjenesten: blant annet
@@ -75,11 +72,9 @@ export default function PersonvernPage() {
           <h2 style={h2}>2. Behandlingsansvar og databehandlere</h2>
           <p style={p}>
             Hvem som er behandlingsansvarlig for en konkret behandling (kommune, leverandør eller
-            felles ordning) må avklares endelig i databehandleravtaler og internkontroll. Typisk vil
-            en kommune eller samarbeidspartner stå som ansvarlig overfor innbyggere, mens
-            IT-leverandører kan opptre som databehandlere under skriftlig avtale. Denne teksten er
-            et utkast til du kan fylle inn konkrete virksomhetsnavn og organisasjonsnummer etter
-            avklaring.
+            felles ordning) reguleres i databehandleravtaler og internkontroll. Typisk vil en
+            kommune eller samarbeidspartner stå som ansvarlig overfor innbyggere, mens
+            IT-leverandører opptrer som databehandlere under skriftlig avtale.
           </p>
 
           <h2 style={h2}>3. Hvilke opplysninger behandles</h2>
@@ -173,7 +168,7 @@ export default function PersonvernPage() {
             >
               info@bolynorge.no
             </a>
-            . Merk at endelig behandlingsansvarlig må kunne identifiseres i den ferdige erklæringen.
+            .
           </p>
         </div>
       </div>

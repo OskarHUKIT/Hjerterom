@@ -2,7 +2,6 @@
 
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
-import { PreliminaryLegalDisclaimer } from './PreliminaryLegalDisclaimer'
 
 const sectionTitle: CSSProperties = {
   color: 'var(--text-main)',
@@ -13,13 +12,11 @@ const body: CSSProperties = { color: 'var(--text-body)' }
 const sectionGap: CSSProperties = { marginBottom: 'var(--space-6)' }
 
 /**
- * Preliminære brukervilkår for Boly – brukes i signeringsscroll (uten PDF) og på /brukervilkar.
+ * Brukervilkår for Boly – brukes i signeringsscroll (uten PDF) og på /brukervilkar.
  */
-export function BrukervilkarContent({ showDisclaimer = true }: { showDisclaimer?: boolean }) {
+export function BrukervilkarContent() {
   return (
     <>
-      {showDisclaimer ? <PreliminaryLegalDisclaimer /> : null}
-
       <h2
         style={{
           color: 'var(--text-main)',
@@ -86,8 +83,7 @@ export function BrukervilkarContent({ showDisclaimer = true }: { showDisclaimer?
       <section style={sectionGap}>
         <h3 style={sectionTitle}>6. Personvern</h3>
         <p style={body}>
-          Behandling av personopplysninger beskrives nærmere i den preliminære personvernerklæringen
-          på{' '}
+          Behandling av personopplysninger beskrives nærmere i personvernerklæringen på{' '}
           <Link href="/personvern/" style={{ color: 'var(--color-accent)' }}>
             personvernsiden
           </Link>

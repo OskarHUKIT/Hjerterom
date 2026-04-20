@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
-import { PreliminaryLegalDisclaimer } from '../components/legal/PreliminaryLegalDisclaimer'
 
 const h2: CSSProperties = {
   color: 'var(--text-main)',
@@ -40,7 +39,7 @@ export default function OmBolyPage() {
             Om Boly
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'var(--text-body)', lineHeight: 1.6 }}>
-            Kort, preliminær informasjon om tjenesten og samarbeidet bak den.
+            Kort informasjon om tjenesten og samarbeidet bak den.
           </p>
         </div>
 
@@ -52,8 +51,6 @@ export default function OmBolyPage() {
             fontSize: '1.05rem',
           }}
         >
-          <PreliminaryLegalDisclaimer />
-
           <h2 style={{ ...h2, marginTop: 0 }}>Hva er Boly?</h2>
           <p style={p}>
             Boly er en digital tjeneste som hjelper kommuner med å finne og formidle egnede boliger
@@ -73,7 +70,7 @@ export default function OmBolyPage() {
 
           <h2 style={h2}>Mer informasjon</h2>
           <p style={{ ...p, marginBottom: 'var(--space-3)' }}>
-            For juridiske temaer viser vi til de preliminære sidene for{' '}
+            For juridiske temaer, se sidene for{' '}
             <Link href="/brukervilkar/" style={{ color: 'var(--color-accent)' }}>
               brukervilkår
             </Link>{' '}
