@@ -201,10 +201,23 @@ export const translations = {
     cookieBannerAriaLabel: 'Samtykke til informasjonskapsler',
     cookieBannerTitle: 'Informasjonskapsler',
     cookieBannerBody:
-      'Vi bruker nødvendige informasjonskapsler for innlogging og sikkerhet (f.eks. økt fra leverandør). Med «Godta alle» kan vi også ta i bruk valgfrie kapsler til statistikk eller lignende der loven krever samtykke. Du kan velge kun nødvendige eller godta alt. Les mer i ',
+      'Vi bruker strengt nødvendige informasjonskapsler for innlogging og sikkerhet. Du kan selv velge om vi også skal bruke valgfrie kapsler til statistikk eller markedsføring. Les mer i ',
     cookiePrivacyLinkText: 'personvern­erklæringen',
-    cookieRejectNonEssential: 'Kun nødvendige',
+    cookieRejectNonEssential: 'Avvis alle',
     cookieAcceptAll: 'Godta alle',
+    cookieCustomize: 'Tilpass valg',
+    cookieSavePreferences: 'Lagre mine valg',
+    cookieBack: 'Tilbake',
+    cookieCategoryNecessary: 'Strengt nødvendige',
+    cookieCategoryNecessaryDesc:
+      'Kreves for innlogging, sesjon og sikkerhet. Kan ikke slås av.',
+    cookieCategoryNecessaryLocked: 'Alltid på',
+    cookieCategoryAnalytics: 'Statistikk',
+    cookieCategoryAnalyticsDesc:
+      'Hjelper oss å forstå bruk av tjenesten (f.eks. anonymisert måling). Ingen personidentifikasjon.',
+    cookieCategoryMarketing: 'Markedsføring',
+    cookieCategoryMarketingDesc:
+      'Tilpasset innhold eller sporing på tvers av nettsteder. Ikke aktivt på Boly i dag, men dekket av samtykket.',
 
     // Settings
     settings: 'Innstillinger',
@@ -1088,10 +1101,23 @@ export const translations = {
     cookieBannerAriaLabel: 'Dohkkehus dieđihančalmmiide',
     cookieBannerTitle: 'Dieđihančalmmit',
     cookieBannerBody:
-      'Mii geavat dárbbalaš dieđihančalmmaid sisačáliheapmái ja dorvvolašvuhtii (ovdamearkka sesuvdna). «Dohket buot»-válljema bokte sáhttet maiddái vejolaš ii-dárbbalaš čalmmit, main lea lohpi statistihka várás. Sáhtát válljet dušše dárbbalaš dahje dohket buot. Loga lasi ',
+      'Mii geavat dušše dárbbalaš dieđihančalmmaid sisačáliheapmái ja dorvvolašvuhtii. Don sáhtát válljet guđege kategoriija valjon dihte (ovdamearkka dihte statistihkka, markaniibme). Loga lasi ',
     cookiePrivacyLinkText: 'iešdovdusdiedádusas',
-    cookieRejectNonEssential: 'Dušše dárbbalaš',
+    cookieRejectNonEssential: 'Hilgo buot',
     cookieAcceptAll: 'Dohket buot',
+    cookieCustomize: 'Heive válljemiid',
+    cookieSavePreferences: 'Vurke mu válljemiid',
+    cookieBack: 'Ruovttoluotta',
+    cookieCategoryNecessary: 'Áibbas dárbbalaš',
+    cookieCategoryNecessaryDesc:
+      'Dárbbašit sisačáliheami, sesuvnna ja dorvvolašvuođa várás. Ii sáhte botket.',
+    cookieCategoryNecessaryLocked: 'Álo alde',
+    cookieCategoryAnalytics: 'Statistihkka',
+    cookieCategoryAnalyticsDesc:
+      'Veahkehit min ipmirdit geavaheami (ovdamearkka dihte anonyma mihtidus). Eai iešdovddašančalmmit.',
+    cookieCategoryMarketing: 'Markanfálaldat',
+    cookieCategoryMarketingDesc:
+      'Heivehuvvon sisdoallu dahje čuovvun gaskal báikkiid. Ii leat aktiiva Bolys otná beaivvi, muhto lea válddus mielde.',
 
     // Settings
     settings: 'Heivehusat',
@@ -1960,10 +1986,23 @@ export const translations = {
     cookieBannerAriaLabel: 'Cookie consent',
     cookieBannerTitle: 'Cookies',
     cookieBannerBody:
-      'We use strictly necessary cookies for sign-in and security (e.g. session cookies from our provider). If you choose “Accept all”, we may also use optional cookies for analytics or similar where consent is required. You can choose necessary only or accept all. Read more in our ',
+      'We use strictly necessary cookies for sign-in and security. You can choose per category whether we may also use optional cookies (analytics, marketing). Read more in our ',
     cookiePrivacyLinkText: 'privacy notice',
-    cookieRejectNonEssential: 'Necessary only',
+    cookieRejectNonEssential: 'Reject all',
     cookieAcceptAll: 'Accept all',
+    cookieCustomize: 'Customize',
+    cookieSavePreferences: 'Save my choices',
+    cookieBack: 'Back',
+    cookieCategoryNecessary: 'Strictly necessary',
+    cookieCategoryNecessaryDesc:
+      'Required for sign-in, session and security. Cannot be turned off.',
+    cookieCategoryNecessaryLocked: 'Always on',
+    cookieCategoryAnalytics: 'Analytics',
+    cookieCategoryAnalyticsDesc:
+      'Helps us understand usage (e.g. anonymised measurement). No personal identification.',
+    cookieCategoryMarketing: 'Marketing',
+    cookieCategoryMarketingDesc:
+      'Personalised content or cross-site tracking. Not active on Boly today, but covered by your choice.',
 
     // Settings
     settings: 'Settings',

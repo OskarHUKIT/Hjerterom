@@ -11,8 +11,12 @@ import {
 } from 'react'
 import {
   COOKIE_CONSENT_STORAGE_KEY,
+  defaultCategories,
   parseStoredConsent,
+  summarizeChoice,
   writeConsent,
+  type ConsentCategories,
+  type CookieCategory,
   type CookieConsentChoice,
 } from '../app/lib/cookieConsentStorage'
 
@@ -21,12 +25,20 @@ type CookieConsentContextValue = {
   ready: boolean
   /** Bruker har ikke valgt, eller banner er åpnet på nytt fra footer. */
   showBanner: boolean
-  /** Gjeldende valg etter lagring; undefined før første valg. */
+  /** Gjeldende oppsummerte valg. 'custom' = brukeren har valgt granulært. */
   choice: CookieConsentChoice | undefined
-  /** Valgfrie/analyse/markedsføring – reserver for fremtidige skript (f.eks. måling). */
+  /** Gjeldende per-kategori samtykke. */
+  categories: ConsentCategories
+  /** Snarvei: er minst én valgfri kapsel akseptert? */
   allowsOptionalCookies: boolean
-  acceptNecessary: () => void
+  /** Er en spesifikk kategori akseptert (nyttig for conditional script-loading). */
+  isCategoryAllowed: (c: CookieCategory) => boolean
+  /** Godta alle valgfrie kategorier. */
   acceptAll: () => void
+  /** Avvis alle valgfrie kategorier (beholder kun nødvendige). */
+  rejectAll: () => void
+  /** Lagre tilpassede valg (necessary tvinges alltid til true). */
+  savePreferences: (next: Partial<Omit<ConsentCategories, 'necessary'>>) => void
   /** Åpne banner igjen (endre valg). */
   reopenCookieSettings: () => void
 }
@@ -35,35 +47,65 @@ const CookieConsentContext = createContext<CookieConsentContextValue | null>(nul
 
 export function CookieConsentProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
-  const [choice, setChoice] = useState<CookieConsentChoice | undefined>(undefined)
+  const [categories, setCategories] = useState<ConsentCategories>(() => defaultCategories())
+  const [hasStoredChoice, setHasStoredChoice] = useState(false)
   const [forceOpen, setForceOpen] = useState(false)
 
   useEffect(() => {
     try {
       const stored = parseStoredConsent(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY))
-      if (stored) setChoice(stored.choice)
+      if (stored) {
+        setCategories(stored.categories)
+        setHasStoredChoice(true)
+      }
     } catch {
       /* ignore */
     }
     setReady(true)
   }, [])
 
-  const applyChoice = useCallback((c: CookieConsentChoice) => {
-    writeConsent(c)
-    setChoice(c)
+  const applyChoice = useCallback((next: ConsentCategories) => {
+    writeConsent(next)
+    setCategories(next)
+    setHasStoredChoice(true)
     setForceOpen(false)
   }, [])
 
-  const acceptNecessary = useCallback(() => applyChoice('necessary'), [applyChoice])
-  const acceptAll = useCallback(() => applyChoice('all'), [applyChoice])
+  const acceptAll = useCallback(
+    () => applyChoice({ necessary: true, analytics: true, marketing: true }),
+    [applyChoice],
+  )
+
+  const rejectAll = useCallback(
+    () => applyChoice({ necessary: true, analytics: false, marketing: false }),
+    [applyChoice],
+  )
+
+  const savePreferences = useCallback(
+    (next: Partial<Omit<ConsentCategories, 'necessary'>>) => {
+      applyChoice({
+        necessary: true,
+        analytics: next.analytics ?? false,
+        marketing: next.marketing ?? false,
+      })
+    },
+    [applyChoice],
+  )
 
   const reopenCookieSettings = useCallback(() => {
     setForceOpen(true)
   }, [])
 
-  const showBanner = ready && (choice === undefined || forceOpen)
+  const showBanner = ready && (!hasStoredChoice || forceOpen)
 
-  const allowsOptionalCookies = choice === 'all'
+  const allowsOptionalCookies = categories.analytics || categories.marketing
+
+  const isCategoryAllowed = useCallback(
+    (c: CookieCategory) => (c === 'necessary' ? true : categories[c]),
+    [categories],
+  )
+
+  const choice = hasStoredChoice ? summarizeChoice(categories) : undefined
 
   const value = useMemo(
     () =>
@@ -71,20 +113,26 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
         ready,
         showBanner,
         choice,
+        categories,
         allowsOptionalCookies,
-        acceptNecessary,
+        isCategoryAllowed,
         acceptAll,
+        rejectAll,
+        savePreferences,
         reopenCookieSettings,
       }) satisfies CookieConsentContextValue,
     [
       ready,
       showBanner,
       choice,
+      categories,
       allowsOptionalCookies,
-      acceptNecessary,
+      isCategoryAllowed,
       acceptAll,
+      rejectAll,
+      savePreferences,
       reopenCookieSettings,
-    ]
+    ],
   )
 
   return <CookieConsentContext.Provider value={value}>{children}</CookieConsentContext.Provider>
