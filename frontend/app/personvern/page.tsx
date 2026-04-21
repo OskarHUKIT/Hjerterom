@@ -15,6 +15,25 @@ const ul: CSSProperties = {
   paddingLeft: '1.25rem',
   marginBottom: 'var(--space-4)',
 }
+const tableStyle: CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  marginBottom: 'var(--space-4)',
+  fontSize: '0.95rem',
+}
+const th: CSSProperties = {
+  textAlign: 'left',
+  padding: 'var(--space-2) var(--space-3)',
+  borderBottom: '2px solid var(--border-subtle)',
+  color: 'var(--text-main)',
+  fontWeight: 600,
+}
+const td: CSSProperties = {
+  padding: 'var(--space-2) var(--space-3)',
+  borderBottom: '1px solid var(--border-subtle)',
+  color: 'var(--text-body)',
+  verticalAlign: 'top',
+}
 
 export default function PersonvernPage() {
   return (
@@ -44,8 +63,9 @@ export default function PersonvernPage() {
             Personvern og informasjonskapsler
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'var(--text-body)', lineHeight: 1.6 }}>
-            Personvernerklæring for Boly, tilpasset norsk personopplysningslov og GDPR der det er
-            relevant.
+            Personvernerklæring for Boly, i samsvar med personopplysningsloven, GDPR og ekomlova.
+            Denne siden gjengir den samme erklæringen som ligger i repoet (<code>docs/legal/PRIVACY_NOTICE.md</code>);
+            ved konflikt er den norske teksten autoritativ.
           </p>
         </div>
 
@@ -57,118 +77,274 @@ export default function PersonvernPage() {
             fontSize: '1.05rem',
           }}
         >
-          <h2 style={{ ...h2, marginTop: 0 }}>1. Formål og behandlingsgrunnlag</h2>
+          <h2 style={{ ...h2, marginTop: 0 }}>1. Hvem vi er</h2>
           <p style={p}>
-            Vi behandler personopplysninger for å levere boligformidlingstjenesten: blant annet
-            brukerkonto, boligannonser, kommunikasjon med kommune og utleier, signering med BankID
-            der det er aktivert, samt sikkerhet, drift og statistikk i nødvendig omfang.
-            Behandlingen skjer på grunnlag av avtale med deg som bruker der det er naturlig,
-            berettiget interesse der loven tillater det (f.eks. sikkerhet og misbruksvern), samtykke
-            der vi innhenter samtykke (f.eks. valgfrie funksjoner eller informasjonskapsler som ikke
-            er strengt nødvendige), og/eller lovpålagte plikter for offentlige aktører der det er
-            aktuelt.
+            Boly er en tjeneste som hjelper <strong>kommuner</strong> med å formidle kontakt mellom{' '}
+            <strong>utleiere</strong> og <strong>leietakere</strong> i et regulert, kommunegodkjent
+            kretsløp. Tjenesten utvikles og driftes av <strong>Nav Narvik</strong> i samarbeid med{' '}
+            <strong>Gamechanging</strong>.
+          </p>
+          <p style={p}>
+            <strong>Behandlingsansvarlig:</strong> Kommunen som har aktivert Boly for sitt område er
+            behandlingsansvarlig for personopplysningene om sine innbyggere. Boly opptrer som{' '}
+            <strong>databehandler</strong> på vegne av kommunen.
+          </p>
+          <p style={p}>
+            <strong>Kontakt:</strong>{' '}
+            <a href="mailto:info@bolynorge.no" style={{ color: 'var(--color-accent)' }}>
+              info@bolynorge.no
+            </a>
           </p>
 
-          <h2 style={h2}>2. Behandlingsansvar og databehandlere</h2>
+          <h2 style={h2}>2. Hvilke personopplysninger vi behandler</h2>
           <p style={p}>
-            Hvem som er behandlingsansvarlig for en konkret behandling (kommune, leverandør eller
-            felles ordning) reguleres i databehandleravtaler og internkontroll. Typisk vil en
-            kommune eller samarbeidspartner stå som ansvarlig overfor innbyggere, mens
-            IT-leverandører opptrer som databehandlere under skriftlig avtale.
+            Vi behandler kun opplysninger som er nødvendige for å levere tjenesten (prinsippet om{' '}
+            <em>dataminimering</em>, GDPR art. 5 (1) c):
+          </p>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <th style={th}>Kategori</th>
+                  <th style={th}>Formål</th>
+                  <th style={th}>Rettslig grunnlag</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={td}>Navn, e-post, telefon</td>
+                  <td style={td}>Konto, innlogging, varsler</td>
+                  <td style={td}>Avtale (art. 6 (1) b)</td>
+                </tr>
+                <tr>
+                  <td style={td}>Foretrukket språk</td>
+                  <td style={td}>Språkvalg for UI og e-post</td>
+                  <td style={td}>Berettiget interesse (art. 6 (1) f)</td>
+                </tr>
+                <tr>
+                  <td style={td}>Rolle (utleier / kommune / leietaker)</td>
+                  <td style={td}>Tilgangsstyring</td>
+                  <td style={td}>Avtale</td>
+                </tr>
+                <tr>
+                  <td style={td}>Kommuneregion</td>
+                  <td style={td}>Knytte bruker til riktig kommune</td>
+                  <td style={td}>Avtale</td>
+                </tr>
+                <tr>
+                  <td style={td}>Adresse/koordinater på bolig</td>
+                  <td style={td}>Formidling av utleieobjekt</td>
+                  <td style={td}>Avtale</td>
+                </tr>
+                <tr>
+                  <td style={td}>Husregler, overtakelsesrapporter</td>
+                  <td style={td}>Leieforholdet</td>
+                  <td style={td}>Avtale</td>
+                </tr>
+                <tr>
+                  <td style={td}>Chat-meldinger, vedlegg</td>
+                  <td style={td}>Kommunikasjon mellom partene</td>
+                  <td style={td}>Avtale</td>
+                </tr>
+                <tr>
+                  <td style={td}>Signeringslogg (Signicat session-id, tidsstempel)</td>
+                  <td style={td}>Gyldighetsbevis for signert avtale</td>
+                  <td style={td}>Rettslig forpliktelse (art. 6 (1) c)</td>
+                </tr>
+                <tr>
+                  <td style={td}>Påloggingsstatistikk / audit logs</td>
+                  <td style={td}>IT-sikkerhet, feilsøking</td>
+                  <td style={td}>Berettiget interesse</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style={p}>
+            <strong>Vi lagrer ikke</strong> fødselsnummer eller DUF-nummer, bankopplysninger,
+            helseopplysninger, etnisitet eller politiske meninger. Passord håndteres av Supabase
+            Auth med bcrypt/argon2.
           </p>
 
-          <h2 style={h2}>3. Hvilke opplysninger behandles</h2>
-          <p style={p}>Avhengig av hvordan du bruker tjenesten kan vi behandle:</p>
-          <ul style={ul}>
-            <li>Identitets- og kontaktopplysninger (navn, e-post, telefon).</li>
-            <li>Innhold i boligannonser og tilknyttede dokumenter du laster opp.</li>
-            <li>
-              Tekniske data (IP-adresse, enhetsinformasjon, logger for feilsøking og sikkerhet).
-            </li>
-            <li>
-              Opplysninger knyttet til BankID-signering der funksjonen brukes (tidspunkt,
-              dokumentversjon).
-            </li>
-            <li>
-              Opplysninger som er nødvendige for kommunens formidlingsoppdrag, innenfor det som er
-              lovlig.
-            </li>
-          </ul>
-
-          <h2 style={h2}>4. Utlevering og overføring</h2>
+          <h2 style={h2}>3. Særlige kategorier og sensitive opplysninger</h2>
           <p style={p}>
-            Opplysninger kan deles med autorisert personell i kommune som trenger dem i
-            formidlingsarbeid, og med tekniske underleverandører som drift og lagring (typisk innen
-            EØS), etter databehandleravtale. Overføring utenfor EØS skal kun skje med gyldig
-            overføringsgrunnlag etter GDPR kapittel V.
+            Boly er <strong>ikke</strong> designet for å samle inn særlige kategorier av
+            personopplysninger (GDPR art. 9) eller opplysninger om straffbare forhold (art. 10). Vi
+            ber brukere om å{' '}
+            <strong>
+              unngå å dele sensitive personopplysninger (f.eks. helse, straffesak eller
+              opplysninger om andre)
+            </strong>{' '}
+            i chatten og i fritekstfelt. Slike opplysninger er ikke nødvendige for formidlingen, og
+            vil – hvis de oppstår – behandles med samme sikkerhetsnivå som øvrige chat-data og
+            slettes i henhold til lagringstidene under §5.
+          </p>
+
+          <h2 style={h2}>4. Informasjonskapsler og samtykke</h2>
+          <p style={p}>Boly bruker informasjonskapsler i tre kategorier:</p>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <th style={th}>Kategori</th>
+                  <th style={th}>Aktivt nå</th>
+                  <th style={th}>Samtykke</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={td}>
+                    <strong>Strengt nødvendige</strong> (innlogging, sesjon, CSRF-tokens)
+                  </td>
+                  <td style={td}>Ja</td>
+                  <td style={td}>Ikke påkrevd (ekomlova § 2-7b)</td>
+                </tr>
+                <tr>
+                  <td style={td}>
+                    <strong>Statistikk</strong> (anonymisert, aggregert)
+                  </td>
+                  <td style={td}>Planlagt</td>
+                  <td style={td}>Aktivt samtykke</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style={p}>
+            Boly benytter <strong>ikke</strong> markedsføringskapsler eller sporing på tvers av
+            nettsteder. Dersom dette innføres på et senere tidspunkt, vil vi be om et nytt aktivt
+            samtykke.
+          </p>
+          <p style={p}>
+            Du kan når som helst endre valg via <strong>«Informasjonskapsler»</strong>-knappen i
+            bunnen av nettsiden. <strong>«Avvis alle»</strong> er plassert like lett tilgjengelig
+            som <strong>«Godta alle»</strong>, i tråd med Datatilsynets veileder og ekomlova.
           </p>
 
           <h2 style={h2}>5. Lagringstid</h2>
+          <ul style={ul}>
+            <li>
+              <strong>Kontoopplysninger:</strong> Så lenge kontoen er aktiv; kan slettes 12 måneder
+              etter siste innlogging (konfigurerbart per kommune).
+            </li>
+            <li>
+              <strong>Signerte avtaler:</strong> 10 år etter at leieforholdet er avsluttet
+              (bokførings- og dokumentasjonshensyn).
+            </li>
+            <li>
+              <strong>Chat-meldinger og vedlegg:</strong> 24 måneder etter siste aktivitet
+              (automatisk nattlig sletting).
+            </li>
+            <li>
+              <strong>Overtakelsesrapporter:</strong> 3 år etter at rapporten er godkjent.
+            </li>
+            <li>
+              <strong>Varsler (notifications):</strong> 12 måneder.
+            </li>
+            <li>
+              <strong>Audit logs / sikkerhetslogger:</strong> 12 måneder.
+            </li>
+          </ul>
+
+          <h2 style={h2}>6. Delingspartnere (databehandlere)</h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <th style={th}>Leverandør</th>
+                  <th style={th}>Formål</th>
+                  <th style={th}>Lokasjon</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={td}>
+                    <strong>Supabase</strong> (Auth + DB + Storage)
+                  </td>
+                  <td style={td}>Backend, autentisering</td>
+                  <td style={td}>EU (Frankfurt)</td>
+                </tr>
+                <tr>
+                  <td style={td}>
+                    <strong>Vercel</strong>
+                  </td>
+                  <td style={td}>Hosting av frontend</td>
+                  <td style={td}>EU (Stockholm, <code>arn1</code>)</td>
+                </tr>
+                <tr>
+                  <td style={td}>
+                    <strong>Mailjet</strong>
+                  </td>
+                  <td style={td}>Utsending av transaksjonelle e-poster</td>
+                  <td style={td}>EU</td>
+                </tr>
+                <tr>
+                  <td style={td}>
+                    <strong>Signicat</strong>
+                  </td>
+                  <td style={td}>BankID-signering</td>
+                  <td style={td}>EU (Norge)</td>
+                </tr>
+                <tr>
+                  <td style={td}>
+                    <strong>Kartverket / Geonorge</strong>
+                  </td>
+                  <td style={td}>Adressesøk (ingen personidentifikasjon)</td>
+                  <td style={td}>Norge</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <p style={p}>
-            Vi lagrer opplysninger så lenge det er nødvendig for formålet og eventuelle rettslige
-            oppbevaringsplikter (for eksempel regnskaps- og arkivkrav for offentlig sektor).
-            Deretter slettes eller anonymiseres data i tråd med interne rutiner.
+            Boly sender <strong>ikke</strong> personopplysninger til land utenfor EU/EØS.
           </p>
 
-          <h2 style={h2}>6. Dine rettigheter</h2>
-          <p style={p}>Under gjeldende vilkår har du blant annet rett til:</p>
+          <h2 style={h2}>7. Dine rettigheter (GDPR kap. III)</h2>
+          <p style={p}>Du har rett til å:</p>
           <ul style={ul}>
-            <li>Innsyn i egne opplysninger.</li>
-            <li>Retting av uriktige opplysninger.</li>
-            <li>
-              Sletting («retten til å bli glemt») der det ikke er tungtveiende grunnlag for videre
-              lagring.
-            </li>
-            <li>
-              Dataportabilitet der behandlingen er basert på samtykke eller avtale og skjer
-              automatisk.
-            </li>
-            <li>Å protestere mot behandling som bygger på berettiget interesse.</li>
-            <li>Å trekke samtykke når behandlingen er basert på samtykke.</li>
+            <li>få <strong>innsyn</strong> i opplysningene vi har om deg (art. 15),</li>
+            <li>få <strong>rettet</strong> feil (art. 16),</li>
+            <li>be om <strong>sletting</strong> (art. 17),</li>
+            <li><strong>begrense</strong> behandlingen (art. 18),</li>
+            <li>få <strong>dataportabilitet</strong> (art. 20),</li>
+            <li><strong>protestere</strong> mot behandling basert på berettiget interesse (art. 21).</li>
           </ul>
           <p style={p}>
-            Du kan klage til Datatilsynet dersom du mener behandlingen strider mot
-            personvernreglene:{' '}
+            Henvendelser sendes til kommunen der du bor (behandlingsansvarlig), eller til{' '}
+            <a href="mailto:info@bolynorge.no" style={{ color: 'var(--color-accent)' }}>
+              info@bolynorge.no
+            </a>
+            , som vil videreformidle.
+          </p>
+          <p style={p}>
+            <strong>Klagerett:</strong> Du kan klage til{' '}
             <a
-              href="https://www.datatilsynet.no/"
+              href="https://www.datatilsynet.no"
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: 'var(--color-accent)' }}
             >
-              datatilsynet.no
-            </a>
-            .
-          </p>
-
-          <h2 style={h2}>7. Informasjonskapsler (cookies)</h2>
-          <p style={p}>
-            Ved første besøk vises et valg om informasjonskapsler. <strong>Nødvendige</strong>{' '}
-            kapsler brukes for innlogging, sikkerhet og økt mot vår leverandør (f.eks. Supabase) –
-            uten disse fungerer ikke innlogget bruk som tiltenkt. Velger du «Kun nødvendige», bruker
-            vi ikke valgfrie kapsler til analyse eller markedsføring. Velger du «Godta alle»,
-            samtykker du i tillegg til slike valgfrie formål når de tas i bruk. Du kan når som helst
-            endre valget via «Informasjonskapsler» i bunnteksten på siden. Enkelte innstillinger
-            (f.eks. språk) kan også lagres lokalt i nettleseren; det følger av hvordan du bruker
-            tjenesten.
+              Datatilsynet
+            </a>{' '}
+            dersom du mener behandlingen er i strid med loven.
           </p>
 
           <h2 style={h2}>8. Sikkerhet</h2>
-          <p style={p}>
-            Vi iverksetter rimelige tekniske og organisatoriske tiltak for konfidensialitet,
-            integritet og tilgjengelighet. Ingen løsning er imidlertid 100 % sikker; du bør velge
-            sterke passord der passord brukes, og melde fra ved mistanke om misbruk.
-          </p>
+          <ul style={ul}>
+            <li>All kommunikasjon skjer over HTTPS (TLS 1.2+).</li>
+            <li>Passord håndteres av Supabase Auth (bcrypt/argon2).</li>
+            <li>
+              Database-tilgang er beskyttet av <strong>Row Level Security (RLS)</strong>; ingen
+              bruker kan lese data som tilhører en annen kommune eller bruker.
+            </li>
+            <li>
+              Signering av avtaler gjøres med <strong>BankID via Signicat</strong> (kvalifisert
+              elektronisk signatur).
+            </li>
+            <li>Ratebegrensning: maks 3 signeringsforsøk per konto per døgn.</li>
+          </ul>
 
-          <h2 style={h2}>9. Kontakt</h2>
+          <h2 style={h2}>9. Endringer</h2>
           <p style={{ ...p, marginBottom: 0 }}>
-            For henvendelser om personvern kan du kontakte oss på{' '}
-            <a
-              href="mailto:info@bolynorge.no"
-              style={{ color: 'var(--color-accent)' }}
-            >
-              info@bolynorge.no
-            </a>
-            .
+            Vesentlige endringer varsles via e-post og i appen minst 14 dager i forveien.
           </p>
         </div>
       </div>

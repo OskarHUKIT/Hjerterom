@@ -215,9 +215,6 @@ export const translations = {
     cookieCategoryAnalytics: 'Statistikk',
     cookieCategoryAnalyticsDesc:
       'Hjelper oss å forstå bruk av tjenesten (f.eks. anonymisert måling). Ingen personidentifikasjon.',
-    cookieCategoryMarketing: 'Markedsføring',
-    cookieCategoryMarketingDesc:
-      'Tilpasset innhold eller sporing på tvers av nettsteder. Ikke aktivt på Boly i dag, men dekket av samtykket.',
 
     // Settings
     settings: 'Innstillinger',
@@ -1115,9 +1112,6 @@ export const translations = {
     cookieCategoryAnalytics: 'Statistihkka',
     cookieCategoryAnalyticsDesc:
       'Veahkehit min ipmirdit geavaheami (ovdamearkka dihte anonyma mihtidus). Eai iešdovddašančalmmit.',
-    cookieCategoryMarketing: 'Markanfálaldat',
-    cookieCategoryMarketingDesc:
-      'Heivehuvvon sisdoallu dahje čuovvun gaskal báikkiid. Ii leat aktiiva Bolys otná beaivvi, muhto lea válddus mielde.',
 
     // Settings
     settings: 'Heivehusat',
@@ -2000,9 +1994,6 @@ export const translations = {
     cookieCategoryAnalytics: 'Analytics',
     cookieCategoryAnalyticsDesc:
       'Helps us understand usage (e.g. anonymised measurement). No personal identification.',
-    cookieCategoryMarketing: 'Marketing',
-    cookieCategoryMarketingDesc:
-      'Personalised content or cross-site tracking. Not active on Boly today, but covered by your choice.',
 
     // Settings
     settings: 'Settings',

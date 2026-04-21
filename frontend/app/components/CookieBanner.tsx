@@ -25,7 +25,6 @@ export default function CookieBanner() {
   const [expanded, setExpanded] = useState(false)
   const [localPrefs, setLocalPrefs] = useState({
     analytics: categories.analytics,
-    marketing: categories.marketing,
   })
 
   const toggleRowStyle = useMemo<React.CSSProperties>(
@@ -185,14 +184,6 @@ export default function CookieBanner() {
               label={t('cookieCategoryAnalytics')}
               description={t('cookieCategoryAnalyticsDesc')}
               onChange={(v) => setLocalPrefs((prev) => ({ ...prev, analytics: v }))}
-              rowStyle={toggleRowStyle}
-            />
-            <CategoryToggle
-              name="marketing"
-              checked={localPrefs.marketing}
-              label={t('cookieCategoryMarketing')}
-              description={t('cookieCategoryMarketingDesc')}
-              onChange={(v) => setLocalPrefs((prev) => ({ ...prev, marketing: v }))}
               rowStyle={toggleRowStyle}
             />
           </div>

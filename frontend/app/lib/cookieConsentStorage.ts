@@ -5,12 +5,17 @@
  * Kategorier:
  *   necessary – alltid true (nødvendig for autentisering og sikkerhet)
  *   analytics – valgfri (statistikk, ytelsesmåling)
- *   marketing – valgfri (annonser, tredjepart)
+ *
+ * Prinsippet om dataminimering (GDPR art. 25) tilsier at vi IKKE ber om
+ * samtykke til formål vi ikke benytter. Markedsføring er derfor ikke en
+ * kategori i Boly. Hvis tjenesten senere skal introdusere markedsførings-
+ * eller tredjepartssporingskapsler, må kategorien legges til som et nytt
+ * formål og alle brukere må re-konsulteres (EDPB 03/2022).
  *
  * Versjonsstyring:
- *   v1 — enkel 'necessary' | 'all' streng (legacy).
- *   v2 — granulært objekt med per-kategori-bool.
- * Ved lesing av v1-data mappes den til v2 og skrives tilbake (silent migration).
+ *   v1 — legacy streng: 'necessary' | 'all'.
+ *   v2 — granulært objekt (necessary, analytics[, marketing]).
+ *        `marketing`-felt fra tidligere v2-data ignoreres transparent.
  */
 
 export const COOKIE_CONSENT_STORAGE_KEY = 'boly-cookie-consent-v1'
@@ -18,13 +23,12 @@ export const COOKIE_CONSENT_STORAGE_KEY = 'boly-cookie-consent-v1'
 /** Event som fires når samtykke oppdateres (for lyttere utenfor React-treet). */
 export const COOKIE_CONSENT_EVENT = 'boly:cookie-consent-changed'
 
-export type CookieCategory = 'necessary' | 'analytics' | 'marketing'
+export type CookieCategory = 'necessary' | 'analytics'
 
 export type ConsentCategories = {
   /** Alltid true — kan ikke skrus av. Representerer strengt nødvendige kapsler. */
   necessary: true
   analytics: boolean
-  marketing: boolean
 }
 
 /** Bakoverkompatibel type — brukes fortsatt av legacy-kall (se CookieConsentContext). */
@@ -42,38 +46,39 @@ export type StoredCookieConsent = {
 type LegacyStoredConsent = { v: 1; choice: 'necessary' | 'all'; ts?: string }
 
 function categoriesFromLegacy(choice: 'necessary' | 'all'): ConsentCategories {
-  if (choice === 'all') return { necessary: true, analytics: true, marketing: true }
-  return { necessary: true, analytics: false, marketing: false }
+  if (choice === 'all') return { necessary: true, analytics: true }
+  return { necessary: true, analytics: false }
 }
 
 export function defaultCategories(): ConsentCategories {
-  return { necessary: true, analytics: false, marketing: false }
+  return { necessary: true, analytics: false }
 }
 
 export function summarizeChoice(c: ConsentCategories): CookieConsentChoice {
-  if (c.analytics && c.marketing) return 'all'
-  if (!c.analytics && !c.marketing) return 'necessary'
-  return 'custom'
+  return c.analytics ? 'all' : 'necessary'
 }
 
-function isConsentCategories(x: unknown): x is ConsentCategories {
-  if (!x || typeof x !== 'object') return false
+function normalizeCategories(x: unknown): ConsentCategories | null {
+  if (!x || typeof x !== 'object') return null
   const c = x as Record<string, unknown>
-  return c.necessary === true && typeof c.analytics === 'boolean' && typeof c.marketing === 'boolean'
+  if (c.necessary !== true) return null
+  if (typeof c.analytics !== 'boolean') return null
+  return { necessary: true, analytics: c.analytics }
 }
 
 export function parseStoredConsent(raw: string | null): StoredCookieConsent | null {
   if (!raw?.trim()) return null
   try {
     const p = JSON.parse(raw) as Partial<StoredCookieConsent> | LegacyStoredConsent
-    /** v2 — granulært format. */
+    /** v2 — granulært format (eldre v2-poster kan ha ekstra felter; ignoreres). */
     if ((p as StoredCookieConsent).v === 2) {
       const v2 = p as StoredCookieConsent
-      if (!isConsentCategories(v2.categories)) return null
+      const categories = normalizeCategories(v2.categories)
+      if (!categories) return null
       return {
         v: 2,
-        categories: v2.categories,
-        choice: summarizeChoice(v2.categories),
+        categories,
+        choice: summarizeChoice(categories),
         ts: typeof v2.ts === 'string' ? v2.ts : new Date().toISOString(),
       }
     }
@@ -97,7 +102,7 @@ export function parseStoredConsent(raw: string | null): StoredCookieConsent | nu
 export function writeConsent(categories: ConsentCategories): StoredCookieConsent {
   const payload: StoredCookieConsent = {
     v: 2,
-    categories: { ...categories, necessary: true },
+    categories: { necessary: true, analytics: categories.analytics },
     choice: summarizeChoice(categories),
     ts: new Date().toISOString(),
   }

@@ -72,12 +72,12 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const acceptAll = useCallback(
-    () => applyChoice({ necessary: true, analytics: true, marketing: true }),
+    () => applyChoice({ necessary: true, analytics: true }),
     [applyChoice],
   )
 
   const rejectAll = useCallback(
-    () => applyChoice({ necessary: true, analytics: false, marketing: false }),
+    () => applyChoice({ necessary: true, analytics: false }),
     [applyChoice],
   )
 
@@ -86,7 +86,6 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
       applyChoice({
         necessary: true,
         analytics: next.analytics ?? false,
-        marketing: next.marketing ?? false,
       })
     },
     [applyChoice],
@@ -98,7 +97,7 @@ export function CookieConsentProvider({ children }: { children: ReactNode }) {
 
   const showBanner = ready && (!hasStoredChoice || forceOpen)
 
-  const allowsOptionalCookies = categories.analytics || categories.marketing
+  const allowsOptionalCookies = categories.analytics
 
   const isCategoryAllowed = useCallback(
     (c: CookieCategory) => (c === 'necessary' ? true : categories[c]),

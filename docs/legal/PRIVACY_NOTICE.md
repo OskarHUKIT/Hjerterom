@@ -63,13 +63,17 @@ Vi behandler kun opplysninger som er nødvendige for å levere tjenesten
 
 ### 3. Informasjonskapsler og samtykke
 
-Boly bruker informasjonskapsler i tre kategorier:
+Boly bruker informasjonskapsler i to kategorier:
 
 | Kategori | Aktivt nå | Samtykke |
 |---|---|---|
 | **Strengt nødvendige** (innlogging, sesjon, CSRF-tokens) | Ja | Ikke påkrevd (ekomlova § 2-7b) |
 | **Statistikk** (anonymisert, aggregert) | Planlagt | Aktivt samtykke |
-| **Markedsføring / tredjepart** | Nei | Aktivt samtykke |
+
+Boly benytter **ikke** markedsføringskapsler eller sporing på tvers av
+nettsteder. Dersom dette introduseres senere, vil kategorien legges til
+som et nytt formål og alle brukere re-konsulteres (GDPR art. 6 (1) a,
+EDPB 03/2022).
 
 Brukeren kan når som helst endre valg via **«Informasjonskapsler»**-knappen
 i bunnen av nettsiden. **«Avvis alle»** er plassert like lett tilgjengelig
@@ -170,13 +174,16 @@ principle of **data minimization**, GDPR art. 5 (1) c):
 
 ### 3. Cookies and consent
 
-Boly uses cookies in three categories:
+Boly uses cookies in two categories:
 
 | Category | Active today | Consent |
 |---|---|---|
 | **Strictly necessary** (login, session, CSRF tokens) | Yes | Not required (Norwegian Electronic Communications Act § 2-7b) |
 | **Analytics** (anonymised, aggregated) | Planned | Active consent |
-| **Marketing / third-party** | No | Active consent |
+
+Boly does **not** use marketing cookies or cross-site tracking. If this is
+ever introduced, the category will be added as a new purpose and all users
+will be re-consented (GDPR art. 6 (1) a, EDPB 03/2022).
 
 Users can change their choice at any time via the **"Cookies"** button in
 the footer. **"Reject all"** is placed just as easily accessible as
