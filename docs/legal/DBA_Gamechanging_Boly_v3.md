@@ -4,15 +4,17 @@
 > **Behandlingsansvarlig:** Narvik kommune, org.nr. 959 469 059
 > («kommunen» / «Behandlingsansvarlig»)
 >
-> **Databehandler:** Gamechanging AS, org.nr. [FYLL INN]
+> **Databehandler:** Gamechanging AS, org.nr. 932 496 321
+> Besøksadresse: Lavangsnesveien 2039
+> Kontaktperson: Lars Utstøl, `lars@gamechanging.no`, +47 416 13 301
 > («Gamechanging» / «Databehandler»)
 >
 > **Tjeneste:** Boly — digital formidlingsplattform for kommunal boligbistand
 > (bolynorge.no).
 >
-> **Versjon:** 3.0 — utkast til signering
-> **Sist oppdatert:** 2026-04-20
-> **Erstatter:** DBA v2 (`DBA_Gamechanging_Boly_v2.pdf`)
+> **Versjon:** 3.1 — utkast til signering
+> **Sist oppdatert:** 2026-04-21
+> **Erstatter:** DBA v2 (`DBA_Gamechanging_Boly_v2.pdf`) og intern v3.0 (2026-04-20)
 
 ---
 
@@ -20,7 +22,7 @@
 
 | # | Område | Endring |
 |---|---|---|
-| 1 | Intro | Org.nr. for Narvik kommune fylt ut (959 469 059). Gamechanging AS org.nr. gjenstår |
+| 1 | Intro | Org.nr. fylt ut for begge parter: Narvik kommune 959 469 059, Gamechanging AS 932 496 321 (v3.1, 2026-04-21). |
 | 2 | Vedlegg A.3 | Fjernet «fødselsnummer» (ikke lagret); presisert behandling av bankkontonummer (kun ved `payment_method = 'konto'`, region-scoped RLS, AES-256, 24 mnd retensjon) |
 | 3 | Vedlegg A.4 | Harmonisert med A.3 og med `PRIVACY_NOTICE.md` |
 | 4 | Vedlegg B.1 / §6.2 / C.5 | Regioner enhetlig: Supabase i `eu-central-1` (Frankfurt), Vercel i `arn1` (Stockholm). Edge Middleware globalt men persisterer ikke |
@@ -31,6 +33,8 @@
 | 9 | Vedlegg D.1 | DPIA-utkast levert (`docs/legal/DPIA_Boly.md` v1.0) |
 | 10 | Vedlegg D.2 | Cookiebanner og policy implementert, referanser til kode og `/personvern` |
 | 11 | Vedlegg D.5 | Status-tabell oppdatert: alle oransje flagg løst eller med konkret frist |
+| 12 | Vedlegg C.4 / D.5 (v3.1) | **Handover-rapporter og -bilder:** retensjon harmonisert til 36 mnd, automatisert via migrasjon `20260428120000_handover_reports_retention.sql` (R-10 lukket). |
+| 13 | Vedlegg D.5 (v3.1) | **DPF-status for Supabase Inc.:** lukket som verifisert «ikke DPF-sertifisert»; overføringen hviler fullt ut på SCC + TIA-supplerende tiltak, jf. `TIA_Supabase.md` §2.2. |
 
 ---
 
@@ -44,9 +48,9 @@ av Behandlingsansvarlig, jf. **GDPR art. 28** og personopplysningsloven
 | | Behandlingsansvarlig | Databehandler |
 |---|---|---|
 | Navn | Narvik kommune | Gamechanging AS |
-| Org.nr. | 959 469 059 | [FYLL INN] |
-| Adresse | [kommunens besøksadresse] | [Gamechanging besøksadresse] |
-| Kontaktperson | [navn + e-post] | [navn + e-post] |
+| Org.nr. | 959 469 059 | 932 496 321 |
+| Adresse | [kommunens besøksadresse] | Lavangsnesveien 2039 |
+| Kontaktperson | [navn + e-post] | Lars Utstøl, `lars@gamechanging.no`, +47 416 13 301 |
 | Personvernombud (DPO) | [navn + e-post] | N/A (databehandler er ikke pliktig etter art. 37, men har personvernkontakt: `personvern@gamechanging.no`) |
 | Sikkerhetskontakt | [navn + e-post] | `security@bolynorge.no` |
 
@@ -429,7 +433,7 @@ instruks fra Behandlingsansvarlig.
 | Notifikasjoner | 12 måneder | Automatisert (pg_cron) |
 | Audit-logger | 12 måneder | Automatisert (pg_cron) |
 | Bankkontonummer (`listing_invoice_basis`) | 24 måneder etter siste oppdatering når boligen ikke aktivt formidles | Automatisert (pg_cron) + `on delete cascade` |
-| Handover-bilder | Levetid av leieforhold + 12 måneder | Manuell (se D.5 åpne punkter) |
+| Handover-rapporter og -bilder (`handover_reports` + `handover-reports`-bucket) | 36 måneder etter `approved_at` / `signed_at` / `created_at` (tidligste tilgjengelige tidsstempel) | Automatisert (pg_cron, `boly_retention_sweep` — migrasjon `20260428120000`) |
 | Signerte kontrakter | Inntil 10 år (arkivloven / bokførings­loven) | Kommunens ansvar |
 
 Automatikk implementert i migrasjonene:
@@ -437,6 +441,9 @@ Automatikk implementert i migrasjonene:
   `boly_retention_sweep()`.
 - `supabase/migrations/20260427120000_listing_invoice_basis_region_scoped_rls.sql`
   — utvider retensjonen med `listing_invoice_basis`.
+- `supabase/migrations/20260428120000_handover_reports_retention.sql`
+  — utvider retensjonen med 36 mnd for `handover_reports`-rader og
+  `storage.objects` i `handover-reports`-bucket.
 
 ### C.5 Lokasjon
 
@@ -533,10 +540,12 @@ som følge av oppdateringer hos underdatabehandlere kan gjøres med
 | DPIA-utkast | **Løst** (utkast) | Gamechanging AS (teknisk) + kommunen (godkjenning) | `DPIA_Boly.md` v1.0 |
 | DPIA DPO-godkjenning | **Åpen** | Kommunens DPO | Før lansering |
 | DPIA inn i kommunens behandlings­protokoll | **Åpen** | Kommunen | Før lansering |
-| Retensjon for handover-bilder | **Åpen** | Gamechanging AS | Konkret frist og migrasjon før lansering |
-| Gamechanging AS org.nr. | **Åpen** | Gamechanging AS | Ved signering |
+| Retensjon for handover-rapporter og -bilder | **Løst** (2026-04-20) | Gamechanging AS | Migrasjon `20260428120000_handover_reports_retention.sql` (36 mnd, pg_cron) |
+| DPF-status for Supabase Inc. | **Løst** — verifisert: **ikke DPF-sertifisert**; overføring hviler på SCC + TIA-supplerende tiltak, jf. `TIA_Supabase.md` §2.2 | Gamechanging AS | Ikke noe handlingsbehov — posisjonen gjennomgås på nytt ved neste TIA-revisjon (2027-04-20) eller ved ny DPF-sertifisering |
+| Gamechanging AS org.nr. | **Løst** (932 496 321, 2026-04-21) | Gamechanging AS | – |
 | Kontaktpersoner og -adresser | **Åpen** | Begge parter | Ved signering |
-| DPF-status for Supabase | **Åpen** | Gamechanging AS | Oppdatering av TIA_Supabase.md |
+| Kommunens sikkerhetsadresse (§8.2) | **Åpen** | Narvik kommune | Ved signering |
+| SOC 2 Type II / ISO 27001-rapporter fra Supabase og Vercel | **Åpen** — innhentes | Gamechanging AS | Innen 30 dager etter signering |
 
 ---
 
@@ -565,3 +574,8 @@ som følge av oppdateringer hos underdatabehandlere kan gjøres med
   - `docs/legal/DPIA_Boly.md` (v1.0)
   - `docs/legal/TIA_Vercel.md` (v1.0)
   - `docs/legal/TIA_Supabase.md` (v1.0)
+- **Vedlagte migrasjoner (RLS + retensjon):**
+  - `supabase/migrations/20260423120000_kommune_region_security_hardening.sql`
+  - `supabase/migrations/20260426120000_data_retention_cron.sql`
+  - `supabase/migrations/20260427120000_listing_invoice_basis_region_scoped_rls.sql`
+  - `supabase/migrations/20260428120000_handover_reports_retention.sql`
