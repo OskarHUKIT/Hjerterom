@@ -114,6 +114,33 @@ function isAuthSessionMissingLike(err: unknown): boolean {
   )
 }
 
+/**
+ * Transient nettverksfeil (offline-blip, backgroundet fane, CORS/DNS-hikke,
+ * tunnelled proxy) vs ekte auth-feil.
+ *
+ * `fetch()` kaster `TypeError: Failed to fetch` (Chrome/Edge) eller
+ * `NetworkError when attempting to fetch resource` (Firefox) før noe
+ * HTTP-svar finnes. I den situasjonen har vi ikke fått svar i det hele tatt
+ * – vi bør behandle det likt som en timeout (returner siste kjente økt).
+ */
+function isTransientNetworkError(err: unknown): boolean {
+  if (!err) return false
+  if (err instanceof TypeError) {
+    const msg = err.message ?? ''
+    return /failed to fetch|network(?:error)?|load failed/i.test(msg)
+  }
+  if (typeof err === 'object' && err !== null) {
+    const name = (err as { name?: string }).name
+    const msg = (err as { message?: string }).message ?? ''
+    return (
+      name === 'AuthRetryableFetchError' ||
+      name === 'TypeError' ||
+      /failed to fetch|network(?:error)?|load failed/i.test(msg)
+    )
+  }
+  return false
+}
+
 function withAuthTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
     const t = setTimeout(() => {
@@ -165,7 +192,7 @@ if (!isSupabaseConfigured) {
     syncSessionMemory(session)
   })
 
-  // Wrapper getSession – timeout + ugyldig refresh token
+  // Wrapper getSession – timeout + transient nettverk + ugyldig refresh token
   const originalGetSession = client.auth.getSession.bind(client.auth)
   client.auth.getSession = async () => {
     try {
@@ -173,8 +200,10 @@ if (!isSupabaseConfigured) {
       syncSessionMemory(result.data.session ?? null)
       return result
     } catch (e) {
-      if (isAuthOperationTimeout(e)) {
-        devWarn('[Boly] auth.getSession timed out — returning last known session (stale-while-revalidate)')
+      if (isAuthOperationTimeout(e) || isTransientNetworkError(e)) {
+        devWarn(
+          '[Boly] auth.getSession network blip — returning last known session (stale-while-revalidate)'
+        )
         return {
           data: { session: lastSessionMemory },
           error: null,
@@ -188,7 +217,7 @@ if (!isSupabaseConfigured) {
     }
   }
 
-  // Wrapper getUser – timeout + ugyldig refresh token + stille «ingen sesjon»
+  // Wrapper getUser – timeout + transient nettverk + ugyldig refresh token + stille «ingen sesjon»
   const originalGetUser = client.auth.getUser.bind(client.auth)
   client.auth.getUser = async () => {
     try {
@@ -196,8 +225,10 @@ if (!isSupabaseConfigured) {
       lastUserMemory = result.data.user ?? null
       return result
     } catch (e) {
-      if (isAuthOperationTimeout(e)) {
-        devWarn('[Boly] auth.getUser timed out — returning last known user (stale-while-revalidate)')
+      if (isAuthOperationTimeout(e) || isTransientNetworkError(e)) {
+        devWarn(
+          '[Boly] auth.getUser network blip — returning last known user (stale-while-revalidate)'
+        )
         return {
           data: { user: lastUserMemory },
           error: null,
@@ -218,15 +249,15 @@ if (!isSupabaseConfigured) {
     }
   }
 
-  // Wrapper refreshSession – timeout + ugyldig refresh token
+  // Wrapper refreshSession – timeout + transient nettverk + ugyldig refresh token
   const originalRefreshSession = client.auth.refreshSession.bind(client.auth)
   client.auth.refreshSession = async () => {
     try {
       return await withAuthTimeout(originalRefreshSession(), AUTH_OPERATION_TIMEOUT_MS)
     } catch (e) {
-      if (isAuthOperationTimeout(e)) {
+      if (isAuthOperationTimeout(e) || isTransientNetworkError(e)) {
         devWarn(
-          '[Boly] auth.refreshSession timed out — returning last known session (stale-while-revalidate)'
+          '[Boly] auth.refreshSession network blip — returning last known session (stale-while-revalidate)'
         )
         return {
           data: { session: lastSessionMemory, user: lastUserMemory },
@@ -255,13 +286,13 @@ export async function getAuthUserDeduped(): Promise<User | null> {
       .getUser()
       .then(({ data, error }) => {
         if (error) {
-          if (isAuthSessionMissingLike(error)) return null
+          if (isAuthSessionMissingLike(error) || isTransientNetworkError(error)) return null
           throw error
         }
         return data.user ?? null
       })
       .catch((e) => {
-        if (isAuthSessionMissingLike(e)) return null
+        if (isAuthSessionMissingLike(e) || isTransientNetworkError(e)) return null
         throw e
       })
     void inflightGetUser.finally(() => {
