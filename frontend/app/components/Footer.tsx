@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Mail, Info, Shield, Activity, Cookie, FileText } from 'lucide-react'
+import { Mail, Info, Shield, Cookie, FileText } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useCookieConsent } from '../../context/CookieConsentContext'
@@ -166,18 +166,6 @@ export default function Footer() {
                 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
               >
                 <Info size={16} /> {t('aboutBoly')}
-              </Link>
-              <Link
-                href="/diagnostics"
-                className="footer-link hide-on-mobile"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  marginTop: 'var(--space-2)',
-                }}
-              >
-                <Activity size={16} /> {t('footerDiagnostics')}
               </Link>
             </div>
           </div>

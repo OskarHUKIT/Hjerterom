@@ -408,7 +408,6 @@ export const translations = {
       'Kunne ikke laste innhold i tide. Sjekk nettverk og at Supabase-variabler (NEXT_PUBLIC_SUPABASE_URL og ANON_KEY) er satt, særlig ved lokal kjøring (.env.local).',
     manageDataLoadTimeout:
       'Det tok for lang tid å hente data. Sjekk nettverket og oppdater siden. Hvis det gjentar seg: kontroller at Vercel (eller .env.local) har riktig NEXT_PUBLIC_SUPABASE_URL og anon-nøkkel for samme Supabase-prosjekt.',
-    footerDiagnostics: 'Tilkoblingsdiagnostikk',
     loginAuthNoResponse:
       'Innloggingen fikk ikke svar i tide. Sjekk internett, VPN/brannmur og at URL og anon-nøkkel i .env.local matcher Supabase-prosjektet. Prøv igjen om et øyeblikk.',
     loginAuthNetworkFailed:
@@ -1303,7 +1302,6 @@ export const translations = {
       'Sisdoallu ii sáhttán heivehuvvot oktanaga. Geahčal fierpmádatoktavuođa ja ahte Supabase-variábelat leat čadnon.',
     manageDataLoadTimeout:
       'Dat válddii guhkes áiggi viežžat dieđuid. Geahčal fierpmádatoktavuođa ja ođđasit siiddu. Jos dat čuohppa: dárkkis ahte Vercel dahje .env.local:s leat rivttes NEXT_PUBLIC_SUPABASE_URL ja anon-nøkkul seamma Supabase-prošeaktii.',
-    footerDiagnostics: 'Dieđihančuolbma',
     loginAuthNoResponse:
       'Sisačáliheapmi ii ožžon vástádusa oktanaga. Geahčal fierpmádat, VPN/brannmur ja ahte URL ja anon-nøkkel .env.local:s shttet Supabase-prošeavtta.',
     loginAuthNetworkFailed:
@@ -2188,7 +2186,6 @@ export const translations = {
       'Content is taking too long to load. Check your network and that NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set (e.g. in .env.local for local dev).',
     manageDataLoadTimeout:
       'Loading data took too long. Check your connection and refresh. If it keeps happening, verify Vercel (or .env.local) has the correct NEXT_PUBLIC_SUPABASE_URL and anon key for the same Supabase project.',
-    footerDiagnostics: 'Connection diagnostics',
     loginAuthNoResponse:
       'Sign-in did not get a response in time. Check your connection, VPN/firewall, and that your .env.local URL and anon key match your Supabase project.',
     loginAuthNetworkFailed:

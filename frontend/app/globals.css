@@ -1271,17 +1271,6 @@ select optgroup {
   }
 }
 
-/** P2-10: /training — full-bredde kort + større touch-target på mobil. */
-@media (max-width: 640px) {
-  .training-modules-grid {
-    grid-template-columns: 1fr !important;
-    gap: var(--space-3) !important;
-  }
-  .training-module-card {
-    padding: var(--space-4) !important;
-  }
-}
-
 /** Sticky CTA-footer (f.eks. i lange skjemaer) — klistres til bunnen over tastaturet ikke er åpent. */
 .sticky-cta-footer {
   position: sticky;
