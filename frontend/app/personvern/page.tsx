@@ -152,6 +152,14 @@ export default function PersonvernPage() {
                   <td style={td}>Rettslig forpliktelse (art. 6 (1) c)</td>
                 </tr>
                 <tr>
+                  <td style={td}>
+                    Bankkontonummer (valgfritt – kun hvis utleier velger kontobetaling for
+                    fakturagrunnlag)
+                  </td>
+                  <td style={td}>Generere fakturagrunnlag til kommunen ved formidling</td>
+                  <td style={td}>Avtale (art. 6 (1) b)</td>
+                </tr>
+                <tr>
                   <td style={td}>Påloggingsstatistikk / audit logs</td>
                   <td style={td}>IT-sikkerhet, feilsøking</td>
                   <td style={td}>Berettiget interesse</td>
@@ -160,9 +168,16 @@ export default function PersonvernPage() {
             </table>
           </div>
           <p style={p}>
-            <strong>Vi lagrer ikke</strong> fødselsnummer eller DUF-nummer, bankopplysninger,
-            helseopplysninger, etnisitet eller politiske meninger. Passord håndteres av Supabase
-            Auth med bcrypt/argon2.
+            Bankkontonummer lagres <strong>kun</strong> dersom utleier aktivt har valgt
+            kontobetaling i stedet for standard fakturabetaling. Tilgang er begrenset til
+            utleieren selv og kommune-ansatte i samme region (Postgres Row-Level Security), og
+            informasjonen slettes automatisk 24 måneder etter siste oppdatering når boligen
+            ikke lenger er aktivt formidlet. Se §5.
+          </p>
+          <p style={p}>
+            <strong>Vi lagrer ikke</strong> fødselsnummer eller DUF-nummer, bankkort-PAN, CVV
+            eller annen betalingsinstrumentslegitimasjon, helseopplysninger, etnisitet eller
+            politiske meninger. Passord håndteres av Supabase Auth med bcrypt/argon2.
           </p>
 
           <h2 style={h2}>3. Særlige kategorier og sensitive opplysninger</h2>
@@ -235,6 +250,11 @@ export default function PersonvernPage() {
             </li>
             <li>
               <strong>Overtakelsesrapporter:</strong> 3 år etter at rapporten er godkjent.
+            </li>
+            <li>
+              <strong>Bankkontonummer / fakturagrunnlag:</strong> 24 måneder etter siste
+              oppdatering når boligen ikke lenger er aktivt formidlet (automatisk nattlig
+              sletting). Slettes kaskadisk ved sletting av boligannonsen.
             </li>
             <li>
               <strong>Varsler (notifications):</strong> 12 måneder.

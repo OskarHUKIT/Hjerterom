@@ -685,6 +685,8 @@ export const translations = {
     invoiceBasisKommuneHint:
       'Opplysningene er fylt ut av utleier. Du kan laste ned PDF til saksmappe.',
     invoiceAccount: 'Kontonummer',
+    invoiceAccountPrivacyHint:
+      'Kontonummeret lagres kryptert og er kun synlig for deg og saksbehandlere i din kommune. Slettes automatisk 24 måneder etter siste oppdatering når boligen ikke lenger er aktivt formidlet.',
     invoiceAccountRepeat: 'Gjenta kontonummer',
     invoiceAccountDoubleEntryHint:
       'Skriv kontonummeret på nytt for å unngå feil. Mellomrom og punktum spiller ingen rolle ved sammenligning.',
@@ -1569,6 +1571,8 @@ export const translations = {
       'Vállje formiduhttináigodaga, dievdda kontonumbira ja suoma, ja dievdda vuolláičuojan. Sáhtát vurket ja ládjet PDF mállet.',
     invoiceBasisKommuneHint: 'Dieđut leat dievddon goddánuslohkki. Sáhtát ládjet PDF sáhka máhpái.',
     invoiceAccount: 'Kontonummir',
+    invoiceAccountPrivacyHint:
+      'Kontonummir vurkejuvvo kryptejuvvomin ja lea dušše du ja du gieldda bargiide oidnosis. Automáhtalaččat sihkkojuvvo 24 mánu maŋŋel maŋimus ođasmahttima go orohat ii šat leat doaibmai formidejuvvon.',
     invoiceAccountRepeat: 'Čájet kontonumbira ođđasit',
     invoiceAccountDoubleEntryHint:
       'Čájet kontonumbira ođđasit vai eahpefuomášat hehttejit. Gaskamearri ja čuoggát eai leat mearkkašupmin.',
@@ -2459,6 +2463,8 @@ export const translations = {
     invoiceBasisKommuneHint:
       'Information was entered by the landlord. You can download a PDF for the case file.',
     invoiceAccount: 'Account number',
+    invoiceAccountPrivacyHint:
+      'The account number is stored encrypted and is only visible to you and staff in your municipality. Deleted automatically 24 months after last update once the listing is no longer actively mediated.',
     invoiceAccountRepeat: 'Re-enter account number',
     invoiceAccountDoubleEntryHint:
       'Enter the account number again to avoid typos. Spaces and dots are ignored when comparing.',

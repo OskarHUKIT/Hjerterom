@@ -516,6 +516,16 @@ export default function InvoiceBasisSection(props: {
           />
           {isOwner && !isNavView ? (
             <>
+              <p
+                style={{
+                  margin: '6px 0 0',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.5,
+                }}
+              >
+                {t('invoiceAccountPrivacyHint')}
+              </p>
               <label className="label" style={{ marginTop: 'var(--space-3)' }}>
                 {t('invoiceAccountRepeat')}
               </label>

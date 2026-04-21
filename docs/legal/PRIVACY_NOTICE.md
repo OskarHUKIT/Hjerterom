@@ -53,11 +53,19 @@ Vi behandler kun opplysninger som er nødvendige for å levere tjenesten
 | Chat-meldinger, vedlegg | Kommunikasjon mellom partene | Avtale |
 | Signeringslogg (Signicat session-id, tidsstempel) | Gyldighetsbevis for signert avtale | Rettslig forpliktelse (art. 6 (1) c) |
 | Lyd/logg fra BankID-flyt | Kun som transient token; ikke lagret i klartekst | — |
+| Bankkontonummer (valgfritt, kun hvis utleier velger kontobetaling for fakturagrunnlag) | Generere fakturagrunnlag til kommunen ved formidling | Avtale (art. 6 (1) b) |
 | Påloggingsstatistikk / audit logs | IT-sikkerhet, feilsøking | Berettiget interesse |
+
+Bankkontonummer lagres i tabellen `public.listing_invoice_basis` (én rad per
+bolig) kun dersom utleier aktivt har valgt *kontobetaling* i stedet for
+standard *fakturabetaling*. Tilgang er begrenset til utleier selv og
+kommune-ansatte i samme region via Postgres Row-Level Security. Informasjonen
+krypteres i hvile (AES-256) på databasenivå og slettes automatisk 24 måneder
+etter siste oppdatering når boligen ikke lenger er aktivt formidlet (se §5).
 
 **Vi lagrer IKKE:**
 - fødselsnummer eller DUF-nummer,
-- bankopplysninger,
+- bankkort, betalingskort-PAN, CVV eller annen betalingsinstrumentslegitimasjon,
 - helseopplysninger, etnisitet eller politiske meninger,
 - passord i klartekst (håndteres av Supabase Auth med bcrypt/argon2).
 
@@ -100,6 +108,9 @@ Boly sender **ikke** personopplysninger til land utenfor EU/EØS.
   og dokumentasjonshensyn).
 - **Chat/meldinger:** 24 måneder etter siste aktivitet.
 - **Overtakelsesrapporter:** 3 år etter at rapporten er godkjent.
+- **Bankkontonummer / fakturagrunnlag:** 24 måneder etter siste oppdatering
+  når boligen ikke lenger er aktivt formidlet; slettet automatisk ved
+  sletting av boligannonsen.
 - **Audit logs:** 12 måneder.
 
 ### 6. Dine rettigheter (GDPR kap. III)
@@ -164,11 +175,20 @@ principle of **data minimization**, GDPR art. 5 (1) c):
 | House rules, handover reports | The tenancy | Contract |
 | Chat messages, attachments | Party communication | Contract |
 | Signing log (Signicat session-id, timestamp) | Proof of signed agreement | Legal obligation (art. 6 (1) c) |
+| Bank account number (optional, only if the landlord opts in to account-based invoicing) | Generating invoice basis for the municipality upon mediation | Contract (art. 6 (1) b) |
 | Login / audit logs | IT security, troubleshooting | Legitimate interest |
+
+Bank account numbers are stored in `public.listing_invoice_basis` (one row
+per listing) only when the landlord has actively selected *account-based*
+invoicing instead of the default *invoice-based* flow. Access is restricted
+to the landlord and municipality staff in the same region via Postgres
+Row-Level Security. The data is encrypted at rest (AES-256) at the database
+level and automatically deleted 24 months after last update once the listing
+is no longer actively mediated (see §5).
 
 **We do NOT store:**
 - Norwegian national identity number (fødselsnummer) or DUF-number,
-- banking information,
+- payment card PAN, CVV or any payment instrument credentials,
 - health data, ethnicity or political opinions,
 - passwords in plaintext (handled by Supabase Auth with bcrypt/argon2).
 
@@ -210,6 +230,9 @@ Boly does **not** transfer personal data outside the EU/EEA.
   documentation).
 - **Chat/messages:** 24 months after last activity.
 - **Handover reports:** 3 years after the report is approved.
+- **Bank account number / invoice basis:** 24 months after last update,
+  once the listing is no longer actively mediated; cascaded automatically
+  when the listing itself is deleted.
 - **Audit logs:** 12 months.
 
 ### 6. Your rights (GDPR ch. III)
