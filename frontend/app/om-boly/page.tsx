@@ -54,8 +54,8 @@ export default function OmBolyPage() {
           <h2 style={{ ...h2, marginTop: 0 }}>Hva er Boly?</h2>
           <p style={p}>
             Boly er en digital tjeneste som hjelper kommuner med å finne og formidle egnede boliger
-            fra private utleiere til personer som trenger bostøtte eller annen kommunal bistand til
-            bolig. Utleiere kan registrere boliger og relevant informasjon, mens autorisert
+            fra private utleiere til personer som trenger det. Utleiere kan registrere boliger og
+            relevant informasjon, mens autorisert
             kommunepersonell kan bruke tjenesten i sitt formidlingsarbeid innenfor gjeldende regler
             og interne rutiner.
           </p>

@@ -29,8 +29,11 @@ export default function BrukervilkarPage() {
             Brukervilkår
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'var(--text-body)', lineHeight: 1.6 }}>
-            Her er brukervilkårene for Boly. Selve signeringen skjer via BankID hos Signicat – der
-            vises det endelige dokumentet som kommunen har godkjent for din region.
+            Her er de generelle brukervilkårene for Boly. <strong>Merk:</strong> Hver kommune har
+            sin egen separate brukeravtale som signeres med BankID via Signicat – det er det
+            dokumentet som regulerer ditt forhold til kommunen, og det kan avvike fra teksten på
+            denne siden. Ved signering er det alltid den kommunegodkjente avtalen som vises og
+            gjelder.
           </p>
         </div>
 
