@@ -4,8 +4,19 @@ import { NextResponse, type NextRequest } from 'next/server'
 /** Ruter som krever innlogget bruker (JWT i cookie, synk med createBrowserClient). */
 const PROTECTED_PREFIXES = ['/homeowner', '/nav', '/documents'] as const
 
+type KommuneRole = 'kommune_ansatt' | 'kommune_admin'
+const KOMMUNE_ROLES: ReadonlySet<string> = new Set<KommuneRole>(['kommune_ansatt', 'kommune_admin'])
+
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
+
+function isNavPath(pathname: string): boolean {
+  return pathname === '/nav' || pathname.startsWith('/nav/')
+}
+
+function isHomeownerPath(pathname: string): boolean {
+  return pathname === '/homeowner' || pathname.startsWith('/homeowner/')
 }
 
 export async function middleware(request: NextRequest) {
@@ -63,6 +74,37 @@ export async function middleware(request: NextRequest) {
       redirectResponse.cookies.set(c.name, c.value)
     })
     return redirectResponse
+  }
+
+  /**
+   * Server-side rollegate (defense-in-depth).
+   *
+   * Klient-komponenter gjør egne sjekker, men uten server-gate kan upriviligerte
+   * brukere fortsatt laste `/nav/*`-markup (selv om RLS blokkerer data) — en
+   * «UI-flash» som bryter med GDPR art. 25 («data protection by default»).
+   *
+   * Vi utfører én rolle-oppslag mot `profiles` når bruker er innlogget og ruten
+   * er rolle-sensitiv. Samme kall koalerer InitPlan-cache med RLS-policies og
+   * ligger på ~20 ms RTT fra `arn1` til Supabase `eu-central-1`.
+   */
+  if (user && (isNavPath(pathname) || isHomeownerPath(pathname))) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const role = profile?.role ?? null
+    const isKommune = role != null && KOMMUNE_ROLES.has(role)
+    const isHomeowner = role === 'homeowner'
+
+    if (isNavPath(pathname) && !isKommune) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    if (isHomeownerPath(pathname) && !isHomeowner) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
   }
 
   return response

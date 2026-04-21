@@ -110,7 +110,7 @@ krevde telefonkøer og personlig oppmøte.
 
 - `tenant` (leietaker)
 - `homeowner` (utleier)
-- `kommune_ansatt` (saksbehandler / NAV-veileder)
+- `kommune_ansatt` (saksbehandler / Nav-veileder)
 - `kommune_admin` (administrator i kommunen)
 - Public / guest (uautentisert — begrenset til marketing-sider)
 
