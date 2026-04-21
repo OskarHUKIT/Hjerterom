@@ -18,7 +18,9 @@
 --   - handover_reports      : 3 years — retained until explicitly purged by
 --                             the municipality (see /personvern §5)
 --   - terms_documents /
---     user_terms_acceptances : 10 years (bokføring / dokumentasjon)
+--     user_terms_acceptances / user_agreements : 5 years after tenancy ends
+--     (Bokføringsloven § 13 (3), reduced from 10 → 5 years in 2014).
+--     Extended only on documented archival/legal-claim need.
 --
 -- Requirements: pg_cron, pg_net, vault secrets 'project_url' + 'anon_key'
 -- (already set up by 20250228000000_handover_reminder_cron.sql).

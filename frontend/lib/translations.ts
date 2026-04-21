@@ -189,8 +189,8 @@ export const translations = {
     contactUs: 'Kontakt oss',
     info: 'Informasjon',
     footerTermsScopeNote:
-      'Vilkårsavtalen bestemmes av kommunene der boligen din befinner seg.',
-    footerTermsAgreementLink: 'Vilkårsavtale',
+      'Generelle vilkår for bruk av Boly. Utleiere har i tillegg kommunespesifikke avtaler som signeres med BankID.',
+    footerTermsAgreementLink: 'Brukervilkår',
     privacy: 'Personvern',
     aboutBoly: 'Om Boly',
     comingSoon: 'Kommer snart',
@@ -905,6 +905,35 @@ export const translations = {
       'Du har boliger i flere kommuner. Velg hvilken kommune meldingen gjelder — hver kommune har egen samtale.',
     messagesSendToKommuneLabel: 'Send til kommune',
     messagesLandlordRegionPickerAria: 'Velg kommune for meldingen',
+    privacyCenterTitle: 'Personvern og rettigheter',
+    privacyCenterSubtitle:
+      'Her kan du laste ned en kopi av alle opplysninger Boly har om deg, og se hvordan du utøver dine rettigheter etter GDPR.',
+    privacyCenterSectionAccessTitle: '1. Innsyn og portabilitet',
+    privacyCenterSectionAccessLegal: 'GDPR art. 15 og 20',
+    privacyCenterSectionAccessDesc:
+      'Last ned en maskinlesbar JSON-fil med alle personopplysninger vi har lagret om deg. Filen er klar på noen sekunder og inneholder kontaktinformasjon til kommunens personvernombud.',
+    privacyCenterDownloadButton: 'Last ned mine data',
+    privacyCenterDownloading: 'Forbereder eksport …',
+    privacyCenterDownloadError:
+      'Klarte ikke å laste ned. Prøv igjen om litt, eller kontakt info@bolynorge.no hvis det vedvarer.',
+    privacyCenterSectionAccountTitle: '2. Avslutt kontoen',
+    privacyCenterSectionAccountDesc:
+      'Selvbetjent avvikling av kontoen er under utvikling. For å avslutte kontoen i dag, kontakt kommunens personvernombud via seksjon 3 nedenfor. Signerte avtaler beholdes pseudonymt (GDPR art. 4 nr. 5) iht. bokføringsloven § 13 (3) i inntil 5 år.',
+    privacyCenterDeleteAccountContactCtaLabel: 'Gå til kontaktinfo',
+    privacyCenterDeleteAccountComingSoon: 'Under utvikling',
+    privacyCenterSectionErasureTitle: '3. Be om full sletting av personopplysninger',
+    privacyCenterSectionErasureLegal: 'GDPR art. 17',
+    privacyCenterSectionErasureDesc:
+      'Dersom du ønsker sletting utover det som skjer ved kontoavvikling (f.eks. sletting av bokføringsspor eller signerte dokumenter), må forespørselen vurderes av kommunen som er behandlingsansvarlig. Kommunen svarer innen én måned (GDPR art. 12 (3)).',
+    privacyCenterErasureContactLabel: 'Kontakt personvernombudet',
+    privacyCenterErasureGenericFallback: 'Send e-post til info@bolynorge.no',
+    privacyCenterSectionOtherTitle: '4. Andre rettigheter',
+    privacyCenterOtherRectification: 'Retting av feil (art. 16)',
+    privacyCenterOtherRestriction: 'Begrensning av behandling (art. 18)',
+    privacyCenterOtherObjection: 'Innsigelse mot behandling (art. 21)',
+    privacyCenterOtherDatatilsynet: 'Klagerett til Datatilsynet',
+    privacyCenterBackToSettings: '← Tilbake',
+    privacyCenterReadPolicy: 'Les vår personvernerklæring',
   },
   se: {
     // Header & nav – Northern Sami (Davvisámegiella)
@@ -1087,8 +1116,8 @@ export const translations = {
     contactUs: 'Ozažat',
     info: 'Dieđut',
     footerTermsScopeNote:
-      'Oaivámuš mearrida kommuvnnat main dávvirat leat.',
-    footerTermsAgreementLink: 'Eavttuid soahpamuš',
+      'Oppalaš eavttut Boly geavaheapmái. Duodjáriin leat maiddái sierra kommuvnna mielde soahpamušat mat vuollána BankID:in.',
+    footerTermsAgreementLink: 'Geavahananeavttut',
     privacy: 'Iešdovdus',
     aboutBoly: 'Boly birra',
     comingSoon: 'Boatná beaivi',
@@ -1787,6 +1816,35 @@ export const translations = {
       'Dus leat dávvirat máŋggain kommuvnnain. Vállje makkár kommuvdnii sáhcastat gullet — juohke kommuvdnas lea iežas sáhcastallan.',
     messagesSendToKommuneLabel: 'Sádde kommuvdnii',
     messagesLandlordRegionPickerAria: 'Vállje kommuvdnas sáhcastaga várás',
+    privacyCenterTitle: 'Persovdnasuoji ja vuoigatvuođat',
+    privacyCenterSubtitle:
+      'Dás sáhtát viežžat máhcahusa buot dieđuid mielde maid Boly vurke dus, ja oaidnit movt geavahat du GDPR-vuoigatvuođaid.',
+    privacyCenterSectionAccessTitle: '1. Oaidnán ja sirdin',
+    privacyCenterSectionAccessLegal: 'GDPR art. 15 ja 20',
+    privacyCenterSectionAccessDesc:
+      'Vieččat mašiinalaš lohkamuohta JSON-fiilla mas leat buot persondieđut maid mii vurket dus. Fiila lea gearggus moadde sekundda maŋŋá ja sisdoallá du kommuvnna persovdnasuoji-áirasa oktavuođadieđuid.',
+    privacyCenterDownloadButton: 'Vieččat mu dieđuid',
+    privacyCenterDownloading: 'Ráhkadeamen viežžama …',
+    privacyCenterDownloadError:
+      'Ii sáhttán viežžat. Geahččal ođđasit maŋŋá, dahje váldde oktavuođa info@bolynorge.no.',
+    privacyCenterSectionAccountTitle: '2. Loahpahit kontu',
+    privacyCenterSectionAccountDesc:
+      'Iešalddisválddaheapmi kontu heaittiheamis lea ráhkadan. Vai heaittihit kontu dán áigge, váldde oktavuođa kommuvnna persovdnasuoji-áirasiin čuokkis 3 mielde. Vuolláičálvon soahpamušat dolluojuvvojit pseudonymaid ( GDPR art. 4 nr. 5 ) bokføringsloven § 13 (3) mielde gitta 5 jahkái.',
+    privacyCenterDeleteAccountContactCtaLabel: 'Manas oktavuohtadieđuide',
+    privacyCenterDeleteAccountComingSoon: 'Ráhkaduvvomin',
+    privacyCenterSectionErasureTitle: '3. Bivdde ollislaš sihkkuma persondieđuid',
+    privacyCenterSectionErasureLegal: 'GDPR art. 17',
+    privacyCenterSectionErasureDesc:
+      'Jus háliidat sihkkuma badjel dan mii dáhpáhuvvá go kontu loahpahuvvo (omd. bokføringsčujuhusaid dahje vuolláičálvon dokumeanttaid), ferte kommuvdna mii lea gieđahallanovddasvástideaddjin árvvoštallat bivdaga. Kommuvdna vástida okta mánotbaji siste (GDPR art. 12 (3)).',
+    privacyCenterErasureContactLabel: 'Váldde oktavuođa persovdnasuoji-áirasiin',
+    privacyCenterErasureGenericFallback: 'Sádde e-boastta info@bolynorge.no',
+    privacyCenterSectionOtherTitle: '4. Eará vuoigatvuođat',
+    privacyCenterOtherRectification: 'Njulgen (art. 16)',
+    privacyCenterOtherRestriction: 'Gieđahallama ráddjen (art. 18)',
+    privacyCenterOtherObjection: 'Vuosttaldeapmi (art. 21)',
+    privacyCenterOtherDatatilsynet: 'Váidinvuoigatvuohta Datatilsynii',
+    privacyCenterBackToSettings: '← Ruovttoluotta',
+    privacyCenterReadPolicy: 'Loga min persovdnasuoji-čilgehusa',
   },
   en: {
     // Header & nav
@@ -1970,8 +2028,8 @@ export const translations = {
     contactUs: 'Contact us',
     info: 'Information',
     footerTermsScopeNote:
-      'The terms agreement depends on the municipalities where your property is located.',
-    footerTermsAgreementLink: 'Terms agreement',
+      'General terms for using Boly. Landlords also have municipality-specific agreements signed with BankID.',
+    footerTermsAgreementLink: 'Terms of use',
     privacy: 'Privacy',
     aboutBoly: 'About Boly',
     comingSoon: 'Coming soon',
@@ -2679,6 +2737,35 @@ export const translations = {
       'You have listings in more than one municipality. Choose which municipality this message is about — each municipality has its own thread.',
     messagesSendToKommuneLabel: 'Send to municipality',
     messagesLandlordRegionPickerAria: 'Choose municipality for this message',
+    privacyCenterTitle: 'Privacy and rights',
+    privacyCenterSubtitle:
+      'Here you can download a copy of all the data Boly holds about you, and see how to exercise your rights under the GDPR.',
+    privacyCenterSectionAccessTitle: '1. Access and portability',
+    privacyCenterSectionAccessLegal: 'GDPR art. 15 and 20',
+    privacyCenterSectionAccessDesc:
+      'Download a machine-readable JSON file with all personal data we have stored about you. The file is ready in a few seconds and includes the contact details of your municipality\u2019s Data Protection Officer.',
+    privacyCenterDownloadButton: 'Download my data',
+    privacyCenterDownloading: 'Preparing export\u2026',
+    privacyCenterDownloadError:
+      'Could not download. Try again in a moment, or contact info@bolynorge.no if the problem persists.',
+    privacyCenterSectionAccountTitle: '2. Close your account',
+    privacyCenterSectionAccountDesc:
+      'Self-service account closure is under development. To close your account today, contact your municipality\u2019s Data Protection Officer via section 3 below. Signed agreements are retained in pseudonymised form (GDPR art. 4 (5)) under the Norwegian Bookkeeping Act \u00a7 13 (3) for up to 5 years.',
+    privacyCenterDeleteAccountContactCtaLabel: 'Go to contact info',
+    privacyCenterDeleteAccountComingSoon: 'In development',
+    privacyCenterSectionErasureTitle: '3. Request full erasure of personal data',
+    privacyCenterSectionErasureLegal: 'GDPR art. 17',
+    privacyCenterSectionErasureDesc:
+      'If you want erasure beyond what happens at account closure (e.g. deletion of bookkeeping trails or signed documents), the request must be evaluated by the municipality as data controller. The municipality will respond within one month (GDPR art. 12 (3)).',
+    privacyCenterErasureContactLabel: 'Contact the Data Protection Officer',
+    privacyCenterErasureGenericFallback: 'Email info@bolynorge.no',
+    privacyCenterSectionOtherTitle: '4. Other rights',
+    privacyCenterOtherRectification: 'Rectification (art. 16)',
+    privacyCenterOtherRestriction: 'Restriction of processing (art. 18)',
+    privacyCenterOtherObjection: 'Objection to processing (art. 21)',
+    privacyCenterOtherDatatilsynet: 'Right to lodge a complaint with Datatilsynet',
+    privacyCenterBackToSettings: '\u2190 Back',
+    privacyCenterReadPolicy: 'Read our privacy notice',
   },
 } as const
 

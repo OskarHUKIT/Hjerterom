@@ -7,7 +7,7 @@ import { useLanguage } from '../../context/LanguageContext'
 import { useCookieConsent } from '../../context/CookieConsentContext'
 
 /**
- * Samtykke til informasjonskapsler (GDPR art. 7 + ekomlova §2-7b / E-COM ACT 2025).
+ * Samtykke til informasjonskapsler (GDPR art. 7 + ekomloven §2-7b / E-COM ACT 2025).
  *
  * Kravene som imøtekommes:
  *   1) Aktiv og spesifikk samtykke — ingen forhåndsavkrysning.

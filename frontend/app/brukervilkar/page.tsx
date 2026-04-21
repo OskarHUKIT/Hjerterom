@@ -29,11 +29,17 @@ export default function BrukervilkarPage() {
             Brukervilkår
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'var(--text-body)', lineHeight: 1.6 }}>
-            Her er de generelle brukervilkårene for Boly. <strong>Merk:</strong> Hver kommune har
-            sin egen separate brukeravtale som signeres med BankID via Signicat – det er det
-            dokumentet som regulerer ditt forhold til kommunen, og det kan avvike fra teksten på
-            denne siden. Ved signering er det alltid den kommunegodkjente avtalen som vises og
-            gjelder.
+            Her ligger de <strong>generelle brukervilkårene</strong> for tilgang til og bruk av
+            Boly som digital tjeneste. De regulerer alle som logger inn eller bruker nettstedet —
+            ikke det kommunale avtalekjeden mellom Nav, utleiere og leverandører.{' '}
+            <strong>Utleiere</strong> har i tillegg egne, kommunegodkjente dokumenter som ofte
+            signeres med BankID (Signicat); det er alltid det dokumentet du faktisk signerer som
+            styrer utleierforpliktelsene dine mot kommunen/Nav der det er aktuelt. Personvern er
+            beskrevet på{' '}
+            <Link href="/personvern/" style={{ color: 'var(--color-accent)' }}>
+              personvernsiden
+            </Link>
+            .
           </p>
         </div>
 

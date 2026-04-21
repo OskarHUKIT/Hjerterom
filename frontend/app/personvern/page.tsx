@@ -63,7 +63,7 @@ export default function PersonvernPage() {
             Personvern og informasjonskapsler
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'var(--text-body)', lineHeight: 1.6 }}>
-            Personvernerklæring for Boly, i samsvar med personopplysningsloven, GDPR og ekomlova.
+            Personvernerklæring for Boly, i samsvar med personopplysningsloven, GDPR og ekomloven.
             Denne siden gjengir den samme erklæringen som ligger i repoet (<code>docs/legal/PRIVACY_NOTICE.md</code>);
             ved konflikt er den norske teksten autoritativ.
           </p>
@@ -211,7 +211,7 @@ export default function PersonvernPage() {
                     <strong>Strengt nødvendige</strong> (innlogging, sesjon, CSRF-tokens)
                   </td>
                   <td style={td}>Ja</td>
-                  <td style={td}>Ikke påkrevd (ekomlova § 2-7b)</td>
+                  <td style={td}>Ikke påkrevd (ekomloven § 2-7b)</td>
                 </tr>
                 <tr>
                   <td style={td}>
@@ -231,7 +231,7 @@ export default function PersonvernPage() {
           <p style={p}>
             Du kan når som helst endre valg via <strong>«Informasjonskapsler»</strong>-knappen i
             bunnen av nettsiden. <strong>«Avvis alle»</strong> er plassert like lett tilgjengelig
-            som <strong>«Godta alle»</strong>, i tråd med Datatilsynets veileder og ekomlova.
+            som <strong>«Godta alle»</strong>, i tråd med Datatilsynets veileder og ekomloven.
           </p>
 
           <h2 style={h2}>5. Lagringstid</h2>
@@ -241,8 +241,9 @@ export default function PersonvernPage() {
               etter siste innlogging (konfigurerbart per kommune).
             </li>
             <li>
-              <strong>Signerte avtaler:</strong> 10 år etter at leieforholdet er avsluttet
-              (bokførings- og dokumentasjonshensyn).
+              <strong>Signerte avtaler:</strong> 5 år etter at leieforholdet er avsluttet
+              (bokføringsloven § 13 (3), redusert fra 10 til 5 år i 2014). Kommunen kan
+              forlenge dette ved dokumentert arkiv- eller rettsbehov.
             </li>
             <li>
               <strong>Chat-meldinger og vedlegg:</strong> 24 måneder etter siste aktivitet

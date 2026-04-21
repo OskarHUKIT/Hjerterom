@@ -47,10 +47,14 @@ Train kommune staff on **not** collecting unnecessary data in chat.
 
 **If erasure proceeds:**
 
-1. Delete or anonymise `auth.users` row (cascade per DB design — **verify** storage objects and orphaned files).
-2. **Storage buckets:** delete objects keyed to user/listing.
-3. **Messages:** policy decision — delete thread, anonymise sender, or retain legal minimum — **legal sign-off**.
-4. **Backups:** erasure on restore or documented inability until rotation — **document**.
+1. Delete the `auth.users` row. FK policy (migration `20260429120000_legal_hold_fk_relaxation.sql`) now controls the downstream effect:
+   - `profiles`, `listings`, `listing_invoice_basis`, `handover_reports`: `ON DELETE CASCADE` — hard-deleted.
+   - `user_agreements`, `user_terms_acceptances`, `audit_logs`: `ON DELETE SET NULL` — rows kept as **tombstones** with `user_id = NULL` and `user_id_pseudonym` filled (phase 2 RPC) for legal hold per DBA §9.3.
+2. **Storage buckets:** delete objects under `listings/<listing_id>/`, `handover-reports/<user_id>/`, `chat-images/<user_id>/`. Scripted via erasure RPC (phase 2); manual until then.
+3. **Messages:** `chat_messages` are cascade-deleted via sender/receiver FK (pending verification in phase 2). Retain legal minimum is handled through the 24-month retention sweep.
+4. **Audit logs — indirect PII:** phase 2 RPC must mask `listing_address` to municipality + postal code and strip `details.signingSessionId` from Signicat signing events. Until phase 2 is deployed, tombstone rows retain indirect identifiers — lawful as legal hold per GDPR art. 17 (3)(b)/(e) but **do not** claim full anonymisation.
+5. **Backups:** point-in-time recovery rolls back erasure; documented inability until rotation (30 days by Supabase default). Re-run erasure if restore is needed.
+6. **Status today:** phase 1 of 3 is implemented. Self-service account deletion is **not** yet exposed in `/settings/privacy`; users are routed to kommune DPO via Art. 17 request.
 
 ---
 

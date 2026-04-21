@@ -75,7 +75,7 @@ Boly bruker informasjonskapsler i to kategorier:
 
 | Kategori | Aktivt nå | Samtykke |
 |---|---|---|
-| **Strengt nødvendige** (innlogging, sesjon, CSRF-tokens) | Ja | Ikke påkrevd (ekomlova § 2-7b) |
+| **Strengt nødvendige** (innlogging, sesjon, CSRF-tokens) | Ja | Ikke påkrevd (ekomloven § 2-7b) |
 | **Statistikk** (anonymisert, aggregert) | Planlagt | Aktivt samtykke |
 
 Boly benytter **ikke** markedsføringskapsler eller sporing på tvers av
@@ -86,7 +86,7 @@ EDPB 03/2022).
 Brukeren kan når som helst endre valg via **«Informasjonskapsler»**-knappen
 i bunnen av nettsiden. **«Avvis alle»** er plassert like lett tilgjengelig
 som **«Godta alle»**, i tråd med Datatilsynets veileder og E-COM ACT
-(implementert i norsk rett via ekomlova).
+(implementert i norsk rett via ekomloven).
 
 ### 4. Delingspartnere (databehandlere)
 
@@ -104,8 +104,10 @@ Boly sender **ikke** personopplysninger til land utenfor EU/EØS.
 
 - **Kontoopplysninger:** Så lenge kontoen er aktiv; slettes 12 måneder etter
   siste innlogging (konfigurerbart per kommune).
-- **Signerte avtaler:** 10 år etter at leieforholdet er avsluttet (bokførings-
-  og dokumentasjonshensyn).
+- **Signerte avtaler:** 5 år etter at leieforholdet er avsluttet
+  (bokføringsloven § 13 (3), som ble redusert fra 10 til 5 år i 2014).
+  Kommunen som behandlingsansvarlig kan forlenge dette ved dokumentert
+  arkiv- eller rettsbehov.
 - **Chat/meldinger:** 24 måneder etter siste aktivitet.
 - **Overtakelsesrapporter:** 3 år etter at rapporten er godkjent.
 - **Bankkontonummer / fakturagrunnlag:** 24 måneder etter siste oppdatering
@@ -226,8 +228,10 @@ Boly does **not** transfer personal data outside the EU/EEA.
 
 - **Account data:** As long as the account is active; deleted 12 months
   after last login (configurable per municipality).
-- **Signed agreements:** 10 years after the tenancy ends (bookkeeping and
-  documentation).
+- **Signed agreements:** 5 years after the tenancy ends
+  (Norwegian Bookkeeping Act § 13 (3), reduced from 10 to 5 years in 2014).
+  The municipality as controller may extend this if an archival or
+  legal-claim need is documented.
 - **Chat/messages:** 24 months after last activity.
 - **Handover reports:** 3 years after the report is approved.
 - **Bank account number / invoice basis:** 24 months after last update,

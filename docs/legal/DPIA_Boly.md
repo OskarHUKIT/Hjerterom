@@ -234,7 +234,7 @@ daglig kl 03:30 UTC):
 | Audit-logger | 12 måneder | Automatisert (pg_cron) |
 | Bankkontonummer / fakturagrunnlag | 24 måneder etter siste oppdatering + inaktiv bolig | Automatisert (pg_cron) + `on delete cascade` |
 | Handover-bilder | Levetid av leieforhold + 12 mnd | **Åpent punkt** — se § 4 risiko R-10 |
-| Signerte kontrakter | Iht. arkivloven (inntil 10 år) | Kommunens ansvar |
+| Signerte kontrakter | 5 år etter avsluttet leieforhold (bokføringsloven § 13 (3)). Forlenges kun ved dokumentert arkiv-/rettsbehov. | Kommunens ansvar |
 
 ### 2.5 Transparens
 

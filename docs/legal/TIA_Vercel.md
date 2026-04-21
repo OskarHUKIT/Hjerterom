@@ -6,9 +6,11 @@
 > **Mottakerselskap:** Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, USA
 > **EU-entitet:** Vercel Netherlands B.V. (Amsterdam) — kontraktspart i EU-avtaler
 > **Produkt:** Vercel Platform (Next.js hosting)
-> **Sist oppdatert / Last reviewed:** 2026-04-20
+> **Sist oppdatert / Last reviewed:** 2026-04-21
 > **Neste gjennomgang:** 2027-04-20 (årlig)
-> **Versjon:** 1.0 — utkast til vurdering av kommunens personvernombud (DPO)
+> **Versjon:** 1.1 — harmonisert med Vercel Inc.'s DPA (virkedato 31. mars 2026,
+> sist oppdatert 17. mars 2026); Pro-plan-bekreftelse, Service-Generated Data
+> som Controller-rolle, og 5-dagers subprocessor-varslingsfrist lagt til.
 
 ---
 
@@ -60,9 +62,27 @@ rådgiver før det vedlegges databehandleravtalen.
 
 ### 1.3 Hvem behandler
 
-- Vercel Inc. (USA) — morselskap, eier plattformen.
-- Vercel Netherlands B.V. (EU) — kontraktspart for EU-kunder.
-- AWS (som underleverandør) — `arn1` kjører på AWS i Stockholm.
+- **Vercel Inc.** (USA, Delaware reg. 5857312, 440 N Barranca Ave #4133,
+  Covina, CA 91723) — morselskap og primær avtalepart iht. DPA.
+- **Vercel Netherlands B.V.** (EU) — mulig kontraktspart for EU-kunder
+  (ikke benyttet for Boly p.t.; Gamechanging inngår DPA direkte med
+  Vercel Inc.).
+- **AWS, Microsoft Azure, Google Cloud Platform** (som Vercel-
+  underleverandører) — Vercels infrastruktur kjører på alle tre;
+  Boly-funksjoner pinnes til AWS `arn1` (Stockholm).
+
+**Rolleseparasjon iht. Vercel DPA §4:**
+
+| Datatype | Vercel-rolle |
+|---|---|
+| **Customer Data** (forespørsler, HTTP-body, sesjonscookies, bilder som passerer funksjoner) | **Processor** — prosesseres utelukkende iht. Gamechanging's dokumenterte instrukser |
+| **Service-Generated Data** (bruksmetrikker, feiloggers, usage-analytics) | **Controller** — Vercel bruker dette for drift/forbedring/marketing-meldinger |
+| **Contact Data** (kontoeier, faktura, support-henvendelser) | **Controller** — Vercels egen Privacy Notice gjelder |
+
+For Boly er dette relevant fordi Vercel som Controller har *selvstendig*
+GDPR-ansvar for Service-Generated Data. Vi har imidlertid ingen realistisk
+kontroll over dette utover å minimere PII som havner i logger (allerede
+håndtert — ingen PII-logging i Boly-koden).
 
 ### 1.4 Formålet med behandlingen
 
@@ -83,12 +103,26 @@ rådgiver før det vedlegges databehandleravtalen.
 ### 2.1 Hovedgrunnlag
 
 **Standard Contractual Clauses (SCC)** vedtatt av Europakommisjonen
-**4. juni 2021** (Decision 2021/914), modul 2 (controller-to-processor).
+**4. juni 2021** (Decision 2021/914). Vercels DPA (Schedule 3 §3)
+aktiverer alle tre moduler avhengig av scenario:
 
-Vercels Data Processing Addendum (DPA) inkorporerer disse SCC-ene med
-underskrift digitalt via deres leverandør-DPA-portal. DPA-en inngås mellom
-kunden (Gamechanging AS / kommunen) og Vercel Netherlands B.V. (EU-enhet),
-med Vercel Inc. som bindt part via intra-group DPA.
+- **Modul 1** (controller-to-controller) — for Service-Generated Data
+  og Contact Data hvor Vercel er Controller.
+- **Modul 2** (controller-to-processor) — for Customer Data hvor
+  Gamechanging er Controller.
+- **Modul 3** (processor-to-processor) — for Customer Data hvor
+  kommunen er Controller og Gamechanging er Processor (dette er Boly-
+  scenarioet på andre nivå).
+
+SCC-ene styres av **irsk lov** (Clause 17) og tvister løses ved
+**irske domstoler** (Clause 18). Vercel DPA gjelder **kun for Enterprise-
+og Pro-planer** — verifisert 2026-04-21 at Boly kjører på **Pro-plan**
+(se `docs/gdpr/COMPLIANCE_MASTER.md` §4 og
+`docs/gdpr/STAKEHOLDER_QUESTIONNAIRE.md` spm. 36).
+
+**UK IDTA** (International Data Transfer Addendum, Schedule 5) er også
+inkorporert for eventuelle UK-overføringer — ikke aktuelt for Boly, men
+sikrer fleksibilitet ved fremtidig ekspansjon.
 
 ### 2.2 Supplerende grunnlag
 
@@ -186,12 +220,27 @@ lovlig gag-order forhindrer det.
 
 ### 4.3 Kontraktuelle tiltak
 
-- Vercel DPA (vedlagt databehandleravtalen som Vedlegg B.1) inkluderer:
-  - SCC 2021/914 modul 2 (controller-to-processor).
-  - Plikt for Vercel til å varsle kunde om myndighetsforespørsler.
-  - Plikt til å utfordre ulovlige forespørsler.
-  - Plikt til å slette data ved avslutning av avtalen.
-  - Revisjonsrett for behandlingsansvarlig.
+- Vercel DPA (sist oppdatert **17. mars 2026**, virkedato **31. mars 2026**,
+  arkivert: `docs/legal/attachments/vercel/DPA_20260317.pdf`) inkluderer:
+  - **SCC 2021/914** — moduler 1, 2 og 3 aktivert (se §2.1).
+  - **UK IDTA** for eventuelle UK-overføringer.
+  - Plikt for Vercel til å varsle om Security Incidents uten ugrunnet
+    opphold (DPA §8.c).
+  - Plikt til å videresende forespørsler fra registrerte til Gamechanging
+    (DPA §11).
+  - Plikt til å slette Customer Data ved avslutning (DPA §12).
+  - **Audit-rett dekkes av SOC 2 Type 2 Audit Report** (DPA §9.b) — ikke
+    selvstendig on-site inspeksjonsrett. Dette er iht. GDPR art. 28(3)(h)
+    og samsvarer med vår DBA §10.3.
+  - **Underbehandler-varslingsfrist: 5 kalenderdager** (DPA §7.c) — dette
+    er **kortere** enn vår egen DBA §5.1 (30 dager til kommunen).
+    Gamechanging håndterer denne differansen ved å videresende Vercel-
+    varsler til kommunen umiddelbart og deretter holde åpen en 30-dagers
+    intern vurderingsperiode før eventuell DBA-opphør iverksettes.
+  - **GDPR-bøter**: Hver part bærer egne bøter (DPA Schedule 4 §2.c).
+    Narvik kommune kan ikke kreve refusjon fra Vercel for bøter kommunen
+    ilegges pga. Vercel-brudd — men kan kreve det fra Gamechanging iht.
+    vår DBA §11.
 
 ### 4.4 Vurdering av tiltakenes effektivitet
 
@@ -274,8 +323,12 @@ Aktuelle EU-alternativer er kartlagt i `docs/legal/VENDOR_ALTERNATIVES.md`
   Intelligence Activities.
 - **EU-US Data Privacy Framework Adequacy Decision** — Kommisjonens
   avgjørelse 10. juli 2023.
-- **Vercel DPA:** https://vercel.com/legal/dpa (sist sjekket 2026-04-20).
-- **Vercel Subprocessors List:** https://vercel.com/legal/subprocessors.
+- **Vercel DPA** (17. mars 2026): https://vercel.com/legal/dpa — arkivert:
+  `docs/legal/attachments/vercel/DPA_20260317.pdf`
+- **Vercel Subprocessors List:** https://security.vercel.com (lenket fra
+  DPA §7.b).
+- **Vercel Trust Center / Security:** https://security.vercel.com — tilgang
+  til SOC 2 Type 2 Audit Report under NDA.
 - **Vercel Transparency Report:** https://vercel.com/transparency.
 
 ---
@@ -285,3 +338,4 @@ Aktuelle EU-alternativer er kartlagt i `docs/legal/VENDOR_ALTERNATIVES.md`
 | Dato | Versjon | Endring | Ansvarlig |
 |---|---|---|---|
 | 2026-04-20 | 1.0 | Første utkast opprettet | Gamechanging AS |
+| 2026-04-21 | 1.1 | Harmonisert med Vercel DPA v17. mars 2026: bekreftet Pro-plan-dekning, SCC modul 1/2/3 (ikke bare 2), Service-Generated Data som Controller-rolle, 5-dagers subprocessor-varslingsfrist, SOC 2 Type 2 som audit-mekanisme, GDPR-bøte-ansvar | Gamechanging AS |

@@ -1,5 +1,5 @@
 /**
- * Lagret samtykke for informasjonskapsler (GDPR art. 7 + ekomlova §2-7b /
+ * Lagret samtykke for informasjonskapsler (GDPR art. 7 + ekomloven §2-7b /
  * E-COM ACT 2025). Brukeren skal aktivt velge hvilke kategorier som brukes.
  *
  * Kategorier:

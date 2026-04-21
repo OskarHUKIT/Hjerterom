@@ -8,9 +8,10 @@
 > CA 94104, USA
 > **EU-entitet:** Supabase Ireland Ltd. (Dublin) — kontraktspart i EU-avtaler
 > **Produkt:** Supabase Platform (Postgres-as-a-service)
-> **Sist oppdatert / Last reviewed:** 2026-04-20
+> **Sist oppdatert / Last reviewed:** 2026-04-21
 > **Neste gjennomgang:** 2027-04-20 (årlig)
-> **Versjon:** 1.0 — utkast til vurdering av kommunens personvernombud (DPO)
+> **Versjon:** 1.1 — harmonisert med Supabase Inc.'s offisielle TIA (14. mars 2025);
+> Singapore-overføring, utvidet underbehandler-liste og OpenAI-vurdering lagt til.
 
 ---
 
@@ -73,11 +74,44 @@ dokumentet er derfor materielt for hele tjenestens personvernvurdering.
 
 ### 1.3 Hvem behandler
 
-- Supabase Inc. (USA) — morselskap, eier plattformen.
-- Supabase Ireland Ltd. (EU) — kontraktspart for EU-kunder.
-- AWS (som underleverandør) — `eu-central-1` kjører på AWS EU Central 1
-  Frankfurt.
-- Cloudflare (som underleverandør) — CDN foran noen Supabase Edge-tjenester.
+Verifisert mot Supabase Inc.'s egen offisielle TIA datert **14. mars 2025**
+(`docs/legal/attachments/supabase/TIA_20250314.pdf`):
+
+**Supabase-selskaper:**
+- **Supabase Inc.** (USA) — morselskap, eier plattformen.
+- **Supabase Ireland Ltd.** (EU, Dublin) — kontraktspart for EU-kunder.
+- **Supabase Pte. Ltd** (Singapore, 65 Chulia Street) — APAC-kontraktspart
+  og intra-konsern-prosesserer. Se §3.5 for risikovurdering av
+  Singapore-overføring.
+
+**Underbehandlere som faktisk kan prosessere Boly-data (Tier 1):**
+| Underbehandler | Tjeneste for Boly | Lokasjon | DPF-sertifisert? |
+|---|---|---|---|
+| **AWS, Inc.** | Hosting av Postgres, Auth, Storage i `eu-central-1` | EU Frankfurt | ✅ Ja |
+| **Google LLC** (BigQuery) | Lagring av Supabase Logs | US (med EU-lokal speiling) | ✅ Ja |
+| **Fly.io, Inc.** | Realtime-prosessering for WebSocket-abonnementer | Globalt (EU-ruter for EU-prosjekter) | ❌ Nei (vurderer per case) |
+| **Cloudflare, Inc.** | CDN/WAF foran Supabase Edge | EU/global edge | ✅ Ja |
+| **Upstash, Inc.** | Serverless Redis (rate limiting) — **ikke brukt av Boly** | US | ❌ Nei (ikke relevant) |
+| **Vercel, Inc.** | Applikasjons-hosting — brukes av Boly **direkte**, ikke via Supabase | Se `TIA_Vercel.md` | ✅ Ja (egen DPF) |
+
+**Underbehandlere som IKKE prosesserer kundedata (Tier 2 — Supabase intern drift):**
+
+Supabase bruker følgende tjenester for *eget* salg, support, analytics og
+kommunikasjon — de får kun Supabase-kontaktpersoners data (Lars Utstøl,
+Oskar Høgmo-Utstøl som kontoadmin), ikke Boly-sluttbrukerdata:
+
+HubSpot (DPF ✅), Notion, Slack, Sentry (DPF ✅), Stripe (DPF ✅),
+Postmark/AC PM (DPF ✅), Twilio (DPF ✅), PandaDoc, GitHub,
+Salesforce/Tableau (DPF ✅), Common Room, Posthog, Plausible (EU),
+ConfigCat (Ungarn), Orb, Atlassian, Clay Labs, Clazar, Front, Hex, Stape.
+
+**OpenAI LLC — særskilt merknad:**
+Supabase lister OpenAI som subprocessor for AI-funksjoner i Supabase
+Studio (admin-UI, "Supabase AI"-assistent). **Verifisert 2026-04-21:**
+Boly-produksjon bruker **ikke** disse AI-funksjonene — `openai_api_key`
+i `supabase/config.toml` er kun aktiv i lokal CLI-dev, og
+`[storage.vector.buckets.documents-openai]` er kommentert ut. Ingen
+Boly-kundedata flyter til OpenAI. Dette verifiseres årlig.
 
 ### 1.4 Formålet med behandlingen
 
@@ -116,14 +150,14 @@ tiltak**.
 
 ### 2.3 Underbehandlere
 
-Supabase offentliggjør sin liste over underbehandlere:
-`https://supabase.com/docs/company/terms#subprocessors`. Relevante for Boly:
+Se full liste i §1.3. Supabase publiserer også offisielle liste på
+<https://supabase.com/docs/company/terms#subprocessors> og gjeldende TIA-
+snapshot på <https://supabase.com/downloads/docs/Supabase+TIA+250314.pdf>
+(sist lastet ned og arkivert i
+`docs/legal/attachments/supabase/TIA_20250314.pdf`).
 
-| Underbehandler | Tjeneste | Lokasjon |
-|---|---|---|
-| AWS | Hosting av databaser og storage | EU Frankfurt |
-| Cloudflare | CDN / WAF | Globalt edge |
-| Fly.io | Edge Functions (for noen regioner) | Globalt — for EU-prosjekter: EU |
+Vår DBA Vedlegg B.1 godkjenner Supabases offisielle underbehandler-liste
+ved dynamisk referanse med 30-dagers objektfrist iht. DBA §5.1 og B.3.
 
 ---
 
@@ -173,9 +207,34 @@ av hele Boly-databasen.
   med SOC 2 Type II, ISO 27001 og HIPAA-dokumentasjon.
 - Supabase forplikter seg til å varsle kunder om myndighetsforespørsler
   der det er lovlig.
-- Per 2026-04-20 har Supabase ikke rapportert om noen US-myndighets-
-  forespørsler som berører EU-kunder (verifisert mot deres siste
-  Transparency Report H2 2025).
+- Supabase **publiserer ikke** egen årlig Transparency Report, men
+  bekrefter eksplisitt i sin offisielle TIA (14. mars 2025, side 13) at
+  selskapet **ikke har utlevert** kunde- eller partner-personopplysninger
+  til myndigheter under FISA 702, EO 12333 eller andre rettsgrunnlag.
+
+### 3.5 Singapore — sekundært tredjeland
+
+Supabase Pte. Ltd (Singapore) eksisterer som intra-konsern-enhet og kan
+i teorien motta Boly-data som del av support- eller administrative
+operasjoner. Supabase Inc.'s offisielle TIA identifiserer Singapore som
+et mulig destinasjonsland for kundedata.
+
+**Vurdering for Boly:**
+
+| Risikodimensjon | Vurdering |
+|---|---|
+| Aktiv dataflyt i dag | **Ingen verifisert** — Boly-prosjektet er pinnet til `eu-central-1` og all support håndteres av Supabase Ireland Ltd. |
+| Singapore-lover (CPC, TA, OSA, PCA, FICA) | Gir myndigheter bred tilgang til data ved rettskjennelse, men krever typisk spesifikk etterforskning — ikke masseinnsamling |
+| Personal Data Protection Act (PDPA) | Gir registrerte individuelle rettigheter tilsvarende GDPR, men gjelder **ikke** offentlige myndigheter |
+| Oversight | Personal Data Protection Commission (PDPC) + domstoler + appell-panel |
+| Samlet Schrems II-risiko | **Lav** — sammenlignbar med USA, og ingen faktisk dataflyt identifisert |
+
+**Tiltak:**
+- Kontinuerlig verifikasjon av at Supabase-prosjektet forblir pinnet til
+  `eu-central-1` (automatisk kontroll i årlig audit).
+- Dersom Supabase *initierer* intra-konsern-flyt til Singapore, krever
+  Gamechanging skriftlig forhåndsvarsel iht. DBA §5.1 (30 dagers objektfrist).
+- Dekkes uansett av samme SCC 2021/914 modul 2 som US-overføringen.
 
 ---
 
@@ -313,9 +372,12 @@ Aktuelle EU-alternativer kartlagt i `docs/legal/VENDOR_ALTERNATIVES.md`
 - **Datatilsynets veileder** om overføring til tredjeland (2022).
 - **EO 14086 (2022).**
 - **Supabase DPA:** https://supabase.com/legal/dpa
+- **Supabase offisielle TIA** (14. mars 2025) — arkivert:
+  `docs/legal/attachments/supabase/TIA_20250314.pdf`
 - **Supabase Subprocessors:** https://supabase.com/docs/company/terms#subprocessors
 - **Supabase Trust Center:** https://trust.supabase.com
-- **Supabase SOC 2 Type II-rapport** (forespørres via Trust Center).
+- **Supabase SOC 2 Type II-rapport** (forespørres via Trust Center — se
+  også dokumentasjonskjede-drøfting i `docs/legal/attachments/README.md`).
 
 ---
 
@@ -324,3 +386,4 @@ Aktuelle EU-alternativer kartlagt i `docs/legal/VENDOR_ALTERNATIVES.md`
 | Dato | Versjon | Endring | Ansvarlig |
 |---|---|---|---|
 | 2026-04-20 | 1.0 | Første utkast opprettet | Gamechanging AS |
+| 2026-04-21 | 1.1 | Harmonisert med Supabase Inc.'s offisielle TIA (14. mars 2025): Supabase Pte. Ltd (Singapore) og sekundær-tredjelandsvurdering §3.5; utvidet Tier 1/Tier 2 underbehandler-oversikt inkl. DPF-status; OpenAI-verifikasjon (ikke aktiv i produksjon); presisert at Supabase ikke publiserer årlig Transparency Report, men bekrefter null myndighetsutleveringer i sin TIA | Gamechanging AS |
