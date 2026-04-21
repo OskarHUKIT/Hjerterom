@@ -590,7 +590,7 @@ function SignTermsContent() {
             >
               ← Mine boliger
             </Link>
-            <h1 style={{ fontSize: '2.5rem' }}>{t('termsSignedAgreementsTitle')}</h1>
+            <h1 style={{ fontSize: 'var(--fluid-h1-hero)' }}>{t('termsSignedAgreementsTitle')}</h1>
             <p style={{ fontSize: '1.125rem', opacity: 0.8, lineHeight: 1.5 }}>
               {t('termsSignedAgreementsIntro')}
             </p>
@@ -868,7 +868,7 @@ function SignTermsContent() {
           >
             <ArrowLeft size={18} /> Avbryt og gå tilbake
           </Link>
-          <h1 style={{ fontSize: '2.5rem', marginBottom: 'var(--space-2)' }}>
+          <h1 style={{ fontSize: 'var(--fluid-h1-hero)', marginBottom: 'var(--space-2)' }}>
             {t('signTermsPageTitle')}
           </h1>
           <p style={{ fontSize: '1.125rem', opacity: 0.85, lineHeight: 1.55 }}>

@@ -21,7 +21,7 @@ function AuthCodeErrorInner() {
     <main
       className="login-page"
       style={{
-        minHeight: '100dvh',
+        minHeight: '100svh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -95,7 +95,7 @@ export default function AuthCodeErrorPage() {
       fallback={
         <main
           style={{
-            minHeight: '100dvh',
+            minHeight: '100svh',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

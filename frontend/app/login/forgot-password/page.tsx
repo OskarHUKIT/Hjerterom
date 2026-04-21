@@ -150,7 +150,7 @@ export default function ForgotPasswordPage() {
     <main
       className="login-page"
       style={{
-        minHeight: '100dvh',
+        minHeight: '100svh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

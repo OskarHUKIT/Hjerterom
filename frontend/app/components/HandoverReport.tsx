@@ -742,43 +742,44 @@ export default function HandoverReport({
           </label>
         )}
 
-        <button
-          type="submit"
-          className="button"
-          disabled={reporterType === 'tenant' ? tenantSubmitDisabled : homeownerSubmitDisabled}
-          style={{
-            marginTop: 'var(--space-8)',
-            padding: 'var(--space-4)',
-            width: '100%',
-            minHeight: TOUCH_MIN_PX,
-            fontSize: '1.1rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-          }}
-        >
-          {loading ? (
-            'Sender inn...'
-          ) : submitSuccess ? (
-            'Sendt inn!'
-          ) : (
-            <>
-              <Send size={20} />
-              {reporterType === 'tenant' ? (
-                <>
-                  {t('tenantHandoverSubmit')}
-                  {photoUrls.length > 0 ? ` (${photoUrls.length})` : ''}
-                </>
-              ) : (
-                <>
-                  Send inn overtakelsesrapport{' '}
-                  {photoUrls.length > 0 && `(${photoUrls.length} bilder)`}
-                </>
-              )}
-            </>
-          )}
-        </button>
+        <div className="form-primary-cta-row" style={{ marginTop: 'var(--space-8)' }}>
+          <button
+            type="submit"
+            className="button"
+            disabled={reporterType === 'tenant' ? tenantSubmitDisabled : homeownerSubmitDisabled}
+            style={{
+              padding: 'var(--space-4)',
+              width: '100%',
+              minHeight: TOUCH_MIN_PX,
+              fontSize: '1.1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+            }}
+          >
+            {loading ? (
+              'Sender inn...'
+            ) : submitSuccess ? (
+              'Sendt inn!'
+            ) : (
+              <>
+                <Send size={20} />
+                {reporterType === 'tenant' ? (
+                  <>
+                    {t('tenantHandoverSubmit')}
+                    {photoUrls.length > 0 ? ` (${photoUrls.length})` : ''}
+                  </>
+                ) : (
+                  <>
+                    Send inn overtakelsesrapport{' '}
+                    {photoUrls.length > 0 && `(${photoUrls.length} bilder)`}
+                  </>
+                )}
+              </>
+            )}
+          </button>
+        </div>
       </form>
     </div>
   )

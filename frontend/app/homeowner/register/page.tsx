@@ -544,7 +544,7 @@ export default function HomeownerRegister() {
         >
           <ArrowLeft size={18} /> {t('regBack')}
         </Link>
-        <h1 style={{ fontSize: '2.75rem' }}>{t('regTitle')}</h1>
+        <h1 style={{ fontSize: 'var(--fluid-h1-hero)' }}>{t('regTitle')}</h1>
         <p style={{ maxWidth: '700px', opacity: 0.8 }}>{t('regLead')}</p>
       </div>
 
@@ -1480,7 +1480,7 @@ export default function HomeownerRegister() {
               </span>
             </div>
           </label>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="form-primary-cta-row">
             <button
               type="submit"
               className="button"

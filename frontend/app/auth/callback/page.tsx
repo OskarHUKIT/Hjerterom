@@ -108,7 +108,7 @@ function AuthCallbackInner() {
   return (
     <main
       style={{
-        minHeight: '100dvh',
+        minHeight: '100svh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -135,7 +135,7 @@ export default function AuthCallbackPage() {
       fallback={
         <main
           style={{
-            minHeight: '100dvh',
+            minHeight: '100svh',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

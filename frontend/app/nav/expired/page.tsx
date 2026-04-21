@@ -182,7 +182,7 @@ export default function NavExpired() {
             ← {overviewBack.label}
           </Link>
         )}
-        <h1 style={{ fontSize: '2.75rem' }}>{t('expiredAndInactive')}</h1>
+        <h1 style={{ fontSize: 'var(--fluid-h1-hero)' }}>{t('expiredAndInactive')}</h1>
         <p style={{ fontSize: '1.125rem', opacity: 0.8 }}>{t('expiredDesc')}</p>
       </div>
 

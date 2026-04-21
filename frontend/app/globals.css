@@ -71,6 +71,17 @@
   --transition-fast: 0.2s;
   --transition-smooth: 0.25s;
   --ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /**
+   * Fluid typography-tokens for inline-styles som overstyrer base h1.
+   * Bruk `var(--fluid-h1-page)` for vanlige side-h1, `var(--fluid-h1-hero)`
+   * for landings-/register-/hero-overskrifter. Skalerer glatt mellom mobil og
+   * desktop uten rigide breakpoints.
+   *   --fluid-h1-page:  360px→1.5rem  · 768px→~2rem    · 1280px→2.25rem
+   *   --fluid-h1-hero:  360px→1.75rem · 768px→~2.25rem · 1280px→2.75rem
+   */
+  --fluid-h1-page: clamp(1.5rem, 1rem + 2.2vw, 2.25rem);
+  --fluid-h1-hero: clamp(1.75rem, 1rem + 3.5vw, 2.75rem);
 }
 
 /* Light mode – overrides when data-theme="light" */
@@ -140,7 +151,7 @@ body {
   background-size: cover;
   background-position: center 20%;
   min-height: 100vh; /* fallback for pre-2022 browsers */
-  min-height: 100dvh; /* Dynamic viewport: layout adapter for mobile address bars */
+  min-height: 100svh; /* Small viewport: intrinsic stability — layout "låses" til minste viewport og hopper ikke når mobile adresselinjer skjules/vises. */
   transition:
     background-color 0.3s,
     color 0.3s;
@@ -164,12 +175,13 @@ a {
 }
 
 /* Kolonne: header → hovedinnhold (min. én skjerm minus header) → footer under fold ved kort innhold.
-   Rekkefølge: vh-fallback først, dvh-enhancement vinner når støttet (alle moderne browsere ≥2022). */
+   Rekkefølge: vh-fallback først, svh-enhancement vinner når støttet (alle moderne browsere ≥2022).
+   svh (small viewport) gir intrinsic stability: layout hopper ikke når mobile adresselinjer skjules/vises. */
 .site-body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100svh;
 }
 
 .site-main {
@@ -178,7 +190,7 @@ a {
   flex-direction: column;
   width: 100%;
   min-height: calc(100vh - var(--site-header-estimate));
-  min-height: calc(100dvh - var(--site-header-estimate));
+  min-height: calc(100svh - var(--site-header-estimate));
 }
 
 /* Forside: fyll site-main slik at kort kan sentreres vertikalt mot fold (footer under scroll) */
@@ -1219,7 +1231,7 @@ select optgroup {
   .thumb-zone-form {
     display: flex;
     flex-direction: column;
-    min-height: 100dvh;
+    min-height: 100svh;
   }
   .thumb-zone-form-body {
     flex: 1 1 auto;
@@ -1227,6 +1239,35 @@ select optgroup {
   .thumb-zone-cta {
     margin-top: auto;
     padding-top: var(--space-4);
+  }
+}
+
+/**
+ * Primær CTA-rad for skjemaer (register/login/handover/submit-flater).
+ * Desktop: høyre-aligned (ikonisk "next/continue"-posisjon). Mobil: full-bredde
+ * knapp med safe-area-padding, slik at tommelen treffer uten å strekke seg og
+ * iOS Home-indikator-området ikke overlapper knappen.
+ *
+ * Bruk:
+ *   <div class="form-primary-cta-row">
+ *     <button type="submit" class="button">Send inn</button>
+ *   </div>
+ */
+.form-primary-cta-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+}
+
+@media (max-width: 640px) {
+  .form-primary-cta-row {
+    justify-content: stretch;
+    flex-direction: column-reverse;
+  }
+  .form-primary-cta-row > * {
+    width: 100%;
+    min-height: var(--touch-target);
   }
 }
 

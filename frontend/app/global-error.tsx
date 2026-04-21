@@ -16,7 +16,7 @@ export default function GlobalError({
       <body
         style={{
           margin: 0,
-          minHeight: '100dvh',
+          minHeight: '100svh',
           padding: 24,
           paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
           fontFamily: 'system-ui, sans-serif',

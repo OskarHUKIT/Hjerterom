@@ -318,7 +318,7 @@ function NavUsersContent() {
             ← {overviewBack.label}
           </Link>
         )}
-        <h1 style={{ fontSize: '2.75rem', minHeight: '1.15em' }}>
+        <h1 style={{ fontSize: 'var(--fluid-h1-hero)', minHeight: '1.15em' }}>
           {useAccountsNavCopy === null ? (
             <span
               aria-hidden

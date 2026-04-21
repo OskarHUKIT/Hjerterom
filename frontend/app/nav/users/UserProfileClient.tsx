@@ -542,7 +542,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
             <User size={40} />
           </div>
           <div>
-            <h1 style={{ fontSize: '2.5rem', margin: 0 }}>{user.owner_name}</h1>
+            <h1 style={{ fontSize: 'var(--fluid-h1-hero)', margin: 0 }}>{user.owner_name}</h1>
             <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '8px', opacity: 0.7 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Phone size={16} /> {user.contact_phone || t('noPhone')}

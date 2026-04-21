@@ -17,7 +17,7 @@ export default function Documents() {
         </Link>
         <h1
           style={{
-            fontSize: '2.5rem',
+            fontSize: 'var(--fluid-h1-hero)',
             fontWeight: 700,
             color: 'var(--text-main)',
             marginBottom: '0.5rem',
