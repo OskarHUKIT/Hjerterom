@@ -53,9 +53,9 @@ export default function Footer() {
                     <Image
                       src="/logo-gamechanging.png"
                       alt="Game Changing"
-                      width={440}
-                      height={160}
-                      sizes="220px"
+                      width={720}
+                      height={240}
+                      sizes="(max-width: 480px) 92vw, 360px"
                       style={{
                         width: '100%',
                         height: '100%',
@@ -80,9 +80,9 @@ export default function Footer() {
                     <Image
                       src={narvikLogoSrc}
                       alt="Narvik kommune"
-                      width={440}
-                      height={160}
-                      sizes="220px"
+                      width={720}
+                      height={240}
+                      sizes="(max-width: 480px) 92vw, 360px"
                       style={{
                         width: '100%',
                         height: '100%',

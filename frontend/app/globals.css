@@ -968,10 +968,13 @@ select optgroup {
   font-size: 1rem;
 }
 
-/** Like store rammer for Gamechanging og Nav Narvik (innhold skaleres med `object-fit: contain`). */
+/**
+ * Like store rammer for Gamechanging og Nav Narvik (`object-fit: contain`).
+ * Høyde 110px samsvarer med tidligere Gamechanging-footer; begge logoer får samme «bounding box».
+ */
 .footer-logo-container.footer-partner-logo-slot {
-  width: min(220px, 42vw);
-  height: 72px;
+  width: min(360px, 48vw);
+  height: 110px;
   max-width: 100%;
 }
 
@@ -1022,8 +1025,8 @@ select optgroup {
   }
 
   .footer-logo-container.footer-partner-logo-slot {
-    width: min(200px, 88vw);
-    height: 56px;
+    width: min(320px, 92vw);
+    height: 88px;
   }
 }
 
