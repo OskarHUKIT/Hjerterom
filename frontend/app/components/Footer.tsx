@@ -34,7 +34,7 @@ export default function Footer() {
                 {t('footerDevelopedLine2')}
               </p>
               <div className="footer-logos-row">
-                <div className="footer-logo-container">
+                <div className="footer-logo-container footer-partner-logo-slot">
                   {gameChangingFailed ? (
                     <span
                       style={{
@@ -42,6 +42,9 @@ export default function Footer() {
                         fontWeight: 700,
                         color: 'var(--text-main)',
                         padding: 'var(--space-2) 0',
+                        fontSize: 'clamp(0.8rem, 2.5vw, 0.95rem)',
+                        textAlign: 'center',
+                        lineHeight: 1.2,
                       }}
                     >
                       Game Changing
@@ -50,29 +53,25 @@ export default function Footer() {
                     <Image
                       src="/logo-gamechanging.png"
                       alt="Game Changing"
-                      width={360}
-                      height={120}
-                      sizes="(max-width: 480px) 90vw, 360px"
+                      width={440}
+                      height={160}
+                      sizes="220px"
                       style={{
-                        height: '110px',
-                        width: 'auto',
-                        maxWidth: '100%',
-                        maxHeight: '100%',
+                        width: '100%',
+                        height: '100%',
                         objectFit: 'contain',
                       }}
                       onError={() => setGameChangingFailed(true)}
                     />
                   )}
                 </div>
-                <div
-                  className="footer-logo-container"
-                  style={{ display: 'flex', alignItems: 'center' }}
-                >
+                <div className="footer-logo-container footer-partner-logo-slot">
                   {narvikLogoFailed ? (
                     <span
                       style={{
                         fontWeight: 600,
                         color: 'var(--text-main)',
+                        fontSize: 'clamp(0.85rem, 2.5vw, 1rem)',
                       }}
                     >
                       Narvik
@@ -81,14 +80,12 @@ export default function Footer() {
                     <Image
                       src={narvikLogoSrc}
                       alt="Narvik kommune"
-                      width={400}
+                      width={440}
                       height={160}
-                      sizes="(max-width: 480px) 90vw, 400px"
+                      sizes="220px"
                       style={{
-                        height: '110px',
-                        width: 'auto',
-                        maxWidth: '100%',
-                        maxHeight: '100%',
+                        width: '100%',
+                        height: '100%',
                         objectFit: 'contain',
                       }}
                       onError={() => setNarvikLogoFailed(true)}

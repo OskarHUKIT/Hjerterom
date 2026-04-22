@@ -22,6 +22,7 @@ import {
   Globe,
   Building2,
   Home,
+  Shield,
 } from 'lucide-react'
 import { useAuthSession } from '../../context/AuthSessionContext'
 import { useLanguage } from '../../context/LanguageContext'
@@ -393,6 +394,17 @@ export default function Header() {
                   {t('settings')}
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  <Link
+                    prefetch={false}
+                    href="/settings/privacy"
+                    className="menu-item"
+                    onClick={() => {
+                      setIsMenuOpen(false)
+                      closeMobileNav()
+                    }}
+                  >
+                    <Shield size={16} aria-hidden /> {t('settingsPrivacyLink')}
+                  </Link>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                     <Globe size={14} style={{ opacity: 0.7 }} />
                     <select

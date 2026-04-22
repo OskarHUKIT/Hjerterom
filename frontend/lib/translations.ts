@@ -218,6 +218,7 @@ export const translations = {
 
     // Settings
     settings: 'Innstillinger',
+    settingsPrivacyLink: 'Personvern og dine data',
     language: 'Språk',
     theme: 'Tema',
     darkMode: 'Mørk modus',
@@ -799,6 +800,8 @@ export const translations = {
     registerSuccess: 'Bolig registrert!',
     signTermsListingAfterSignError: 'Kunne ikke fullføre boligregistrering etter signering: ',
     signTermsStartError: 'Feil ved start av signering: ',
+    signTermsStartErrorFailedFetchHint:
+      ' Oppdater siden og prøv igjen. Vedvarende feil: sjekk nettverket eller prøv senere.',
     signTermsTerminateConfirm:
       'Er du sikker på at du vil si opp avtalen? Du mister tilgang til Boly med en gang. Informasjon om deg og boligene dine bevares for kommunens historikk.',
     signTermsTerminatedSuccess:
@@ -819,6 +822,12 @@ export const translations = {
     listingRegenerating: 'Lager …',
     listingNewLink: 'Ny lenke',
     listingFullscreen: 'Fullskjerm',
+    listingImageDropzoneTitle: 'Legg til bilder',
+    listingImageDropzoneHint:
+      'Klikk for å velge fra enheten. Du kan laste opp flere filer samtidig (f.eks. JPG eller PNG).',
+    listingImageEmptyViewer: 'Ingen bilder er lagt ut ennå.',
+    listingImageUploading: 'Laster opp …',
+    listingImageAddPhotos: 'Legg til bilder',
     listingRequestChangePlaceholder: 'Forklar hva som må endres eller suppleres …',
     listingTenantLinkHelp:
       'Bruk «Ny lenke» hvis leietaker sier at lenken er ugyldig – send deretter den nye lenken.',
@@ -1147,6 +1156,7 @@ export const translations = {
 
     // Settings
     settings: 'Heivehusat',
+    settingsPrivacyLink: 'Iešdovdus ja du dieđut',
     language: 'Giella',
     theme: 'Teema',
     darkMode: 'Sevdnjes modus',
@@ -1712,6 +1722,8 @@ export const translations = {
     registerSuccess: 'Dávir registrerejuvvon!',
     signTermsListingAfterSignError: 'Ii sáhttán loahppat dávvirregistrerema maŋŋil almmu: ',
     signTermsStartError: 'Háhkka álggahetti almmu: ',
+    signTermsStartErrorFailedFetchHint:
+      ' Ođasmahte siiddu ja geahččal fas. Jos boasttuváttu bissu, dárkkis neahtta dahje geahččal maŋŋil.',
     signTermsTerminateConfirm:
       'Leatgo sihkar aht hálid sihtat loahppat oaivámušas? Gahččát Boly:i oktavuođa dál. Dieđut du ja dávviraid birra bissot kommuvnna historjjás.',
     signTermsTerminatedSuccess:
@@ -1731,6 +1743,12 @@ export const translations = {
     listingRegenerating: 'Ráhkada …',
     listingNewLink: 'Ođđa liŋka',
     listingFullscreen: 'Olles skiermi',
+    listingImageDropzoneTitle: 'Lasit govaid',
+    listingImageDropzoneHint:
+      'Coahkkal válljet ovttasbarggus. Sáhttát lasihit máŋga fiilla ovtta áiggi (ovd. JPG dahje PNG).',
+    listingImageEmptyViewer: 'Ii leat lasihuvvon govaid.',
+    listingImageUploading: 'Viežžá …',
+    listingImageAddPhotos: 'Lasit govaid',
     listingRequestChangePlaceholder: 'Čilge maid ferte rievdadit dahje lasihit …',
     listingTenantLinkHelp:
       'Geavat «Ođđa liŋkka» jos báhkki dadjá ahte liŋka ii leat dohkálaš – sádde dalle ođđa liŋkka.',
@@ -2060,6 +2078,7 @@ export const translations = {
 
     // Settings
     settings: 'Settings',
+    settingsPrivacyLink: 'Privacy & your data',
     language: 'Language',
     theme: 'Theme',
     darkMode: 'Dark mode',
@@ -2633,6 +2652,8 @@ export const translations = {
     registerSuccess: 'Property registered!',
     signTermsListingAfterSignError: 'Could not finish listing registration after signing: ',
     signTermsStartError: 'Could not start signing: ',
+    signTermsStartErrorFailedFetchHint:
+      ' Refresh the page and try again. If it keeps happening, check your connection or try later.',
     signTermsTerminateConfirm:
       'Are you sure you want to terminate the agreement? You will lose access to Boly immediately. Your data and listings are kept for the municipality’s records.',
     signTermsTerminatedSuccess:
@@ -2652,6 +2673,12 @@ export const translations = {
     listingRegenerating: 'Generating…',
     listingNewLink: 'New link',
     listingFullscreen: 'Fullscreen',
+    listingImageDropzoneTitle: 'Add photos',
+    listingImageDropzoneHint:
+      'Click to choose from your device. You can upload several files at once (e.g. JPG or PNG).',
+    listingImageEmptyViewer: 'No photos have been added yet.',
+    listingImageUploading: 'Uploading…',
+    listingImageAddPhotos: 'Add photos',
     listingRequestChangePlaceholder: 'Explain what needs to be changed or added…',
     listingTenantLinkHelp:
       'Use “New link” if the tenant says the link is invalid—then send them the new link.',

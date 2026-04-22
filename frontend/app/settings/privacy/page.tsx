@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { Download, Shield, Info, Mail, ExternalLink } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import { useAuthSession } from '../../../context/AuthSessionContext'
 import { logError } from '@/app/lib/appLogger'
+import { fetchHeaderBundle, headerBundleQueryKey } from '../../lib/queries/headerBundleQuery'
+import { getOverviewBackLink } from '../../lib/overviewBackNav'
 
 type DpoContact = {
   region: string | null
@@ -117,8 +120,23 @@ export default function PrivacySettingsPage() {
   const { t } = useLanguage()
   const { user, isReady } = useAuthSession()
   const router = useRouter()
+  const pathname = usePathname()
   const [downloadState, setDownloadState] = useState<DownloadState>('idle')
   const [dpo, setDpo] = useState<DpoContact | null>(null)
+
+  const { data: headerBundle } = useQuery({
+    queryKey: user?.id ? headerBundleQueryKey(user.id) : ['header', 'bundle', '__'],
+    queryFn: () =>
+      fetchHeaderBundle(user!.id, user?.user_metadata ?? null, user?.email ?? null),
+    enabled: !!user?.id,
+    staleTime: 60_000,
+  })
+
+  const backNav =
+    getOverviewBackLink(pathname, headerBundle?.role ?? null, t) ?? {
+      href: '/',
+      label: t('overview'),
+    }
 
   useEffect(() => {
     if (!isReady) return
@@ -211,7 +229,8 @@ export default function PrivacySettingsPage() {
       <div style={{ maxWidth: '760px', margin: '0 auto' }}>
         <div style={{ marginBottom: 'var(--space-6)', paddingTop: 'var(--space-4)' }}>
           <Link
-            href="/homeowner/manage"
+            prefetch={false}
+            href={backNav.href}
             className="nav-link"
             style={{
               display: 'inline-flex',
@@ -223,7 +242,7 @@ export default function PrivacySettingsPage() {
               fontSize: '0.9rem',
             }}
           >
-            {t('privacyCenterBackToSettings')}
+            ← {backNav.label}
           </Link>
           <h1
             style={{

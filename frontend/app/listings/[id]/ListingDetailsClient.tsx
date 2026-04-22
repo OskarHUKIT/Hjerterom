@@ -38,6 +38,7 @@ import {
   X,
   Plus,
   Camera,
+  ImagePlus,
   Edit3,
   FileText,
   RotateCcw,
@@ -3721,7 +3722,7 @@ export default function ListingDetailsClient() {
 
           {/* 5. Bilder */}
           <div
-            className="listing-image-gallery"
+            className={`listing-image-gallery${allImages.length === 0 ? ' listing-image-gallery--empty' : ''}`}
             style={{
               width: '100%',
               aspectRatio: '16/9',
@@ -3869,8 +3870,15 @@ export default function ListingDetailsClient() {
               </>
             ) : (
               <label
-                className={`listing-image-placeholder${canOwnerEditListingDetail ? 'is-clickable' : ''}`}
+                className={`listing-image-placeholder${
+                  canOwnerEditListingDetail ? ' listing-image-placeholder--clickable' : ''
+                }`}
                 style={{ width: '100%', height: '100%' }}
+                aria-label={
+                  canOwnerEditListingDetail
+                    ? `${t('listingImageDropzoneTitle')}. ${t('listingImageDropzoneHint')}`
+                    : t('listingImageEmptyViewer')
+                }
               >
                 {canOwnerEditListingDetail && (
                   <input
@@ -3881,19 +3889,25 @@ export default function ListingDetailsClient() {
                     style={{ display: 'none' }}
                   />
                 )}
-                <HomeIcon
-                  size={88}
-                  strokeWidth={1.15}
-                  className="listing-image-placeholder-icon"
-                  aria-hidden
-                />
-                <p className="listing-image-placeholder-text">
-                  {canOwnerEditListingDetail ? 'Klikk for å legge til bilder' : 'Ingen bilder lagt til'}
-                </p>
+                <span className="listing-image-placeholder-icon-wrap" aria-hidden>
+                  <ImagePlus
+                    size={32}
+                    strokeWidth={1.75}
+                    className="listing-image-placeholder-icon"
+                  />
+                </span>
+                <span className="listing-image-placeholder-title">
+                  {canOwnerEditListingDetail
+                    ? t('listingImageDropzoneTitle')
+                    : t('listingImageEmptyViewer')}
+                </span>
+                {canOwnerEditListingDetail && (
+                  <span className="listing-image-placeholder-hint">{t('listingImageDropzoneHint')}</span>
+                )}
               </label>
             )}
 
-            {canOwnerEditListingDetail && (
+            {canOwnerEditListingDetail && allImages.length > 0 && (
               <label
                 style={{
                   position: 'absolute',
@@ -3920,7 +3934,7 @@ export default function ListingDetailsClient() {
                   style={{ display: 'none' }}
                 />
                 {uploading ? <Camera size={18} style={{ opacity: 0.5 }} /> : <Camera size={18} />}
-                {uploading ? 'Laster opp...' : 'Legg til bilder'}
+                {uploading ? t('listingImageUploading') : t('listingImageAddPhotos')}
               </label>
             )}
 

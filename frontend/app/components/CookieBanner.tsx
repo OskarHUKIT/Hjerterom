@@ -10,8 +10,8 @@ import { useCookieConsent } from '../../context/CookieConsentContext'
  * Samtykke til informasjonskapsler (GDPR art. 7 + ekomloven §2-7b / E-COM ACT 2025).
  *
  * Kravene som imøtekommes:
- *   1) Aktiv og spesifikk samtykke — ingen forhåndsavkrysning.
- *      «necessary» er forhåndslåst (true) fordi den faller utenfor samtykkekravet.
+ *   1) Aktiv og spesifikk samtykke — ingen forhåndsavkrysning for valgfrie kategorier.
+ *      «Strengt nødvendige» vises som samme bryter som øvrige kategorier, alltid på og kan ikke slås av.
  *   2) «Avvis alle» skal være like lett som «Godta alle» — samme størrelse,
  *      plassering, visuell vekt (button-secondary vs button, men identisk
  *      min-width/flex/min-height).
@@ -55,9 +55,6 @@ export default function CookieBanner() {
         zIndex: 10060,
         padding: 'var(--space-4)',
         paddingBottom: 'calc(var(--space-4) + env(safe-area-inset-bottom, 0px))',
-        background: 'linear-gradient(to top, rgba(15, 23, 42, 0.97), rgba(15, 23, 42, 0.92))',
-        borderTop: '1px solid var(--border-subtle, rgba(255,255,255,0.12))',
-        boxShadow: '0 -8px 32px rgba(0,0,0,0.35)',
         maxHeight: '88dvh',
         overflowY: 'auto',
       }}
@@ -142,42 +139,16 @@ export default function CookieBanner() {
               padding: '0 var(--space-1)',
             }}
           >
-            {/** Necessary — locked on; no checkbox, tydelig låst-badge. */}
-            <div style={toggleRowStyle}>
-              <div>
-                <div
-                  style={{
-                    fontWeight: 600,
-                    color: 'var(--text-main)',
-                    marginBottom: 4,
-                    fontSize: '0.95rem',
-                  }}
-                >
-                  {t('cookieCategoryNecessary')}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-body)', lineHeight: 1.5 }}>
-                  {t('cookieCategoryNecessaryDesc')}
-                </div>
-              </div>
-              <div
-                aria-hidden
-                style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  background: 'rgba(45, 212, 191, 0.12)',
-                  color: 'var(--color-teal, #2dd4bf)',
-                  padding: '4px 10px',
-                  borderRadius: 999,
-                  whiteSpace: 'nowrap',
-                  alignSelf: 'start',
-                  border: '1px solid rgba(45, 212, 191, 0.3)',
-                }}
-              >
-                {t('cookieCategoryNecessaryLocked')}
-              </div>
-            </div>
+            <CategoryToggle
+              name="necessary"
+              checked
+              locked
+              lockedAriaLabel={`${t('cookieCategoryNecessary')}. ${t('cookieCategoryNecessaryLocked')}.`}
+              label={t('cookieCategoryNecessary')}
+              description={t('cookieCategoryNecessaryDesc')}
+              onChange={() => {}}
+              rowStyle={toggleRowStyle}
+            />
 
             <CategoryToggle
               name="analytics"
@@ -271,77 +242,119 @@ function CategoryToggle(props: {
   description: string
   onChange: (v: boolean) => void
   rowStyle: React.CSSProperties
+  /** Visuelt samme bryter som øvrige kategorier, men kan ikke slås av (strengt nødvendige). */
+  locked?: boolean
+  lockedAriaLabel?: string
 }) {
-  const { name, checked, label, description, onChange, rowStyle } = props
+  const { name, checked, label, description, onChange, rowStyle, locked, lockedAriaLabel } = props
   const id = `cookie-cat-${name}`
+  const showOn = locked ? true : checked
+
+  const switchVisual = (
+    <>
+      <span
+        aria-hidden
+        className="cookie-category-toggle-track"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: showOn
+            ? 'var(--color-royal-blue, #3b82f6)'
+            : 'rgba(148, 163, 184, 0.35)',
+          borderRadius: 999,
+          transition: 'background 0.2s',
+          border: '1px solid var(--border-subtle, rgba(255,255,255,0.12))',
+        }}
+      />
+      <span
+        aria-hidden
+        className="cookie-category-toggle-thumb"
+        style={{
+          position: 'absolute',
+          left: showOn ? 22 : 3,
+          top: 3,
+          width: 18,
+          height: 18,
+          background: '#fff',
+          borderRadius: '50%',
+          transition: 'left 0.2s',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        }}
+      />
+    </>
+  )
+
   return (
     <div style={rowStyle}>
       <div>
-        <label
-          htmlFor={id}
+        <div
           style={{
             fontWeight: 600,
             color: 'var(--text-main)',
             marginBottom: 4,
             fontSize: '0.95rem',
-            cursor: 'pointer',
+            cursor: locked ? 'default' : 'pointer',
             display: 'inline-block',
           }}
         >
-          {label}
-        </label>
+          {locked ? (
+            label
+          ) : (
+            <label htmlFor={id} style={{ cursor: 'pointer' }}>
+              {label}
+            </label>
+          )}
+        </div>
         <div style={{ fontSize: '0.8rem', color: 'var(--text-body)', lineHeight: 1.5 }}>
           {description}
         </div>
       </div>
-      <label
-        htmlFor={id}
-        style={{
-          position: 'relative',
-          display: 'inline-block',
-          width: 44,
-          height: 26,
-          flexShrink: 0,
-          alignSelf: 'start',
-          cursor: 'pointer',
-        }}
-      >
-        <input
-          id={id}
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          aria-label={label}
-          style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-        />
-        <span
-          aria-hidden
+      {locked ? (
+        <div
+          role="switch"
+          aria-checked="true"
+          aria-disabled="true"
+          aria-label={lockedAriaLabel ?? label}
+          tabIndex={-1}
+          className="cookie-category-toggle-shell cookie-category-toggle-shell--locked"
           style={{
-            position: 'absolute',
-            inset: 0,
-            background: checked
-              ? 'var(--color-royal-blue, #3b82f6)'
-              : 'rgba(148, 163, 184, 0.3)',
-            borderRadius: 999,
-            transition: 'background 0.2s',
-            border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
+            position: 'relative',
+            display: 'inline-block',
+            width: 44,
+            height: 26,
+            flexShrink: 0,
+            alignSelf: 'start',
+            cursor: 'not-allowed',
           }}
-        />
-        <span
-          aria-hidden
+        >
+          {switchVisual}
+        </div>
+      ) : (
+        <label
+          htmlFor={id}
+          className="cookie-category-toggle-shell"
           style={{
-            position: 'absolute',
-            left: checked ? 22 : 3,
-            top: 3,
-            width: 18,
-            height: 18,
-            background: '#fff',
-            borderRadius: '50%',
-            transition: 'left 0.2s',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+            position: 'relative',
+            display: 'inline-block',
+            width: 44,
+            height: 26,
+            flexShrink: 0,
+            alignSelf: 'start',
+            cursor: 'pointer',
           }}
-        />
-      </label>
+        >
+          <input
+            id={id}
+            type="checkbox"
+            role="switch"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+            aria-label={label}
+            style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+          />
+          {switchVisual}
+        </label>
+      )}
     </div>
   )
 }

@@ -6,6 +6,18 @@
 
 const DEFAULT_PROD_FALLBACK = "https://boly.vercel.app"
 
+/**
+ * Origins som alltid tillates for CORS / redirect-validering når secrets ikke er satt.
+ * Må inkludere produksjonsdomenet — ellers får nettleseren «Failed to fetch» på Edge-funksjoner
+ * (CORS-preflight avvises uten Access-Control-Allow-Origin).
+ */
+const DEFAULT_ALLOWED_ORIGINS: readonly string[] = [
+  DEFAULT_PROD_FALLBACK,
+  "https://boly-pi.vercel.app",
+  "https://bolynorge.no",
+  "https://www.bolynorge.no",
+]
+
 export function isLocalOrigin(origin: string): boolean {
   return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
 }
@@ -29,10 +41,12 @@ export function allowedRedirectOrigins(): Set<string> {
       /* ignore */
     }
   }
-  try {
-    s.add(new URL(DEFAULT_PROD_FALLBACK).origin)
-  } catch {
-    /* ignore */
+  for (const url of DEFAULT_ALLOWED_ORIGINS) {
+    try {
+      s.add(new URL(url).origin)
+    } catch {
+      /* ignore */
+    }
   }
   return s
 }

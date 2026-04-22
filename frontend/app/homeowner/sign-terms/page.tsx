@@ -498,7 +498,16 @@ function SignTermsContent() {
       const errMsg = data?.error ?? data?.message ?? 'Kunne ikke starte signering.'
       throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg))
     } catch (err: any) {
-      alert(t('signTermsStartError') + (err?.message || String(err)))
+      const raw = err?.message || String(err)
+      const fetchLikely =
+        /failed to fetch|load failed|networkerror|network error when attempting to fetch/i.test(
+          String(raw)
+        )
+      alert(
+        t('signTermsStartError') +
+          raw +
+          (fetchLikely ? t('signTermsStartErrorFailedFetchHint') : '')
+      )
       setLoading(false)
     }
   }

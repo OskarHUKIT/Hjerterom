@@ -474,6 +474,22 @@ a {
   box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
 }
 
+/* Cookie-samtykke: helt ugjennomsiktig flate (ikke halvtransparent over innhold). */
+.cookie-banner {
+  background: var(--bg-app);
+  background-image: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--bg-card) 100%, transparent),
+    var(--bg-app)
+  );
+  border-top: 1px solid var(--border-subtle);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.28);
+}
+
+[data-theme='light'] .cookie-banner {
+  box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.12);
+}
+
 @keyframes boly-nav-progress-shimmer {
   0% {
     opacity: 0.55;
@@ -947,15 +963,24 @@ select optgroup {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 120px;
   color: var(--text-main);
   font-weight: 600;
   font-size: 1rem;
 }
 
+/** Like store rammer for Gamechanging og Nav Narvik (innhold skaleres med `object-fit: contain`). */
+.footer-logo-container.footer-partner-logo-slot {
+  width: min(220px, 42vw);
+  height: 72px;
+  max-width: 100%;
+}
+
 .footer-logo-container img {
   max-width: 100%;
   max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
   display: block;
 }
 
@@ -995,8 +1020,10 @@ select optgroup {
     align-items: center;
     gap: var(--space-4);
   }
-  .footer-logo-container {
-    height: 80px;
+
+  .footer-logo-container.footer-partner-logo-slot {
+    width: min(200px, 88vw);
+    height: 56px;
   }
 }
 
@@ -1617,6 +1644,109 @@ body {
 [data-theme='light'] .login-page .login-input {
   background: #fff !important;
   border-color: var(--border-subtle);
+}
+
+/* Listing details: bildegalleri tomtilstand */
+.listing-image-gallery--empty {
+  border: 1px solid var(--border-subtle);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='light'] .listing-image-gallery--empty {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.listing-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  text-align: center;
+  padding: var(--space-8) var(--space-6);
+  box-sizing: border-box;
+  cursor: default;
+  background:
+    radial-gradient(
+      ellipse 115% 75% at 50% -5%,
+      color-mix(in srgb, var(--color-teal) 16%, transparent),
+      transparent 58%
+    ),
+    linear-gradient(
+      168deg,
+      color-mix(in srgb, var(--bg-card) 88%, var(--text-main) 4%) 0%,
+      var(--bg-app) 100%
+    );
+}
+
+.listing-image-placeholder--clickable {
+  cursor: pointer;
+  transition:
+    box-shadow 0.22s ease,
+    transform 0.22s ease,
+    background 0.22s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listing-image-placeholder--clickable {
+    transition: none;
+  }
+}
+
+.listing-image-placeholder--clickable:hover {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-teal) 38%, var(--border-subtle)),
+    0 12px 40px color-mix(in srgb, var(--color-teal) 12%, transparent);
+}
+
+.listing-image-placeholder--clickable:active {
+  transform: scale(0.996);
+}
+
+.listing-image-placeholder-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-app) 72%, var(--color-teal) 28%);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 75%, var(--color-teal) 25%);
+  color: var(--color-teal);
+}
+
+.listing-image-placeholder-icon {
+  flex-shrink: 0;
+  opacity: 0.92;
+}
+
+.listing-image-placeholder-title {
+  font-size: clamp(1.05rem, 2.8vw, 1.35rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  max-width: 28rem;
+  line-height: 1.3;
+}
+
+.listing-image-placeholder-hint {
+  font-size: clamp(0.85rem, 2vw, 0.95rem);
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 24rem;
+}
+
+@media (max-width: 480px) {
+  .listing-image-placeholder {
+    padding: var(--space-6) var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .listing-image-placeholder-icon-wrap {
+    width: 3.75rem;
+    height: 3.75rem;
+    border-radius: 14px;
+  }
 }
 
 /* Listing details: stack columns on mobile */

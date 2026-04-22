@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /** Ruter som krever innlogget bruker (JWT i cookie, synk med createBrowserClient). */
-const PROTECTED_PREFIXES = ['/homeowner', '/nav', '/documents'] as const
+const PROTECTED_PREFIXES = ['/homeowner', '/nav', '/documents', '/settings'] as const
 
 type KommuneRole = 'kommune_ansatt' | 'kommune_admin'
 const KOMMUNE_ROLES: ReadonlySet<string> = new Set<KommuneRole>(['kommune_ansatt', 'kommune_admin'])
@@ -137,5 +137,6 @@ export const config = {
     '/homeowner/:path*',
     '/nav/:path*',
     '/documents/:path*',
+    '/settings/:path*',
   ],
 }
