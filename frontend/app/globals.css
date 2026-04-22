@@ -946,7 +946,7 @@ select optgroup {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: clamp(var(--space-4), 3vw, var(--space-10));
+  gap: clamp(var(--space-2), 1.25vw, var(--space-5));
   align-items: center;
   justify-content: center;
   width: 100%;
@@ -979,7 +979,7 @@ select optgroup {
   flex: 1 1 0;
   min-width: 0;
   height: 110px;
-  max-width: min(360px, calc(50% - var(--space-5)));
+  max-width: min(360px, calc(50% - var(--space-2)));
   width: auto;
 }
 
@@ -988,7 +988,7 @@ select optgroup {
 }
 
 .footer-logo-container.footer-partner-logo-slot--nav img {
-  transform: scale(1.58);
+  transform: scale(1.38);
   transform-origin: center center;
 }
 
@@ -1033,16 +1033,16 @@ select optgroup {
 
 @media (max-width: 480px) {
   .footer-logos-row {
-    gap: var(--space-3);
+    gap: var(--space-2);
   }
 
   .footer-logo-container.footer-partner-logo-slot {
     height: 96px;
-    max-width: calc(50% - var(--space-2));
+    max-width: calc(50% - var(--space-1));
   }
 
   .footer-logo-container.footer-partner-logo-slot--nav img {
-    transform: scale(1.42);
+    transform: scale(1.28);
   }
 }
 
