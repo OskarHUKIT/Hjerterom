@@ -65,7 +65,7 @@ export default function Footer() {
                     />
                   )}
                 </div>
-                <div className="footer-logo-container footer-partner-logo-slot">
+                <div className="footer-logo-container footer-partner-logo-slot footer-partner-logo-slot--nav">
                   {narvikLogoFailed ? (
                     <span
                       style={{

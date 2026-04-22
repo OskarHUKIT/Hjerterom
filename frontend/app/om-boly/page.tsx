@@ -62,7 +62,7 @@ export default function OmBolyPage() {
 
           <h2 style={h2}>Samarbeid og utvikling</h2>
           <p style={p}>
-            Løsningen er utviklet i et samarbeid mellom Nav Narvik og Gamechanging, med støtte fra
+            Løsningen er utviklet i et samarbeid mellom Gamechanging og Nav Narvik, med støtte fra
             Narvik kommune i tråd med prosjektets mandat. Den endelige ansvarsfordelingen mellom
             kommune, leverandører og brukere reguleres av avtaler og vilkår som fastsettes for
             produksjon.

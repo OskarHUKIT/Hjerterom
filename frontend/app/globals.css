@@ -929,6 +929,7 @@ select optgroup {
   flex-direction: column;
   align-items: center;
   width: 100%;
+  overflow: visible;
 }
 
 .footer-developed-credit {
@@ -943,11 +944,13 @@ select optgroup {
 
 .footer-logos-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-10);
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: clamp(var(--space-4), 3vw, var(--space-10));
   align-items: center;
   justify-content: center;
   width: 100%;
+  overflow: visible;
 }
 
 .footer-grid {
@@ -969,13 +972,24 @@ select optgroup {
 }
 
 /**
- * Like store rammer for Gamechanging og Nav Narvik (`object-fit: contain`).
- * Høyde 110px samsvarer med tidligere Gamechanging-footer; begge logoer får samme «bounding box».
+ * Partnerlogoer: samme høyde / lik bredde-kvote (side-by-side også på mobil).
+ * Nav-PNG har mer luft i filen enn Gamechanging — skaleres opp med egen modifikator.
  */
 .footer-logo-container.footer-partner-logo-slot {
-  width: min(360px, 48vw);
+  flex: 1 1 0;
+  min-width: 0;
   height: 110px;
-  max-width: 100%;
+  max-width: min(360px, calc(50% - var(--space-5)));
+  width: auto;
+}
+
+.footer-logo-container.footer-partner-logo-slot--nav {
+  overflow: visible;
+}
+
+.footer-logo-container.footer-partner-logo-slot--nav img {
+  transform: scale(1.58);
+  transform-origin: center center;
 }
 
 .footer-logo-container img {
@@ -1019,14 +1033,16 @@ select optgroup {
 
 @media (max-width: 480px) {
   .footer-logos-row {
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-3);
   }
 
   .footer-logo-container.footer-partner-logo-slot {
-    width: min(320px, 92vw);
-    height: 88px;
+    height: 96px;
+    max-width: calc(50% - var(--space-2));
+  }
+
+  .footer-logo-container.footer-partner-logo-slot--nav img {
+    transform: scale(1.42);
   }
 }
 
