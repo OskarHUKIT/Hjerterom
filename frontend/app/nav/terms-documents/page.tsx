@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, FileText, Plus, ExternalLink, Info, Check } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateTimeNo } from '../../lib/dateFormat'
 import {
@@ -86,9 +86,7 @@ export default function TermsDocumentsPage() {
 
   useEffect(() => {
     ;(async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) {
         router.push('/login')
         return

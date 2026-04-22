@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { User as AuthUser } from '@supabase/supabase-js'
-import { supabase } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { devWarn, logError } from '@/app/lib/appLogger'
 import { useLanguage } from '../../../context/LanguageContext'
 import {
@@ -460,9 +460,7 @@ export default function ListingDetailsClient() {
         .eq('listing_id', id)
         .order('start_date')
       if (availData) setAvailability(availData)
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (listing?.owner_id) {
         await supabase.from('audit_logs').insert([
           {
@@ -584,9 +582,7 @@ export default function ListingDetailsClient() {
         .update({ status: 'Tilgjengelig', is_available: true })
         .eq('id', id)
       if (error) throw error
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (listing?.owner_id) {
         await supabase.from('audit_logs').insert([
           {
@@ -632,104 +628,142 @@ export default function ListingDetailsClient() {
     async function fetchData() {
       setOwnerAgreementTerminated(false)
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+        const user = await getAuthUserDeduped()
         setCurrentUser(user)
+
+        let profileKommuneRegion: string | null = null
+
         if (user) {
-          const { data: roleProfile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .maybeSingle()
-          const role = user.user_metadata?.role || roleProfile?.role
-          setViewerIsKommuneStaff(isKommuneStaffRole(role))
+          if (isNavView) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role, kommune_region, kommune_can_edit')
+              .eq('id', user.id)
+              .maybeSingle()
+            const role = user.user_metadata?.role || profile?.role
+            setViewerIsKommuneStaff(isKommuneStaffRole(role))
+            profileKommuneRegion = profile?.kommune_region ?? null
+            setKommuneCanEdit(
+              profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false
+            )
+            if (
+              (profileKommuneRegion == null || String(profileKommuneRegion).trim() === '') &&
+              user.email
+            ) {
+              const [rpcRes, tableRes] = await Promise.all([
+                supabase.rpc('get_whitelist_region_for_email', {
+                  p_email: user.email,
+                }),
+                supabase
+                  .from('kommune_access_list')
+                  .select('region')
+                  .ilike('email', user.email)
+                  .eq('is_active', true)
+                  .limit(1),
+              ])
+              const fromRpc =
+                typeof rpcRes.data === 'string'
+                  ? rpcRes.data
+                  : Array.isArray(rpcRes.data) && rpcRes.data?.length
+                    ? rpcRes.data[0]
+                    : null
+              const fromTable = tableRes.data?.[0]?.region
+              if (fromRpc && String(fromRpc).trim()) {
+                profileKommuneRegion = fromRpc
+              } else if (fromTable && String(fromTable).trim()) {
+                profileKommuneRegion = fromTable
+              }
+            }
+            if (!isKommuneStaffRole(role)) {
+              router.push(`/listings/${id}?view=owner`)
+              return
+            }
+          } else {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', user.id)
+              .maybeSingle()
+            const role = user.user_metadata?.role || profile?.role
+            setViewerIsKommuneStaff(isKommuneStaffRole(role))
+          }
         } else {
           setViewerIsKommuneStaff(false)
         }
 
-        // Sjekk tilgang hvis Nav-visning (kommune må ha rolle og tillatelse til boligens kommune)
-        let profileKommuneRegion: string | null = null
-        if (isNavView && user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role, kommune_region, kommune_can_edit')
-            .eq('id', user.id)
-            .maybeSingle()
-          const role = user.user_metadata?.role || profile?.role
-          profileKommuneRegion = profile?.kommune_region ?? null
-          setKommuneCanEdit(
-            profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false
-          )
-          if (
-            (profileKommuneRegion == null || String(profileKommuneRegion).trim() === '') &&
-            user.email
-          ) {
-            const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', {
-              p_email: user.email,
-            })
-            const fromRpc =
-              typeof rpcRegion === 'string'
-                ? rpcRegion
-                : Array.isArray(rpcRegion) && rpcRegion?.length
-                  ? rpcRegion[0]
-                  : null
-            if (fromRpc && String(fromRpc).trim()) profileKommuneRegion = fromRpc
-            else {
-              const { data: whitelistRows } = await supabase
-                .from('kommune_access_list')
-                .select('region')
-                .ilike('email', user.email)
-                .eq('is_active', true)
-                .limit(1)
-              const fromTable = whitelistRows?.[0]?.region
-              if (fromTable && String(fromTable).trim()) profileKommuneRegion = fromTable
-            }
-          }
-          if (!isKommuneStaffRole(role)) {
-            router.push(`/listings/${id}?view=owner`)
-            return
-          }
-        }
+        const listingPromise =
+          isNavView && user
+            ? supabase.rpc('get_listing_by_id_for_kommune', { p_listing_id: id })
+            : supabase.from('listings').select('*').eq('id', id).single()
 
-        if (user) {
-          const { data: agreement } = await supabase
-            .from('user_agreements')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('is_terminated', false)
-            .maybeSingle()
-          setHasActiveAgreement(!!agreement)
-        }
+        const agreementPromise = user
+          ? supabase
+              .from('user_agreements')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('is_terminated', false)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null })
+
+        const [listingRes, agreementRes] = await Promise.all([listingPromise, agreementPromise])
 
         let data: any = null
         let error: any = null
         if (isNavView && user) {
-          const res = await supabase.rpc('get_listing_by_id_for_kommune', { p_listing_id: id })
-          error = res.error
-          const rows = (res.data as any[]) || []
+          error = listingRes.error
+          const rows = (listingRes.data as any[]) || []
           data = rows[0] ?? null
         } else {
-          const res = await supabase.from('listings').select('*').eq('id', id).single()
-          data = res.data
-          error = res.error
+          data = listingRes.data
+          error = listingRes.error
         }
         if (error) throw error
+        setHasActiveAgreement(!!agreementRes.data)
         setListing(data)
 
-        let ownerTerm = false
-        if (data?.owner_id) {
-          const { data: termRow } = await supabase
-            .from('user_agreements')
-            .select('id')
-            .eq('user_id', data.owner_id)
-            .eq('is_terminated', true)
-            .maybeSingle()
-          ownerTerm = !!termRow
-          setOwnerAgreementTerminated(ownerTerm)
-        } else {
-          setOwnerAgreementTerminated(false)
-        }
+        const ownerId = data?.owner_id
+        const ownerTermPromise = ownerId
+          ? supabase
+              .from('user_agreements')
+              .select('id')
+              .eq('user_id', ownerId)
+              .eq('is_terminated', true)
+              .maybeSingle()
+          : Promise.resolve({ data: null })
+
+        const availabilityPromise = supabase
+          .from('listing_availability')
+          .select('*')
+          .eq('listing_id', id)
+          .order('start_date', { ascending: true })
+
+        const reportsPromise = supabase
+          .from('handover_reports')
+          .select('*')
+          .eq('listing_id', id)
+          .order('created_at', { ascending: false })
+
+        const notesPromise =
+          user && isNavView
+            ? supabase
+                .from('nav_notes')
+                .select('*')
+                .eq('listing_id', id)
+                .order('created_at', { ascending: false })
+            : Promise.resolve({ data: null })
+
+        const [ownerTermRes, availRes, reportsRes, notesRes] = await Promise.all([
+          ownerTermPromise,
+          availabilityPromise,
+          reportsPromise,
+          notesPromise,
+        ])
+
+        const ownerTerm = !!ownerTermRes.data
+        setOwnerAgreementTerminated(ownerTerm)
+        const availData = availRes.data || []
+        setAvailability(availData)
+        setHandoverReports(reportsRes.data || [])
 
         // Kommune: kun tilgang til boliger i tillatte kommuner (støtter JSON-array ["Narvik","Gratangen"] og streng)
         if (isNavView && data) {
@@ -770,33 +804,11 @@ export default function ListingDetailsClient() {
           }
         }
 
-        // Fetch availability
-        const { data: availData } = await supabase
-          .from('listing_availability')
-          .select('*')
-          .eq('listing_id', id)
-          .order('start_date', { ascending: true })
-        setAvailability(availData || [])
-
-        // Fetch Nav notes
         if (user && isNavView) {
-          const { data: notesData } = await supabase
-            .from('nav_notes')
-            .select('*')
-            .eq('listing_id', id)
-            .order('created_at', { ascending: false })
-          setNavNotes(notesData || [])
+          setNavNotes(notesRes.data || [])
           if (!ownerTerm) await loadMediationReservation()
           else setMediationReservation(null)
         }
-
-        // Fetch Handover Reports
-        const { data: reportsData } = await supabase
-          .from('handover_reports')
-          .select('*')
-          .eq('listing_id', id)
-          .order('created_at', { ascending: false })
-        setHandoverReports(reportsData || [])
 
         // Fetch or create tenant report token only for kommune (lenken vises bare for kommuneansatte)
         // Merk: «formidlet» = status Formidla ELLER minst én Formidla-periode (ikke bare «i dag» i perioden),
@@ -998,9 +1010,7 @@ export default function ListingDetailsClient() {
     if (!newNote.trim()) return
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) return
 
       const { data, error } = await supabase
@@ -1044,9 +1054,7 @@ export default function ListingDetailsClient() {
 
   const handleApproveReport = async (reportId: string) => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) return
       const { error } = await supabase
         .from('handover_reports')

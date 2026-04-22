@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import Link from 'next/link'
 import { Mail, Lock, UserPlus, LogIn, User, Phone } from 'lucide-react'
@@ -146,7 +147,7 @@ function LoginPageContent() {
         if (error) throw error
         setMessage({ type: 'success', text: t('checkEmail') })
       } else {
-        const { error } = await withNetworkTimeout(
+        const { data: signInData, error } = await withNetworkTimeout(
           supabase.auth.signInWithPassword({
             email,
             password,
@@ -154,10 +155,14 @@ function LoginPageContent() {
           AUTH_NETWORK_MS
         )
         if (error) throw error
-        if (redirectTo === '/' || !redirectTo) {
+        let user: SupabaseUser | null = signInData.user ?? null
+        if (!user) {
           const {
-            data: { user },
+            data: { user: u },
           } = await withNetworkTimeout(supabase.auth.getUser(), AUTH_NETWORK_MS)
+          user = u
+        }
+        if (redirectTo === '/' || !redirectTo) {
           const { data: profile } = user
             ? await withNetworkTimeout(
                 supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),

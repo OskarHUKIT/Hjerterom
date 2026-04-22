@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { supabase } from '../../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../../lib/supabase'
 import HandoverReport from '../../../components/HandoverReport'
 
 export default function ReportUtleierPage() {
@@ -16,9 +16,7 @@ export default function ReportUtleierPage() {
 
   useEffect(() => {
     async function check() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) {
         router.push(`/login?redirect=/report/utleier/${id}`)
         return

@@ -3,20 +3,21 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthSession } from '../../context/AuthSessionContext'
-import { fetchAuthUserForQueryClient } from '../lib/queries/authUserQuery'
+import { QK } from '../lib/queries/queryKeys'
 
 /**
- * Warms `['auth', 'user']` as soon as the cookie session is known so later
- * chunks (messages, notifications) reuse one cached `getUser` instead of a second round trip.
+ * Seeds `['auth', 'user']` from `AuthSessionProvider` so feature code that reads
+ * TanStack Query does not trigger an extra `/auth/v1/user` round trip right after
+ * `getSession` / `onAuthStateChange` already populated the session.
  */
 export default function PrefetchAuthUser() {
   const { user, isReady } = useAuthSession()
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    if (!isReady || !user?.id) return
-    void fetchAuthUserForQueryClient(queryClient)
-  }, [isReady, user?.id, queryClient])
+    if (!isReady) return
+    queryClient.setQueryData(QK.authUser, user ?? null)
+  }, [isReady, user, queryClient])
 
   return null
 }

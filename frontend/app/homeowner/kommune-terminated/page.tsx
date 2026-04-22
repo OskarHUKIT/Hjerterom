@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ShieldAlert, MessageSquare, Loader2, Send } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import type { TranslationKey } from '../../../lib/translations'
@@ -34,28 +34,23 @@ function KommuneTerminatedContent() {
 
   useEffect(() => {
     ;(async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) {
         router.replace('/login')
         return
       }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle()
+      const [{ data: profile }, { data: ua }] = await Promise.all([
+        supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+        supabase
+          .from('user_agreements')
+          .select('is_terminated, terminated_by_kommune')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      ])
       if (isKommuneStaffRole(profile?.role)) {
         router.replace('/nav/database')
         return
       }
-
-      const { data: ua } = await supabase
-        .from('user_agreements')
-        .select('is_terminated, terminated_by_kommune')
-        .eq('user_id', user.id)
-        .maybeSingle()
 
       if (!ua?.is_terminated || !ua.terminated_by_kommune) {
         router.replace('/homeowner/manage')
@@ -91,9 +86,7 @@ function KommuneTerminatedContent() {
         return
       }
       setMessage('')
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) return
       const { data: rows } = await supabase
         .from('landlord_resign_requests')

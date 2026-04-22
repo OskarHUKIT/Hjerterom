@@ -27,30 +27,28 @@ export async function fetchChatUserBootstrap(qc: QueryClient): Promise<ChatUserB
   if (gate.kind === 'redirect') return { kind: 'redirect', href: gate.href }
 
   const user = gate.user
-  const { data: prof } = await supabase
-    .from('profiles')
-    .select('role, kommune_can_edit, kommune_region')
-    .eq('id', user.id)
-    .maybeSingle()
+  const prof = gate.profile
 
   let wlRpc: string | null = null
   let wlTable: string | null = null
   if (user.email) {
-    const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', {
-      p_email: user.email,
-    })
+    const [{ data: rpcRegion }, { data: whitelistRows }] = await Promise.all([
+      supabase.rpc('get_whitelist_region_for_email', {
+        p_email: user.email,
+      }),
+      supabase
+        .from('kommune_access_list')
+        .select('region')
+        .ilike('email', user.email)
+        .eq('is_active', true)
+        .limit(1),
+    ])
     wlRpc =
       typeof rpcRegion === 'string'
         ? rpcRegion
         : Array.isArray(rpcRegion) && rpcRegion?.length
           ? String(rpcRegion[0])
           : null
-    const { data: whitelistRows } = await supabase
-      .from('kommune_access_list')
-      .select('region')
-      .ilike('email', user.email)
-      .eq('is_active', true)
-      .limit(1)
     wlTable = whitelistRows?.[0]?.region ?? null
   }
 

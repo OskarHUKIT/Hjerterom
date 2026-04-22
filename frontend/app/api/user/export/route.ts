@@ -55,6 +55,25 @@ export async function GET(req: NextRequest) {
   }
   if (!exportData) return bad('Ingen data funnet', 404)
 
+  // Full GDPR-eksport skal alltid inneholde `data` (profil, boliger, osv.).
+  // Mangler den, er det sannsynligvis feil/manglende migrasjon i Supabase eller avbrutt respons.
+  const payload = exportData as Record<string, unknown>
+  if (
+    typeof payload.data !== 'object' ||
+    payload.data === null ||
+    !('profile' in (payload.data as object))
+  ) {
+    logError(
+      JSON.stringify({
+        msg: 'user-export incomplete payload (missing data.*)',
+        requestId,
+        userId,
+        keys: Object.keys(payload),
+      })
+    )
+    return bad('Eksporten ble ufullstendig. Prøv igjen eller kontakt info@bolynorge.no.', 500)
+  }
+
   const tAfterRpc = performance.now()
 
   const exportedAt = new Date().toISOString()

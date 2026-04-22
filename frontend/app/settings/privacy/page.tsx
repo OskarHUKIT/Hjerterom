@@ -390,7 +390,7 @@ export default function PrivacySettingsPage() {
                 aria-hidden="true"
                 style={{ color: 'var(--text-muted)' }}
               />
-              <Link href="/personvern" style={{ color: 'var(--text-body)' }}>
+              <Link prefetch={false} href="/personvern" style={{ color: 'var(--text-body)' }}>
                 {t('privacyCenterReadPolicy')}
               </Link>
             </div>

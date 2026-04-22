@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -21,7 +22,6 @@ import {
 } from 'lucide-react'
 import { getAuthUserDeduped, supabase } from '../../lib/supabase'
 import { formatDateTimeNo } from '../../lib/dateFormat'
-import PushPermissionCard from '../../components/PushPermissionCard'
 import { useLanguage } from '../../../context/LanguageContext'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
@@ -32,8 +32,15 @@ import {
   notificationsListQueryKey,
 } from '../../lib/queries/notificationsListQuery'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
-import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
+
+const PushPermissionCard = dynamic(() => import('../../components/PushPermissionCard'), {
+  ssr: false,
+})
+
+const LandlordOnboardingModal = dynamic(() => import('../../components/LandlordOnboardingModal'), {
+  ssr: false,
+})
 
 export default function NavNotifications() {
   const { t } = useLanguage()
@@ -41,6 +48,14 @@ export default function NavNotifications() {
   const queryClient = useQueryClient()
   const gateQ = useLandlordNavGateQuery()
   const gateReady = gateQ.data?.kind === 'ready'
+  const gateData = gateQ.data
+  const roleFromGate =
+    gateData?.kind === 'ready'
+      ? gateData.profile?.role ??
+        (gateData.user.user_metadata?.role as string | undefined) ??
+        null
+      : null
+  const userIdFromGate = gateData?.kind === 'ready' ? gateData.user.id : null
   const listQ = useQuery({
     queryKey: notificationsListQueryKey,
     queryFn: () => fetchNotificationsList(queryClient),
@@ -50,9 +65,9 @@ export default function NavNotifications() {
   })
   const listPayload = listQ.data
   const notifications = listPayload?.rows ?? []
-  const loading = !gateReady || listQ.isPending
-  const role = listPayload?.role ?? null
-  const currentUserId = listPayload?.userId ?? null
+  const listPending = listQ.isPending
+  const role = listPayload?.role ?? roleFromGate
+  const currentUserId = listPayload?.userId ?? userIdFromGate
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(false)
   const [emailPrefSaving, setEmailPrefSaving] = useState(false)
   const [showLandlordNotificationsIntro, setShowLandlordNotificationsIntro] = useState(false)
@@ -60,18 +75,22 @@ export default function NavNotifications() {
   useEffect(() => {
     if (listPayload != null) {
       setEmailNotificationsEnabled(listPayload.emailNotificationsEnabled)
+      return
     }
-  }, [listPayload])
+    if (gateData?.kind === 'ready' && gateData.profile) {
+      setEmailNotificationsEnabled(gateData.profile.email_notifications_enabled === true)
+    }
+  }, [listPayload, gateData])
 
   useEffect(() => {
     if (!gateReady) return
-    if (loading || !currentUserId) return
+    if (listPending || !currentUserId) return
     if (role == null) return
     if (isKommuneStaffRole(role)) return
     if (typeof window === 'undefined') return
     const key = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.notifications, currentUserId)
     if (!localStorage.getItem(key)) setShowLandlordNotificationsIntro(true)
-  }, [gateReady, loading, currentUserId, role])
+  }, [gateReady, listPending, currentUserId, role])
 
   const dismissLandlordNotificationsIntro = () => {
     if (currentUserId && typeof window !== 'undefined') {
@@ -152,7 +171,20 @@ export default function NavNotifications() {
     }
   }
 
-  if (!gateReady || listQ.isPending) {
+  if (gateQ.isError) {
+    return (
+      <main className="container" style={{ padding: 'var(--space-8)', maxWidth: 560 }}>
+        <p style={{ color: 'var(--text-body)', marginBottom: 'var(--space-4)', lineHeight: 1.5 }}>
+          {t('manageDataLoadTimeout')}
+        </p>
+        <button type="button" className="button" onClick={() => void gateQ.refetch()}>
+          {t('retryLoad')}
+        </button>
+      </main>
+    )
+  }
+
+  if (!gateReady) {
     return (
       <main className="container">
         <LoadingPlaceholder minHeight={200} />
@@ -324,8 +356,24 @@ export default function NavNotifications() {
         </label>
       </div>
 
-      {loading ? (
+      {listPending ? (
         <LoadingPlaceholder minHeight={200} />
+      ) : listQ.isError ? (
+        <div
+          className="card"
+          style={{
+            padding: 'var(--space-6)',
+            marginBottom: 'var(--space-6)',
+            maxWidth: 'min(640px, 100%)',
+          }}
+        >
+          <p style={{ color: 'var(--text-body)', marginBottom: 'var(--space-4)', lineHeight: 1.5 }}>
+            {t('manageDataLoadTimeout')}
+          </p>
+          <button type="button" className="button" onClick={() => void listQ.refetch()}>
+            {t('retryLoad')}
+          </button>
+        </div>
       ) : notifications.length > 0 ? (
         <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
           {notifications.map((notif) => {

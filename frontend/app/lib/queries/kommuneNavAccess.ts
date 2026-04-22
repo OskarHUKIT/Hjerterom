@@ -43,26 +43,28 @@ export async function fetchKommuneNavAccess(qc: QueryClient): Promise<KommuneNav
 
   let region: string | string[] | null = profile?.kommune_region ?? null
   if ((region == null || String(region).trim() === '') && user.email) {
-    const rpcRes = await supabase.rpc('get_whitelist_region_for_email', {
-      p_email: user.email,
-    })
+    const [rpcRes, tableRes] = await Promise.all([
+      supabase.rpc('get_whitelist_region_for_email', {
+        p_email: user.email,
+      }),
+      supabase
+        .from('kommune_access_list')
+        .select('region')
+        .ilike('email', user.email)
+        .eq('is_active', true)
+        .limit(1),
+    ])
     const fromRpc =
       typeof rpcRes.data === 'string'
         ? rpcRes.data
         : Array.isArray(rpcRes.data) && rpcRes.data?.length
           ? rpcRes.data[0]
           : null
+    const fromTable = tableRes.data?.[0]?.region
     if (fromRpc && String(fromRpc).trim()) {
       region = fromRpc
-    } else {
-      const tableRes = await supabase
-        .from('kommune_access_list')
-        .select('region')
-        .ilike('email', user.email)
-        .eq('is_active', true)
-        .limit(1)
-      const fromTable = tableRes.data?.[0]?.region
-      if (fromTable && String(fromTable).trim()) region = fromTable
+    } else if (fromTable && String(fromTable).trim()) {
+      region = fromTable
     }
   }
 

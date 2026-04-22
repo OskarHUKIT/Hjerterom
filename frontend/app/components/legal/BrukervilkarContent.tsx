@@ -172,7 +172,7 @@ export function BrukervilkarContent() {
         <h3 style={sectionTitle}>7. Personvern</h3>
         <p style={body}>
           Behandling av personopplysninger er beskrevet i{' '}
-          <Link href="/personvern/" style={{ color: 'var(--color-accent)' }}>
+          <Link prefetch={false} href="/personvern/" style={{ color: 'var(--color-accent)' }}>
             personvernerklæringen
           </Link>
           . Ved motstrid mellom korte henvisninger her og personvernerklæringen, går

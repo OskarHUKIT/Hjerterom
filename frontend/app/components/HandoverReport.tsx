@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type CSSProperties } from 'react'
 import { Send, ImagePlus, X } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../lib/supabase'
 import { DateInput } from './DateInput'
 import { OptimizedPublicStorageImage } from './OptimizedPublicStorageImage'
 import { formatDateNo } from '../lib/dateFormat'
@@ -168,9 +168,7 @@ export default function HandoverReport({
   useEffect(() => {
     if (reporterType !== 'homeowner') return
     const load = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       const name = user?.user_metadata?.full_name?.trim() || user?.email || 'Utleier'
       setReporterName(name)
     }

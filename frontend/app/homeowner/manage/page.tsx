@@ -16,7 +16,7 @@ import {
   Sparkles,
   LayoutDashboard,
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
 import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
@@ -96,9 +96,7 @@ export default function HomeownerManage() {
     setLoading(true)
     setFetchError(null)
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) {
         router.push('/login')
         return
@@ -178,9 +176,7 @@ export default function HomeownerManage() {
   }, [router])
 
   const dismissLandlordWelcome = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getAuthUserDeduped()
     if (user && typeof window !== 'undefined') {
       localStorage.setItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.welcome, user.id), '1')
     }
@@ -211,9 +207,7 @@ export default function HomeownerManage() {
   }
 
   const dismissOverviewIntro = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getAuthUserDeduped()
     if (user && typeof window !== 'undefined') {
       localStorage.setItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.overview, user.id), '1')
     }
@@ -227,9 +221,7 @@ export default function HomeownerManage() {
   }
 
   const dismissMineBoligerIntro = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getAuthUserDeduped()
     if (user && typeof window !== 'undefined') {
       localStorage.setItem(
         landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.mineBoliger, user.id),
@@ -253,10 +245,9 @@ export default function HomeownerManage() {
     }, STUCK_MS)
 
     async function bootstrap() {
-      let userResp: Awaited<ReturnType<typeof supabase.auth.getUser>>
+      let user: Awaited<ReturnType<typeof getAuthUserDeduped>>
       try {
-        // getUser() har egen ~22s timeout i app/lib/supabase.ts — ikke kapp den med 15s race.
-        userResp = await supabase.auth.getUser()
+        user = await getAuthUserDeduped()
       } catch (e: unknown) {
         if (cancelled) return
         logError(e)
@@ -265,9 +256,6 @@ export default function HomeownerManage() {
         setLoading(false)
         return
       }
-      const {
-        data: { user },
-      } = userResp
       if (!user) {
         if (!cancelled) router.push('/login')
         return
@@ -331,9 +319,7 @@ export default function HomeownerManage() {
         .update({ status: newStatus, is_available: newStatus === 'Tilgjengelig' })
         .eq('id', id)
       if (error) throw error
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       await supabase.from('audit_logs').insert([
         {
           user_id: user?.id,
@@ -373,9 +359,7 @@ export default function HomeownerManage() {
 
       if (error) throw error
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       await supabase.from('audit_logs').insert([
         {
           user_id: user?.id,

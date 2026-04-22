@@ -51,8 +51,9 @@ export default function Home() {
                 href="/login"
                 className={buttonClassName('accent')}
                 style={{ width: '100%', padding: 'var(--space-4)' }}
+                aria-label={t('homeLoginCardLinkAria')}
               >
-                {t('homeLoginCardCta')} <ArrowRight size={18} />
+                {t('homeLoginCardCta')} <ArrowRight size={18} aria-hidden />
               </Link>
             </div>
           </div>

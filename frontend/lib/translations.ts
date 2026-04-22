@@ -160,14 +160,14 @@ export const translations = {
     pwaClose: 'Lukk',
 
     // Homepage
-    heroTitle: 'Boly forenkler sosial boligformidling',
+    heroTitle: 'Boly forenkler boligformidling',
     heroDesc:
-      'Boly er det sikre bindeleddet mellom kommune og privat boligeier og er et effektivt verktøy i arbeidet med å løse akutte boligbehov. Løsningen sikres av BankID.',
+      'Boly er det sikre bindeleddet mellom kommune og privat boligeier og støtter boligformidling i kommunalt regi. Løsningen sikres av BankID.',
     chooseRole: 'Velg din rolle',
     forMunicipality: 'For kommuneansatte',
     kommunebrukerLabel: 'Jeg er kommunebruker',
     searchDesc:
-      'Søk i oversikten over tilgjengelige boliger, som oppdateres kontinuerlig. Finn riktig løsning for dine brukere med avansert filtrering.',
+      'Søk i oversikten over tilgjengelige boliger, som oppdateres kontinuerlig. Finn riktig bolig for personer kommunen følger opp i boligsaken, med avansert filtrering.',
     openHousingBank: 'Åpne boligbank',
     forHomeowners: 'For boligeiere',
     utleierLabel: 'Jeg er utleier',
@@ -178,7 +178,7 @@ export const translations = {
       'Du er logget inn som kommune-ansatt. For å bruke boligeier-portalen må du logge inn på en annen konto.',
     securityTitle: 'Sikkerhet i fokus',
     securityDesc:
-      'Alle leieforhold er dekket av juridisk kvalitetssikrede avtaler som følger gjeldende norske standarder for offentlig boligformidling.',
+      'Alle leieforhold er dekket av juridisk kvalitetssikrede avtaler som følger gjeldende norske standarder for boligformidling.',
     improvementTitle: 'Kontinuerlig forbedring',
     improvementDesc:
       'Vi ønsker de absolutt beste funksjonene for denne appen og den vil bli kontinuerlig oppdatert. Hvis du finner problemer, vennligst send en e-post til info@bolynorge.no',
@@ -498,7 +498,7 @@ export const translations = {
       'Du trenger ikke svare med det samme – men vi oppfordrer til å åpne meldingene når du kan, så saker ikke står stille.',
     landlordMessagesExpectTitle: 'Forventninger',
     landlordMessagesExpectBody:
-      'Kommunen bruker meldingene til å samarbeide med deg om boligbehov. Jo tydeligere du er, jo lettere er det for alle parter.',
+      'Kommunen bruker meldingene til å samarbeide med deg om behov for bolig i formidlingen. Jo tydeligere du er, jo lettere er det for alle parter.',
     landlordMessagesCta: 'OK – jeg er klar',
     landlordNotificationsTitle: 'Varsler i Boly',
     landlordNotificationsLead:
@@ -718,6 +718,8 @@ export const translations = {
     // Forsiden (portal-kort)
     homeLoginCardTitle: 'Logg inn',
     homeLoginCardCta: 'Logg inn',
+    /** Skiller hjemkortets lenke fra «Logg inn» i header for skjermlesere. */
+    homeLoginCardLinkAria: 'Gå til innloggingssiden for Boly',
     homeDemoCardTitle: 'Be om demo',
     homeDemoCardCta: 'Be om demo',
 
@@ -1087,14 +1089,14 @@ export const translations = {
     pwaClose: 'Gidde',
 
     // Homepage
-    heroTitle: 'Boly ovdánahttá sosiála beaivvášformiduhttima.',
+    heroTitle: 'Boly ovdánahttá beaivvášformiduhttima.',
     heroDesc:
-      'Boly lea sihkar oktavuoda gaskka kommuvdna ja priváhta beaivváš olbmuid ja lea effeavtta reaidu váttisvuođaid hálahit. BankID várrejit láttodaga.',
+      'Boly lea sihkar oktavuohta kommuvnna ja priváhta beaivvášoamasteaddji gaskka ja doarjju kommuvnna beaivvášformidemiija. BankID várrejit láttodaga.',
     chooseRole: 'Vállje iežat rolla',
     forMunicipality: 'Kommuvnna bargiide',
     kommunebrukerLabel: 'Lean kommuvnna geavaheaddji',
     searchDesc:
-      'Oza beaivvášlisttus maid olisat dahkat. Oza buorre loahpahusa iežat bruhkaide filtaraiguin.',
+      'Oza beaivvášlisttus maid olisat dahkat. Oza buorre beaivváža olbmuide maid kommuvdna váldá ovddas beaivvášáššiin, filtaraiguin.',
     openHousingBank: 'Raba beaivvášbánccu',
     forHomeowners: 'Beaivváš oamasteaddjiide',
     utleierLabel: 'Lean duodjár',
@@ -1105,7 +1107,7 @@ export const translations = {
       'Leat loggen njunnebealde kommuvnna bargu. Sii bohtet báikki-portálas fertet logget njunnebealde oktavuođa.',
     securityTitle: 'Siidu vuosšamin',
     securityDesc:
-      'Buot duodjifáŋggat leat ráhkaduvvon juridihkalaš kvalitehtalaš oaivámušain norgga stándárda nuppe beaivváš formiduhttima vuođul.',
+      'Buot duodjifáŋggat leat ráhkaduvvon juridihkalaš kvalitehtalaš oaivámušain norgga stándárdaid mielde beaivvášformidemiijas.',
     improvementTitle: 'Áibbas buoret funkšuvnnat',
     improvementDesc:
       'Áibbas buoret funkšuvnnat dán appii. Jus gávnnat háhkat, sádde e-poastta info@bolynorge.no',
@@ -1420,7 +1422,7 @@ export const translations = {
       'It ferte vástadit haste – muhto mii ohcet ahte rabat meldingaid go dáidet.',
     landlordMessagesExpectTitle: 'Vuordámušat',
     landlordMessagesExpectBody:
-      'Kommuvdna geavaha sáhcastallama ovttasráđđeheapmin duinna. Jo čielggebut, jo álkit lea buohkaide.',
+      'Kommuvdna geavaha sáhcastallama ovttasráđđeheapmin duinna beaivvášdárbbuid birra formidemiijas. Jo čielggebut, jo álkit lea buohkaide.',
     landlordMessagesCta: 'OK – lean válbmas',
     landlordNotificationsTitle: 'Dieđut Bolys',
     landlordNotificationsLead:
@@ -1631,6 +1633,7 @@ export const translations = {
 
     homeLoginCardTitle: 'Sisa',
     homeLoginCardCta: 'Sisa',
+    homeLoginCardLinkAria: 'Mana Boly sisačáliibmái',
     homeDemoCardTitle: 'Bivdde demo',
     homeDemoCardCta: 'Bivdde demo',
 
@@ -1999,14 +2002,14 @@ export const translations = {
     pwaClose: 'Close',
 
     // Homepage
-    heroTitle: 'Boly simplifies social housing mediation.',
+    heroTitle: 'Boly simplifies housing mediation.',
     heroDesc:
-      'Boly is the secure link between municipalities and private property owners and an effective tool for meeting acute housing needs. The solution is secured by BankID.',
+      'Boly is the secure link between municipalities and private property owners and supports housing mediation in a municipal context. The solution is secured by BankID.',
     chooseRole: 'Choose your role',
     forMunicipality: 'For municipality staff',
     kommunebrukerLabel: 'I am a municipality user',
     searchDesc:
-      'Search the continuously updated list of available properties. Find the right solution for your users with advanced filtering.',
+      'Search the continuously updated list of available properties. Find the right home for people the municipality is assisting with their housing situation, using advanced filters.',
     openHousingBank: 'Open Boligbank',
     forHomeowners: 'For property owners',
     utleierLabel: 'I am a landlord',
@@ -2017,7 +2020,7 @@ export const translations = {
       'You are logged in as municipality staff. To use the homeowner portal you must log in with a different account.',
     securityTitle: 'Security in focus',
     securityDesc:
-      'All tenancy agreements are covered by legally quality-assured contracts following current Norwegian standards for public housing mediation.',
+      'All tenancy agreements are covered by legally quality-assured contracts following current Norwegian standards for housing mediation.',
     improvementTitle: 'Continuous improvement',
     improvementDesc:
       'We want the best possible features for this app and it will be continuously updated. If you experience issues, please email info@bolynorge.no',
@@ -2335,7 +2338,7 @@ export const translations = {
       'You don’t need to reply instantly – but we encourage you to open messages when you can so things don’t stall.',
     landlordMessagesExpectTitle: 'Expectations',
     landlordMessagesExpectBody:
-      'The municipality uses messages to work with you on housing needs. The clearer you are, the easier it is for everyone.',
+      'The municipality uses messages to collaborate with you on needs for housing in the mediation. The clearer you are, the easier it is for everyone.',
     landlordMessagesCta: 'OK – I’m ready',
     landlordNotificationsTitle: 'Notifications in Boly',
     landlordNotificationsLead:
@@ -2551,6 +2554,7 @@ export const translations = {
 
     homeLoginCardTitle: 'Log in',
     homeLoginCardCta: 'Log in',
+    homeLoginCardLinkAria: 'Go to the Boly sign-in page',
     homeDemoCardTitle: 'Request a demo',
     homeDemoCardCta: 'Request a demo',
 

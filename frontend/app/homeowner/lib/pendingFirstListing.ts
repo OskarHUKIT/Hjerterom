@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 
 export const PENDING_FIRST_LISTING_KEY = 'boly_pending_first_listing_v1'
 /** Satt når bruker sendes til BankID med utkast — brukes til å oppdage mistet sessionStorage etter signering. */
@@ -91,9 +91,9 @@ export async function insertListingFromPendingDraft(
     },
   ])
 
-  const { data: userData } = await supabase.auth.getUser()
+  const authUser = await getAuthUserDeduped()
   const userName =
-    userData.user?.user_metadata?.full_name || userData.user?.email?.split('@')[0] || 'En utleier'
+    authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'En utleier'
 
   const { data: kommuneProfiles } = await supabase
     .from('profiles')

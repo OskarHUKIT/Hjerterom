@@ -71,11 +71,11 @@ export default function OmBolyPage() {
           <h2 style={h2}>Mer informasjon</h2>
           <p style={{ ...p, marginBottom: 'var(--space-3)' }}>
             For juridiske temaer, se sidene for{' '}
-            <Link href="/brukervilkar/" style={{ color: 'var(--color-accent)' }}>
+            <Link prefetch={false} href="/brukervilkar/" style={{ color: 'var(--color-accent)' }}>
               brukervilkår
             </Link>{' '}
             og{' '}
-            <Link href="/personvern/" style={{ color: 'var(--color-accent)' }}>
+            <Link prefetch={false} href="/personvern/" style={{ color: 'var(--color-accent)' }}>
               personvern
             </Link>
             .

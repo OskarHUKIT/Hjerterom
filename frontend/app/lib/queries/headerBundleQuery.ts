@@ -33,20 +33,20 @@ export async function fetchHeaderBundle(
   const kommuneCanEdit = profileRes.data?.kommune_can_edit ?? null
   const hasSignedTerms = !!agreementRes.data
 
-  let landlordBootstrapHref = '/homeowner/manage'
-  if (isKommuneStaffRole(userRole) || agreementRes.data) {
-    landlordBootstrapHref = '/homeowner/manage'
-  } else {
-    landlordBootstrapHref = await getLandlordPostLoginHref(supabase, userId, email ?? null, {
-      reuseProfileRole: userRole,
-    })
-  }
-
-  const { count } = await supabase
+  const unreadQuery = supabase
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'unread')
     .eq('owner_id', userId)
+
+  const landlordHrefPromise =
+    isKommuneStaffRole(userRole) || agreementRes.data
+      ? Promise.resolve('/homeowner/manage')
+      : getLandlordPostLoginHref(supabase, userId, email ?? null, {
+          reuseProfileRole: userRole,
+        })
+
+  const [{ count }, landlordBootstrapHref] = await Promise.all([unreadQuery, landlordHrefPromise])
 
   return {
     role: userRole,

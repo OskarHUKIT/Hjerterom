@@ -11,7 +11,7 @@ import {
   ArrowLeft,
   History,
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import {
   readPendingFirstListingDraft,
@@ -227,9 +227,7 @@ function SignTermsContent() {
         const cleanUrl = window.location.pathname
         window.history.replaceState({}, '', cleanUrl)
       }
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) {
         router.push('/login')
         return
@@ -396,9 +394,7 @@ function SignTermsContent() {
     ;(async () => {
       try {
         await supabase.auth.refreshSession()
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+        const user = await getAuthUserDeduped()
         if (!user) return
         const result = await insertListingFromPendingDraft(user.id)
         if (!result) return
@@ -444,9 +440,7 @@ function SignTermsContent() {
 
     setLoading(true)
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) throw new Error('Logg inn på nytt og prøv igjen.')
 
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -514,9 +508,7 @@ function SignTermsContent() {
 
     setLoading(true)
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) throw new Error('Not authenticated')
 
       // 1. Mark agreement as terminated (listings og brukerdata bevares for kommunens historikk)
@@ -809,9 +801,7 @@ function SignTermsContent() {
               <button
                 type="button"
                 onClick={async () => {
-                  const {
-                    data: { user },
-                  } = await supabase.auth.getUser()
+                  const user = await getAuthUserDeduped()
                   if (user) {
                     await supabase.from('user_agreements').delete().eq('user_id', user.id)
                     window.location.reload()

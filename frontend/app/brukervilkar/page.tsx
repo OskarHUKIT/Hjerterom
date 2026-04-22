@@ -36,7 +36,7 @@ export default function BrukervilkarPage() {
             signeres med BankID (Signicat); det er alltid det dokumentet du faktisk signerer som
             styrer utleierforpliktelsene dine mot kommunen/Nav der det er aktuelt. Personvern er
             beskrevet på{' '}
-            <Link href="/personvern/" style={{ color: 'var(--color-accent)' }}>
+            <Link prefetch={false} href="/personvern/" style={{ color: 'var(--color-accent)' }}>
               personvernsiden
             </Link>
             .

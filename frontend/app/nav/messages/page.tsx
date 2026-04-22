@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, Suspense, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -21,10 +22,13 @@ import { useLanguage } from '../../../context/LanguageContext'
 import { listingCityMatchesRegions, parseKommuneRegions } from '../../lib/kommuneRegions'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
-import LandlordOnboardingModal from '../../components/LandlordOnboardingModal'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { OptimizedPublicStorageImage } from '../../components/OptimizedPublicStorageImage'
 import { useChatUserBootstrap } from '../../hooks/useChatUserBootstrap'
+
+const LandlordOnboardingModal = dynamic(() => import('../../components/LandlordOnboardingModal'), {
+  ssr: false,
+})
 
 const CHAT_IMAGES_BUCKET = 'chat-images'
 const MAX_IMAGES_PER_MESSAGE = 4
@@ -121,6 +125,8 @@ function MessagesContent() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
+  /** Kommune: unngå «ingen meldinger»-tekst mens første henting av samtaler pågår. */
+  const [conversationsLoading, setConversationsLoading] = useState(false)
   const [conversations, setConversations] = useState<
     { userId: string; name: string; lastMessage: string; lastAt: string }[]
   >([])
@@ -195,23 +201,29 @@ function MessagesContent() {
       .then(({ data }) => setPeerRole(data?.role ?? null))
   }, [profileResolved, isKommune, withUserId])
 
+  /** Kollegeliste + utleiere i region: én round-trip-kjede med Promise.all (to parallelle grener). */
   useEffect(() => {
     if (!currentUser || !isKommune) {
       setColleagues([])
+      setLandlordAccounts([])
       return
     }
-    const load = async () => {
-      const myRegions = parseKommuneRegions(myKommuneRegion)
-      if (myRegions.length === 0) {
-        setColleagues([])
-        return
-      }
+    let cancelled = false
+    const myRegions = parseKommuneRegions(myKommuneRegion)
+    if (myRegions.length === 0) {
+      setColleagues([])
+      setLandlordAccounts([])
+      return
+    }
+
+    const loadColleagues = async () => {
       const { data: rows } = await supabase
         .from('profiles')
         .select('id, full_name, email, kommune_region, kommune_can_edit, role')
         .in('role', ['kommune_ansatt', 'kommune_admin'])
         .neq('id', currentUser.id)
-      const list = (rows || [])
+      if (cancelled) return []
+      return (rows || [])
         .filter(
           (p: { role?: string | null }) => p.role === 'kommune_admin' || p.role === 'kommune_ansatt'
         )
@@ -223,25 +235,11 @@ function MessagesContent() {
           name: p.full_name?.trim() || p.email?.split('@')[0] || 'Ukjent',
         }))
         .sort((a, b) => a.name.localeCompare(b.name, 'nb'))
-      setColleagues(list)
     }
-    load()
-  }, [currentUser, isKommune, myKommuneRegion])
 
-  useEffect(() => {
-    if (!currentUser || !isKommune) {
-      setLandlordAccounts([])
-      return
-    }
-    let cancelled = false
-    const load = async () => {
-      const myRegions = parseKommuneRegions(myKommuneRegion)
-      if (myRegions.length === 0) {
-        if (!cancelled) setLandlordAccounts([])
-        return
-      }
+    const loadLandlords = async () => {
       const { data: allListings } = await supabase.rpc('get_listings_for_kommune')
-      if (cancelled) return
+      if (cancelled) return []
       const listingsInRegion = (allListings || []).filter((l: { city?: string | null }) =>
         listingCityMatchesRegions(l.city, myRegions)
       )
@@ -252,6 +250,7 @@ function MessagesContent() {
       const { data: profiles, error: profileError } = await supabase.rpc(
         'get_all_users_for_kommune'
       )
+      if (cancelled) return []
       let rows: {
         id: string
         full_name?: string | null
@@ -264,17 +263,30 @@ function MessagesContent() {
       } else {
         rows = (profiles || []) as typeof rows
       }
-      if (cancelled) return
-      const list = rows
+      return rows
         .filter((p) => allowedOwnerIds.has(p.id) && !isKommuneStaffRole(p.role))
         .map((p) => ({
           id: p.id,
           name: p.full_name?.trim() || p.email?.split('@')[0] || 'Ukjent',
         }))
         .sort((a, b) => a.name.localeCompare(b.name, 'nb'))
-      setLandlordAccounts(list)
     }
-    load()
+
+    void (async () => {
+      try {
+        const [colleaguesList, landlordsList] = await Promise.all([loadColleagues(), loadLandlords()])
+        if (!cancelled) {
+          setColleagues(colleaguesList)
+          setLandlordAccounts(landlordsList)
+        }
+      } catch {
+        if (!cancelled) {
+          setColleagues([])
+          setLandlordAccounts([])
+        }
+      }
+    })()
+
     return () => {
       cancelled = true
     }
@@ -311,6 +323,7 @@ function MessagesContent() {
 
   useEffect(() => {
     if (!profileResolved || !currentUser) return
+    let cancelled = false
 
     const fetchConversationsKommune = async () => {
       const { data: msgs } = await supabase
@@ -372,10 +385,27 @@ function MessagesContent() {
     }
 
     void (async () => {
-      if (isKommune) await fetchConversationsKommune()
-      else setConversations([])
-      setLoading(false)
+      try {
+        if (isKommune) {
+          setConversationsLoading(true)
+          await fetchConversationsKommune()
+        } else {
+          setConversations([])
+        }
+      } catch {
+        if (!cancelled && isKommune) setConversations([])
+      } finally {
+        if (!cancelled) {
+          setConversationsLoading(false)
+          setLoading(false)
+        }
+      }
     })()
+
+    return () => {
+      cancelled = true
+      setConversationsLoading(false)
+    }
   }, [profileResolved, currentUser, isKommune, withUserId, kommuneCanEdit, t])
 
   useEffect(() => {
@@ -388,37 +418,9 @@ function MessagesContent() {
       return
     }
 
-    if (isKommuneChat) {
-      const loadOtherUser = async () => {
-        const { data: name } = await supabase.rpc('get_user_display_name', {
-          p_user_id: withUserId,
-        })
-        setOtherUser({ id: withUserId, name: name ?? 'Ukjent bruker' })
-      }
-      loadOtherUser()
-    } else if (withUserId) {
-      const loadPeer = async () => {
-        const { data: name } = await supabase.rpc('get_user_display_name', {
-          p_user_id: withUserId,
-        })
-        setOtherUser({ id: withUserId, name: name ?? 'Ukjent bruker' })
-      }
-      loadPeer()
-    } else {
-      const b =
-        landlordKommuneBuckets.length > 1 && landlordSelectedCityKey
-          ? landlordKommuneBuckets.find((x) => x.city === landlordSelectedCityKey)
-          : null
-      setOtherUser({
-        id: null,
-        name: b
-          ? `${t('messagesKommuneBroadcast')} (${b.cityDisplay})`
-          : t('messagesKommuneBroadcast'),
-      })
-    }
-
     const fetchMessages = async () => {
-      if (isHomeownerChat && !withUserId && !landlordBucketsLoaded) return
+      // Do not block on `landlordBucketsLoaded`: same staff set as buckets uses `fetchKommuneStaffIdsForLandlord`
+      // when bucket list is still empty; multi-city UI refines after buckets resolve (effect re-runs).
       let query = supabase.from('chat_messages').select('*')
       if (isHomeownerChat) {
         if (withUserId) {
@@ -454,7 +456,27 @@ function MessagesContent() {
       const { data } = await query.order('created_at', { ascending: true })
       setMessages(data || [])
     }
-    void fetchMessages()
+
+    if (withUserId) {
+      void Promise.all([
+        supabase.rpc('get_user_display_name', { p_user_id: withUserId }).then(({ data: name }) => {
+          setOtherUser({ id: withUserId, name: name ?? 'Ukjent bruker' })
+        }),
+        fetchMessages(),
+      ])
+    } else {
+      const b =
+        landlordKommuneBuckets.length > 1 && landlordSelectedCityKey
+          ? landlordKommuneBuckets.find((x) => x.city === landlordSelectedCityKey)
+          : null
+      setOtherUser({
+        id: null,
+        name: b
+          ? `${t('messagesKommuneBroadcast')} (${b.cityDisplay})`
+          : t('messagesKommuneBroadcast'),
+      })
+      void fetchMessages()
+    }
 
     const onVisibleRefetch = () => {
       if (document.visibilityState === 'visible') void fetchMessages()
@@ -648,7 +670,28 @@ function MessagesContent() {
     [landlordAccounts, conversationPeerIds]
   )
 
-  if (chatBoot.isError || chatBoot.isPending || !bootOk) {
+  if (chatBoot.isPending) {
+    return (
+      <main className="container">
+        <LoadingPlaceholder minHeight={400} />
+      </main>
+    )
+  }
+
+  if (chatBoot.isError) {
+    return (
+      <main className="container" style={{ padding: 'var(--space-8)', maxWidth: 560 }}>
+        <p style={{ color: 'var(--text-body)', marginBottom: 'var(--space-4)', lineHeight: 1.5 }}>
+          {t('manageDataLoadTimeout')}
+        </p>
+        <button type="button" className="button" onClick={() => void chatBoot.refetch()}>
+          {t('retryLoad')}
+        </button>
+      </main>
+    )
+  }
+
+  if (!bootOk) {
     return (
       <main className="container">
         <LoadingPlaceholder minHeight={400} />
@@ -842,7 +885,9 @@ function MessagesContent() {
               >
                 <MessageSquare size={18} style={{ opacity: 0.85 }} /> {t('conversations')}
               </h3>
-              {conversations.length === 0 ? (
+              {conversationsLoading ? (
+                <LoadingPlaceholder minHeight={120} />
+              ) : conversations.length === 0 ? (
                 <p className="text-sm" style={{ opacity: 0.6, margin: 0 }}>
                   {t('noMessagesYet')}
                 </p>

@@ -64,8 +64,7 @@ export default function PersonvernPage() {
           </h1>
           <p style={{ fontSize: '1.05rem', color: 'var(--text-body)', lineHeight: 1.6 }}>
             Personvernerklæring for Boly, i samsvar med personopplysningsloven, GDPR og ekomloven.
-            Denne siden gjengir den samme erklæringen som ligger i repoet (<code>docs/legal/PRIVACY_NOTICE.md</code>);
-            ved konflikt er den norske teksten autoritativ.
+            Ved uoverensstemmelse mellom språkversjoner på denne siden gjelder den norske teksten.
           </p>
         </div>
 

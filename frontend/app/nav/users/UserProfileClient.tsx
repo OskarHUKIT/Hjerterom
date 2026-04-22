@@ -19,7 +19,7 @@ import {
   ShieldAlert,
   Send,
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { logError } from '@/app/lib/appLogger'
 import { formatAuditLogDescription } from '../../lib/auditLogFormat'
 import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
@@ -113,9 +113,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
       if (!id) return
       setLoading(true)
       try {
-        const {
-          data: { user: currentUser },
-        } = await supabase.auth.getUser()
+        const currentUser = await getAuthUserDeduped()
         const { data: currentProfile } = currentUser
           ? await supabase
               .from('profiles')

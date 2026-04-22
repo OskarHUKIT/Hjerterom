@@ -39,7 +39,7 @@ import {
   CalendarPlus,
   List,
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import type { ListingAvailabilityRow, NavDatabaseListingRow } from '../../lib/listingUiTypes'
 import { useLanguage } from '../../../context/LanguageContext'
 import { formatDateNo } from '../../lib/dateFormat'
@@ -894,9 +894,7 @@ export default function NavDatabase() {
         .update({ end_date: formidletExtendEnd })
         .eq('id', period.id)
       if (error) throw error
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (listing.owner_id) {
         await supabase.from('audit_logs').insert([
           {
@@ -989,9 +987,7 @@ export default function NavDatabase() {
 
       if (error) throw error
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (listing?.owner_id) {
         await supabase.from('audit_logs').insert([
           {
@@ -1068,9 +1064,7 @@ export default function NavDatabase() {
 
       if (error) throw error
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       const ownerId = listings.find((l) => l.id === id)?.owner_id
       if (ownerId) {
         await supabase.from('audit_logs').insert([

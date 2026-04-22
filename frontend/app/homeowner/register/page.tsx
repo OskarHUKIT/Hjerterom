@@ -25,7 +25,7 @@ import {
   Phone,
   User,
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import {
   nominatimResultToGeocodeHit,
@@ -88,9 +88,7 @@ export default function HomeownerRegister() {
 
   useEffect(() => {
     const checkTerms = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) {
         router.push('/login')
         return
@@ -289,9 +287,7 @@ export default function HomeownerRegister() {
     setLoading(true)
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) throw new Error('Not authenticated')
 
       const req = (s: string | undefined | null) => String(s ?? '').trim().length > 0
@@ -1008,8 +1004,8 @@ export default function HomeownerRegister() {
                       tilgjengelighet for alle.
                     </li>
                     <li>
-                      <strong>Omsorgsbolig:</strong> Spesialtilpasset bolig for omfattende pleie- og
-                      hjelpebehov.
+                      <strong>Omsorgsbolig:</strong> Spesialtilpasset bolig med omfattende tilrettelegging
+                      for pleie og praktisk bistand i hjemmet.
                     </li>
                   </ul>
                 </div>

@@ -280,6 +280,10 @@ export default function Header() {
         >
           <button
             type="button"
+            id="header-user-menu-trigger"
+            aria-expanded={isMenuOpen}
+            aria-haspopup="true"
+            aria-controls="header-user-menu-dropdown"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="button-login"
             style={{
@@ -329,7 +333,10 @@ export default function Header() {
 
           {isMenuOpen && (
             <div
+              id="header-user-menu-dropdown"
               className="user-menu"
+              role="region"
+              aria-label={t('userPanel')}
               style={{
                 position: 'absolute',
                 top: '100%',
@@ -352,7 +359,11 @@ export default function Header() {
                   marginBottom: 'var(--space-2)',
                 }}
               >
-                <p className="text-sm" style={{ fontWeight: 600, color: 'var(--color-accent)' }}>
+                <p
+                  className="text-sm"
+                  style={{ fontWeight: 600, color: 'var(--color-accent)' }}
+                  aria-hidden
+                >
                   {t('userPanel')}
                 </p>
               </div>
@@ -377,6 +388,7 @@ export default function Header() {
                     color: 'var(--color-accent)',
                     marginBottom: 'var(--space-2)',
                   }}
+                  aria-hidden
                 >
                   {t('settings')}
                 </p>
@@ -559,7 +571,7 @@ export default function Header() {
           className="header-nav-desktop"
           style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}
         >
-          {navContent}
+          {!isMobileLayout ? navContent : null}
         </nav>
 
         {/* Mobile: gjester får språk + hamburger; innloggede får snarveier + hamburger */}
@@ -738,7 +750,7 @@ export default function Header() {
           backdropFilter: 'blur(16px)',
         }}
       >
-        {navContent}
+        {isMobileLayout && isMobileNavOpen ? navContent : null}
       </div>
 
       <style jsx>{`

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { ShieldCheck, Plus, Trash2, Mail, MapPin } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
 
@@ -25,9 +25,7 @@ export default function KommuneAccessPage() {
 
   useEffect(() => {
     async function checkAccess() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const user = await getAuthUserDeduped()
       if (!user) {
         router.push('/login')
         return

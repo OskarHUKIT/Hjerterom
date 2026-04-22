@@ -121,6 +121,7 @@ export default function CookieBanner() {
               >
                 {t('cookieBannerBody')}{' '}
                 <Link
+                  prefetch={false}
                   href="/personvern/"
                   style={{ color: 'var(--color-sky-blue, #7dd3fc)', textDecoration: 'underline' }}
                 >

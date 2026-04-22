@@ -130,6 +130,7 @@ export default function Footer() {
             </h3>
             <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
               <Link
+                prefetch={false}
                 href="/brukervilkar/"
                 className="footer-link"
                 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
@@ -137,6 +138,7 @@ export default function Footer() {
                 <FileText size={16} /> {t('footerTermsAgreementLink')}
               </Link>
               <Link
+                prefetch={false}
                 href="/personvern/"
                 className="footer-link"
                 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
@@ -161,6 +163,7 @@ export default function Footer() {
                 <Cookie size={16} aria-hidden /> {t('footerCookieSettings')}
               </button>
               <Link
+                prefetch={false}
                 href="/om-boly/"
                 className="footer-link"
                 style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
