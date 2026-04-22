@@ -57,8 +57,9 @@ export default function Footer() {
                       height={240}
                       sizes="(max-width: 480px) 92vw, 360px"
                       style={{
-                        width: '100%',
+                        width: 'auto',
                         height: '100%',
+                        maxHeight: '100%',
                         objectFit: 'contain',
                       }}
                       onError={() => setGameChangingFailed(true)}
@@ -84,8 +85,9 @@ export default function Footer() {
                       height={240}
                       sizes="(max-width: 480px) 92vw, 360px"
                       style={{
-                        width: '100%',
+                        width: 'auto',
                         height: '100%',
+                        maxHeight: '100%',
                         objectFit: 'contain',
                       }}
                       onError={() => setNarvikLogoFailed(true)}

@@ -946,7 +946,8 @@ select optgroup {
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
-  gap: var(--space-1);
+  /* ~som referanse: tydelig luft mellom sirkel-kantene, ikke «to halve skjermer» */
+  gap: clamp(1.25rem, 4.5vw, 2.75rem);
   align-items: center;
   justify-content: center;
   width: 100%;
@@ -972,15 +973,15 @@ select optgroup {
 }
 
 /**
- * Partnerlogoer: samme høyde / lik bredde-kvote (side-by-side også på mobil).
+ * Partnerlogoer: samme høyde, bredde følger bilde (unngår enorm tom avstand ved 50/50-flex).
  * Nav-PNG har mer luft i filen enn Gamechanging — skaleres opp med egen modifikator.
  */
 .footer-logo-container.footer-partner-logo-slot {
-  flex: 1 1 0;
+  flex: 0 0 auto;
+  width: auto;
   min-width: 0;
   height: 110px;
-  max-width: min(360px, calc(50% - var(--space-1)));
-  width: auto;
+  max-width: min(360px, 48vw);
 }
 
 .footer-logo-container.footer-partner-logo-slot--nav {
@@ -999,6 +1000,10 @@ select optgroup {
   height: auto;
   object-fit: contain;
   display: block;
+}
+
+.footer-logo-container.footer-partner-logo-slot img {
+  max-width: min(360px, 48vw);
 }
 
 .footer-link {
@@ -1033,12 +1038,16 @@ select optgroup {
 
 @media (max-width: 480px) {
   .footer-logos-row {
-    gap: 2px;
+    gap: clamp(0.75rem, 3.5vw, 1.75rem);
   }
 
   .footer-logo-container.footer-partner-logo-slot {
     height: 96px;
-    max-width: calc(50% - 1px);
+    max-width: min(300px, 46vw);
+  }
+
+  .footer-logo-container.footer-partner-logo-slot img {
+    max-width: min(300px, 46vw);
   }
 
   .footer-logo-container.footer-partner-logo-slot--nav img {
