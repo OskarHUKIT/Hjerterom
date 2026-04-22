@@ -15,6 +15,17 @@ function isNavPath(pathname: string): boolean {
   return pathname === '/nav' || pathname.startsWith('/nav/')
 }
 
+/**
+ * Utleier trenger meldinger/varsler under `/nav/*`, mens øvrige `/nav/*`-ruter er kommune-only.
+ * (Header og mobilnav lenker hit; tidligere blokkerte middleware alle ikke-kommuner → «bare laster» / virkningsløs navigasjon.)
+ */
+function isLandlordNavMessagesOrNotifications(pathname: string): boolean {
+  if (pathname === '/nav/messages' || pathname === '/nav/notifications') return true
+  if (pathname.startsWith('/nav/messages/')) return true
+  if (pathname.startsWith('/nav/notifications/')) return true
+  return false
+}
+
 function isHomeownerPath(pathname: string): boolean {
   return pathname === '/homeowner' || pathname.startsWith('/homeowner/')
 }
@@ -99,7 +110,11 @@ export async function middleware(request: NextRequest) {
     const isHomeowner = role === 'homeowner'
 
     if (isNavPath(pathname) && !isKommune) {
-      return NextResponse.redirect(new URL('/', request.url))
+      const landlordMayUseNavInbox =
+        isHomeowner && isLandlordNavMessagesOrNotifications(pathname)
+      if (!landlordMayUseNavInbox) {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
     }
 
     if (isHomeownerPath(pathname) && !isHomeowner) {

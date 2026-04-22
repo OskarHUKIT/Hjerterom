@@ -28,11 +28,13 @@ export async function fetchLandlordNavGate(qc: QueryClient): Promise<LandlordNav
   const user = await fetchAuthUserForQueryClient(qc)
   if (!user) return { kind: 'anon' }
 
-  const { data: prof } = await supabase
+  const { data: prof, error: profileError } = await supabase
     .from('profiles')
     .select('role, kommune_can_edit, kommune_region, email_notifications_enabled')
     .eq('id', user.id)
     .maybeSingle()
+
+  if (profileError) throw profileError
 
   const profile: LandlordNavGateProfile | null = prof
     ? {

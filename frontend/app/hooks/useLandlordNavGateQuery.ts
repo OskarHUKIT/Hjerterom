@@ -1,7 +1,6 @@
 'use client'
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import {
   fetchLandlordNavGate,
@@ -10,7 +9,6 @@ import {
 
 /** Gate for /nav/notifications (and similar): kommune vs landlord redirect. */
 export function useLandlordNavGateQuery() {
-  const router = useRouter()
   const queryClient = useQueryClient()
   const q = useQuery({
     queryKey: landlordNavGateQueryKey,
@@ -21,9 +19,15 @@ export function useLandlordNavGateQuery() {
 
   useEffect(() => {
     if (!q.data) return
-    if (q.data.kind === 'anon') router.replace('/login')
-    else if (q.data.kind === 'redirect') router.replace(q.data.href)
-  }, [q.data, router])
+    if (q.data.kind === 'anon') {
+      window.location.replace('/login')
+      return
+    }
+    if (q.data.kind === 'redirect') {
+      // Full side-navigasjon: unngår at vi blir stående på «Laster…» hvis App Router-klientnavigasjon ikke fullfører.
+      window.location.replace(q.data.href)
+    }
+  }, [q.data])
 
   return q
 }
