@@ -3,6 +3,7 @@
 import { useState, useEffect, useLayoutEffect, useRef, useMemo, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { formatDateNo, parseDateNo } from '@/app/lib/dateFormat'
+import type { DayAvailabilityTone } from '@/app/lib/listingDayAvailabilityTone'
 import { Calendar } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 
@@ -20,6 +21,10 @@ type Props = {
   /** Vis kalender-ikon og dropdown for å velge dato */
   showCalendar?: boolean
   disabled?: boolean
+  /** Når satt: fargelegg dager etter tilgjengelighetsperioder (boligbank-logikk). */
+  calendarDayTone?: (iso: string) => DayAvailabilityTone
+  /** Når false: ingen tegnforklaring under månedsrutenett (default true hvis calendarDayTone er satt). */
+  showAvailabilityLegend?: boolean
 }
 
 function getMonthDays(year: number, month: number) {
@@ -54,6 +59,8 @@ export function DateInput({
   name,
   showCalendar,
   disabled,
+  calendarDayTone,
+  showAvailabilityLegend,
 }: Props) {
   const { t, locale } = useLanguage()
   const autoId = useId().replace(/:/g, '')
@@ -193,6 +200,46 @@ export function DateInput({
     year: 'numeric',
   })
 
+  const legendVisible =
+    Boolean(calendarDayTone) && (showAvailabilityLegend !== false ? true : false)
+
+  const toneStyle = (tone: DayAvailabilityTone, selected: boolean): React.CSSProperties => {
+    if (selected) {
+      return {
+        background: 'var(--color-accent)',
+        color: 'var(--text-on-dark)',
+        boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.35)',
+      }
+    }
+    switch (tone) {
+      case 'available':
+        return {
+          background: 'rgba(13, 148, 136, 0.22)',
+          color: 'var(--text-main)',
+        }
+      case 'unavailable':
+        return {
+          background: 'rgba(239, 68, 68, 0.28)',
+          color: 'var(--text-main)',
+        }
+      case 'mediated':
+        return {
+          background: 'rgba(14, 165, 233, 0.28)',
+          color: 'var(--text-main)',
+        }
+      case 'conflict':
+        return {
+          background: 'rgba(153, 27, 27, 0.45)',
+          color: 'var(--text-on-dark)',
+        }
+      default:
+        return {
+          background: 'transparent',
+          color: 'var(--text-main)',
+        }
+    }
+  }
+
   return (
     <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
       <div
@@ -243,7 +290,9 @@ export function DateInput({
             ref={panelRef}
             className="date-input-calendar"
             role="dialog"
-            aria-label={t('calendarOpenAria')}
+            aria-label={
+              legendVisible ? `${t('calendarOpenAria')}. ${t('dateCalendarToneLegendAria')}` : t('calendarOpenAria')
+            }
             style={{
               position: 'fixed',
               top: panelPos.top,
@@ -322,6 +371,8 @@ export function DateInput({
                   (minDate && date < minDate) || (maxDate && date > maxDate)
                 )
                 const selected = value === iso
+                const tone = calendarDayTone && !dateDisabled ? calendarDayTone(iso) : 'none'
+                const baseTone = toneStyle(tone, selected)
                 return (
                   <button
                     key={iso}
@@ -332,14 +383,13 @@ export function DateInput({
                       padding: '6px',
                       border: 'none',
                       borderRadius: 6,
-                      background: selected ? 'var(--color-accent)' : 'transparent',
-                      color: selected
-                        ? 'var(--text-on-dark)'
-                        : dateDisabled
-                          ? 'var(--text-muted)'
-                          : 'var(--text-main)',
+                      ...baseTone,
+                      color: dateDisabled
+                        ? 'var(--text-muted)'
+                        : (baseTone.color as string) || 'var(--text-main)',
                       cursor: dateDisabled ? 'not-allowed' : 'pointer',
                       fontSize: '0.8rem',
+                      fontWeight: tone !== 'none' && !selected ? 600 : undefined,
                     }}
                   >
                     {day}
@@ -347,6 +397,70 @@ export function DateInput({
                 )
               })}
             </div>
+            {legendVisible && (
+              <div
+                style={{
+                  marginTop: 10,
+                  paddingTop: 8,
+                  borderTop: '1px solid var(--border-subtle)',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '8px 12px',
+                  fontSize: '0.65rem',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.35,
+                }}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 2,
+                      background: 'rgba(13, 148, 136, 0.45)',
+                      flexShrink: 0,
+                    }}
+                  />
+                  {t('available')}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 2,
+                      background: 'rgba(239, 68, 68, 0.5)',
+                      flexShrink: 0,
+                    }}
+                  />
+                  {t('unavailable')}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 2,
+                      background: 'rgba(14, 165, 233, 0.5)',
+                      flexShrink: 0,
+                    }}
+                  />
+                  {t('formidlet')}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 2,
+                      background: 'rgba(153, 27, 27, 0.65)',
+                      flexShrink: 0,
+                    }}
+                  />
+                  {t('timelineLegendConflictShort')}
+                </span>
+              </div>
+            )}
           </div>,
           document.body
         )}

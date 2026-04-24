@@ -682,6 +682,7 @@ export default function HandoverReport({
                     />
                     <span>Det bekreftes at bildene er tatt dato:</span>
                     <DateInput
+                      showCalendar
                       value={formData.photos_date}
                       onChange={(v) => setFormData({ ...formData, photos_date: v })}
                       placeholder={t('dateInputPlaceholder')}
@@ -692,6 +693,9 @@ export default function HandoverReport({
                         padding: '2px 6px',
                         fontWeight: 600,
                         fontSize: '0.95rem',
+                        minWidth: '7.5rem',
+                        flex: '0 1 120px',
+                        color: '#0f172a',
                       }}
                     />
                   </label>

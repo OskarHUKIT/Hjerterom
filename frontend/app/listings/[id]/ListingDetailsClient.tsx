@@ -33,6 +33,7 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   ChevronDown,
   Maximize2,
   X,
@@ -50,6 +51,8 @@ import { Button } from '../../components/ui/Button'
 import { OptimizedPublicStorageImage } from '../../components/OptimizedPublicStorageImage'
 import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
 import { geocodeAddressBestEffort } from '../../lib/geocoding'
+import { supabaseErrorMessage } from '../../lib/supabaseErrorMessage'
+import { dayAvailabilityToneForIso } from '../../lib/listingDayAvailabilityTone'
 import { DateInput } from '../../components/DateInput'
 import {
   appendMediationNoteToOwnerMessage,
@@ -127,7 +130,7 @@ function listingHasFormidlaPeriod(avail: { status?: string }[] | null | undefine
 }
 
 function errMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err)
+  return supabaseErrorMessage(err)
 }
 
 export default function ListingDetailsClient() {
@@ -192,6 +195,17 @@ export default function ListingDetailsClient() {
     const d = new Date()
     return new Date(d.getFullYear(), d.getMonth(), 1)
   })
+
+  useEffect(() => {
+    if (!isFullscreen) return
+    const y = window.scrollY
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+      window.scrollTo(0, y)
+    }
+  }, [isFullscreen])
 
   const isOwner = currentUser?.id === listing?.owner_id
 
@@ -938,6 +952,46 @@ export default function ListingDetailsClient() {
     }
   }
 
+  const handleReorderListingImage = async (fromIndex: number, direction: -1 | 1) => {
+    const toIndex = fromIndex + direction
+    if (!listing || !isOwner || isNavView || toIndex < 0 || toIndex >= allImages.length) return
+    if (showGalleryFormidlet) {
+      alert(t('ownerCannotEditListingWhenFormidlet'))
+      return
+    }
+    if (!hasActiveAgreement) {
+      alert(t('signAgreementToEdit'))
+      router.push(
+        `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
+      )
+      return
+    }
+    const next = [...allImages]
+    const [moved] = next.splice(fromIndex, 1)
+    next.splice(toIndex, 0, moved)
+    setIsSaving('image_urls')
+    try {
+      const { error } = await supabase
+        .from('listings')
+        .update({
+          image_urls: next,
+          image_url: next[0] ?? null,
+        })
+        .eq('id', id)
+      if (error) throw error
+      setListing({ ...listing, image_urls: next, image_url: next[0] ?? null })
+      setCurrentImageIndex((prev) => {
+        const cur = allImages[prev]
+        const ni = next.indexOf(cur)
+        return ni >= 0 ? ni : 0
+      })
+    } catch (err: unknown) {
+      alert(t('errorSaving') + errMessage(err))
+    } finally {
+      setIsSaving(null)
+    }
+  }
+
   const handleHouseRulesFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -1138,9 +1192,39 @@ export default function ListingDetailsClient() {
       : currentUser
         ? t('backToMyProperties')
         : t('backToHome')
+    if (isNavView && currentUser) {
+      return (
+        <div
+          className="container"
+          style={{
+            textAlign: 'center',
+            padding: 'var(--space-10)',
+            maxWidth: '480px',
+            margin: '0 auto',
+          }}
+        >
+          <h2 style={{ color: 'var(--text-main)', marginBottom: 'var(--space-3)' }}>
+            {t('noAccessThisListing')}
+          </h2>
+          <p style={{ color: 'var(--text-body)', marginBottom: 'var(--space-6)' }}>
+            {t('listingNavEmptyListingBody')}
+          </p>
+          <Link
+            href={notFoundHref}
+            className="button"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+          >
+            <ArrowLeft size={18} /> {notFoundLabel}
+          </Link>
+        </div>
+      )
+    }
     return (
       <div className="container" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-        <h2 style={{ color: 'var(--text-main)' }}>Boligen ble ikke funnet</h2>
+        <h2 style={{ color: 'var(--text-main)' }}>{t('listingNotFoundTitle')}</h2>
+        <p style={{ color: 'var(--text-body)', marginTop: 'var(--space-3)', maxWidth: '420px', marginInline: 'auto' }}>
+          {t('listingNotFoundBody')}
+        </p>
         <Link
           href={notFoundHref}
           className="button"
@@ -2972,6 +3056,9 @@ export default function ListingDetailsClient() {
                           onChange={setFormidletStart}
                           max={formidletEnd || undefined}
                           placeholder={t('dateInputPlaceholder')}
+                          calendarDayTone={(iso) =>
+                            dayAvailabilityToneForIso(iso, availability)
+                          }
                           disabled={
                             !!(
                               mediationReservation &&
@@ -3011,6 +3098,9 @@ export default function ListingDetailsClient() {
                           onChange={setFormidletEnd}
                           min={formidletStart || undefined}
                           placeholder={t('dateInputPlaceholder')}
+                          calendarDayTone={(iso) =>
+                            dayAvailabilityToneForIso(iso, availability)
+                          }
                           disabled={
                             !!(
                               mediationReservation &&
@@ -3961,6 +4051,92 @@ export default function ListingDetailsClient() {
             </div>
           </div>
 
+          {canOwnerEditListingDetail && allImages.length > 1 && (
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 10,
+                marginTop: 'var(--space-3)',
+                alignItems: 'flex-end',
+              }}
+            >
+              {allImages.map((url, idx) => (
+                <div
+                  key={`${url}-${idx}`}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: 56,
+                      height: 56,
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      border:
+                        idx === currentImageIndex
+                          ? '2px solid var(--color-accent)'
+                          : '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setCurrentImageIndex(idx)}
+                      style={{
+                        padding: 0,
+                        border: 'none',
+                        background: 'none',
+                        cursor: 'pointer',
+                        width: '100%',
+                        height: '100%',
+                      }}
+                      aria-label={`${idx + 1} / ${allImages.length}`}
+                    >
+                      <OptimizedPublicStorageImage
+                        variant="fixed"
+                        src={url}
+                        alt=""
+                        width={56}
+                        height={56}
+                        sizes="56px"
+                        style={{ objectFit: 'cover', display: 'block' }}
+                      />
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    <button
+                      type="button"
+                      className="button"
+                      disabled={isSaving === 'image_urls' || idx === 0}
+                      onClick={() => void handleReorderListingImage(idx, -1)}
+                      style={{ padding: '2px 6px', minHeight: 28, fontSize: '0.7rem' }}
+                      title={t('listingImageMoveEarlier')}
+                      aria-label={t('listingImageMoveEarlier')}
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="button"
+                      disabled={isSaving === 'image_urls' || idx >= allImages.length - 1}
+                      onClick={() => void handleReorderListingImage(idx, 1)}
+                      style={{ padding: '2px 6px', minHeight: 28, fontSize: '0.7rem' }}
+                      title={t('listingImageMoveLater')}
+                      aria-label={t('listingImageMoveLater')}
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Fullscreen Overlay */}
           {isFullscreen && allImages.length > 0 && (
             <div
@@ -4333,6 +4509,9 @@ export default function ListingDetailsClient() {
                           onChange={setFormidletStart}
                           max={formidletEnd || undefined}
                           placeholder={t('dateInputPlaceholder')}
+                          calendarDayTone={(iso) =>
+                            dayAvailabilityToneForIso(iso, availability)
+                          }
                           style={{
                             padding: 'var(--space-2)',
                             fontSize: '0.85rem',
@@ -4363,6 +4542,9 @@ export default function ListingDetailsClient() {
                           onChange={setFormidletEnd}
                           min={formidletStart || undefined}
                           placeholder={t('dateInputPlaceholder')}
+                          calendarDayTone={(iso) =>
+                            dayAvailabilityToneForIso(iso, availability)
+                          }
                           style={{
                             padding: 'var(--space-2)',
                             fontSize: '0.85rem',

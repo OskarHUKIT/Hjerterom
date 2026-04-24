@@ -85,6 +85,8 @@ export default function HomeownerRegister() {
   const addressSuggestDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [addressSuggestions, setAddressSuggestions] = useState<GeocodeHit[] | null>(null)
   const [addressSuggesting, setAddressSuggesting] = useState(false)
+  /** True når Kartverket-treff ikke hadde kommunenavn — bruker må skrive kommune selv. */
+  const [kommuneFromApiMissing, setKommuneFromApiMissing] = useState(false)
 
   useEffect(() => {
     const checkTerms = async () => {
@@ -193,6 +195,7 @@ export default function HomeownerRegister() {
       const hits = raw.map((h) => nominatimResultToGeocodeHit(h as Record<string, unknown>))
       if (hits.length === 0) {
         setGeocodeCandidates(null)
+        setKommuneFromApiMissing(false)
         setFormData((prev) => ({ ...prev, latitude: null, longitude: null }))
         setGeocodeError(t('regGeocodeError'))
         return
@@ -200,6 +203,7 @@ export default function HomeownerRegister() {
       if (hits.length === 1) {
         const h = hits[0]
         setGeocodeCandidates(null)
+        setKommuneFromApiMissing(!String(h.city || '').trim())
         setFormData((prev) => ({
           ...prev,
           latitude: h.lat,
@@ -209,6 +213,7 @@ export default function HomeownerRegister() {
         }))
         return
       }
+      setKommuneFromApiMissing(false)
       setGeocodeCandidates(hits)
       setFormData((prev) => ({ ...prev, latitude: null, longitude: null }))
     } catch (err) {
@@ -231,6 +236,7 @@ export default function HomeownerRegister() {
     if (!c) return
     setGeocodeCandidates(null)
     setGeocodeError(null)
+    setKommuneFromApiMissing(!String(c.city || '').trim())
     setFormData((prev) => ({
       ...prev,
       latitude: c.lat,
@@ -272,6 +278,7 @@ export default function HomeownerRegister() {
     setAddressSuggestions(null)
     setGeocodeCandidates(null)
     setGeocodeError(null)
+    setKommuneFromApiMissing(!String(h.city || '').trim())
     setFormData((prev) => ({
       ...prev,
       latitude: h.lat,
@@ -381,14 +388,17 @@ export default function HomeownerRegister() {
       const priceLong = formData.price_monthly_long
         ? clamp(parseFloat(String(formData.price_monthly_long)), priceMin, priceMax)
         : null
-      const deposit = formData.deposit_amount
-        ? clamp(parseFloat(String(formData.deposit_amount)), 0, 9999999)
-        : null
+      const longTermOn = (priceLong ?? 0) > 0
+      const deposit =
+        longTermOn && formData.deposit_amount
+          ? clamp(parseFloat(String(formData.deposit_amount)), 0, 9999999)
+          : null
       const floorNumber = formData.floor_detail?.length ? formData.floor_detail.join(', ') : ''
 
       const { has_insurance: _skip, ...listingFields } = formData
       const listingRow = {
         ...listingFields,
+        deposit_guarantee: longTermOn ? formData.deposit_guarantee : [],
         floor_number: floorNumber,
         image_url: imageUrls[0] ?? null,
         image_urls: imageUrls,
@@ -796,12 +806,25 @@ export default function HomeownerRegister() {
                     placeholder={t('placeholderCity')}
                     value={formData.city}
                     onChange={(e) => {
+                      setKommuneFromApiMissing(false)
                       setFormData((prev) => ({ ...prev, city: e.target.value }))
                       scheduleGeocode()
                     }}
                     onBlur={scheduleGeocode}
                     required
                   />
+                  {kommuneFromApiMissing && (
+                    <p
+                      style={{
+                        fontSize: '0.8rem',
+                        color: 'var(--color-warning, #b45309)',
+                        marginTop: 6,
+                        marginBottom: 0,
+                      }}
+                    >
+                      {t('regKommuneManualHint')}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="label">{t('regPostnrLabel')}</label>
@@ -1168,9 +1191,15 @@ export default function HomeownerRegister() {
                     min={0}
                     max={999999}
                     value={formData.price_monthly_long}
-                    onChange={(e) =>
-                      setFormData({ ...formData, price_monthly_long: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const v = e.target.value
+                      const n = parseFloat(v) || 0
+                      setFormData((prev) => ({
+                        ...prev,
+                        price_monthly_long: v,
+                        ...(n <= 0 ? { deposit_amount: '', deposit_guarantee: [] } : {}),
+                      }))
+                    }}
                   />
                 </div>
               </div>
@@ -1204,46 +1233,48 @@ export default function HomeownerRegister() {
                 </div>
               </div>
 
-              <div style={{ marginTop: 'var(--space-6)' }}>
-                <label className="label">{t('regDepositSection')}</label>
-                <input
-                  type="number"
-                  className="input"
-                  placeholder={t('placeholderDeposit')}
-                  min={0}
-                  max={9999999}
-                  value={formData.deposit_amount}
-                  onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
-                />
-                <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
-                  {[
-                    'Godtar depositumsgaranti fra Nav',
-                    'Godtar depositumsgaranti fra andre tilbydere',
-                    'Godtar ordinært depositum',
-                  ].map((g) => (
-                    <label
-                      key={g}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-3)',
-                        padding: 'var(--space-2)',
-                        background: 'rgba(255,255,255,0.03)',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.deposit_guarantee.includes(g)}
-                        onChange={() => toggleMultiSelect('deposit_guarantee', g)}
-                      />
-                      <span>{g}</span>
-                    </label>
-                  ))}
+              {(parseFloat(String(formData.price_monthly_long)) || 0) > 0 && (
+                <div style={{ marginTop: 'var(--space-6)' }}>
+                  <label className="label">{t('regDepositSection')}</label>
+                  <input
+                    type="number"
+                    className="input"
+                    placeholder={t('placeholderDeposit')}
+                    min={0}
+                    max={9999999}
+                    value={formData.deposit_amount}
+                    onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
+                  />
+                  <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+                    {[
+                      'Godtar depositumsgaranti fra Nav',
+                      'Godtar depositumsgaranti fra andre tilbydere',
+                      'Godtar ordinært depositum',
+                    ].map((g) => (
+                      <label
+                        key={g}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 'var(--space-3)',
+                          padding: 'var(--space-2)',
+                          background: 'rgba(255,255,255,0.03)',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.deposit_guarantee.includes(g)}
+                          onChange={() => toggleMultiSelect('deposit_guarantee', g)}
+                        />
+                        <span>{g}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="form-grid" style={{ marginTop: 'var(--space-6)' }}>
                 <div>

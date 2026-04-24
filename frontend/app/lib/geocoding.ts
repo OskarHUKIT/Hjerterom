@@ -58,7 +58,9 @@ function extractHit(hit: Record<string, unknown>) {
   const postal = String(a.postnummer || '')
     .replace(/\s/g, '')
     .slice(0, 4)
-  const city = toTitleCaseNo(a.poststed || a.kommunenavn || '').trim()
+  /** Kommunefelt: kun Kartverkets kommunenavn (aldri poststed). */
+  const city = toTitleCaseNo(a.kommunenavn || '').trim()
+  const poststedLabel = toTitleCaseNo(a.poststed || '').trim()
   const lat = Number(a.representasjonspunkt?.lat)
   const lon = Number(a.representasjonspunkt?.lon)
   const street =
@@ -66,13 +68,13 @@ function extractHit(hit: Record<string, unknown>) {
     (a.adressenavn
       ? `${a.adressenavn}${a.nummer != null ? ` ${a.nummer}` : ''}${a.bokstav || ''}`
       : '')
-  return { postal, city, lat, lon, street }
+  return { postal, city, lat, lon, street, poststedLabel }
 }
 
 /** Konverter ett råresultat fra Geonorge til vår interne GeocodeHit-type. */
 export function rawResultToGeocodeHit(hit: Record<string, unknown>): GeocodeHit {
-  const { postal, city, lat, lon, street } = extractHit(hit)
-  const parts = [street, postal, city].filter(Boolean)
+  const { postal, city, lat, lon, street, poststedLabel } = extractHit(hit)
+  const parts = [street, postal, poststedLabel || city].filter(Boolean)
   const displayLabel = parts.length ? parts.join(' · ') : 'Treff'
   return {
     lat,

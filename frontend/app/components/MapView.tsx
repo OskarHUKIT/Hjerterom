@@ -23,16 +23,12 @@ const formidletIcon = L.divIcon({
   popupAnchor: [1, -34],
 })
 
-/** Pin-form som standardmarkøren, i rødt for utilgjengelige boliger. */
+/** Samme anker som standardmarkør, rødtonet filter for utilgjengelige boliger. */
 const utilgjengeligIcon = L.divIcon({
   className: 'leaflet-div-icon map-marker-pin',
-  html: `<div class="map-pin map-pin-red" style="
-    width:26px;height:38px;background:#ef4444;border:2px solid #b91c1c;
-    border-radius:50% 50% 50% 0;transform:rotate(-45deg);
-    box-shadow:0 2px 6px rgba(0,0,0,0.25);
-  "></div>`,
-  iconSize: [26, 38],
-  iconAnchor: [13, 38],
+  html: `<img src="https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png" alt="" style="width:25px;height:41px;display:block;filter:hue-rotate(-18deg) saturate(2.2) brightness(0.92);" />`,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
   popupAnchor: [1, -34],
 })
 

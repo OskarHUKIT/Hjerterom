@@ -57,9 +57,11 @@ import { getOverviewBackLink } from '../../lib/overviewBackNav'
 import type { PostgrestError } from '@supabase/supabase-js'
 import { logError } from '@/app/lib/appLogger'
 import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
+import { supabaseErrorMessage } from '../../lib/supabaseErrorMessage'
+import { dayAvailabilityToneForIso } from '../../lib/listingDayAvailabilityTone'
 
 function navDbErrMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err)
+  return supabaseErrorMessage(err)
 }
 
 type NavDbViewMode = 'table' | 'map' | 'timeline' | 'list'
@@ -962,6 +964,7 @@ export default function NavDatabase() {
         .replace('{start}', formatDateNo(formidletStart))
         .replace('{end}', formatDateNo(formidletEnd))
     )
+    if (!attachSchema) return
 
     setFormidletSending(true)
     try {
@@ -2041,6 +2044,9 @@ export default function NavDatabase() {
                     onChange={setFormidletStart}
                     max={formidletEnd || undefined}
                     placeholder={t('dateInputPlaceholder')}
+                    calendarDayTone={(iso) =>
+                      dayAvailabilityToneForIso(iso, availability[formidletModalListing.id] ?? [])
+                    }
                   />
                 </div>
                 <div>
@@ -2058,6 +2064,9 @@ export default function NavDatabase() {
                     onChange={setFormidletEnd}
                     min={formidletStart || undefined}
                     placeholder={t('dateInputPlaceholder')}
+                    calendarDayTone={(iso) =>
+                      dayAvailabilityToneForIso(iso, availability[formidletModalListing.id] ?? [])
+                    }
                   />
                 </div>
               </div>
@@ -2208,6 +2217,9 @@ export default function NavDatabase() {
                 onChange={setFormidletExtendEnd}
                 min={formidletExtendModal.period.end_date}
                 placeholder={t('dateInputPlaceholder')}
+                calendarDayTone={(iso) =>
+                  dayAvailabilityToneForIso(iso, availability[formidletExtendModal.listing.id] ?? [])
+                }
               />
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
@@ -2868,7 +2880,7 @@ export default function NavDatabase() {
                 >
                   <Info size={18} aria-hidden />
                 </button>
-                <div style={{ minWidth: '800px', paddingRight: '44px' }}>
+                <div style={{ minWidth: '860px', paddingRight: '44px' }}>
                   <div
                     style={{
                       display: 'flex',
@@ -2881,7 +2893,7 @@ export default function NavDatabase() {
                     <div
                       style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
                     >
-                      <div style={{ width: '200px' }}></div>
+                      <div style={{ width: '220px', flexShrink: 0 }}></div>
                       <div style={{ flex: 1, display: 'flex' }}>
                         {Array.from({ length: 60 }).map((_, i) => {
                           const d = new Date()
@@ -2927,7 +2939,8 @@ export default function NavDatabase() {
                     <div style={{ display: 'flex' }}>
                       <div
                         style={{
-                          width: '200px',
+                          width: '220px',
+                          flexShrink: 0,
                           fontWeight: 700,
                           fontSize: '0.75rem',
                           opacity: 0.5,
@@ -2997,8 +3010,8 @@ export default function NavDatabase() {
                         key={l.id}
                         style={{
                           display: 'flex',
-                          alignItems: 'center',
-                          height: '28px',
+                          alignItems: 'stretch',
+                          minHeight: '28px',
                           background: 'rgba(255,255,255,0.01)',
                           borderRadius: '4px',
                         }}
@@ -3007,20 +3020,63 @@ export default function NavDatabase() {
                           onClick={() => router.push(`/listings/${l.id}?view=nav`)}
                           onMouseEnter={() => prefetchListingDetail(l.id)}
                           style={{
-                            width: '200px',
+                            width: '220px',
+                            flexShrink: 0,
                             fontSize: '0.7rem',
-                            padding: '0 8px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
+                            padding: '4px 8px',
                             cursor: 'pointer',
                             fontWeight: 500,
                             opacity: 0.9,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            gap: 2,
+                            boxSizing: 'border-box',
                           }}
                         >
-                          {l.address}
+                          <div
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {l.address}
+                          </div>
+                          {ALL_COLUMNS.filter(
+                            (col) => visibleColumns.includes(col.id) && col.id !== 'address'
+                          ).map((col) => (
+                            <div
+                              key={col.id}
+                              style={{
+                                fontSize: '0.6rem',
+                                opacity: 0.88,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {col.id === 'status'
+                                ? translateValue(
+                                    col.id,
+                                    l[col.id],
+                                    l,
+                                    getStatusForToday(l.id, availability)
+                                  )
+                                : translateValue(col.id, l[col.id], l)}
+                            </div>
+                          ))}
                         </div>
-                        <div style={{ flex: 1, display: 'flex', height: '20px', gap: '1px' }}>
+                        <div
+                          style={{
+                            flex: 1,
+                            display: 'flex',
+                            height: '20px',
+                            gap: '1px',
+                            alignSelf: 'center',
+                          }}
+                        >
                           {Array.from({ length: 60 }).map((_, i) => {
                             const date = new Date()
                             date.setHours(0, 0, 0, 0)

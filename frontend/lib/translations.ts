@@ -782,6 +782,17 @@ export const translations = {
     loginPlaceholderEmail: 'din@epost.no',
     loginPasswordMask: '••••••••',
     calendarOpenAria: 'Åpne kalender',
+    dateCalendarToneLegendAria:
+      'Dager er fargekodet etter tilgjengelhet for boligen: turkis tilgjengelig, rød utilgjengelig, blå formidlet, mørkerød konflikt.',
+    listingNotFoundTitle: 'Boligen ble ikke funnet',
+    listingNotFoundBody: 'Sjekk lenken, eller gå tilbake og velg bolig på nytt.',
+    listingNavEmptyListingBody:
+      'Boligen finnes ikke i boligbanken for din konto, eller du har ikke tilgang. Sjekk at du er koblet til riktig kommune.',
+    regKommuneManualHint:
+      'Kartverket returnerte ikke kommunenavn. Skriv inn kommune (kommunenavn) manuelt i feltet under.',
+    regKommuneRequiredBeforeSave: 'Du må fylle inn kommune før du kan lagre.',
+    listingImageMoveEarlier: 'Flytt bilde fram i rekkefølgen',
+    listingImageMoveLater: 'Flytt bilde bak i rekkefølgen',
     dateOnOrAfter: 'Etter eller lik {date}',
     dateOnOrBefore: 'Før eller lik {date}',
     dbPlaceholderEg2: 'F.eks. 2',
@@ -1704,6 +1715,17 @@ export const translations = {
     loginPlaceholderEmail: 'du@epoasta.no',
     loginPasswordMask: '••••••••',
     calendarOpenAria: 'Raba beaivekalendera',
+    dateCalendarToneLegendAria:
+      'Beivvit leat ivdnegoahtán hámi mielde: turkis hábmos, ruoksat ii hábmos, alit formidleren, seavdnjadas ruoksadis konflikhta.',
+    listingNotFoundTitle: 'Dávir ii gávdnon',
+    listingNotFoundBody: 'Geahččal liŋkka, dahje máhccat ja vállje dávvir ođđasit.',
+    listingNavEmptyListingBody:
+      'Dávir ii gávdno dávvirbankas du kontos, dahje du ii leat bajásbealdemiella. Geahččal leago don čadnon rivttes kommuvdnii.',
+    regKommuneManualHint:
+      'Kartverket ii máhcahan kommuvdnamáinnai. Čále kommuvdnamánnai manuálalaččat vuollásis.',
+    regKommuneRequiredBeforeSave: 'Don fertet čállit kommuvdnamáinnai ovdal go sáhttát vurket.',
+    listingImageMoveEarlier: 'Sirdde govva ovdan',
+    listingImageMoveLater: 'Sirdde govva maŋŋil',
     dateOnOrAfter: 'Maŋŋel dahje seammá {date}',
     dateOnOrBefore: 'Ovdal dahje seammá {date}',
     dbPlaceholderEg2: 'Ovd. 2',
@@ -2634,6 +2656,17 @@ export const translations = {
     loginPlaceholderEmail: 'you@example.com',
     loginPasswordMask: '••••••••',
     calendarOpenAria: 'Open calendar',
+    dateCalendarToneLegendAria:
+      'Days are colour-coded for this listing: teal available, red unavailable, blue mediated, dark red conflict.',
+    listingNotFoundTitle: 'Listing not found',
+    listingNotFoundBody: 'Check the link, or go back and pick a listing again.',
+    listingNavEmptyListingBody:
+      'This listing is not in the housing bank for your account, or you do not have access. Check that you are assigned to the correct municipality.',
+    regKommuneManualHint:
+      'Kartverket did not return a municipality name. Enter the municipality (kommune) manually in the field below.',
+    regKommuneRequiredBeforeSave: 'You must enter the municipality before you can save.',
+    listingImageMoveEarlier: 'Move image earlier in order',
+    listingImageMoveLater: 'Move image later in order',
     dateOnOrAfter: 'On or after {date}',
     dateOnOrBefore: 'On or before {date}',
     dbPlaceholderEg2: 'e.g. 2',

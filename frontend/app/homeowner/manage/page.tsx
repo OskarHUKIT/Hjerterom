@@ -35,6 +35,7 @@ import BottomSheet from '../../components/BottomSheet'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
 import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
 import { logError } from '@/app/lib/appLogger'
+import { dayAvailabilityToneForIso } from '../../lib/listingDayAvailabilityTone'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
@@ -1489,6 +1490,9 @@ export default function HomeownerManage() {
                             onChange={(v) => setNewPeriod({ ...newPeriod, start: v })}
                             max={newPeriod.end || undefined}
                             placeholder={t('dateInputPlaceholder')}
+                            calendarDayTone={(iso) =>
+                              dayAvailabilityToneForIso(iso, availability[listing.id] ?? [])
+                            }
                           />
                         </div>
                         <div style={{ flex: 1 }}>
@@ -1503,6 +1507,9 @@ export default function HomeownerManage() {
                             onChange={(v) => setNewPeriod({ ...newPeriod, end: v })}
                             min={newPeriod.start || undefined}
                             placeholder={t('dateInputPlaceholder')}
+                            calendarDayTone={(iso) =>
+                              dayAvailabilityToneForIso(iso, availability[listing.id] ?? [])
+                            }
                           />
                         </div>
                         <button
