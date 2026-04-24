@@ -62,49 +62,6 @@ async function fetchKommuneStaffIdsForLandlord(ownerId: string): Promise<string[
     .map((p) => p.id)
 }
 
-/** Én «bøtte» per kommune (listing.city) der det finnes minst én saksbehandler. */
-type LandlordKommuneBucket = {
-  city: string
-  cityDisplay: string
-  staffIds: string[]
-}
-
-async function fetchKommuneStaffBucketsForLandlord(
-  ownerId: string
-): Promise<LandlordKommuneBucket[]> {
-  const { data: listings } = await supabase.from('listings').select('city').eq('owner_id', ownerId)
-  const cityDisplayByLower = new Map<string, string>()
-  for (const l of listings || []) {
-    const raw = (l.city || '').trim()
-    if (!raw) continue
-    const low = raw.toLowerCase()
-    if (!cityDisplayByLower.has(low)) cityDisplayByLower.set(low, raw)
-  }
-  if (cityDisplayByLower.size === 0) return []
-
-  const { data: staff } = await supabase
-    .from('profiles')
-    .select('id, kommune_region, role')
-    .in('role', ['kommune_ansatt', 'kommune_admin'])
-
-  const buckets: LandlordKommuneBucket[] = []
-  for (const [cityLower, cityDisplay] of cityDisplayByLower) {
-    const staffIds = (staff || [])
-      .filter((p) => parseKommuneRegions(p.kommune_region).includes(cityLower))
-      .sort((a, b) => {
-        if (a.role === 'kommune_admin' && b.role !== 'kommune_admin') return -1
-        if (b.role === 'kommune_admin' && a.role !== 'kommune_admin') return 1
-        return 0
-      })
-      .map((p) => p.id)
-    if (staffIds.length > 0) {
-      buckets.push({ city: cityLower, cityDisplay, staffIds })
-    }
-  }
-  buckets.sort((a, b) => a.cityDisplay.localeCompare(b.cityDisplay, 'nb'))
-  return buckets
-}
-
 function MessagesContent() {
   const { t } = useLanguage()
   const router = useRouter()
@@ -140,10 +97,10 @@ function MessagesContent() {
   const [messagesPickerTab, setMessagesPickerTab] = useState<'landlords' | 'staff'>('landlords')
   const [messagesContactSearch, setMessagesContactSearch] = useState('')
   const messagesScrollRef = useRef<HTMLDivElement>(null)
-  /** Utleier: saksbehandlere gruppert på listing.city (kun når flere kommuner treffer). */
-  const [landlordKommuneBuckets, setLandlordKommuneBuckets] = useState<LandlordKommuneBucket[]>([])
-  const [landlordSelectedCityKey, setLandlordSelectedCityKey] = useState<string | null>(null)
-  const [landlordBucketsLoaded, setLandlordBucketsLoaded] = useState(false)
+  /** Utleier: alle saksbehandlere/admin som overlapper boligenes kommuner (én delt kanal). */
+  const [landlordKommuneStaffIds, setLandlordKommuneStaffIds] = useState<string[]>([])
+  /** Visningsnavn for avsender (kollega i delt tråd / saksbehandler fra utleiers perspektiv). */
+  const [threadSenderLabelById, setThreadSenderLabelById] = useState<Record<string, string>>({})
   const isKommune = role === 'kommune_ansatt' || role === 'kommune_admin'
   const peerIsKommuneColleague = peerRole === 'kommune_ansatt' || peerRole === 'kommune_admin'
   const readonlyBlocksReply =
@@ -162,30 +119,25 @@ function MessagesContent() {
 
   useEffect(() => {
     if (!profileResolved || !currentUser?.id || isKommune) {
-      setLandlordKommuneBuckets([])
-      setLandlordSelectedCityKey(null)
-      setLandlordBucketsLoaded(false)
+      setLandlordKommuneStaffIds([])
       return
     }
     let cancelled = false
     void (async () => {
-      setLandlordBucketsLoaded(false)
-      const buckets = await fetchKommuneStaffBucketsForLandlord(currentUser.id)
+      const ids = await fetchKommuneStaffIdsForLandlord(currentUser.id)
       if (cancelled) return
-      setLandlordKommuneBuckets(buckets)
-      if (buckets.length > 1) {
-        setLandlordSelectedCityKey((prev) =>
-          prev && buckets.some((b) => b.city === prev) ? prev : buckets[0].city
-        )
-      } else {
-        setLandlordSelectedCityKey(null)
-      }
-      setLandlordBucketsLoaded(true)
+      setLandlordKommuneStaffIds(ids)
     })()
     return () => {
       cancelled = true
     }
   }, [profileResolved, currentUser?.id, isKommune])
+
+  /** Utleier: all dialog går i én delt kanal — fjern ?with= (gamle bokmerker). */
+  useEffect(() => {
+    if (!profileResolved || !currentUser || isKommune || !withUserId) return
+    router.replace('/nav/messages')
+  }, [profileResolved, currentUser, isKommune, withUserId, router])
 
   useEffect(() => {
     if (!profileResolved) return
@@ -292,26 +244,6 @@ function MessagesContent() {
     }
   }, [currentUser, isKommune, myKommuneRegion])
 
-  /** Én felles tråd: fjern ?with= mot saksbehandler (gamle bokmerker). */
-  useEffect(() => {
-    if (!profileResolved || !currentUser || isKommune || !withUserId) return
-    let cancelled = false
-    void (async () => {
-      const { data: p } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', withUserId)
-        .maybeSingle()
-      if (cancelled) return
-      if (p?.role && isKommuneStaffRole(p.role)) {
-        router.replace('/nav/messages')
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [profileResolved, currentUser, isKommune, withUserId, router])
-
   useEffect(() => {
     if (!currentUser || loading) return
     if (role == null) return
@@ -326,39 +258,32 @@ function MessagesContent() {
     let cancelled = false
 
     const fetchConversationsKommune = async () => {
-      const { data: msgs } = await supabase
-        .from('chat_messages')
-        .select('sender_id, receiver_id, content, created_at, image_urls')
-        .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
-        .order('created_at', { ascending: false })
-
-      if (!msgs?.length) {
+      const { data: rows, error: sumErr } = await supabase.rpc('get_kommune_landlord_thread_summaries')
+      if (sumErr) {
+        devWarn('[Boly/chat] get_kommune_landlord_thread_summaries', sumErr)
+        setConversations([])
+        return
+      }
+      if (!rows?.length) {
         setConversations([])
         return
       }
 
-      const peerIds = new Set<string>()
-      msgs.forEach((m) => {
-        const peer = m.sender_id === currentUser.id ? m.receiver_id : m.sender_id
-        if (peer) peerIds.add(peer)
-        else if (m.sender_id !== currentUser.id) peerIds.add(m.sender_id)
-      })
-
-      const ids = Array.from(peerIds)
+      const ids = [...new Set((rows as { landlord_id: string }[]).map((r) => r.landlord_id))]
       let nameById = new Map<string, string>()
       if (ids.length > 0) {
         const { data: batchRows, error: batchErr } = await supabase.rpc('get_user_display_names_batch', {
           p_user_ids: ids,
         })
         if (batchErr) {
-          const rows = await Promise.all(
+          const resolved = await Promise.all(
             ids.map(async (pid) => {
               const { data: name } = await supabase.rpc('get_user_display_name', { p_user_id: pid })
               return { user_id: pid, display_name: name ?? null }
             })
           )
           nameById = new Map(
-            rows.map((r) => [r.user_id, r.display_name ?? 'Ukjent bruker'])
+            resolved.map((r) => [r.user_id, r.display_name ?? 'Ukjent bruker'])
           )
         } else {
           nameById = new Map(
@@ -370,17 +295,17 @@ function MessagesContent() {
         }
       }
 
-      const peers = ids.map((pid) => {
-        const last = msgs.find((m) => m.sender_id === pid || m.receiver_id === pid)
-        return {
-          userId: pid,
-          name: nameById.get(pid) ?? 'Ukjent bruker',
-          lastMessage:
-            (last?.content?.trim()?.slice(0, 40) || (last?.image_urls?.length ? '[Bilde]' : '')) +
-              ((last?.content?.length ?? 0) > 40 ? '...' : '') || '',
-          lastAt: last?.created_at || '',
+      const peers = (rows as { landlord_id: string; last_at: string; last_preview: string | null }[]).map(
+        (r) => {
+          const raw = (r.last_preview ?? '').trim()
+          return {
+            userId: r.landlord_id,
+            name: nameById.get(r.landlord_id) ?? 'Ukjent bruker',
+            lastMessage: raw.length > 40 ? `${raw.slice(0, 40)}…` : raw,
+            lastAt: r.last_at || '',
+          }
         }
-      })
+      )
       setConversations(peers.sort((a, b) => (b.lastAt > a.lastAt ? 1 : -1)))
     }
 
@@ -419,63 +344,53 @@ function MessagesContent() {
     }
 
     const fetchMessages = async () => {
-      // Do not block on `landlordBucketsLoaded`: same staff set as buckets uses `fetchKommuneStaffIdsForLandlord`
-      // when bucket list is still empty; multi-city UI refines after buckets resolve (effect re-runs).
       let query = supabase.from('chat_messages').select('*')
       if (isHomeownerChat) {
-        if (withUserId) {
+        const staffIds =
+          landlordKommuneStaffIds.length > 0
+            ? landlordKommuneStaffIds
+            : await fetchKommuneStaffIdsForLandlord(currentUser.id)
+        if (staffIds.length === 0) {
           query = query.or(
-            `and(sender_id.eq.${currentUser.id},receiver_id.eq.${withUserId}),and(sender_id.eq.${withUserId},receiver_id.eq.${currentUser.id})`
+            `and(sender_id.eq.${currentUser.id},receiver_id.is.null),receiver_id.eq.${currentUser.id}`
           )
         } else {
-          let staffIds: string[] = []
-          if (landlordKommuneBuckets.length > 1 && landlordSelectedCityKey) {
-            const b = landlordKommuneBuckets.find((x) => x.city === landlordSelectedCityKey)
-            staffIds = b?.staffIds ?? []
-          } else if (landlordKommuneBuckets.length === 1) {
-            staffIds = landlordKommuneBuckets[0].staffIds
-          } else {
-            staffIds = await fetchKommuneStaffIdsForLandlord(currentUser.id)
-          }
-          if (staffIds.length === 0) {
-            query = query.or(
-              `and(sender_id.eq.${currentUser.id},receiver_id.is.null),receiver_id.eq.${currentUser.id}`
-            )
-          } else {
-            const inList = staffIds.join(',')
-            query = query.or(
-              `and(sender_id.eq.${currentUser.id},receiver_id.is.null),and(sender_id.eq.${currentUser.id},receiver_id.in.(${inList})),receiver_id.eq.${currentUser.id}`
-            )
-          }
+          const inList = staffIds.join(',')
+          query = query.or(
+            `and(sender_id.eq.${currentUser.id},receiver_id.is.null),and(sender_id.eq.${currentUser.id},receiver_id.in.(${inList})),and(sender_id.in.(${inList}),receiver_id.eq.${currentUser.id})`
+          )
         }
       } else {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc(
+          'get_kommune_landlord_thread_messages',
+          { p_landlord_id: withUserId }
+        )
+        if (!rpcErr && rpcData != null) {
+          setMessages((rpcData as any[]) || [])
+          return
+        }
+        if (rpcErr) devWarn('[Boly/chat] get_kommune_landlord_thread_messages', rpcErr)
         query = query.or(
           `and(sender_id.eq.${currentUser.id},receiver_id.eq.${withUserId}),and(sender_id.eq.${withUserId},receiver_id.eq.${currentUser.id}),and(sender_id.eq.${withUserId},receiver_id.is.null)`
         )
+        const { data } = await query.order('created_at', { ascending: true })
+        setMessages(data || [])
+        return
       }
       const { data } = await query.order('created_at', { ascending: true })
       setMessages(data || [])
     }
 
-    if (withUserId) {
+    if (isHomeownerChat) {
+      setOtherUser({ id: null, name: t('messagesLandlordSharedChannelTitle') })
+      void fetchMessages()
+    } else if (withUserId) {
       void Promise.all([
         supabase.rpc('get_user_display_name', { p_user_id: withUserId }).then(({ data: name }) => {
           setOtherUser({ id: withUserId, name: name ?? 'Ukjent bruker' })
         }),
         fetchMessages(),
       ])
-    } else {
-      const b =
-        landlordKommuneBuckets.length > 1 && landlordSelectedCityKey
-          ? landlordKommuneBuckets.find((x) => x.city === landlordSelectedCityKey)
-          : null
-      setOtherUser({
-        id: null,
-        name: b
-          ? `${t('messagesKommuneBroadcast')} (${b.cityDisplay})`
-          : t('messagesKommuneBroadcast'),
-      })
-      void fetchMessages()
     }
 
     const onVisibleRefetch = () => {
@@ -484,12 +399,23 @@ function MessagesContent() {
     document.addEventListener('visibilitychange', onVisibleRefetch)
 
     const channelId = isHomeownerChat
-      ? `chat:${currentUser.id}:kommune:${withUserId || landlordSelectedCityKey || 'all'}`
+      ? `chat:${currentUser.id}:kommune:shared`
       : `chat:${currentUser.id}:${withUserId}`
     const sub = supabase
       .channel(channelId)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, () =>
-        void fetchMessages()
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+        (payload) => {
+          const row = payload.new as { sender_id?: string; receiver_id?: string | null }
+          if (!row?.sender_id) return
+          if (isKommuneChat && withUserId) {
+            if (row.sender_id !== withUserId && row.receiver_id !== withUserId) return
+          } else if (isHomeownerChat) {
+            if (row.sender_id !== currentUser.id && row.receiver_id !== currentUser.id) return
+          }
+          void fetchMessages()
+        }
       )
       .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') return
@@ -511,10 +437,56 @@ function MessagesContent() {
     withUserId,
     isKommune,
     t,
-    landlordKommuneBuckets,
-    landlordSelectedCityKey,
-    landlordBucketsLoaded,
+    landlordKommuneStaffIds,
   ])
+
+  useEffect(() => {
+    if (!bootOk?.user?.id || messages.length === 0) {
+      setThreadSenderLabelById({})
+      return
+    }
+    const myId = bootOk.user.id
+    const need = new Set<string>()
+    if (isKommune && withUserId) {
+      for (const m of messages) {
+        if (m.sender_id !== myId && m.sender_id !== withUserId) need.add(m.sender_id)
+      }
+    } else if (!isKommune) {
+      const staffSet = new Set(landlordKommuneStaffIds)
+      for (const m of messages) {
+        if (m.sender_id === myId) continue
+        if (staffSet.size === 0 || staffSet.has(m.sender_id)) need.add(m.sender_id)
+      }
+    }
+    if (need.size === 0) {
+      setThreadSenderLabelById({})
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      const ids = [...need]
+      const { data: batchRows, error: batchErr } = await supabase.rpc('get_user_display_names_batch', {
+        p_user_ids: ids,
+      })
+      if (cancelled) return
+      const next: Record<string, string> = {}
+      if (batchErr) {
+        for (const pid of ids) {
+          const { data: name } = await supabase.rpc('get_user_display_name', { p_user_id: pid })
+          if (!cancelled) next[pid] = (name as string | null)?.trim() || 'Ukjent bruker'
+        }
+      } else {
+        for (const r of batchRows || []) {
+          const row = r as { user_id: string; display_name: string | null }
+          next[row.user_id] = row.display_name?.trim() || 'Ukjent bruker'
+        }
+      }
+      if (!cancelled) setThreadSenderLabelById(next)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [messages, isKommune, withUserId, bootOk, landlordKommuneStaffIds])
 
   useEffect(() => {
     if (!currentUser) return
@@ -568,22 +540,11 @@ function MessagesContent() {
     if (readonlyBlocksReply) return
     setSending(true)
     let effectiveReceiver: string | null = withUserId ?? null
+    /** DB-trigger varsler kommune når receiver_id er null (delt kanal). */
     let notifyUserIds: string[] = []
-    if (!isKommune && !effectiveReceiver) {
-      if (landlordKommuneBuckets.length > 1 && landlordSelectedCityKey) {
-        const b = landlordKommuneBuckets.find((x) => x.city === landlordSelectedCityKey)
-        if (b?.staffIds?.length) {
-          effectiveReceiver = b.staffIds[0]
-          notifyUserIds = [...b.staffIds]
-        }
-      } else if (landlordKommuneBuckets.length === 1 && landlordKommuneBuckets[0].staffIds.length) {
-        effectiveReceiver = landlordKommuneBuckets[0].staffIds[0]
-        notifyUserIds = [...landlordKommuneBuckets[0].staffIds]
-      } else {
-        const all = await fetchKommuneStaffIdsForLandlord(currentUser.id)
-        effectiveReceiver = all[0] ?? null
-        notifyUserIds = all.length ? [...all] : effectiveReceiver ? [effectiveReceiver] : []
-      }
+    if (!isKommune) {
+      effectiveReceiver = null
+      notifyUserIds = []
     } else if (effectiveReceiver) {
       notifyUserIds = [effectiveReceiver]
     }
@@ -1236,71 +1197,9 @@ function MessagesContent() {
                     ? otherUser
                       ? `Chat med ${otherUser.name}`
                       : 'Chat'
-                    : otherUser
-                      ? `${otherUser.name}`
-                      : t('messagesKommuneBroadcast')}
+                    : otherUser?.name || t('messagesLandlordSharedChannelTitle')}
                 </span>
               </div>
-              {!isKommune && !withUserId && landlordKommuneBuckets.length > 1 && (
-                <div
-                  role="group"
-                  aria-label={t('messagesLandlordRegionPickerAria')}
-                  style={{
-                    padding: 'var(--space-3) var(--space-4)',
-                    borderBottom: '1px solid var(--border-subtle)',
-                    background: 'var(--bg-subtle)',
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: '0 0 var(--space-2)',
-                      fontSize: '0.8125rem',
-                      lineHeight: 1.45,
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    {t('messagesLandlordMultiRegionHint')}
-                  </p>
-                  <div
-                    style={{
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      marginBottom: 'var(--space-2)',
-                      color: 'var(--text-body)',
-                    }}
-                  >
-                    {t('messagesSendToKommuneLabel')}
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {landlordKommuneBuckets.map((b) => {
-                      const selected = landlordSelectedCityKey === b.city
-                      return (
-                        <button
-                          key={b.city}
-                          type="button"
-                          onClick={() => setLandlordSelectedCityKey(b.city)}
-                          style={{
-                            padding: '8px 14px',
-                            borderRadius: '999px',
-                            border: selected
-                              ? '1px solid rgba(59, 130, 246, 0.65)'
-                              : '1px solid var(--border-subtle)',
-                            background: selected
-                              ? 'rgba(59, 130, 246, 0.2)'
-                              : 'rgba(255,255,255,0.04)',
-                            color: 'var(--text-main)',
-                            fontWeight: 600,
-                            fontSize: '0.875rem',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {b.cityDisplay}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
               {showReadonlyBanner && (
                 <div
                   role="status"
@@ -1332,6 +1231,15 @@ function MessagesContent() {
                 {messages.map((m) => {
                   const isMe = m.sender_id === bootOk.user.id
                   const urls = (m.image_urls || []).filter(Boolean)
+                  const colleagueLabel =
+                    isKommune &&
+                    withUserId &&
+                    !isMe &&
+                    m.sender_id !== withUserId &&
+                    threadSenderLabelById[m.sender_id]
+                  const staffLabelLandlordView =
+                    !isKommune && !isMe && threadSenderLabelById[m.sender_id]
+                  const senderCaption = colleagueLabel || staffLabelLandlordView || null
                   return (
                     <div
                       key={m.id}
@@ -1344,6 +1252,19 @@ function MessagesContent() {
                         border: isMe ? 'none' : '1px solid var(--border-subtle)',
                       }}
                     >
+                      {senderCaption ? (
+                        <div
+                          style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 600,
+                            opacity: 0.72,
+                            marginBottom: 6,
+                            letterSpacing: '0.02em',
+                          }}
+                        >
+                          {senderCaption}
+                        </div>
+                      ) : null}
                       {urls.length > 0 && (
                         <div
                           style={{

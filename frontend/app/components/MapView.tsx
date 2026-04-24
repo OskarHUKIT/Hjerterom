@@ -5,46 +5,25 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../context/LanguageContext'
+import { listingAvailabilityStatusToday } from '../lib/listingAvailabilityStatusToday'
 
-/** Standard pin (blå/grønn) for tilgjengelige boliger – uten skygge for ryddig utseende. */
-const icon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-})
-
-/** Samme pin som tilgjengelig, men grå (for formidlede boliger). */
-const formidletIcon = L.divIcon({
-  className: 'leaflet-div-icon map-marker-pin',
-  html: `<img src="https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png" alt="" style="width:25px;height:41px;filter:grayscale(1) brightness(0.55) contrast(1.15);display:block;" />`,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-})
-
-/** Samme anker som standardmarkør, rødtonet filter for utilgjengelige boliger. */
-const utilgjengeligIcon = L.divIcon({
-  className: 'leaflet-div-icon map-marker-pin',
-  html: `<img src="https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png" alt="" style="width:25px;height:41px;display:block;filter:hue-rotate(-18deg) saturate(2.2) brightness(0.92);" />`,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-})
-
-function getStatusForToday(
-  listingId: string,
-  availMap: Record<string, any[]>
-): 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null {
-  const today = new Date().toISOString().slice(0, 10)
-  const periods = (availMap[listingId] || []).filter(
-    (p: any) => p.start_date <= today && p.end_date >= today
-  )
-  if (periods.length === 0) return null
-  if (periods.some((p: any) => p.status === 'Formidla')) return 'Formidla'
-  if (periods.some((p: any) => p.status === 'Utilgjengelig')) return 'Utilgjengelig'
-  return 'Tilgjengelig'
+/** Kartnål-farger samsvarer med status for dagens dato (lokal tid). */
+function makePinDivIcon(fill: string, stroke: string): L.DivIcon {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="41" viewBox="0 0 28 41" aria-hidden="true"><path fill="${fill}" stroke="${stroke}" stroke-width="1" d="M14 41S1 24.5 1 12.5C1 6 6.5 1 14 1s13 5 13 11.5C27 24.5 14 41 14 41z"/><circle fill="white" cx="14" cy="13" r="5"/></svg>`
+  const uri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+  return L.divIcon({
+    className: 'leaflet-div-icon map-marker-pin',
+    html: `<img src="${uri}" alt="" width="28" height="41" style="display:block;" />`,
+    iconSize: [28, 41],
+    iconAnchor: [14, 41],
+    popupAnchor: [0, -34],
+  })
 }
+
+const pinTilgjengelig = makePinDivIcon('#14b8a6', '#0f766e')
+const pinFormidlet = makePinDivIcon('#0ea5e9', '#0369a1')
+const pinUtilgjengelig = makePinDivIcon('#ef4444', '#b91c1c')
+const pinIngenPeriode = makePinDivIcon('#94a3b8', '#64748b')
 
 interface MapViewProps {
   listings: any[]
@@ -85,13 +64,15 @@ export default function MapView({
 
       if (!isNaN(lat) && !isNaN(lon)) {
         boundsPoints.push([lat, lon])
-        const statusToday = getStatusForToday(l.id, availability)
+        const statusToday = listingAvailabilityStatusToday(l.id, availability)
         const markerIcon =
           statusToday === 'Formidla'
-            ? formidletIcon
+            ? pinFormidlet
             : statusToday === 'Utilgjengelig'
-              ? utilgjengeligIcon
-              : icon
+              ? pinUtilgjengelig
+              : statusToday === 'Tilgjengelig'
+                ? pinTilgjengelig
+                : pinIngenPeriode
         const marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map)
 
         // DOM-API (textContent) — unngår XSS dersom adresse/pris noen gang skulle være upålitelig
@@ -153,7 +134,6 @@ export default function MapView({
       map.setView(narvik, 13)
     }
 
-    // 4. CLEANUP - Dette er den viktigste delen!
     return () => {
       if (mapRef.current) {
         mapRef.current.remove()

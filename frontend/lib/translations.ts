@@ -924,7 +924,8 @@ export const translations = {
       'Vi fant ikke lagret boligskjema etter signering (f.eks. annen nettleser eller tømt lagring). Fyll ut skjemaet på nytt og prøv igjen.',
     listingMapPinShowOnMap: 'Vis boligen på kartet',
     messagesKommuneContacts: 'Saksbehandlere i din kommune',
-    messagesKommuneBroadcast: 'Melding til kommunen',
+    messagesKommuneBroadcast: 'Melding til saksbehandlere',
+    messagesLandlordSharedChannelTitle: 'Melding til saksbehandlere',
     messagesLandlordMultiRegionHint:
       'Du har boliger i flere kommuner. Velg hvilken kommune meldingen gjelder — hver kommune har egen samtale.',
     messagesSendToKommuneLabel: 'Send til kommune',
@@ -1858,7 +1859,8 @@ export const translations = {
       'Mii eat gávdnan vurken dávvirskema BankID-almmus (eará neahttanlávvir dahje gurren vurkengieddi). Dievtte skema ođđasit.',
     listingMapPinShowOnMap: 'Čájet dávvira kártas',
     messagesKommuneContacts: 'Gieđahallit du kommuvnnas',
-    messagesKommuneBroadcast: 'Sáhcastat kommuvdnii',
+    messagesKommuneBroadcast: 'Sáhcastat gieđahalliide',
+    messagesLandlordSharedChannelTitle: 'Sáhcastat gieđahalliide',
     messagesLandlordMultiRegionHint:
       'Dus leat dávvirat máŋggain kommuvnnain. Vállje makkár kommuvdnii sáhcastat gullet — juohke kommuvdnas lea iežas sáhcastallan.',
     messagesSendToKommuneLabel: 'Sádde kommuvdnii',
@@ -2802,7 +2804,8 @@ export const translations = {
       'We could not find your saved listing form after signing (e.g. different browser or cleared storage). Please complete the form again.',
     listingMapPinShowOnMap: 'Show listing on map',
     messagesKommuneContacts: 'Caseworkers in your municipality',
-    messagesKommuneBroadcast: 'Message to the municipality',
+    messagesKommuneBroadcast: 'Message to case workers',
+    messagesLandlordSharedChannelTitle: 'Message to case workers',
     messagesLandlordMultiRegionHint:
       'You have listings in more than one municipality. Choose which municipality this message is about — each municipality has its own thread.',
     messagesSendToKommuneLabel: 'Send to municipality',

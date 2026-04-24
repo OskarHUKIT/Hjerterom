@@ -267,19 +267,19 @@ export function DateInput({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(2, 6, 23, 0.35)',
+            background: 'color-mix(in srgb, var(--bg-card), var(--text-main) 12%)',
             border: '1px solid var(--border-medium)',
             borderRadius: 10,
             padding: '0 10px',
             minWidth: 44,
             cursor: disabled ? 'not-allowed' : 'pointer',
             opacity: disabled ? 0.45 : 1,
-            color: 'var(--text-muted)',
+            color: 'var(--text-main)',
             lineHeight: 0,
             boxSizing: 'border-box',
           }}
         >
-          <Calendar size={18} />
+          <Calendar size={18} strokeWidth={2} aria-hidden />
         </button>
       </div>
       {open &&

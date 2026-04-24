@@ -36,6 +36,7 @@ import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '../../lib/s
 import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
 import { logError } from '@/app/lib/appLogger'
 import { dayAvailabilityToneForIso } from '../../lib/listingDayAvailabilityTone'
+import { listingAvailabilityStatusToday } from '../../lib/listingAvailabilityStatusToday'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
@@ -302,8 +303,8 @@ export default function HomeownerManage() {
 
   const setStatus = async (id: string, newStatus: 'Tilgjengelig' | 'Utilgjengelig') => {
     const listing = myListings.find((l) => l.id === id)
-    const currentStatus = getEffectiveStatus(listing) ?? listing?.status ?? ''
-    if (currentStatus === 'Formidla') {
+    const todayStatus = getEffectiveStatus(listing)
+    if (todayStatus === 'Formidla') {
       alert(t('formidletByKommune'))
       return
     }
@@ -327,14 +328,18 @@ export default function HomeownerManage() {
           action_type: 'STATUS_CHANGE',
           listing_id: id,
           listing_address: listing?.address,
-          details: { from: currentStatus, to: newStatus },
+          details: { from: listing?.status ?? todayStatus ?? '', to: newStatus },
         },
       ])
     } catch (err: any) {
       setMyListings((prev) =>
         prev.map((item) =>
           item.id === id
-            ? { ...item, status: currentStatus, is_available: currentStatus === 'Tilgjengelig' }
+            ? {
+                ...item,
+                status: listing?.status ?? item.status,
+                is_available: (listing?.status ?? item.status) === 'Tilgjengelig',
+              }
             : item
         )
       )
@@ -435,20 +440,21 @@ export default function HomeownerManage() {
     }
   }
 
-  // Formidla and Tilgjengelig are mutually exclusive: use availability periods as source of truth. Null = umarkert (ingen status).
-  const getEffectiveStatus = (
-    listing: any
-  ): 'Formidla' | 'Tilgjengelig' | 'Utilgjengelig' | null => {
-    const periods = availability[listing.id] || []
-    if (periods.some((p: any) => p.status === 'Formidla')) return 'Formidla'
-    const s = listing.status
-    if (s === 'Tilgjengelig' || s === 'Utilgjengelig') return s
-    return null
+  /** Status for dagens dato (lokal) ut fra perioder — ikke «noen gang formidlet». */
+  const getEffectiveStatus = (listing: any): 'Formidla' | 'Tilgjengelig' | 'Utilgjengelig' | null => {
+    return listingAvailabilityStatusToday(listing.id, availability)
+  }
+
+  const isTodayAvailableOrUnset = (listing: any) => {
+    const s = getEffectiveStatus(listing)
+    return s === null || s === 'Tilgjengelig'
   }
 
   const filteredListings = myListings.filter((l) => {
     if (filter === 'Alle') return true
-    return getEffectiveStatus(l) === filter
+    const s = getEffectiveStatus(l)
+    if (filter === 'Tilgjengelig') return s === null || s === 'Tilgjengelig'
+    return s === filter
   })
 
   const actionSheetListing = actionSheetListingId
@@ -1057,7 +1063,7 @@ export default function HomeownerManage() {
                                 textTransform: 'uppercase',
                               }}
                             >
-                              {getEffectiveStatus(listing)}
+                              {t('formidlet')}
                             </span>
                           )}
                         </div>
@@ -1101,7 +1107,7 @@ export default function HomeownerManage() {
                                   minWidth: '200px',
                                 }}
                               >
-                                {getEffectiveStatus(listing) === 'Tilgjengelig' ? (
+                                {isTodayAvailableOrUnset(listing) ? (
                                   <button
                                     type="button"
                                     onClick={() => openPeriodCalendar(listing.id, 'Utilgjengelig')}
@@ -1600,7 +1606,7 @@ export default function HomeownerManage() {
             )}
             {getEffectiveStatus(actionSheetListing) !== 'Formidla' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                {getEffectiveStatus(actionSheetListing) === 'Tilgjengelig' ? (
+                {isTodayAvailableOrUnset(actionSheetListing) ? (
                   <button
                     type="button"
                     onClick={() => {

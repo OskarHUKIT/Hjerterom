@@ -54,6 +54,10 @@ import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
 import { geocodeAddressBestEffort } from '../../lib/geocoding'
 import { supabaseErrorMessage } from '../../lib/supabaseErrorMessage'
 import { dayAvailabilityToneForIso } from '../../lib/listingDayAvailabilityTone'
+import {
+  listingRowFieldsForAvailabilityToday,
+  formidlaPeriodIdsOverlappingToday,
+} from '../../lib/listingAvailabilityStatusToday'
 import { DateInput } from '../../components/DateInput'
 import {
   appendMediationNoteToOwnerMessage,
@@ -448,12 +452,12 @@ export default function ListingDetailsClient() {
       mediation_note: noteTrimmed || null,
       include_note_in_owner_notification: includeNote,
     }
-    setListing({ ...listing, status: 'Formidla', is_available: false })
-    setAvailability((prev) =>
-      [...prev.filter((p) => p.status !== 'Formidla'), newPeriod].sort((a, b) =>
-        a.start_date > b.start_date ? 1 : -1
-      )
-    )
+    setAvailability((prev) => {
+      const next = [...prev, newPeriod].sort((a, b) => (a.start_date > b.start_date ? 1 : -1))
+      const sync = listingRowFieldsForAvailabilityToday(String(id), { [String(id)]: next })
+      setListing((L: any) => (L ? { ...L, ...sync } : L))
+      return next
+    })
     setFormidletStart('')
     setFormidletEnd('')
     setFormidletMediationNote('')
@@ -470,17 +474,17 @@ export default function ListingDetailsClient() {
         },
       ])
       if (availError) throw availError
-      const { error } = await supabase
-        .from('listings')
-        .update({ status: 'Formidla', is_available: false })
-        .eq('id', id)
-      if (error) throw error
       const { data: availData } = await supabase
         .from('listing_availability')
         .select('*')
         .eq('listing_id', id)
         .order('start_date')
-      if (availData) setAvailability(availData)
+      const rows = availData ?? []
+      setAvailability(rows)
+      const rowSync = listingRowFieldsForAvailabilityToday(String(id), { [String(id)]: rows })
+      const { error } = await supabase.from('listings').update(rowSync).eq('id', id)
+      if (error) throw error
+      setListing((L: any) => (L ? { ...L, ...rowSync } : L))
       const user = await getAuthUserDeduped()
       if (listing?.owner_id) {
         await supabase.from('audit_logs').insert([
@@ -557,22 +561,18 @@ export default function ListingDetailsClient() {
       return
     }
     const prevAvailability = [...availability]
-    setAvailability((prev) => prev.filter((x) => x.id !== period.id))
+    const nextAvailAfterDelete = prevAvailability.filter((x) => x.id !== period.id)
+    setAvailability(nextAvailAfterDelete)
     setPendingDeletePeriod(null)
     try {
       const { error } = await supabase.from('listing_availability').delete().eq('id', period.id)
       if (error) throw error
-      if (period.status === 'Formidla') {
-        const remainingFormidla = availability.filter(
-          (p) => p.id !== period.id && p.status === 'Formidla'
-        )
-        if (remainingFormidla.length === 0 && listing) {
-          setListing({ ...listing, status: 'Tilgjengelig', is_available: true })
-          await supabase
-            .from('listings')
-            .update({ status: 'Tilgjengelig', is_available: true })
-            .eq('id', id)
-        }
+      const rowSync = listingRowFieldsForAvailabilityToday(String(id), {
+        [String(id)]: nextAvailAfterDelete,
+      })
+      if (listing) {
+        setListing({ ...listing, ...rowSync })
+        await supabase.from('listings').update(rowSync).eq('id', id)
       }
     } catch (err: unknown) {
       setAvailability(prevAvailability)
@@ -589,19 +589,20 @@ export default function ListingDetailsClient() {
     if (!confirm(`Vil du fjerne formidlingen for "${listing.address}"?`)) return
     const prevListing = listing
     const prevAvailability = availability
-    setListing({ ...listing, status: 'Tilgjengelig', is_available: true })
-    setAvailability(availability.filter((p) => p.status !== 'Formidla'))
+    const periodIds = formidlaPeriodIdsOverlappingToday(String(id), { [String(id)]: availability })
+    const nextAvail =
+      periodIds.length > 0
+        ? availability.filter((p) => !periodIds.includes(String(p.id)))
+        : availability
+    const rowSync = listingRowFieldsForAvailabilityToday(String(id), { [String(id)]: nextAvail })
+    setListing({ ...listing, ...rowSync })
+    setAvailability(nextAvail)
     try {
-      const { error: delError } = await supabase
-        .from('listing_availability')
-        .delete()
-        .eq('listing_id', id)
-        .eq('status', 'Formidla')
-      if (delError) throw delError
-      const { error } = await supabase
-        .from('listings')
-        .update({ status: 'Tilgjengelig', is_available: true })
-        .eq('id', id)
+      if (periodIds.length > 0) {
+        const { error: delError } = await supabase.from('listing_availability').delete().in('id', periodIds)
+        if (delError) throw delError
+      }
+      const { error } = await supabase.from('listings').update(rowSync).eq('id', id)
       if (error) throw error
       const user = await getAuthUserDeduped()
       if (listing?.owner_id) {

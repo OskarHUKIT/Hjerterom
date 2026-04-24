@@ -1,3 +1,5 @@
+import { ymdFromDb } from './listingAvailabilityStatusToday'
+
 /**
  * Per-day tone for DateInput popovers — matches housing-bank timeline semantics
  * (Formidla vs Tilgjengelig vs Utilgjengelig + conflict when overlapping).
@@ -15,8 +17,9 @@ export function dayAvailabilityToneForIso(
   periods: AvailabilityPeriodForTone[]
 ): DayAvailabilityTone {
   const periodsOnDay = periods.filter((p) => {
-    const sd = String(p.start_date ?? '')
-    const ed = String(p.end_date ?? '')
+    const sd = ymdFromDb(p.start_date)
+    const ed = ymdFromDb(p.end_date)
+    if (!sd || !ed) return false
     return sd <= iso && ed >= iso
   })
   if (periodsOnDay.length === 0) return 'none'

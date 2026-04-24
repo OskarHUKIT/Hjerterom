@@ -57,6 +57,11 @@ import { getOverviewBackLink } from '../../lib/overviewBackNav'
 import type { PostgrestError } from '@supabase/supabase-js'
 import { logError } from '@/app/lib/appLogger'
 import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
+import {
+  formidlaPeriodIdsOverlappingToday,
+  listingAvailabilityStatusToday,
+  listingRowFieldsForAvailabilityToday,
+} from '../../lib/listingAvailabilityStatusToday'
 import { supabaseErrorMessage } from '../../lib/supabaseErrorMessage'
 import { dayAvailabilityToneForIso } from '../../lib/listingDayAvailabilityTone'
 
@@ -493,22 +498,8 @@ export default function NavDatabase() {
     return base
   }
 
-  /** Status for dagens dato ut fra listing_availability-perioder. Null = ingen periode dekker i dag → vises som tilgjengelig. */
-  const getStatusForToday = (
-    listingId: string,
-    availMap: Record<string, ListingAvailabilityRow[]>
-  ): 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null => {
-    const today = new Date().toISOString().slice(0, 10)
-    const periods = (availMap[listingId] || []).filter((p) => {
-      const sd = String(p.start_date ?? '')
-      const ed = String(p.end_date ?? '')
-      return sd <= today && ed >= today
-    })
-    if (periods.length === 0) return null
-    if (periods.some((p) => p.status === 'Formidla')) return 'Formidla'
-    if (periods.some((p) => p.status === 'Utilgjengelig')) return 'Utilgjengelig'
-    return 'Tilgjengelig'
-  }
+  /** Status for dagens dato (lokal tid, normaliserte datoer). Null = ingen periode dekker i dag → i filter vises som tilgjengelig. */
+  const getStatusForToday = listingAvailabilityStatusToday
 
   const fetchListings = async (showLoader = true) => {
     const cacheKey = getTabCacheKey()
@@ -721,8 +712,8 @@ export default function NavDatabase() {
           availMap[item.listing_id].push(item)
         })
 
-        // Liste/tabell: filtrer på status for dagens dato. Kart/tidslinje: egne regler.
-        if (viewMode === 'table' || viewMode === 'list') {
+        // Liste/tabell/tidslinje: filtrer på status for dagens dato. Kart: egne filterbokser.
+        if (viewMode === 'table' || viewMode === 'list' || viewMode === 'timeline') {
           const todayStatus = (lid: string) => getStatusForToday(lid, availMap)
           if (activeTab === 'Tilgjengelig') {
             filtered = filtered.filter((l) => {
@@ -968,25 +959,29 @@ export default function NavDatabase() {
 
     setFormidletSending(true)
     try {
-      // 1. Legg til formidlet-periode i listing_availability
-      const { error: availError } = await supabase.from('listing_availability').insert([
-        {
-          listing_id: id,
-          start_date: formidletStart,
-          end_date: formidletEnd,
-          status: 'Formidla',
-          mediation_note: noteTrimmed || null,
-          include_note_in_owner_notification: includeNote,
-        },
-      ])
+      // 1. Legg til formidlet-periode i listing_availability (flere perioder per bolig er tillatt)
+      const { data: insertedPeriod, error: availError } = await supabase
+        .from('listing_availability')
+        .insert([
+          {
+            listing_id: id,
+            start_date: formidletStart,
+            end_date: formidletEnd,
+            status: 'Formidla',
+            mediation_note: noteTrimmed || null,
+            include_note_in_owner_notification: includeNote,
+          },
+        ])
+        .select()
+        .single()
 
       if (availError) throw availError
+      if (!insertedPeriod) throw new Error('listing_availability insert returned no row')
 
-      // 2. Oppdater listing-status
-      const { error } = await supabase
-        .from('listings')
-        .update({ status: 'Formidla', is_available: false })
-        .eq('id', id)
+      // 2. Synk listings-rad med status for i dag (f.eks. kun fremtidig periode → fortsatt tilgjengelig)
+      const mergedAvail = [...(availability[id] || []), insertedPeriod as ListingAvailabilityRow]
+      const rowSync = listingRowFieldsForAvailabilityToday(id, { ...availability, [id]: mergedAvail })
+      const { error } = await supabase.from('listings').update(rowSync).eq('id', id)
 
       if (error) throw error
 
@@ -1034,12 +1029,12 @@ export default function NavDatabase() {
         })
       }
 
-      // Optimistic update: move listing to Formidlet in UI immediately
-      setListings((prev) => prev.filter((l) => l.id !== id))
+      setAvailability((prev) => ({ ...prev, [id]: mergedAvail }))
+      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, ...rowSync } : l)))
       setFormidletMediationNote('')
       setFormidletIncludeNoteInOwnerNotif(false)
       setFormidletModalListing(null)
-      fetchListings(false) // Background refresh, no loader
+      fetchListings(false) // Synk tab-filter m.m.
     } catch (err: unknown) {
       alert(t('errorPrefix') + navDbErrMessage(err))
     } finally {
@@ -1050,20 +1045,20 @@ export default function NavDatabase() {
   const handleRemoveFormidlet = async (id: string, address: string) => {
     if (!confirm(t('dbRemoveFormidletConfirm').replace('{address}', address))) return
     try {
-      // Slett alle Formidla-perioder for denne listing
-      const { error: delError } = await supabase
-        .from('listing_availability')
-        .delete()
-        .eq('listing_id', id)
-        .eq('status', 'Formidla')
+      const periodIds = formidlaPeriodIdsOverlappingToday(id, availability)
+      const nextAvailRows =
+        periodIds.length > 0
+          ? (availability[id] || []).filter((p) => !periodIds.includes(String(p.id)))
+          : availability[id] || []
 
-      if (delError) throw delError
+      if (periodIds.length > 0) {
+        const { error: delError } = await supabase.from('listing_availability').delete().in('id', periodIds)
+        if (delError) throw delError
+      }
 
-      // Oppdater listing til Tilgjengelig
-      const { error } = await supabase
-        .from('listings')
-        .update({ status: 'Tilgjengelig', is_available: true })
-        .eq('id', id)
+      const nextAvailMap = { ...availability, [id]: nextAvailRows }
+      const rowSync = listingRowFieldsForAvailabilityToday(id, nextAvailMap)
+      const { error } = await supabase.from('listings').update(rowSync).eq('id', id)
 
       if (error) throw error
 
@@ -1081,9 +1076,9 @@ export default function NavDatabase() {
         ])
       }
 
-      // Optimistic update: remove from Formidlet list immediately
-      setListings((prev) => prev.filter((l) => l.id !== id))
-      fetchListings(false) // Background refresh
+      setAvailability((prev) => ({ ...prev, [id]: nextAvailRows }))
+      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, ...rowSync } : l)))
+      fetchListings(false)
     } catch (err: unknown) {
       alert(t('errorPrefix') + navDbErrMessage(err))
     }

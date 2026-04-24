@@ -94,7 +94,7 @@ begin
       sender_name || ' har sendt en melding til Kommune.'
   end;
 
-  for rec in select id from profiles where role = 'kommune_ansatt'
+  for rec in select id from profiles where role in ('kommune_ansatt', 'kommune_admin')
   loop
     insert into notifications (owner_id, type, title, message, status, related_user_id)
     values (rec.id, 'NEW_MESSAGE', 'Ny melding fra ' || sender_name, msg_body, 'unread', new.sender_id);
