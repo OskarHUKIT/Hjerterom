@@ -833,6 +833,8 @@ export const translations = {
     listingRegenerating: 'Lager …',
     listingNewLink: 'Ny lenke',
     listingFullscreen: 'Fullskjerm',
+    listingGalleryPrev: 'Forrige bilde',
+    listingGalleryNext: 'Neste bilde',
     listingImageDropzoneTitle: 'Legg til bilder',
     listingImageDropzoneHint:
       'Klikk for å velge fra enheten. Du kan laste opp flere filer samtidig (f.eks. JPG eller PNG).',
@@ -1765,6 +1767,8 @@ export const translations = {
     listingRegenerating: 'Ráhkada …',
     listingNewLink: 'Ođđa liŋka',
     listingFullscreen: 'Olles skiermi',
+    listingGalleryPrev: 'Ovddit govva',
+    listingGalleryNext: 'Boahtte govva',
     listingImageDropzoneTitle: 'Lasit govaid',
     listingImageDropzoneHint:
       'Coahkkal válljet ovttasbarggus. Sáhttát lasihit máŋga fiilla ovtta áiggi (ovd. JPG dahje PNG).',
@@ -2706,6 +2710,8 @@ export const translations = {
     listingRegenerating: 'Generating…',
     listingNewLink: 'New link',
     listingFullscreen: 'Fullscreen',
+    listingGalleryPrev: 'Previous image',
+    listingGalleryNext: 'Next image',
     listingImageDropzoneTitle: 'Add photos',
     listingImageDropzoneHint:
       'Click to choose from your device. You can upload several files at once (e.g. JPG or PNG).',

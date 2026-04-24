@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { User as AuthUser } from '@supabase/supabase-js'
@@ -201,9 +202,14 @@ export default function ListingDetailsClient() {
     const y = window.scrollY
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false)
+    }
+    window.addEventListener('keydown', onKey)
     return () => {
       document.body.style.overflow = prev
       window.scrollTo(0, y)
+      window.removeEventListener('keydown', onKey)
     }
   }, [isFullscreen])
 
@@ -4137,118 +4143,153 @@ export default function ListingDetailsClient() {
             </div>
           )}
 
-          {/* Fullscreen Overlay */}
-          {isFullscreen && allImages.length > 0 && (
-            <div
-              style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'rgba(0,0,0,0.95)',
-                zIndex: 9999,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              onClick={() => setIsFullscreen(false)}
-            >
-              <button
-                onClick={() => setIsFullscreen(false)}
-                style={{
-                  position: 'absolute',
-                  top: '30px',
-                  right: '30px',
-                  background: 'none',
-                  border: 'none',
-                  color: 'white',
-                  cursor: 'pointer',
-                  padding: '10px',
-                }}
-              >
-                <X size={40} />
-              </button>
-
+          {/* Fullscreen: portal til document.body så fixed dekker viewport (ikke faner/layout med transform). */}
+          {typeof document !== 'undefined' &&
+            isFullscreen &&
+            allImages.length > 0 &&
+            createPortal(
               <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={t('listingFullscreen')}
                 style={{
-                  position: 'relative',
-                  width: 'min(95vw, 1400px)',
-                  height: 'min(90vh, 900px)',
-                  maxHeight: '90vh',
+                  position: 'fixed',
+                  inset: 0,
+                  width: '100vw',
+                  height: '100dvh',
+                  maxHeight: '100vh',
+                  background: 'rgba(0,0,0,0.95)',
+                  zIndex: 2147483000,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxSizing: 'border-box',
                 }}
-                onClick={(e) => e.stopPropagation()}
+                onClick={() => setIsFullscreen(false)}
               >
-                <OptimizedPublicStorageImage
-                  key={`fs-${allImages[currentImageIndex]}`}
-                  variant="fill"
-                  src={allImages[currentImageIndex]}
-                  alt={
-                    listing?.address
-                      ? `${listing.address} — bilde ${currentImageIndex + 1} av ${allImages.length}`
-                      : `Boligbilde ${currentImageIndex + 1} av ${allImages.length}`
-                  }
-                  sizes="100vw"
-                  style={{ objectFit: 'contain' }}
-                />
-              </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(false)}
+                  style={{
+                    position: 'absolute',
+                    top: 'max(16px, env(safe-area-inset-top))',
+                    right: 'max(16px, env(safe-area-inset-right))',
+                    background: 'none',
+                    border: 'none',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '10px',
+                    zIndex: 2,
+                  }}
+                  aria-label={t('close')}
+                >
+                  <X size={40} />
+                </button>
 
-              {allImages.length > 1 && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCurrentImageIndex(
-                        (prev) => (prev - 1 + allImages.length) % allImages.length
-                      )
-                    }}
-                    style={{
-                      position: 'absolute',
-                      left: '30px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'rgba(255,255,255,0.1)',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '60px',
-                      height: '60px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <ChevronLeft size={40} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
-                    }}
-                    style={{
-                      position: 'absolute',
-                      right: '30px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'rgba(255,255,255,0.1)',
-                      border: 'none',
-                      borderRadius: '50%',
-                      width: '60px',
-                      height: '60px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <ChevronRight size={40} />
-                  </button>
-                </>
-              )}
-            </div>
-          )}
+                <div
+                  style={{
+                    position: 'relative',
+                    width: 'min(95vw, 1400px)',
+                    height: 'min(85dvh, 900px)',
+                    maxHeight: '85vh',
+                    flex: '0 1 auto',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <OptimizedPublicStorageImage
+                    key={`fs-${allImages[currentImageIndex]}`}
+                    variant="fill"
+                    src={allImages[currentImageIndex]}
+                    alt={
+                      listing?.address
+                        ? `${listing.address} — bilde ${currentImageIndex + 1} av ${allImages.length}`
+                        : `Boligbilde ${currentImageIndex + 1} av ${allImages.length}`
+                    }
+                    sizes="100vw"
+                    style={{ objectFit: 'contain' }}
+                  />
+                </div>
+
+                {allImages.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setCurrentImageIndex(
+                          (prev) => (prev - 1 + allImages.length) % allImages.length
+                        )
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: 'max(16px, env(safe-area-inset-left))',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '60px',
+                        height: '60px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        cursor: 'pointer',
+                        zIndex: 2,
+                      }}
+                      aria-label={t('listingGalleryPrev')}
+                    >
+                      <ChevronLeft size={40} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: 'max(16px, env(safe-area-inset-right))',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '60px',
+                        height: '60px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        cursor: 'pointer',
+                        zIndex: 2,
+                      }}
+                      aria-label={t('listingGalleryNext')}
+                    >
+                      <ChevronRight size={40} />
+                    </button>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 'max(20px, env(safe-area-inset-bottom))',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'rgba(0,0,0,0.55)',
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        color: 'white',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        zIndex: 2,
+                      }}
+                    >
+                      {currentImageIndex + 1} / {allImages.length}
+                    </div>
+                  </>
+                )}
+              </div>,
+              document.body
+            )}
 
           {/* 6. Administrer (eier) – kun synlig for eier som ikke er i nav-visning */}
           {!isNavView && isOwner && (
