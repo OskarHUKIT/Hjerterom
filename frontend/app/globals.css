@@ -1128,10 +1128,6 @@ select optgroup {
   gap: var(--space-4);
 }
 
-.home-landing-mobile-cta {
-  display: none;
-}
-
 /* Vertikal senter i området under hero (ned mot bunn av første skjerm) */
 .home-landing-layout .grid-portal {
   align-self: center;
@@ -1192,23 +1188,6 @@ select optgroup {
 @media (max-width: 480px) {
   .home-landing .portal-card.card {
     padding: var(--space-4);
-  }
-}
-
-@media (max-width: 768px) {
-  .home-landing-mobile-cta {
-    display: grid;
-    gap: var(--space-3);
-    width: 100%;
-    max-width: 28rem;
-    margin: var(--space-4) auto 0;
-    padding-left: max(var(--space-3), env(safe-area-inset-left));
-    padding-right: max(var(--space-3), env(safe-area-inset-right));
-    padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
-  }
-
-  .home-landing-desktop-portal {
-    display: none !important;
   }
 }
 
@@ -1799,10 +1778,95 @@ body {
 }
 
 /* Listing details: stack columns on mobile */
+.listing-details-grid > div {
+  min-width: 0;
+}
+
+.listing-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.listing-detail-two-col {
+  display: grid;
+  gap: var(--space-8);
+  grid-template-columns: 1fr 1fr;
+}
+
+.listing-detail-two-col > div {
+  min-width: 0;
+}
+
+.listing-availability-item {
+  min-width: 0;
+}
+
+.listing-availability-dates {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.listing-availability-status {
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.listing-availability-cal-inner {
+  max-width: min(340px, 100%);
+  box-sizing: border-box;
+}
+
+.listing-sidebar-formidlet-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
 @media (max-width: 768px) {
   .listing-details-grid {
     grid-template-columns: 1fr !important;
   }
+
+  .listing-detail-two-col {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-6) !important;
+  }
+
+  .listing-metrics-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: var(--space-3) !important;
+  }
+
+  .listing-details-sticky-sidebar {
+    position: static !important;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  section.card.listing-detail-card {
+    padding: var(--space-4) !important;
+  }
+
+  .listing-detail-card p,
+  .listing-detail-card .text-sm {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .listing-full-width-mobile-cta {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    justify-content: center !important;
+  }
+
+  .listing-sidebar-formidlet-dates {
+    grid-template-columns: 1fr !important;
+  }
+
   /**
    * P2-1: Mobil — løft bildegalleri til toppen av detaljsiden så primær-visuell
    * info treffer "above-the-fold". Rekkefølgen på desktop beholdes (visuell
@@ -1819,6 +1883,31 @@ body {
   .sign-terms-scroll {
     height: min(450px, 58vh) !important;
     max-height: 70dvh;
+  }
+}
+
+@media (max-width: 560px) {
+  .listing-availability-item {
+    flex-wrap: wrap !important;
+    row-gap: var(--space-2) !important;
+  }
+
+  .listing-availability-status {
+    margin-left: 0 !important;
+    flex-basis: auto;
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .listing-availability-delete {
+    margin-left: auto !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .listing-metrics-row {
+    grid-template-columns: 1fr !important;
   }
 }
 

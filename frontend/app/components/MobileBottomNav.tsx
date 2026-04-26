@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { User as AuthUser } from '@supabase/supabase-js'
-import { Bell, Building2, Home, Menu, MessageSquare } from 'lucide-react'
+import { Bell, Building2, Globe, Home, Menu, MessageSquare, Moon, Sun } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
+import { useTheme } from '../../context/ThemeContext'
 import {
   isKommuneAdminRole,
   isKommuneStaffRole,
@@ -21,6 +22,74 @@ type MobileBottomNavProps = {
   unreadCount: number
   /** Utleier med signert avtale – vis utleier-faner. */
   showLandlordFullNav: boolean
+}
+
+function MobileBottomNavAppearanceControls() {
+  const { t, locale, setLocale } = useLanguage()
+  const { theme, toggleTheme } = useTheme()
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-3)',
+        paddingTop: 'var(--space-4)',
+        marginTop: 'var(--space-2)',
+        borderTop: '1px solid var(--border-subtle)',
+      }}
+    >
+      <p
+        className="text-sm"
+        style={{ fontWeight: 600, color: 'var(--text-muted)', margin: 0 }}
+      >
+        {t('settings')}
+      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+        <Globe size={18} style={{ opacity: 0.75, flexShrink: 0 }} aria-hidden />
+        <select
+          value={locale}
+          onChange={(e) => setLocale(e.target.value as 'no' | 'se' | 'en')}
+          aria-label={t('language')}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            padding: '10px 12px',
+            minHeight: 'var(--touch-target)',
+            borderRadius: 8,
+            background: 'var(--bg-app)',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--text-main)',
+            fontSize: '0.9rem',
+          }}
+        >
+          <option value="no">{t('norwegian')}</option>
+          <option value="se">{t('sami')}</option>
+          <option value="en">{t('english')}</option>
+        </select>
+      </div>
+      <button
+        type="button"
+        onClick={toggleTheme}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          width: '100%',
+          padding: '10px 12px',
+          minHeight: 'var(--touch-target)',
+          borderRadius: 8,
+          background: 'var(--bg-app)',
+          border: '1px solid var(--border-subtle)',
+          color: 'var(--text-main)',
+          cursor: 'pointer',
+          fontSize: '0.9rem',
+        }}
+      >
+        {theme === 'dark' ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
+        {theme === 'dark' ? t('lightMode') : t('darkMode')}
+      </button>
+    </div>
+  )
 }
 
 export default function MobileBottomNav({
@@ -311,6 +380,7 @@ export default function MobileBottomNav({
                 {t('kommuneAccess')}
               </Link>
             )}
+            <MobileBottomNavAppearanceControls />
           </div>
         </BottomSheet>
       )}
@@ -353,6 +423,7 @@ export default function MobileBottomNav({
             >
               {t('signTermsNav')}
             </Link>
+            <MobileBottomNavAppearanceControls />
           </div>
         </BottomSheet>
       )}

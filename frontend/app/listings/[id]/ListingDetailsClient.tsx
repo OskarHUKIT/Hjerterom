@@ -1690,7 +1690,6 @@ export default function ListingDetailsClient() {
               className="listing-metrics-row"
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
                 gap: 'var(--space-4)',
                 padding: 'var(--space-6) 0',
                 borderTop: '1px solid var(--border-subtle)',
@@ -1883,10 +1882,7 @@ export default function ListingDetailsClient() {
                 </div>
               )}
             </div>
-            <div
-              className="listing-detail-two-col"
-              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-8)' }}
-            >
+            <div className="listing-detail-two-col">
               <div>
                 <h3
                   style={{
@@ -2567,6 +2563,7 @@ export default function ListingDetailsClient() {
                       <Calendar
                         size={16}
                         style={{
+                          flexShrink: 0,
                           color:
                             p.status === 'Formidla'
                               ? 'var(--color-royal-blue)'
@@ -2575,12 +2572,15 @@ export default function ListingDetailsClient() {
                                 : 'var(--color-teal)',
                         }}
                       />
-                      <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                      <span
+                        className="listing-availability-dates"
+                        style={{ fontWeight: 600, color: 'var(--text-main)' }}
+                      >
                         {formatDateNo(p.start_date)} - {formatDateNo(p.end_date)}
                       </span>
                       <span
+                        className="listing-availability-status"
                         style={{
-                          marginLeft: 'auto',
                           fontSize: '0.75rem',
                           color:
                             p.status === 'Formidla'
@@ -2607,6 +2607,7 @@ export default function ListingDetailsClient() {
                       {canDelete && (
                         <button
                           type="button"
+                          className="listing-availability-delete"
                           onClick={() => setPendingDeletePeriod(p)}
                           title={t('remove')}
                           style={{
@@ -2650,12 +2651,12 @@ export default function ListingDetailsClient() {
                   {t('calendar')}
                 </h4>
                 <div
+                  className="listing-availability-cal-inner"
                   style={{
                     background: 'var(--listing-availability-item-bg)',
                     borderRadius: '12px',
                     border: '1px solid var(--border-subtle)',
                     padding: 'var(--space-4)',
-                    maxWidth: '340px',
                   }}
                 >
                   <div
@@ -3243,7 +3244,7 @@ export default function ListingDetailsClient() {
               download
               target="_blank"
               rel="noopener noreferrer"
-              className="button"
+              className="button listing-full-width-mobile-cta"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -4340,7 +4341,7 @@ export default function ListingDetailsClient() {
 
         {/* Right Column */}
         {isNavView && (
-          <div style={{ position: 'sticky', top: '20px' }}>
+          <div className="listing-details-sticky-sidebar" style={{ position: 'sticky', top: '20px' }}>
             <div
               className="card"
               style={{
@@ -4526,13 +4527,7 @@ export default function ListingDetailsClient() {
                     >
                       {t('tidsspannFormidling')}
                     </label>
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: 'var(--space-2)',
-                      }}
-                    >
+                    <div className="listing-sidebar-formidlet-dates">
                       <div>
                         <span
                           style={{

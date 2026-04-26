@@ -18,26 +18,7 @@ export default function Home() {
           <p className="animate-delay-2 hero-lead">{t('heroDesc')}</p>
         </div>
 
-        <div className="home-landing-mobile-cta animate-delay-3">
-          <Link
-            href="/login"
-            className={buttonClassName('accent')}
-            style={{ width: '100%', justifyContent: 'center', padding: 'var(--space-4)' }}
-            aria-label={t('homeLoginCardLinkAria')}
-          >
-            {t('homeLoginCardCta')} <ArrowRight size={18} aria-hidden />
-          </Link>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setShowDemoPopup(true)}
-            style={{ width: '100%', justifyContent: 'center', padding: 'var(--space-4)' }}
-          >
-            {t('homeDemoCardCta')}
-          </Button>
-        </div>
-
-        <div className="grid-portal home-landing-desktop-portal animate-delay-3">
+        <div className="grid-portal animate-delay-3">
         {/* Logg inn */}
         <div
           className="card portal-card portal-card-align-buttons"
