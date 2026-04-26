@@ -49,6 +49,7 @@ function NavUsersContent() {
   /** null = rolle ikke avklart ennå (unngår «Utleiere» → «Kontoer»-flimmer ved innlasting) */
   const [useAccountsNavCopy, setUseAccountsNavCopy] = useState<boolean | null>(null)
   const [accountTab, setAccountTab] = useState<'landlords' | 'staff'>('landlords')
+  const [isMobile, setIsMobile] = useState(false)
   const [staffRows, setStaffRows] = useState<
     {
       id: string
@@ -259,6 +260,14 @@ function NavUsersContent() {
   }, [kommuneAccess.isPending, fetchUsers])
 
   useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const sync = () => setIsMobile(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
     if (useAccountsNavCopy !== true || accountTab !== 'staff') return
     let cancelled = false
     ;(async () => {
@@ -337,7 +346,7 @@ function NavUsersContent() {
             t('navLandlords')
           )}
         </h1>
-        <p style={{ fontSize: '1.125rem', opacity: 0.8, minHeight: '2.75em' }}>
+        <p style={{ fontSize: 'clamp(0.95rem, 1.2vw + 0.75rem, 1.125rem)', opacity: 0.8, minHeight: '2.75em' }}>
           {useAccountsNavCopy === null ? (
             <span
               aria-hidden
@@ -376,7 +385,11 @@ function NavUsersContent() {
           <button
             type="button"
             className={accountTab === 'landlords' ? 'button' : 'button button-secondary'}
-            style={{ padding: '8px 16px' }}
+            style={{
+              padding: '8px 16px',
+              minHeight: 'var(--touch-target)',
+              flex: isMobile ? '1 1 0' : undefined,
+            }}
             onClick={() => setAccountTab('landlords')}
           >
             {t('tabLandlords')}
@@ -384,7 +397,11 @@ function NavUsersContent() {
           <button
             type="button"
             className={accountTab === 'staff' ? 'button' : 'button button-secondary'}
-            style={{ padding: '8px 16px' }}
+            style={{
+              padding: '8px 16px',
+              minHeight: 'var(--touch-target)',
+              flex: isMobile ? '1 1 0' : undefined,
+            }}
             onClick={() => setAccountTab('staff')}
           >
             {t('tabStaff')}
@@ -427,11 +444,20 @@ function NavUsersContent() {
                     gap: 'var(--space-4)',
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <h3 style={{ margin: '0 0 4px', color: 'var(--color-accent)' }}>
                       {s.full_name || s.email}
                     </h3>
-                    <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>{s.email}</p>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: '0.9rem',
+                        opacity: 0.8,
+                        overflowWrap: 'anywhere',
+                      }}
+                    >
+                      {s.email}
+                    </p>
                     <p
                       style={{
                         margin: '8px 0 0',
@@ -590,16 +616,20 @@ function NavUsersContent() {
                             {user.terminatedAt ? ` (${formatDateNo(user.terminatedAt)})` : ''}
                           </span>
                         )}
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Phone size={14} /> {user.contact_phone || t('noPhone')}
-                        </span>
+                        {!isMobile && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Phone size={14} /> {user.contact_phone || t('noPhone')}
+                          </span>
+                        )}
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <ShieldCheck
                             size={14}
                             style={{ color: user.hasSigned ? 'var(--color-teal)' : '#ef4444' }}
                           />
                           {user.hasSigned
-                            ? `${t('signedOn')} (${formatDateNo(user.signedAt)})`
+                            ? isMobile
+                              ? t('signedOn')
+                              : `${t('signedOn')} (${formatDateNo(user.signedAt)})`
                             : user.isTerminated
                               ? t('expired')
                               : t('notSigned')}

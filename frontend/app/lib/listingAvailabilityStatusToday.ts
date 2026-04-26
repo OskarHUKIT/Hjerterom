@@ -1,9 +1,10 @@
 /**
  * Status for en bolig på en gitt kalenderdag ut fra listing_availability.
  * Brukes i kart, tabell/tidslinje-filter m.m. — samme prioritering som kartnåler.
+ * Ingen periode som dekker dagen = Tilgjengelig (samme som utleier «ingen status i dag»).
  */
 
-export type ListingDayAvailabilityStatus = 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null
+export type ListingDayAvailabilityStatus = 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig'
 
 /** YYYY-MM-DD fra DB-verdi (dato eller ISO-streng). */
 export function ymdFromDb(value: unknown): string {
@@ -32,7 +33,7 @@ export function listingAvailabilityStatusForDay(
     if (!sd || !ed) return false
     return sd <= dayYmd && ed >= dayYmd
   })
-  if (periods.length === 0) return null
+  if (periods.length === 0) return 'Tilgjengelig'
   if (periods.some((p) => p.status === 'Formidla')) return 'Formidla'
   if (periods.some((p) => p.status === 'Utilgjengelig')) return 'Utilgjengelig'
   return 'Tilgjengelig'

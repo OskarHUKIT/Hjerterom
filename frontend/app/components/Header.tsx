@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { fetchHeaderBundle, headerBundleQueryKey } from '../lib/queries/headerBundleQuery'
@@ -37,6 +37,7 @@ import MobileBottomNav from './MobileBottomNav'
 
 export default function Header() {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, isReady: authReady } = useAuthSession()
   const { t, locale, setLocale } = useLanguage()
   const { theme, toggleTheme } = useTheme()
@@ -171,6 +172,7 @@ export default function Header() {
 
   const hideHeaderMobileShortcutIcons =
     (isKommuneStaffRole(navRoleForLinks) || showLandlordFullNav) && isMobileLayout
+  const hideGuestLoginButtonInHeader = isMobileLayout && pathname?.startsWith('/login')
 
   const logoHref = !user
     ? '/'
@@ -532,24 +534,26 @@ export default function Header() {
               <option value="en">{t('english')}</option>
             </select>
           </div>
-          <Link
-            href="/login"
-            className="button"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.85rem',
-              padding: '0 var(--space-5)',
-              minHeight: 'var(--touch-target-sm)',
-              height: 'var(--touch-target-sm)',
-              boxSizing: 'border-box',
-              borderRadius: '10px',
-            }}
-            onClick={closeMobileNav}
-          >
-            <LogIn size={16} style={{ marginRight: '6px' }} /> {t('logIn')}
-          </Link>
+          {!hideGuestLoginButtonInHeader && (
+            <Link
+              href="/login"
+              className="button"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.85rem',
+                padding: '0 var(--space-5)',
+                minHeight: 'var(--touch-target-sm)',
+                height: 'var(--touch-target-sm)',
+                boxSizing: 'border-box',
+                borderRadius: '10px',
+              }}
+              onClick={closeMobileNav}
+            >
+              <LogIn size={16} style={{ marginRight: '6px' }} /> {t('logIn')}
+            </Link>
+          )}
         </div>
       )}
     </>

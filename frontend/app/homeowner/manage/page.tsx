@@ -441,19 +441,18 @@ export default function HomeownerManage() {
   }
 
   /** Status for dagens dato (lokal) ut fra perioder — ikke «noen gang formidlet». */
-  const getEffectiveStatus = (listing: any): 'Formidla' | 'Tilgjengelig' | 'Utilgjengelig' | null => {
+  const getEffectiveStatus = (listing: any): 'Formidla' | 'Tilgjengelig' | 'Utilgjengelig' => {
     return listingAvailabilityStatusToday(listing.id, availability)
   }
 
   const isTodayAvailableOrUnset = (listing: any) => {
-    const s = getEffectiveStatus(listing)
-    return s === null || s === 'Tilgjengelig'
+    return getEffectiveStatus(listing) === 'Tilgjengelig'
   }
 
   const filteredListings = myListings.filter((l) => {
     if (filter === 'Alle') return true
     const s = getEffectiveStatus(l)
-    if (filter === 'Tilgjengelig') return s === null || s === 'Tilgjengelig'
+    if (filter === 'Tilgjengelig') return s === 'Tilgjengelig'
     return s === filter
   })
 
@@ -979,7 +978,9 @@ export default function HomeownerManage() {
                 </button>
               </div>
             ) : filteredListings.length > 0 ? (
-              filteredListings.map((listing) => (
+              filteredListings.map((listing) => {
+                const todaySt = getEffectiveStatus(listing)
+                return (
                 <div
                   key={listing.id}
                   className="card hm-listing-card"
@@ -1051,7 +1052,7 @@ export default function HomeownerManage() {
                           style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}
                         >
                           <h3 style={{ margin: 0 }}>{listing.address}</h3>
-                          {getEffectiveStatus(listing) === 'Formidla' && (
+                          {todaySt === 'Formidla' ? (
                             <span
                               style={{
                                 fontSize: '0.7rem',
@@ -1065,11 +1066,42 @@ export default function HomeownerManage() {
                             >
                               {t('formidlet')}
                             </span>
+                          ) : todaySt === 'Utilgjengelig' ? (
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                color: '#ef4444',
+                                textTransform: 'uppercase',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                              }}
+                            >
+                              {t('unavailable')}
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 800,
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                background: 'rgba(45, 212, 191, 0.15)',
+                                color: 'var(--color-teal)',
+                                textTransform: 'uppercase',
+                                border: '1px solid rgba(45, 212, 191, 0.3)',
+                              }}
+                            >
+                              {t('available')}
+                            </span>
                           )}
                         </div>
                         <p className="text-sm" style={{ marginTop: '4px' }}>
-                          {translateType(listing.type)} • {listing.bedrooms} {t('bedroomsUnit')} •{' '}
-                          {listing.size_sqm} m²
+                          {isMobileLayout
+                            ? `${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`
+                            : `${translateType(listing.type)} • ${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`}
                         </p>
                       </div>
                     </div>
@@ -1537,7 +1569,7 @@ export default function HomeownerManage() {
                     </div>
                   )}
                 </div>
-              ))
+              )})
             ) : (
               <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
                 <Info size={40} style={{ margin: '0 auto var(--space-3)', opacity: 0.3 }} />
@@ -1696,28 +1728,6 @@ export default function HomeownerManage() {
             )}
             {getEffectiveStatus(actionSheetListing) !== 'Formidla' && (
               <>
-                <button
-                  type="button"
-                  className="button"
-                  style={{
-                    width: '100%',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 'var(--space-2)',
-                    padding: 'var(--space-3) var(--space-4)',
-                  }}
-                  onClick={() => {
-                    setEditingAvailability(
-                      editingAvailability === actionSheetListing.id ? null : actionSheetListing.id
-                    )
-                    setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
-                    setActionSheetListingId(null)
-                  }}
-                >
-                  <Clock size={18} aria-hidden />
-                  {t('managePeriods')}
-                </button>
                 <button
                   type="button"
                   className="button button-secondary"

@@ -157,13 +157,11 @@ export default function NavDatabase() {
   const sessionDbViewRestoredRef = useRef(false)
   const [isMobile, setIsMobile] = useState(false)
   /** ≤480px: skjul tidslinje (for kompleks horisontal UI). */
-  const [isNarrow, setIsNarrow] = useState(false)
   const mobileViewInitRef = useRef(false)
   const [sortField, setSortField] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [showFilters, setShowFilters] = useState(false)
   const [showColumnSettings, setShowColumnSettings] = useState(false)
-  const [mobileDbToolsOpen, setMobileDbToolsOpen] = useState(false)
   const [timelineOffset, setTimelineOffset] = useState(0)
   const [timelineColorHelpOpen, setTimelineColorHelpOpen] = useState(false)
   const [formidletModalListing, setFormidletModalListing] = useState<NavDatabaseListingRow | null>(
@@ -236,14 +234,6 @@ export default function NavDatabase() {
     sync()
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
-  }, [])
-
-  useEffect(() => {
-    const nq = window.matchMedia('(max-width: 480px)')
-    const sync = () => setIsNarrow(nq.matches)
-    sync()
-    nq.addEventListener('change', sync)
-    return () => nq.removeEventListener('change', sync)
   }, [])
 
   useEffect(() => {
@@ -360,10 +350,10 @@ export default function NavDatabase() {
   }, [isMobile, viewMode, persistMobileDbView])
 
   useEffect(() => {
-    if (!isMobile || !isNarrow || viewMode !== 'timeline') return
+    if (!isMobile || viewMode !== 'timeline') return
     setViewMode('list')
     persistMobileDbView('list')
-  }, [isMobile, isNarrow, viewMode, persistMobileDbView])
+  }, [isMobile, viewMode, persistMobileDbView])
 
   useEffect(() => {
     if (!isMobile && viewMode === 'list') setViewMode('timeline')
@@ -718,7 +708,7 @@ export default function NavDatabase() {
           if (activeTab === 'Tilgjengelig') {
             filtered = filtered.filter((l) => {
               const s = todayStatus(l.id)
-              return s === null || s === 'Tilgjengelig'
+              return s === 'Tilgjengelig'
             })
           } else if (activeTab === 'Formidlet') {
             filtered = filtered.filter((l) => todayStatus(l.id) === 'Formidla')
@@ -791,13 +781,21 @@ export default function NavDatabase() {
 
   if (isAuthorized === false) {
     return (
-      <main className="container" style={{ textAlign: 'center', padding: '100px 20px' }}>
+      <main
+        className="container"
+        style={{
+          textAlign: 'center',
+          padding: 'clamp(2.75rem, 8vh, 6.25rem) clamp(var(--space-3), 4vw, var(--space-5))',
+        }}
+      >
         <div
           className="card"
           style={{ maxWidth: '500px', margin: '0 auto', padding: 'var(--space-10)' }}
         >
           <ShieldCheck size={64} style={{ color: '#ef4444', margin: '0 auto var(--space-6)' }} />
-          <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-4)' }}>{t('noAccess')}</h1>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 2.4vw + 0.95rem, 2rem)', marginBottom: 'var(--space-4)' }}>
+            {t('noAccess')}
+          </h1>
           <p style={{ marginBottom: 'var(--space-8)', opacity: 0.8 }}>
             {t('noAccessDatabaseDesc')}
           </p>
@@ -1254,33 +1252,6 @@ export default function NavDatabase() {
             >
               <MapPin size={20} />
             </button>
-            {!isNarrow && (
-              <button
-                type="button"
-                onClick={() => {
-                  startViewTransition(() => {
-                    clearFocusListingFromUrl()
-                    setViewMode('timeline')
-                    persistMobileDbView('timeline')
-                  })
-                }}
-                style={{
-                  padding: 'var(--space-3)',
-                  borderRadius: '10px',
-                  minHeight: 'var(--touch-target)',
-                  minWidth: 'var(--touch-target)',
-                  background: viewMode === 'timeline' ? 'var(--color-accent)' : 'var(--bg-app)',
-                  border: '1px solid var(--border-subtle)',
-                  cursor: 'pointer',
-                  color: viewMode === 'timeline' ? 'white' : 'var(--text-main)',
-                }}
-                title={t('dbViewTimeline')}
-                aria-pressed={viewMode === 'timeline'}
-                aria-label={t('dbViewTimeline')}
-              >
-                <Calendar size={20} />
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -1391,7 +1362,7 @@ export default function NavDatabase() {
           className="db-action-btns"
           style={{
             display: 'flex',
-            gap: isMobile ? 6 : 'var(--space-2)',
+            gap: isMobile ? 'var(--space-2)' : 'var(--space-2)',
             flexWrap: 'wrap',
             alignItems: 'center',
           }}
@@ -1399,21 +1370,28 @@ export default function NavDatabase() {
           {isMobile ? (
             <button
               type="button"
-              onClick={() => setMobileDbToolsOpen(true)}
+              onClick={() => {
+                setShowFilters(!showFilters)
+                setShowColumnSettings(false)
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '10px 12px',
+                padding: 'var(--space-2) var(--space-3)',
                 borderRadius: '12px',
-                background: 'var(--bg-app)',
+                background: showFilters ? 'var(--color-accent)' : 'var(--bg-app)',
                 border: '1px solid var(--border-subtle)',
-                color: 'var(--text-main)',
+                color: showFilters ? 'white' : 'var(--text-main)',
                 cursor: 'pointer',
                 fontWeight: 600,
+                minHeight: 'var(--touch-target)',
               }}
             >
-              <Settings size={18} /> <span className="btn-label">{t('dbMobileTools')}</span>
+              <Filter size={18} />{' '}
+              <span className="btn-label">
+                {showFilters ? t('dbFilterClose') : t('dbFilterOpen')}
+              </span>
             </button>
           ) : (
             <>
@@ -1428,13 +1406,14 @@ export default function NavDatabase() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    padding: '10px 20px',
+                    padding: 'var(--space-2) var(--space-5)',
                     borderRadius: '12px',
                     background: showColumnSettings ? 'var(--color-accent)' : 'var(--bg-app)',
                     border: '1px solid var(--border-subtle)',
                     color: showColumnSettings ? 'white' : 'var(--text-main)',
                     cursor: 'pointer',
                     fontWeight: 600,
+                    minHeight: 'var(--touch-target)',
                   }}
                 >
                   <Settings size={18} />{' '}
@@ -1451,13 +1430,14 @@ export default function NavDatabase() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '10px 20px',
+                  padding: 'var(--space-2) var(--space-5)',
                   borderRadius: '12px',
                   background: showFilters ? 'var(--color-accent)' : 'var(--bg-app)',
                   border: '1px solid var(--border-subtle)',
                   color: showFilters ? 'white' : 'var(--text-main)',
                   cursor: 'pointer',
                   fontWeight: 600,
+                  minHeight: 'var(--touch-target)',
                 }}
               >
                 <Filter size={18} />{' '}
@@ -1482,48 +1462,6 @@ export default function NavDatabase() {
         >
           {t('dbMapModeHint')}
         </p>
-      )}
-
-      {isMobile && (
-        <BottomSheet
-          open={mobileDbToolsOpen}
-          title={t('dbMobileTools')}
-          titleId="db-mobile-tools"
-          closeLabel={t('close')}
-          onClose={() => setMobileDbToolsOpen(false)}
-          zIndex={2050}
-        >
-          <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-            {viewMode !== 'map' && (
-              <button
-                type="button"
-                className={buttonClassName('secondary')}
-                style={{ width: '100%', justifyContent: 'center' }}
-                onClick={() => {
-                  setShowColumnSettings(true)
-                  setShowFilters(false)
-                  setMobileDbToolsOpen(false)
-                }}
-              >
-                <Settings size={18} style={{ marginRight: 8 }} aria-hidden />
-                {t('dbCustomizeColumns')}
-              </button>
-            )}
-            <button
-              type="button"
-              className={buttonClassName('secondary')}
-              style={{ width: '100%', justifyContent: 'center' }}
-              onClick={() => {
-                setShowFilters(true)
-                setShowColumnSettings(false)
-                setMobileDbToolsOpen(false)
-              }}
-            >
-              <Filter size={18} style={{ marginRight: 8 }} aria-hidden />
-              {showFilters ? t('dbFilterClose') : t('dbFilterOpen')}
-            </button>
-          </div>
-        </BottomSheet>
       )}
 
       {showColumnSettings && viewMode !== 'map' &&
@@ -1552,7 +1490,7 @@ export default function NavDatabase() {
                     alignItems: 'center',
                     gap: '10px',
                     cursor: 'pointer',
-                    padding: '8px',
+                  padding: 'var(--space-2)',
                     borderRadius: '8px',
                   }}
                 >
@@ -1562,7 +1500,9 @@ export default function NavDatabase() {
                     onChange={() => toggleColumn(col.id)}
                     style={{ width: '18px', height: '18px', accentColor: 'var(--color-accent)' }}
                   />
-                  <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>{col.label}</span>
+                  <span style={{ fontSize: 'clamp(0.85rem, 1vw + 0.65rem, 0.9rem)', color: 'var(--text-main)' }}>
+                    {col.label}
+                  </span>
                 </label>
               ))}
             </div>
@@ -1575,7 +1515,7 @@ export default function NavDatabase() {
             <h3
               style={{
                 marginBottom: 'var(--space-4)',
-                fontSize: '1.1rem',
+                fontSize: 'clamp(1rem, 1.1vw + 0.8rem, 1.1rem)',
                 color: 'var(--text-main)',
               }}
             >
@@ -1597,7 +1537,7 @@ export default function NavDatabase() {
                     alignItems: 'center',
                     gap: '10px',
                     cursor: 'pointer',
-                    padding: '8px',
+                  padding: 'var(--space-2)',
                     borderRadius: '8px',
                   }}
                 >
@@ -1607,7 +1547,9 @@ export default function NavDatabase() {
                     onChange={() => toggleColumn(col.id)}
                     style={{ width: '18px', height: '18px', accentColor: 'var(--color-accent)' }}
                   />
-                  <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>{col.label}</span>
+                  <span style={{ fontSize: 'clamp(0.85rem, 1vw + 0.65rem, 0.9rem)', color: 'var(--text-main)' }}>
+                    {col.label}
+                  </span>
                 </label>
               ))}
             </div>
@@ -2859,13 +2801,13 @@ export default function NavDatabase() {
                   title={t('timelineColorHelpTitle')}
                   style={{
                     position: 'absolute',
-                    top: 12,
-                    right: 12,
+                    top: 'var(--space-3)',
+                    right: 'var(--space-3)',
                     zIndex: 5,
                     background: 'rgba(59, 130, 246, 0.12)',
                     border: '1px solid rgba(59, 130, 246, 0.35)',
                     borderRadius: '10px',
-                    padding: '8px 10px',
+                    padding: 'var(--space-2) var(--space-3)',
                     cursor: 'pointer',
                     color: 'var(--color-sky-blue)',
                     display: 'flex',
@@ -2912,8 +2854,8 @@ export default function NavDatabase() {
                                 style={{
                                   flex: daysInView,
                                   borderLeft: '2px solid var(--color-sky-blue)',
-                                  padding: '4px 8px',
-                                  fontSize: '0.65rem',
+                                  padding: 'var(--space-1) var(--space-2)',
+                                  fontSize: 'clamp(0.62rem, 0.25vw + 0.55rem, 0.72rem)',
                                   fontWeight: 700,
                                   color: 'var(--color-sky-blue)',
                                   whiteSpace: 'nowrap',
@@ -2937,11 +2879,11 @@ export default function NavDatabase() {
                           width: '220px',
                           flexShrink: 0,
                           fontWeight: 700,
-                          fontSize: '0.75rem',
+                          fontSize: 'clamp(0.7rem, 0.25vw + 0.62rem, 0.78rem)',
                           opacity: 0.5,
                           display: 'flex',
                           alignItems: 'center',
-                          paddingLeft: '8px',
+                          paddingLeft: 'var(--space-2)',
                         }}
                       >
                         {t('dbPropertyRowHeader')}
@@ -2975,15 +2917,15 @@ export default function NavDatabase() {
                               style={{
                                 flex: 1,
                                 textAlign: 'center',
-                                fontSize: '0.55rem',
+                                fontSize: 'clamp(0.52rem, 0.2vw + 0.48rem, 0.6rem)',
                                 borderLeft: isMonday ? '1px solid rgba(59, 130, 246, 0.3)' : 'none',
-                                padding: '4px 0',
+                                padding: 'var(--space-1) 0',
                                 opacity: isMonday ? 1 : 0.4,
                               }}
                             >
                               <div
                                 style={{
-                                  fontSize: '0.45rem',
+                                  fontSize: 'clamp(0.44rem, 0.15vw + 0.42rem, 0.52rem)',
                                   fontWeight: 600,
                                   visibility: isMonday ? 'visible' : 'hidden',
                                 }}
@@ -3006,7 +2948,7 @@ export default function NavDatabase() {
                         style={{
                           display: 'flex',
                           alignItems: 'stretch',
-                          minHeight: '28px',
+                          minHeight: 'clamp(1.75rem, 2vh + 1rem, 2rem)',
                           background: 'rgba(255,255,255,0.01)',
                           borderRadius: '4px',
                         }}
@@ -3017,8 +2959,8 @@ export default function NavDatabase() {
                           style={{
                             width: '220px',
                             flexShrink: 0,
-                            fontSize: '0.7rem',
-                            padding: '4px 8px',
+                            fontSize: 'clamp(0.68rem, 0.2vw + 0.6rem, 0.76rem)',
+                            padding: 'var(--space-1) var(--space-2)',
                             cursor: 'pointer',
                             fontWeight: 500,
                             opacity: 0.9,
@@ -3045,7 +2987,7 @@ export default function NavDatabase() {
                             <div
                               key={col.id}
                               style={{
-                                fontSize: '0.6rem',
+                                fontSize: 'clamp(0.58rem, 0.16vw + 0.5rem, 0.66rem)',
                                 opacity: 0.88,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -3067,7 +3009,7 @@ export default function NavDatabase() {
                           style={{
                             flex: 1,
                             display: 'flex',
-                            height: '20px',
+                            height: 'clamp(1.1rem, 1.2vw + 0.75rem, 1.25rem)',
                             gap: '1px',
                             alignSelf: 'center',
                           }}
@@ -3164,7 +3106,7 @@ export default function NavDatabase() {
                     flexWrap: 'wrap',
                     gap: 'var(--space-6)',
                     marginBottom: 'var(--space-2)',
-                    fontSize: '0.75rem',
+                    fontSize: 'clamp(0.72rem, 0.2vw + 0.66rem, 0.8rem)',
                     opacity: 0.8,
                   }}
                 >
@@ -3174,8 +3116,8 @@ export default function NavDatabase() {
                   >
                     <div
                       style={{
-                        width: '12px',
-                        height: '12px',
+                        width: 'clamp(10px, 1.1vw, 12px)',
+                        height: 'clamp(10px, 1.1vw, 12px)',
                         background: 'var(--color-teal)',
                         borderRadius: '2px',
                       }}
@@ -3188,8 +3130,8 @@ export default function NavDatabase() {
                   >
                     <div
                       style={{
-                        width: '12px',
-                        height: '12px',
+                        width: 'clamp(10px, 1.1vw, 12px)',
+                        height: 'clamp(10px, 1.1vw, 12px)',
                         background: 'var(--color-sky-blue)',
                         borderRadius: '2px',
                       }}
@@ -3202,8 +3144,8 @@ export default function NavDatabase() {
                   >
                     <div
                       style={{
-                        width: '12px',
-                        height: '12px',
+                        width: 'clamp(10px, 1.1vw, 12px)',
+                        height: 'clamp(10px, 1.1vw, 12px)',
                         background: '#ef4444',
                         borderRadius: '2px',
                       }}
@@ -3216,8 +3158,8 @@ export default function NavDatabase() {
                   >
                     <div
                       style={{
-                        width: '12px',
-                        height: '12px',
+                        width: 'clamp(10px, 1.1vw, 12px)',
+                        height: 'clamp(10px, 1.1vw, 12px)',
                         background: '#991b1b',
                         borderRadius: '2px',
                       }}
@@ -3228,7 +3170,7 @@ export default function NavDatabase() {
                 <div
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                  <span style={{ fontSize: 'clamp(0.78rem, 0.2vw + 0.7rem, 0.85rem)', fontWeight: 600 }}>
                     {t('dbTimelineControls')}
                   </span>
                   <button
@@ -3238,13 +3180,19 @@ export default function NavDatabase() {
                       border: 'none',
                       color: 'var(--color-sky-blue)',
                       cursor: 'pointer',
-                      fontSize: '0.75rem',
+                      fontSize: 'clamp(0.72rem, 0.2vw + 0.65rem, 0.8rem)',
                     }}
                   >
                     {t('dbGoToToday')}
                   </button>
                 </div>
-                <div style={{ position: 'relative', height: '20px', margin: '10px 0' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    height: 'clamp(1.1rem, 1.2vw + 0.75rem, 1.25rem)',
+                    margin: 'var(--space-2) 0',
+                  }}
+                >
                   <input
                     type="range"
                     min="-30"
@@ -3279,7 +3227,7 @@ export default function NavDatabase() {
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    fontSize: '0.65rem',
+                    fontSize: 'clamp(0.62rem, 0.18vw + 0.56rem, 0.7rem)',
                     opacity: 0.5,
                   }}
                 >

@@ -63,7 +63,7 @@ async function fetchKommuneStaffIdsForLandlord(ownerId: string): Promise<string[
 }
 
 function MessagesContent() {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
   const withUserId = searchParams.get('with')
@@ -452,10 +452,8 @@ function MessagesContent() {
         if (m.sender_id !== myId && m.sender_id !== withUserId) need.add(m.sender_id)
       }
     } else if (!isKommune) {
-      const staffSet = new Set(landlordKommuneStaffIds)
       for (const m of messages) {
-        if (m.sender_id === myId) continue
-        if (staffSet.size === 0 || staffSet.has(m.sender_id)) need.add(m.sender_id)
+        if (m.sender_id !== myId) need.add(m.sender_id)
       }
     }
     if (need.size === 0) {
@@ -486,7 +484,7 @@ function MessagesContent() {
     return () => {
       cancelled = true
     }
-  }, [messages, isKommune, withUserId, bootOk, landlordKommuneStaffIds])
+  }, [messages, isKommune, withUserId, bootOk])
 
   useEffect(() => {
     if (!currentUser) return
@@ -701,12 +699,22 @@ function MessagesContent() {
   const showMessagesPickerSearch =
     (messagesPickerTab === 'landlords' && landlordsWithoutThread.length > 0) ||
     (messagesPickerTab === 'staff' && colleagues.length > 0)
+  const compactMobileChat = kommuneMobileChatOnly || (!isKommune && isMobile)
+  const formatMessageTimestamp = (value: string | Date | null | undefined) => {
+    if (!isMobile) return formatDateTimeNo(value)
+    const d = new Date(String(value ?? ''))
+    if (Number.isNaN(d.getTime())) return formatDateTimeNo(value)
+    return d.toLocaleTimeString(locale === 'no' ? 'nb-NO' : locale === 'se' ? 'se-SE' : 'en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
 
   return (
     <main
       className="container"
       style={
-        kommuneMobileChatOnly || (!isKommune && isMobile)
+        compactMobileChat
           ? {
               display: 'flex',
               flexDirection: 'column',
@@ -778,7 +786,7 @@ function MessagesContent() {
         </div>
       </LandlordOnboardingModal>
 
-      <div style={{ marginBottom: 'var(--space-6)', flexShrink: 0 }}>
+      <div style={{ marginBottom: compactMobileChat ? 'var(--space-4)' : 'var(--space-6)', flexShrink: 0 }}>
         <Link
           href={backHref}
           className="nav-link"
@@ -786,20 +794,24 @@ function MessagesContent() {
         >
           <ArrowLeft size={18} /> {t('back')}
         </Link>
-        <h1 style={{ fontSize: '2rem', marginTop: 'var(--space-2)' }}>{t('messages')}</h1>
-        <p
-          role="note"
-          style={{
-            marginTop: 'var(--space-2)',
-            marginBottom: 0,
-            maxWidth: '42rem',
-            fontSize: '0.8125rem',
-            lineHeight: 1.5,
-            color: 'var(--text-muted)',
-          }}
-        >
-          {t('messagesSensitiveDataNotice')}
-        </p>
+        <h1 style={{ fontSize: 'clamp(1.35rem, 4.6vw, 2rem)', marginTop: 'var(--space-2)' }}>
+          {t('messages')}
+        </h1>
+        {!compactMobileChat && (
+          <p
+            role="note"
+            style={{
+              marginTop: 'var(--space-2)',
+              marginBottom: 0,
+              maxWidth: '42rem',
+              fontSize: '0.8125rem',
+              lineHeight: 1.5,
+              color: 'var(--text-muted)',
+            }}
+          >
+            {t('messagesSensitiveDataNotice')}
+          </p>
+        )}
       </div>
 
       <div
@@ -813,11 +825,8 @@ function MessagesContent() {
                 ? 'minmax(280px, 340px) 1fr'
                 : '1fr',
           gap: 'var(--space-6)',
-          minHeight:
-            kommuneMobileChatOnly || (!isKommune && isMobile)
-              ? 'min(520px, calc(100dvh - 220px))'
-              : '400px',
-          flex: kommuneMobileChatOnly || (!isKommune && isMobile) ? '1 1 auto' : undefined,
+          minHeight: compactMobileChat ? 'min(520px, calc(100dvh - 220px))' : '400px',
+          flex: compactMobileChat ? '1 1 auto' : undefined,
           minWidth: 0,
         }}
       >
@@ -1170,20 +1179,17 @@ function MessagesContent() {
             display: kommuneMobileListOnly ? 'none' : 'flex',
             flexDirection: 'column',
             padding: 0,
-            minHeight: kommuneMobileChatOnly || (!isKommune && isMobile) ? 0 : 400,
-            flex: kommuneMobileChatOnly || (!isKommune && isMobile) ? '1 1 auto' : undefined,
+            minHeight: compactMobileChat ? 0 : 400,
+            flex: compactMobileChat ? '1 1 auto' : undefined,
             minWidth: 0,
-            maxHeight:
-              kommuneMobileChatOnly || (!isKommune && isMobile)
-                ? 'calc(100dvh - 200px)'
-                : undefined,
+            maxHeight: compactMobileChat ? 'calc(100dvh - 200px)' : undefined,
           }}
         >
           {showChat && (withUserId || !isKommune) ? (
             <>
               <div
                 style={{
-                  padding: 'var(--space-4)',
+                  padding: compactMobileChat ? 'var(--space-3)' : 'var(--space-4)',
                   borderBottom: '1px solid var(--border-subtle)',
                   display: 'flex',
                   alignItems: 'center',
@@ -1191,11 +1197,13 @@ function MessagesContent() {
                   flexShrink: 0,
                 }}
               >
-                <MessageSquare size={20} style={{ color: 'var(--color-sky-blue)' }} />
+                {!compactMobileChat && <MessageSquare size={20} style={{ color: 'var(--color-sky-blue)' }} />}
                 <span style={{ fontWeight: 600 }}>
                   {isKommune && withUserId
                     ? otherUser
-                      ? `Chat med ${otherUser.name}`
+                      ? compactMobileChat
+                        ? otherUser.name
+                        : `Chat med ${otherUser.name}`
                       : 'Chat'
                     : otherUser?.name || t('messagesLandlordSharedChannelTitle')}
                 </span>
@@ -1245,7 +1253,7 @@ function MessagesContent() {
                       key={m.id}
                       style={{
                         alignSelf: isMe ? 'flex-end' : 'flex-start',
-                        maxWidth: '85%',
+                        maxWidth: compactMobileChat ? '92%' : '85%',
                         padding: 'var(--space-3) var(--space-4)',
                         borderRadius: '12px',
                         background: isMe ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.06)',
@@ -1305,7 +1313,7 @@ function MessagesContent() {
                         <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.content}</p>
                       ) : null}
                       <div style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '4px' }}>
-                        {formatDateTimeNo(m.created_at)}
+                        {formatMessageTimestamp(m.created_at)}
                       </div>
                     </div>
                   )
