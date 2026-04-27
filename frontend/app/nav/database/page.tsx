@@ -185,7 +185,7 @@ export default function NavDatabase() {
     'owner_name',
     'price_daily',
   ])
-  /** I kartvisning: hvilke statuser skal vises (kan velges i filterdelen). */
+  /** Kart og tidslinje: filtrer synlige boliger etter dagens status (velges i filterpanelet). */
   const [mapStatusFilter, setMapStatusFilter] = useState<
     ('Tilgjengelig' | 'Utilgjengelig' | 'Formidlet')[]
   >(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'])
@@ -477,9 +477,10 @@ export default function NavDatabase() {
       .filter(Boolean)
   }
 
-  /** Cache-nøkkel inkluderer region slik at vi ikke gjenbruker tom cache fra før kommune_region er lastet. I kartvisning brukes én nøkkel (alle statuser vises samtidig). */
+  /** Cache-nøkkel inkluderer region slik at vi ikke gjenbruker tom cache fra før kommune_region er lastet. Kart og tidslinje: én nøkkel (status filtreres i klient, ikke ved henting). */
   const getTabCacheKey = () => {
-    const base = viewMode === 'map' ? 'map' : `${activeTab}_${viewMode}`
+    const base =
+      viewMode === 'map' ? 'map' : viewMode === 'timeline' ? 'timeline' : `${activeTab}_${viewMode}`
     if (isKommuneStaffRole(userRole)) {
       const regions = parseKommuneRegions(kommuneRegion)
       const regionKey = regions.length ? regions.sort().join(',') : 'none'
@@ -490,6 +491,22 @@ export default function NavDatabase() {
 
   /** Status for dagens dato (lokal tid, normaliserte datoer). Null = ingen periode dekker i dag → i filter vises som tilgjengelig. */
   const getStatusForToday = listingAvailabilityStatusToday
+
+  const effectiveMapTimelineStatusFilter: Array<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'> =
+    mapStatusFilter.length > 0
+      ? mapStatusFilter
+      : ['Tilgjengelig', 'Utilgjengelig', 'Formidlet']
+
+  const listingMatchesMapTimelineStatusFilter = (lid: string) => {
+    const s = getStatusForToday(lid, availability)
+    const status: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' =
+      s === 'Formidla'
+        ? 'Formidlet'
+        : s === 'Utilgjengelig'
+          ? 'Utilgjengelig'
+          : 'Tilgjengelig'
+    return effectiveMapTimelineStatusFilter.includes(status)
+  }
 
   const fetchListings = async (showLoader = true) => {
     const cacheKey = getTabCacheKey()
@@ -702,8 +719,8 @@ export default function NavDatabase() {
           availMap[item.listing_id].push(item)
         })
 
-        // Liste/tabell/tidslinje: filtrer på status for dagens dato. Kart: egne filterbokser.
-        if (viewMode === 'table' || viewMode === 'list' || viewMode === 'timeline') {
+        // Liste/tabell: filtrer på status for dagens dato. Kart og tidslinje: alle boliger hentes; status filtreres i UI (mapStatusFilter).
+        if (viewMode === 'table' || viewMode === 'list') {
           const todayStatus = (lid: string) => getStatusForToday(lid, availMap)
           if (activeTab === 'Tilgjengelig') {
             filtered = filtered.filter((l) => {
@@ -1570,7 +1587,7 @@ export default function NavDatabase() {
         (() => {
           const filtersInner = (
             <>
-          {viewMode === 'map' && (
+          {(viewMode === 'map' || viewMode === 'timeline') && (
             <div
               style={{
                 marginBottom: 'var(--space-6)',
@@ -1605,11 +1622,13 @@ export default function NavDatabase() {
                         type="checkbox"
                         checked={mapStatusFilter.includes(status)}
                         onChange={() =>
-                          setMapStatusFilter((prev) =>
-                            prev.includes(status)
-                              ? prev.filter((s) => s !== status)
-                              : [...prev, status].sort()
-                          )
+                          setMapStatusFilter((prev) => {
+                            if (prev.includes(status)) {
+                              if (prev.length <= 1) return prev
+                              return prev.filter((s) => s !== status)
+                            }
+                            return [...prev, status].sort()
+                          })
                         }
                         style={{
                           width: '18px',
@@ -2502,14 +2521,7 @@ export default function NavDatabase() {
             <MapView
               listings={listings.filter((l) => {
                 if (focusListingId && l.id === focusListingId) return true
-                const s = getStatusForToday(l.id, availability)
-                const status: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' =
-                  s === 'Formidla'
-                    ? 'Formidlet'
-                    : s === 'Utilgjengelig'
-                      ? 'Utilgjengelig'
-                      : 'Tilgjengelig'
-                return mapStatusFilter.includes(status)
+                return listingMatchesMapTimelineStatusFilter(l.id)
               })}
               availability={availability}
               focusListingId={focusListingId || null}
@@ -2942,7 +2954,7 @@ export default function NavDatabase() {
                     </div>
                   </div>
                   <div style={{ display: 'grid', gap: '2px' }}>
-                    {listings.map((l) => (
+                    {listings.filter((l) => listingMatchesMapTimelineStatusFilter(l.id)).map((l) => (
                       <div
                         key={l.id}
                         style={{

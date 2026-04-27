@@ -734,7 +734,8 @@ export const translations = {
     dbColumnSettingsTitle: 'Velg informasjon som skal vises i tabellen',
     dbFilterClose: 'Lukk filter',
     dbFilterOpen: 'Filtrer',
-    dbMapShowStatuses: 'Vis på kart',
+    dbMapShowStatuses:
+      'Vis boliger etter dagens status (tilgjengelig, utilgjengelig, formidlet). Gjelder kart og tidslinje.',
     dbSearch: 'Søk',
     dbSearchPlaceholder: 'Adresse / eier …',
     dbRegion: 'Region',
@@ -1670,7 +1671,8 @@ export const translations = {
     dbColumnSettingsTitle: 'Vállje dieđu mii čájehuvvo tabellás',
     dbFilterClose: 'Gidde filttera',
     dbFilterOpen: 'Filtter',
-    dbMapShowStatuses: 'Čájeh kártas',
+    dbMapShowStatuses:
+      'Čájet dáviraid dálá stáhtusa mielde (hábme, ii hábme, formiduhttán). Guoská kártii ja áigeguovdáhusii.',
     dbSearch: 'Oza',
     dbSearchPlaceholder: 'Čujuhus / eiseváldi …',
     dbRegion: 'Regiovdna',
@@ -2614,7 +2616,8 @@ export const translations = {
     dbColumnSettingsTitle: 'Choose which columns to show in the table',
     dbFilterClose: 'Close filters',
     dbFilterOpen: 'Filter',
-    dbMapShowStatuses: 'Show on map',
+    dbMapShowStatuses:
+      "Show listings by today's status (available, unavailable, mediated). Applies to map and timeline.",
     dbSearch: 'Search',
     dbSearchPlaceholder: 'Address / owner…',
     dbRegion: 'Region',
