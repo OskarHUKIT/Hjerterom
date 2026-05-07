@@ -3180,7 +3180,7 @@ export default function ListingDetailsClient() {
                             display: 'flex',
                             alignItems: 'flex-start',
                             gap: 'var(--space-2)',
-                            cursor: formidletMediationNote.trim() ? 'pointer' : 'default',
+                            cursor: 'pointer',
                             color: 'var(--text-body)',
                           }}
                         >
@@ -3190,14 +3190,7 @@ export default function ListingDetailsClient() {
                             onChange={(e) =>
                               setFormidletIncludeNoteInNotification(e.target.checked)
                             }
-                            disabled={
-                              !formidletMediationNote.trim() ||
-                              !!(
-                                mediationReservation &&
-                                mediationReservation.reserved_by !== currentUser?.id
-                              )
-                            }
-                            style={{ marginTop: '2px' }}
+                            style={{ marginTop: '2px', width: '18px', height: '18px' }}
                           />
                           <span>{t('includeMediationNoteInNotification')}</span>
                         </label>
@@ -4358,12 +4351,12 @@ export default function ListingDetailsClient() {
                     letterSpacing: '0.05em',
                     opacity: 0.6,
                     marginBottom: '4px',
-                    color: 'white',
+                    color: 'var(--text-muted)',
                   }}
                 >
                   Døgnpris
                 </div>
-                <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'white' }}>
+                <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
                   {listing.price_daily},-
                 </span>
               </div>
@@ -4372,18 +4365,18 @@ export default function ListingDetailsClient() {
                 style={{ display: 'grid', gap: 'var(--space-3)', marginBottom: 'var(--space-8)' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="text-sm opacity-70" style={{ color: 'white' }}>
+                  <span className="text-sm opacity-70" style={{ color: 'var(--text-muted)' }}>
                     Ukespris:
                   </span>
-                  <span className="text-sm font-bold" style={{ color: 'white' }}>
+                  <span className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>
                     {listing.price_weekly},-
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="text-sm opacity-70" style={{ color: 'white' }}>
+                  <span className="text-sm opacity-70" style={{ color: 'var(--text-muted)' }}>
                     Månedsleie (korttid):
                   </span>
-                  <span className="text-sm font-bold" style={{ color: 'white' }}>
+                  <span className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>
                     {listing.price_monthly_short},-
                   </span>
                 </div>
@@ -4395,18 +4388,18 @@ export default function ListingDetailsClient() {
                     paddingTop: 'var(--space-3)',
                   }}
                 >
-                  <span className="text-sm opacity-70" style={{ color: 'white' }}>
+                  <span className="text-sm opacity-70" style={{ color: 'var(--text-muted)' }}>
                     Langtidsleie (per mnd):
                   </span>
-                  <span className="text-sm font-bold" style={{ color: 'white' }}>
+                  <span className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>
                     {listing.price_monthly_long},-
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="text-sm opacity-70" style={{ color: 'white' }}>
+                  <span className="text-sm opacity-70" style={{ color: 'var(--text-muted)' }}>
                     Depositum:
                   </span>
-                  <span className="text-sm font-bold" style={{ color: 'white' }}>
+                  <span className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>
                     {listing.deposit_amount},-
                   </span>
                 </div>
@@ -4416,9 +4409,9 @@ export default function ListingDetailsClient() {
                 style={{
                   marginBottom: 'var(--space-4)',
                   padding: 'var(--space-3)',
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--bg-app)',
                   borderRadius: '8px',
-                  border: '1px solid rgba(255,255,255,0.1)',
+                  border: '1px solid var(--border-subtle)',
                 }}
               >
                 <div
@@ -4428,7 +4421,7 @@ export default function ListingDetailsClient() {
                     letterSpacing: '0.04em',
                     opacity: 0.65,
                     marginBottom: 'var(--space-2)',
-                    color: 'white',
+                    color: 'var(--text-muted)',
                   }}
                 >
                   {t('depositGuaranteeHeading')}
@@ -4438,7 +4431,7 @@ export default function ListingDetailsClient() {
                     style={{
                       margin: 0,
                       fontSize: '0.85rem',
-                      color: 'rgba(255,255,255,0.75)',
+                      color: 'var(--text-muted)',
                       lineHeight: 1.45,
                     }}
                   >
@@ -4459,7 +4452,7 @@ export default function ListingDetailsClient() {
                           alignItems: 'flex-start',
                           gap: 'var(--space-3)',
                           fontSize: '0.85rem',
-                          color: 'rgba(255,255,255,0.92)',
+                          color: 'var(--text-main)',
                         }}
                       >
                         <span style={{ flex: 1, lineHeight: 1.4 }}>{t(labelKey)}</span>
@@ -4478,11 +4471,11 @@ export default function ListingDetailsClient() {
                 <div
                   style={{
                     padding: 'var(--space-3)',
-                    background: 'rgba(255,255,255,0.08)',
+                    background: 'var(--bg-app)',
                     borderRadius: '8px',
                     marginBottom: 'var(--space-4)',
                     fontSize: '0.9rem',
-                    color: 'rgba(255,255,255,0.9)',
+                    color: 'var(--text-body)',
                   }}
                 >
                   {t('expiredOwnerNoMediationShort')}
@@ -4491,11 +4484,11 @@ export default function ListingDetailsClient() {
                 <div
                   style={{
                     padding: 'var(--space-3)',
-                    background: 'rgba(255,255,255,0.08)',
+                    background: 'var(--bg-app)',
                     borderRadius: '8px',
                     marginBottom: 'var(--space-4)',
                     fontSize: '0.9rem',
-                    color: 'rgba(255,255,255,0.9)',
+                    color: 'var(--text-body)',
                   }}
                 >
                   {t('formidlingManagedByCaseworkerShort')}
@@ -4508,7 +4501,7 @@ export default function ListingDetailsClient() {
                     borderRadius: '8px',
                     marginBottom: 'var(--space-4)',
                     fontSize: '0.9rem',
-                    color: 'white',
+                    color: 'var(--text-main)',
                   }}
                 >
                   {t('formidletUseRemoveBelow')}
@@ -4520,7 +4513,7 @@ export default function ListingDetailsClient() {
                       className="label"
                       style={{
                         fontSize: '0.75rem',
-                        color: 'rgba(255,255,255,0.7)',
+                        color: 'var(--text-muted)',
                         marginBottom: 'var(--space-2)',
                         display: 'block',
                       }}
@@ -4532,7 +4525,7 @@ export default function ListingDetailsClient() {
                         <span
                           style={{
                             fontSize: '0.7rem',
-                            color: 'rgba(255,255,255,0.6)',
+                            color: 'var(--text-muted)',
                             display: 'block',
                             marginBottom: '4px',
                           }}
@@ -4552,9 +4545,9 @@ export default function ListingDetailsClient() {
                           style={{
                             padding: 'var(--space-2)',
                             fontSize: '0.85rem',
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            color: 'white',
+                            background: 'var(--bg-app)',
+                            border: '1px solid var(--border-medium)',
+                            color: 'var(--text-main)',
                             borderRadius: '8px',
                             marginBottom: 0,
                             width: '100%',
@@ -4565,7 +4558,7 @@ export default function ListingDetailsClient() {
                         <span
                           style={{
                             fontSize: '0.7rem',
-                            color: 'rgba(255,255,255,0.6)',
+                            color: 'var(--text-muted)',
                             display: 'block',
                             marginBottom: '4px',
                           }}
@@ -4585,9 +4578,9 @@ export default function ListingDetailsClient() {
                           style={{
                             padding: 'var(--space-2)',
                             fontSize: '0.85rem',
-                            background: 'rgba(255,255,255,0.1)',
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            color: 'white',
+                            background: 'var(--bg-app)',
+                            border: '1px solid var(--border-medium)',
+                            color: 'var(--text-main)',
                             borderRadius: '8px',
                             marginBottom: 0,
                             width: '100%',
@@ -4600,7 +4593,7 @@ export default function ListingDetailsClient() {
                     style={{
                       fontSize: '0.75rem',
                       marginBottom: 'var(--space-3)',
-                      color: 'rgba(255,255,255,0.75)',
+                      color: 'var(--text-muted)',
                     }}
                   >
                     <summary style={{ cursor: 'pointer', userSelect: 'none' }}>
@@ -4630,9 +4623,9 @@ export default function ListingDetailsClient() {
                           resize: 'vertical',
                           minHeight: '48px',
                           maxHeight: '120px',
-                          background: 'rgba(255,255,255,0.1)',
-                          border: '1px solid rgba(255,255,255,0.2)',
-                          color: 'white',
+                          background: 'var(--bg-app)',
+                          border: '1px solid var(--border-medium)',
+                          color: 'var(--text-main)',
                         }}
                       />
                       <label
@@ -4640,16 +4633,15 @@ export default function ListingDetailsClient() {
                           display: 'flex',
                           alignItems: 'flex-start',
                           gap: 'var(--space-2)',
-                          cursor: formidletMediationNote.trim() ? 'pointer' : 'default',
-                          color: 'rgba(255,255,255,0.9)',
+                          cursor: 'pointer',
+                          color: 'var(--text-body)',
                         }}
                       >
                         <input
                           type="checkbox"
                           checked={formidletIncludeNoteInNotification}
                           onChange={(e) => setFormidletIncludeNoteInNotification(e.target.checked)}
-                          disabled={!formidletMediationNote.trim()}
-                          style={{ marginTop: '2px' }}
+                          style={{ marginTop: '2px', width: '18px', height: '18px' }}
                         />
                         <span>{t('includeMediationNoteInNotification')}</span>
                       </label>
@@ -4677,7 +4669,7 @@ export default function ListingDetailsClient() {
                 </>
               )}
               <div
-                style={{ textAlign: 'center', fontSize: '0.8rem', opacity: 0.6, color: 'white' }}
+                style={{ textAlign: 'center', fontSize: '0.8rem', opacity: 0.6, color: 'var(--text-muted)' }}
               >
                 {t('agreementHistoryLogged')}
               </div>

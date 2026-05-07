@@ -2063,7 +2063,7 @@ export default function NavDatabase() {
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 'var(--space-2)',
-                    cursor: formidletMediationNote.trim() ? 'pointer' : 'default',
+                    cursor: 'pointer',
                     color: 'var(--text-body)',
                   }}
                 >
@@ -2071,8 +2071,7 @@ export default function NavDatabase() {
                     type="checkbox"
                     checked={formidletIncludeNoteInOwnerNotif}
                     onChange={(e) => setFormidletIncludeNoteInOwnerNotif(e.target.checked)}
-                    disabled={!formidletMediationNote.trim()}
-                    style={{ marginTop: '2px' }}
+                    style={{ marginTop: '2px', width: '18px', height: '18px' }}
                   />
                   <span>{t('includeMediationNoteInNotification')}</span>
                 </label>

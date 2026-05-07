@@ -897,6 +897,10 @@ export default function HomeownerManage() {
             className="hm-filters-row"
             style={{
               marginBottom: 'var(--space-4)',
+              padding: 'var(--space-3) var(--space-4)',
+              background: 'var(--bg-card)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-subtle)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -904,7 +908,7 @@ export default function HomeownerManage() {
               gap: 'var(--space-3)',
             }}
           >
-            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
               {(['Alle', 'Tilgjengelig', 'Utilgjengelig', 'Formidla'] as const).map((f) => (
                 <button
                   key={f}
@@ -918,10 +922,13 @@ export default function HomeownerManage() {
                     padding: 'var(--space-2) var(--space-4)',
                     borderRadius: '20px',
                     fontSize: '0.85rem',
+                    fontWeight: filter === f ? 600 : 500,
                     cursor: 'pointer',
-                    background: filter === f ? 'var(--color-royal-blue)' : 'var(--bg-app)',
-                    border: '1px solid var(--border-subtle)',
+                    background: filter === f ? 'var(--color-royal-blue)' : 'transparent',
+                    border: filter === f ? '1px solid var(--color-royal-blue)' : '1px solid var(--border-medium)',
                     color: filter === f ? 'white' : 'var(--text-main)',
+                    transition: 'all 0.15s ease',
+                    boxShadow: filter === f ? '0 1px 4px rgba(59, 130, 246, 0.3)' : 'none',
                   }}
                 >
                   {f === 'Alle'
