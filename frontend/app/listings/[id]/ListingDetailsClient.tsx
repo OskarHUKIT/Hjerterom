@@ -3190,6 +3190,12 @@ export default function ListingDetailsClient() {
                             onChange={(e) =>
                               setFormidletIncludeNoteInNotification(e.target.checked)
                             }
+                            disabled={
+                              !!(
+                                mediationReservation &&
+                                mediationReservation.reserved_by !== currentUser?.id
+                              )
+                            }
                             style={{ marginTop: '2px', width: '18px', height: '18px' }}
                           />
                           <span>{t('includeMediationNoteInNotification')}</span>

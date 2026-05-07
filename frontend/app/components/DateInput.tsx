@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, useId } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useId } from 'react'
+import { createPortal } from 'react-dom'
 import { formatDateNo, parseDateNo } from '@/app/lib/dateFormat'
 import type { DayAvailabilityTone } from '@/app/lib/listingDayAvailabilityTone'
 import { Calendar } from 'lucide-react'
@@ -86,6 +87,7 @@ export function DateInput({
   })
   const wrapRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; minWidth: number } | null>(null)
 
   useEffect(() => {
     if (value) {
@@ -98,6 +100,32 @@ export function DateInput({
   useEffect(() => {
     if (disabled) setOpen(false)
   }, [disabled])
+
+  // Track the anchor element position so the portal calendar stays pinned below
+  // the input even while scrolling or resizing.
+  useLayoutEffect(() => {
+    if (!open) {
+      setPanelPos(null)
+      return
+    }
+    const recalc = () => {
+      const el = wrapRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      setPanelPos({
+        top: r.bottom + 4,
+        left: r.left,
+        minWidth: Math.max(r.width, 260),
+      })
+    }
+    recalc()
+    window.addEventListener('scroll', recalc, true)
+    window.addEventListener('resize', recalc)
+    return () => {
+      window.removeEventListener('scroll', recalc, true)
+      window.removeEventListener('resize', recalc)
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -258,29 +286,33 @@ export function DateInput({
           <Calendar size={18} strokeWidth={2} aria-hidden />
         </button>
       </div>
-      {open && (
-        <div
-          ref={panelRef}
-          className="date-input-calendar"
-          role="dialog"
-          aria-label={
-            legendVisible ? `${t('calendarOpenAria')}. ${t('dateCalendarToneLegendAria')}` : t('calendarOpenAria')
-          }
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            width: '100%',
-            minWidth: 260,
-            zIndex: 50,
-            marginTop: 4,
-            padding: 12,
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 12,
-            boxShadow: 'var(--shadow-lg)',
-            boxSizing: 'border-box',
-          }}
+      {open &&
+        panelPos &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            ref={panelRef}
+            className="date-input-calendar"
+            role="dialog"
+            aria-label={
+              legendVisible ? `${t('calendarOpenAria')}. ${t('dateCalendarToneLegendAria')}` : t('calendarOpenAria')
+            }
+            style={{
+              position: 'fixed',
+              top: panelPos.top,
+              left: panelPos.left,
+              width: panelPos.minWidth,
+              maxWidth: 'calc(100vw - 16px)',
+              maxHeight: 'calc(100vh - 24px)',
+              overflowY: 'auto',
+              zIndex: 9999,
+              padding: 12,
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 12,
+              boxShadow: 'var(--shadow-lg)',
+              boxSizing: 'border-box',
+            }}
           >
             <div
               style={{
@@ -436,7 +468,8 @@ export function DateInput({
                 </span>
               </div>
             )}
-          </div>
+          </div>,
+          document.body
         )}
     </div>
   )
