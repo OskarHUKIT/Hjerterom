@@ -2834,12 +2834,25 @@ export default function NavDatabase() {
                       borderBottom: '1px solid var(--border-subtle)',
                     }}
                   >
-                    {/* Rad 1: Måneder og År */}
+                    {/* Rad 1: Måneder og År.
+                        Alle tre rader (måneder, uker/dag, dato-celler) deler samme
+                        CSS Grid-mal: `repeat(60, minmax(0, 1fr))`. Det er den eneste
+                        måten å garantere at kolonne `i` har samme x-posisjon i alle
+                        rader uansett browser-pikselavrunding — flex med `flex: N`
+                        på etiketter + `flex: 1` på 60 celler driftet subpikselvis
+                        og var det «logiske» problemet med markører som flytter seg
+                        relativt til datoblokkene når slideren ble brukt. */}
                     <div
                       style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
                     >
                       <div style={{ width: '220px', flexShrink: 0 }}></div>
-                      <div style={{ flex: 1, display: 'flex' }}>
+                      <div
+                        style={{
+                          flex: 1,
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(60, minmax(0, 1fr))',
+                        }}
+                      >
                         {Array.from({ length: 60 }).map((_, i) => {
                           const d = new Date()
                           d.setDate(d.getDate() + i + timelineOffset)
@@ -2860,13 +2873,22 @@ export default function NavDatabase() {
                               <div
                                 key={i}
                                 style={{
-                                  flex: daysInView,
+                                  /* Eksplisitt start- og span: etiketten ligger
+                                   *  alltid i nøyaktig kolonne `i+1` over `daysInView`
+                                   *  spor — auto-flow ville landet på samme sted
+                                   *  her (loopen produserer ingen hull), men
+                                   *  eksplisitt plassering fjerner enhver tvil. */
+                                  gridColumnStart: i + 1,
+                                  gridColumnEnd: `span ${daysInView}`,
+                                  minWidth: 0,
                                   borderLeft: '2px solid var(--color-sky-blue)',
                                   padding: 'var(--space-1) var(--space-2)',
                                   fontSize: 'clamp(0.62rem, 0.25vw + 0.55rem, 0.72rem)',
                                   fontWeight: 700,
                                   color: 'var(--color-sky-blue)',
                                   whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
                                 }}
                               >
                                 {d.toLocaleDateString(dateLocaleTag, {
@@ -2896,7 +2918,13 @@ export default function NavDatabase() {
                       >
                         {t('dbPropertyRowHeader')}
                       </div>
-                      <div style={{ flex: 1, display: 'flex' }}>
+                      <div
+                        style={{
+                          flex: 1,
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(60, minmax(0, 1fr))',
+                        }}
+                      >
                         {Array.from({ length: 60 }).map((_, i) => {
                           const d = new Date()
                           d.setDate(d.getDate() + i + timelineOffset)
@@ -2923,7 +2951,7 @@ export default function NavDatabase() {
                             <div
                               key={i}
                               style={{
-                                flex: 1,
+                                minWidth: 0,
                                 textAlign: 'center',
                                 fontSize: 'clamp(0.52rem, 0.2vw + 0.48rem, 0.6rem)',
                                 borderLeft: isMonday ? '1px solid rgba(59, 130, 246, 0.3)' : 'none',
@@ -3016,14 +3044,16 @@ export default function NavDatabase() {
                         <div
                           style={{
                             flex: 1,
-                            display: 'flex',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(60, minmax(0, 1fr))',
                             height: 'clamp(1.1rem, 1.2vw + 0.75rem, 1.25rem)',
-                            /* Ingen `gap` her: header-radene (måneder + uker/dag)
-                             *  bruker flex uten gap. Hvis vi setter `gap: 1px` blir
-                             *  60-celle-raden W−59px bred, mens etikettene over fyller
-                             *  W. Da glir måneds-/ukemarkører relativt til datoblokkene
-                             *  når slideren brukes. Fast 1px separator legges på cella
-                             *  selv med `box-sizing: border-box` → ingen bredde-drift. */
+                            /* Samme grid-mal som header-radene over (måneder +
+                             *  uker/dag): `repeat(60, minmax(0, 1fr))`. Browseren
+                             *  bruker da samme kolonneberegning for alle tre
+                             *  rader, så kolonne `i` har identisk x-posisjon
+                             *  uansett `timelineOffset`. Eldre flex-versjon led
+                             *  av subpiksel-avrunding (flex: daysInView vs flex: 1
+                             *  × 60) som ga synlig drift når slideren ble brukt. */
                             alignSelf: 'center',
                           }}
                         >
@@ -3086,16 +3116,14 @@ export default function NavDatabase() {
                                 key={i}
                                 title={title}
                                 style={{
-                                  flex: 1,
+                                  minWidth: 0,
                                   background: bgColor,
                                   borderRadius: '1px',
                                   opacity: opacity,
-                                  /* 1px-border erstatter gammel `gap: 1px`. Med
-                                   *  `box-sizing: border-box` (globalt) er cella
-                                   *  fortsatt 1/60 av W, så den ligger nøyaktig under
-                                   *  sin dato-/uke-etikett. Konflikt-cella beholder
-                                   *  rød ramme rundt; ellers brukes kort-bakgrunn på
-                                   *  venstrekant som "hull" mellom dagene. */
+                                  /* Cellen er nøyaktig ett gridspor bred (1/60 av W).
+                                   *  1px-border på venstre kant gir visuelt skille
+                                   *  mellom dager uten å forstyrre kolonnebredden
+                                   *  (globalt `box-sizing: border-box`). */
                                   border: isConflict ? '1px solid #f87171' : undefined,
                                   borderLeft: isConflict
                                     ? '1px solid #f87171'
