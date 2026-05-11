@@ -39,6 +39,27 @@ export function OptimizedPublicStorageImage(props: OptimizedPublicStorageImagePr
   const rawDecoding: 'sync' | 'async' = priority ? 'sync' : 'async'
 
   if (props.variant === 'fill') {
+    /* Rå URL: helt uten Next /_next/image — nødvendig for «original»-kvalitet i fullskjerm. */
+    if (ok && unoptimized) {
+      return (
+        <img
+          src={src}
+          alt={alt}
+          loading={rawLoading}
+          decoding={rawDecoding}
+          className={className}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            objectFit: 'cover',
+            ...style,
+          }}
+        />
+      )
+    }
     if (ok) {
       return (
         <Image
@@ -49,8 +70,7 @@ export function OptimizedPublicStorageImage(props: OptimizedPublicStorageImagePr
           className={className}
           style={style}
           priority={priority}
-          unoptimized={unoptimized}
-          {...(unoptimized ? {} : { quality })}
+          {...{ quality }}
         />
       )
     }
@@ -73,6 +93,20 @@ export function OptimizedPublicStorageImage(props: OptimizedPublicStorageImagePr
   }
 
   const { width, height } = props
+  if (ok && unoptimized) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        loading={rawLoading}
+        decoding={rawDecoding}
+        className={className}
+        style={style}
+      />
+    )
+  }
   if (ok) {
     return (
       <Image
@@ -84,8 +118,7 @@ export function OptimizedPublicStorageImage(props: OptimizedPublicStorageImagePr
         className={className}
         style={style}
         priority={priority}
-        unoptimized={unoptimized}
-        {...(unoptimized ? {} : { quality })}
+        {...{ quality }}
       />
     )
   }

@@ -4148,7 +4148,8 @@ export default function ListingDetailsClient() {
                 style={{
                   position: 'fixed',
                   inset: 0,
-                  width: '100vw',
+                  width: '100%',
+                  maxWidth: '100dvw',
                   height: '100dvh',
                   maxHeight: '100vh',
                   background: 'rgba(0,0,0,0.95)',
@@ -4157,6 +4158,8 @@ export default function ListingDetailsClient() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   boxSizing: 'border-box',
+                  overflow: 'auto',
+                  overscrollBehavior: 'contain',
                 }}
                 onClick={() => setIsFullscreen(false)}
               >
@@ -4182,26 +4185,35 @@ export default function ListingDetailsClient() {
                 <div
                   style={{
                     position: 'relative',
-                    width: 'min(95vw, 1400px)',
+                    width: 'min(calc(100dvw - 24px), 1400px)',
                     height: 'min(85dvh, 900px)',
                     maxHeight: '85vh',
                     flex: '0 1 auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingInline: 'max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right))',
+                    boxSizing: 'border-box',
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <OptimizedPublicStorageImage
+                  <img
                     key={`fs-${allImages[currentImageIndex]}`}
-                    variant="fill"
                     src={allImages[currentImageIndex]}
                     alt={
                       listing?.address
                         ? `${listing.address} — bilde ${currentImageIndex + 1} av ${allImages.length}`
                         : `Boligbilde ${currentImageIndex + 1} av ${allImages.length}`
                     }
-                    sizes="100vw"
-                    unoptimized
-                    priority
-                    style={{ objectFit: 'contain' }}
+                    decoding="async"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      width: 'auto',
+                      height: 'auto',
+                      objectFit: 'contain',
+                      display: 'block',
+                    }}
                   />
                 </div>
 

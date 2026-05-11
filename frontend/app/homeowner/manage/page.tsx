@@ -572,7 +572,7 @@ export default function HomeownerManage() {
   }
 
   return (
-    <main className="container">
+    <main className="container hm-manage-page">
       <PwaInstallPromptDialog
         open={pendingPwaBeforeOverview}
         onDismiss={(remember) => {
@@ -1052,8 +1052,9 @@ export default function HomeownerManage() {
                           </div>
                         )}
                       </div>
-                      <div>
+                      <div className="hm-listing-title-block">
                         <div
+                          className="hm-listing-title-row"
                           style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}
                         >
                           <h3 style={{ margin: 0 }}>{listing.address}</h3>
@@ -1428,6 +1429,7 @@ export default function HomeownerManage() {
                             return (
                               <div
                                 key={p.id}
+                                className="hm-period-item"
                                 style={{
                                   display: 'flex',
                                   justifyContent: 'space-between',
@@ -1440,7 +1442,7 @@ export default function HomeownerManage() {
                                   flexWrap: 'wrap',
                                 }}
                               >
-                                <span style={{ color: 'var(--text-main)' }}>
+                                <span className="hm-period-dates" style={{ color: 'var(--text-main)' }}>
                                   {formatDateNo(p.start_date)} – {formatDateNo(p.end_date)}
                                 </span>
                                 <span
