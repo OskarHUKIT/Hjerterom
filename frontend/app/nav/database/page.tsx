@@ -164,6 +164,10 @@ export default function NavDatabase() {
   const [showColumnSettings, setShowColumnSettings] = useState(false)
   const [timelineOffset, setTimelineOffset] = useState(0)
   const [timelineColorHelpOpen, setTimelineColorHelpOpen] = useState(false)
+  /** Tidslinje-kortet har `overflowX: auto`. Uten denne ref-en kan «Gå til idag»
+   *  flytte offset til 0 mens scrollLeft beholdes, så brukeren ser fortsatt
+   *  framtidige uker. */
+  const timelineScrollRef = useRef<HTMLDivElement>(null)
   const [formidletModalListing, setFormidletModalListing] = useState<NavDatabaseListingRow | null>(
     null
   )
@@ -2794,6 +2798,7 @@ export default function NavDatabase() {
                   </div>
                 ))}
               <div
+                ref={timelineScrollRef}
                 className="card"
                 style={{ padding: 'var(--space-6)', overflowX: 'auto', position: 'relative' }}
               >
@@ -3013,7 +3018,12 @@ export default function NavDatabase() {
                             flex: 1,
                             display: 'flex',
                             height: 'clamp(1.1rem, 1.2vw + 0.75rem, 1.25rem)',
-                            gap: '1px',
+                            /* Ingen `gap` her: header-radene (måneder + uker/dag)
+                             *  bruker flex uten gap. Hvis vi setter `gap: 1px` blir
+                             *  60-celle-raden W−59px bred, mens etikettene over fyller
+                             *  W. Da glir måneds-/ukemarkører relativt til datoblokkene
+                             *  når slideren brukes. Fast 1px separator legges på cella
+                             *  selv med `box-sizing: border-box` → ingen bredde-drift. */
                             alignSelf: 'center',
                           }}
                         >
@@ -3070,6 +3080,7 @@ export default function NavDatabase() {
                               bgColor = 'rgba(255,255,255,0.03)'
                             }
 
+                            const isConflict = isFormidlet && isUnavailable
                             return (
                               <div
                                 key={i}
@@ -3079,10 +3090,19 @@ export default function NavDatabase() {
                                   background: bgColor,
                                   borderRadius: '1px',
                                   opacity: opacity,
-                                  border:
-                                    isFormidlet && isUnavailable ? '1px solid #f87171' : 'none',
-                                  animation:
-                                    isFormidlet && isUnavailable ? 'pulse 2s infinite' : 'none',
+                                  /* 1px-border erstatter gammel `gap: 1px`. Med
+                                   *  `box-sizing: border-box` (globalt) er cella
+                                   *  fortsatt 1/60 av W, så den ligger nøyaktig under
+                                   *  sin dato-/uke-etikett. Konflikt-cella beholder
+                                   *  rød ramme rundt; ellers brukes kort-bakgrunn på
+                                   *  venstrekant som "hull" mellom dagene. */
+                                  border: isConflict ? '1px solid #f87171' : undefined,
+                                  borderLeft: isConflict
+                                    ? '1px solid #f87171'
+                                    : i === 0
+                                      ? '1px solid transparent'
+                                      : '1px solid var(--bg-card)',
+                                  animation: isConflict ? 'pulse 2s infinite' : 'none',
                                 }}
                               />
                             )
@@ -3177,7 +3197,13 @@ export default function NavDatabase() {
                     {t('dbTimelineControls')}
                   </span>
                   <button
-                    onClick={() => setTimelineOffset(0)}
+                    onClick={() => {
+                      setTimelineOffset(0)
+                      /* Scroll-resetten må kjøres ALLTID (også når offset alt er 0),
+                       *  ellers blir knappen død når brukeren har scrollet sideveis
+                       *  uten å ha rørt slideren. */
+                      timelineScrollRef.current?.scrollTo({ left: 0, behavior: 'smooth' })
+                    }}
                     style={{
                       background: 'none',
                       border: 'none',

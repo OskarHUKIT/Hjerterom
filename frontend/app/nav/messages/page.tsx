@@ -445,15 +445,10 @@ function MessagesContent() {
       setThreadSenderLabelById({})
       return
     }
-    const myId = bootOk.user.id
     const need = new Set<string>()
-    if (isKommune && withUserId) {
-      for (const m of messages) {
-        if (m.sender_id !== myId && m.sender_id !== withUserId) need.add(m.sender_id)
-      }
-    } else if (!isKommune) {
-      for (const m of messages) {
-        if (m.sender_id !== myId) need.add(m.sender_id)
+    for (const m of messages) {
+      if (typeof m.sender_id === 'string' && m.sender_id.trim()) {
+        need.add(m.sender_id)
       }
     }
     if (need.size === 0) {
@@ -708,6 +703,18 @@ function MessagesContent() {
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+  const currentUserDisplayName =
+    currentUser?.user_metadata?.full_name?.trim?.() ||
+    currentUser?.email?.split('@')[0] ||
+    'Ukjent bruker'
+  const senderLabelForMessage = (message: { sender_id?: string | null }) => {
+    const senderId = message.sender_id
+    if (!senderId) return null
+    if (threadSenderLabelById[senderId]) return threadSenderLabelById[senderId]
+    if (senderId === bootOk.user.id) return currentUserDisplayName
+    if (withUserId && senderId === withUserId) return otherUser?.name || 'Ukjent bruker'
+    return null
   }
 
   return (
@@ -1239,15 +1246,7 @@ function MessagesContent() {
                 {messages.map((m) => {
                   const isMe = m.sender_id === bootOk.user.id
                   const urls = (m.image_urls || []).filter(Boolean)
-                  const colleagueLabel =
-                    isKommune &&
-                    withUserId &&
-                    !isMe &&
-                    m.sender_id !== withUserId &&
-                    threadSenderLabelById[m.sender_id]
-                  const staffLabelLandlordView =
-                    !isKommune && !isMe && threadSenderLabelById[m.sender_id]
-                  const senderCaption = colleagueLabel || staffLabelLandlordView || null
+                  const senderCaption = senderLabelForMessage(m)
                   return (
                     <div
                       key={m.id}

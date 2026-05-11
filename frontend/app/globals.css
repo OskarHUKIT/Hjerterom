@@ -789,6 +789,12 @@ h3,
 .hero-title,
 .portal-card h2 {
   font-family: var(--font-display), ui-serif, 'Iowan Old Style', 'Apple Garamond', Georgia, serif;
+  /* Lange norske sammensatte ord (f.eks. «informasjonskapsler», «personopplysninger»)
+     spiser fort 320–390px-skjermer og klippes på høyre side. `hyphens: auto` aktiverer
+     nettleserens orddelingsmønstre — `lang="nb"` står på <html> så bokmålsmønstre
+     brukes — og bindestrek settes kun inn når ordet ellers ville brutt utenfor boksen. */
+  -webkit-hyphens: auto;
+  hyphens: auto;
 }
 
 /**
@@ -1775,6 +1781,29 @@ body {
   .hm-header-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+  /* Nav -> bruker-profil: standard layout er 1.5fr/1fr (innhold + chat-aside),
+     men på mobil dytter to-spalters grid + Chat-asiden hele innholdet utenfor
+     viewporten. Stack til én kolonne så navn, badges, boliglister og
+     endringshistorikk får hele bredden. */
+  .user-profile-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  /* Avatar (80px) + langt navn på 320px-skjerm sprenger raden. La header
+     wrappe så navnet og badges flyter under avataren ved trange skjermer. */
+  .user-profile-header {
+    flex-wrap: wrap;
+  }
+  /* Boligrad: høyre kolonne har fast `width: 176px` for «Se bolig» +
+     «Slett bolig»-knappene. På 320–390px-skjermer spiser den nesten alt
+     og dytter «by • boligtype»-teksten ut. Stack vertikalt på mobil. */
+  .user-profile-listing-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .user-profile-listing-actions {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
 

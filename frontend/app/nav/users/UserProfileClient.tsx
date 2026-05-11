@@ -528,6 +528,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
           <ArrowLeft size={18} /> {t('backToUsers')}
         </Link>
         <div
+          className="user-profile-header"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -536,6 +537,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
           }}
         >
           <div
+            className="user-profile-avatar"
             style={{
               width: '80px',
               height: '80px',
@@ -545,13 +547,31 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--color-accent)',
+              flexShrink: 0,
             }}
           >
             <User size={40} />
           </div>
-          <div>
-            <h1 style={{ fontSize: 'var(--fluid-h1-hero)', margin: 0 }}>{user.owner_name}</h1>
-            <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: '8px', opacity: 0.7 }}>
+          <div style={{ minWidth: 0, flex: '1 1 0' }}>
+            <h1
+              style={{
+                fontSize: 'var(--fluid-h1-hero)',
+                margin: 0,
+                overflowWrap: 'anywhere',
+              }}
+            >
+              {user.owner_name}
+            </h1>
+            <div
+              className="user-profile-meta"
+              style={{
+                display: 'flex',
+                gap: 'var(--space-4)',
+                marginTop: '8px',
+                opacity: 0.7,
+                flexWrap: 'wrap',
+              }}
+            >
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Phone size={16} /> {user.contact_phone || t('noPhone')}
               </span>
@@ -580,9 +600,12 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
 
       {(showLandlordPanels || showChangeHistory) && (
         <div
+          className={showLandlordPanels ? 'user-profile-layout' : undefined}
           style={{
             display: 'grid',
-            gridTemplateColumns: showLandlordPanels ? '1.5fr 1fr' : '1fr',
+            gridTemplateColumns: showLandlordPanels
+              ? 'minmax(0, 1.5fr) minmax(0, 1fr)'
+              : 'minmax(0, 1fr)',
             gap: 'var(--space-8)',
             alignItems: 'start',
           }}
@@ -604,7 +627,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
                   {listings.map((l) => (
                     <div
                       key={l.id}
-                      className="card"
+                      className="card user-profile-listing-row"
                       style={{
                         padding: 'var(--space-4)',
                         background: 'rgba(255,255,255,0.02)',
@@ -619,15 +642,28 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
                           href={`/listings/${l.id}?view=nav`}
                           style={{ textDecoration: 'none', color: 'inherit' }}
                         >
-                          <div style={{ fontWeight: 600, color: 'var(--color-accent)' }}>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: 'var(--color-accent)',
+                              overflowWrap: 'anywhere',
+                            }}
+                          >
                             {l.address}
                           </div>
                         </Link>
-                        <div style={{ fontSize: '0.85rem', opacity: 0.6 }}>
+                        <div
+                          style={{
+                            fontSize: '0.85rem',
+                            opacity: 0.6,
+                            overflowWrap: 'anywhere',
+                          }}
+                        >
                           {l.city} • {l.type}
                         </div>
                       </div>
                       <div
+                        className="user-profile-listing-actions"
                         style={{
                           display: 'flex',
                           flexDirection: 'column',
@@ -904,7 +940,9 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
                         fontSize: '0.9rem',
                       }}
                     >
-                      <div style={{ fontWeight: 600 }}>{formatAuditLogDescription(log)}</div>
+                      <div style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
+                        {formatAuditLogDescription(log)}
+                      </div>
                       <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>
                         {formatDateTimeNo(log.created_at)}
                       </div>

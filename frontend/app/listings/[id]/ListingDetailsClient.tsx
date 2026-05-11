@@ -2224,9 +2224,10 @@ export default function ListingDetailsClient() {
               <div
                 style={{
                   padding: 'var(--space-4)',
-                  background: 'var(--color-dark-navy)',
+                  background: 'var(--bg-app)',
+                  border: '1px solid var(--border-subtle)',
                   borderRadius: '16px',
-                  color: 'white',
+                  color: 'var(--text-main)',
                 }}
               >
                 <div
@@ -2240,7 +2241,7 @@ export default function ListingDetailsClient() {
                     <label
                       className="label"
                       style={{
-                        color: 'rgba(255,255,255,0.6)',
+                        color: 'var(--text-muted)',
                         fontSize: '0.75rem',
                         marginBottom: '4px',
                       }}
@@ -2258,7 +2259,7 @@ export default function ListingDetailsClient() {
                           fontWeight: 800,
                           background: 'none',
                           border: 'none',
-                          color: 'white',
+                          color: 'var(--text-main)',
                           width: '100px',
                           outline: 'none',
                         }}
@@ -2270,7 +2271,7 @@ export default function ListingDetailsClient() {
                     <label
                       className="label"
                       style={{
-                        color: 'rgba(255,255,255,0.6)',
+                        color: 'var(--text-muted)',
                         fontSize: '0.75rem',
                         marginBottom: '4px',
                       }}
@@ -2288,7 +2289,7 @@ export default function ListingDetailsClient() {
                           fontWeight: 700,
                           background: 'none',
                           border: 'none',
-                          color: 'white',
+                          color: 'var(--text-main)',
                           width: '80px',
                           outline: 'none',
                         }}
@@ -2300,7 +2301,7 @@ export default function ListingDetailsClient() {
                     <label
                       className="label"
                       style={{
-                        color: 'rgba(255,255,255,0.6)',
+                        color: 'var(--text-muted)',
                         fontSize: '0.75rem',
                         marginBottom: '4px',
                       }}
@@ -2320,7 +2321,7 @@ export default function ListingDetailsClient() {
                           fontWeight: 700,
                           background: 'none',
                           border: 'none',
-                          color: 'white',
+                          color: 'var(--text-main)',
                           width: '80px',
                           outline: 'none',
                         }}
@@ -2332,7 +2333,7 @@ export default function ListingDetailsClient() {
                     <label
                       className="label"
                       style={{
-                        color: 'rgba(255,255,255,0.6)',
+                        color: 'var(--text-muted)',
                         fontSize: '0.75rem',
                         marginBottom: '4px',
                       }}
@@ -2352,7 +2353,7 @@ export default function ListingDetailsClient() {
                           fontWeight: 700,
                           background: 'none',
                           border: 'none',
-                          color: 'white',
+                          color: 'var(--text-main)',
                           width: '80px',
                           outline: 'none',
                         }}
@@ -2364,7 +2365,7 @@ export default function ListingDetailsClient() {
                     <label
                       className="label"
                       style={{
-                        color: 'rgba(255,255,255,0.6)',
+                        color: 'var(--text-muted)',
                         fontSize: '0.75rem',
                         marginBottom: '4px',
                       }}
@@ -2382,7 +2383,7 @@ export default function ListingDetailsClient() {
                           fontWeight: 700,
                           background: 'none',
                           border: 'none',
-                          color: 'white',
+                          color: 'var(--text-main)',
                           width: '80px',
                           outline: 'none',
                         }}
@@ -4209,8 +4210,8 @@ export default function ListingDetailsClient() {
                     style={{
                       maxWidth: '100%',
                       maxHeight: '100%',
-                      width: 'auto',
-                      height: 'auto',
+                      width: '100%',
+                      height: '100%',
                       objectFit: 'contain',
                       display: 'block',
                     }}
@@ -4350,8 +4351,8 @@ export default function ListingDetailsClient() {
             <div
               className="card listing-nav-price-card"
               style={{
-                border: '1px solid var(--color-royal-blue)',
-                background: 'var(--color-dark-navy)',
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--bg-card)',
               }}
             >
               <div style={{ marginBottom: 'var(--space-6)' }}>

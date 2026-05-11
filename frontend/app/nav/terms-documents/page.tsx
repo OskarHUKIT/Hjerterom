@@ -536,10 +536,13 @@ export default function TermsDocumentsPage() {
               style={{
                 padding: '6px 14px',
                 fontSize: '0.9rem',
-                background: active ? 'var(--brand-primary)' : 'var(--bg-app)',
-                color: active ? 'var(--text-on-brand, #fff)' : 'var(--text-body)',
-                border: active ? '1px solid var(--brand-primary)' : '1px solid var(--border-subtle)',
+                backgroundColor: active ? 'var(--color-accent)' : 'var(--bg-card)',
+                color: active ? 'var(--text-on-dark)' : 'var(--text-body)',
+                border: active ? '1px solid var(--color-accent)' : '1px solid var(--border-subtle)',
                 borderRadius: 999,
+                boxShadow: active
+                  ? '0 10px 24px rgba(3, 105, 161, 0.32)'
+                  : 'var(--shadow-sm)',
               }}
             >
               {tab.label} · {tab.count}
