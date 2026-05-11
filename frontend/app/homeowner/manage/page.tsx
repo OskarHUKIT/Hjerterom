@@ -963,7 +963,13 @@ export default function HomeownerManage() {
             </p>
           )}
 
-          <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+          <div
+            style={{
+              display: 'grid',
+              gap: 'var(--space-4)',
+              gridTemplateColumns: 'minmax(0, 1fr)',
+            }}
+          >
             {loading ? (
               <LoadingPlaceholder minHeight={120} />
             ) : fetchError ? (

@@ -375,7 +375,13 @@ export default function NavNotifications() {
           </button>
         </div>
       ) : notifications.length > 0 ? (
-        <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+        <div
+          style={{
+            display: 'grid',
+            gap: 'var(--space-4)',
+            gridTemplateColumns: 'minmax(0, 1fr)',
+          }}
+        >
           {notifications.map((notif) => {
             const isFormidletNotif =
               (notif.type === 'HOUSE_FORMIDLET' || notif.type === 'HANDOVER_REMINDER') &&
@@ -632,6 +638,15 @@ export default function NavNotifications() {
             width: 100%;
             justify-content: center;
             box-sizing: border-box;
+          }
+        }
+        /* Trange skjermer (eldre iPhone, små Android): kortet får 48px luft i alle
+           retninger fra inline-stilen, som spiser hele 320px-viewporten. Reduserer
+           luft + lar grid-itemet krympe under min-content. */
+        @media (max-width: 480px) {
+          .notif-card {
+            padding: var(--space-3) !important;
+            min-width: 0;
           }
         }
         .notif-card.unread {

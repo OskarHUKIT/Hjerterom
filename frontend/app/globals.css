@@ -1490,8 +1490,11 @@ body {
 
 /* Utleier Mine boliger: mobilvennlig layout */
 @media (max-width: 900px) {
+  /* `minmax(0, 1fr)` (ikke bare `1fr`) — uten 0-min vil grid-itemet
+     vokse til min-content av barna sine; lange knapper/kort dytter
+     da sporet bredere enn containeren og forårsaker høyre-kapping. */
   .hm-layout {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
   .hm-sidebar {
     order: -1;
@@ -1564,6 +1567,11 @@ body {
     display: flex;
     flex-wrap: nowrap;
     gap: var(--space-2);
+    /* `min-width: 0` så div-en kan krympe under min-content av barna;
+       uten dette beholder den «Alle..Formidlet» som en udelelig boks
+       og dytter høyre kant forbi viewport på trange skjermer (320px). */
+    min-width: 0;
+    max-width: 100%;
     /* Skjul scrollbar — chip-listen scroller fortsatt med touch/wheel,
        men uten en stygg grå linje under chipsene på mobil. */
     scrollbar-width: none;
@@ -1759,7 +1767,10 @@ body {
     display: none !important;
   }
   .hm-layout {
-    grid-template-columns: 1fr !important;
+    /* `minmax(0, 1fr)` (ikke bare `1fr`): uten 0-min vil grid-itemet
+       vokse til min-content av barna, så lange kort/knapper dytter
+       sporet bredere enn containeren og høyre-kapper innholdet. */
+    grid-template-columns: minmax(0, 1fr) !important;
   }
   .hm-header-row {
     flex-direction: column;
