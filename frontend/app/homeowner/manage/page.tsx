@@ -894,13 +894,11 @@ export default function HomeownerManage() {
         <div>
           <div
             ref={filtersRowRef}
-            className="hm-filters-row"
+            className="hm-filters-row hm-filters-panel"
             style={{
               marginBottom: 'var(--space-4)',
               padding: 'var(--space-3) var(--space-4)',
-              background: 'var(--bg-card)',
               borderRadius: '16px',
-              border: '1px solid var(--border-subtle)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -908,7 +906,7 @@ export default function HomeownerManage() {
               gap: 'var(--space-3)',
             }}
           >
-            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="hm-filters-buttons">
               {(['Alle', 'Tilgjengelig', 'Utilgjengelig', 'Formidla'] as const).map((f) => (
                 <button
                   key={f}

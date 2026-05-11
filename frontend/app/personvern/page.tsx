@@ -78,15 +78,16 @@ export default function PersonvernPage() {
         >
           <h2 style={{ ...h2, marginTop: 0 }}>1. Hvem vi er</h2>
           <p style={p}>
-            Boly er en tjeneste som hjelper <strong>kommuner</strong> med å formidle kontakt mellom{' '}
-            <strong>utleiere</strong> og <strong>leietakere</strong> i et regulert, kommunegodkjent
-            kretsløp. Tjenesten utvikles og driftes av <strong>Nav Narvik</strong> i samarbeid med{' '}
-            <strong>Gamechanging</strong>.
+            Boly er en tjeneste for formidling av kontakt mellom <strong>utleiere</strong> og{' '}
+            <strong>leietakere</strong> i et regulert, kommunegodkjent kretsløp.{' '}
+            <strong>Gamechanging AS</strong> eier og drifter Boly. Nav har bidratt til utviklingen i
+            partnerskap med Gamechanging og er <strong>ikke</strong> databehandler for
+            personopplysningene i plattformen.
           </p>
           <p style={p}>
-            <strong>Behandlingsansvarlig:</strong> Kommunen som har aktivert Boly for sitt område er
-            behandlingsansvarlig for personopplysningene om sine innbyggere. Boly opptrer som{' '}
-            <strong>databehandler</strong> på vegne av kommunen.
+            <strong>Behandlingsansvarlig</strong> for opplysningene som behandles i tjenesten er
+            kommunen/saksbehandler som har aktivert Boly for ditt område. Boly (Gamechanging) er{' '}
+            <strong>databehandler</strong> på vegne av behandlingsansvarlig.
           </p>
           <p style={p}>
             <strong>Kontakt:</strong>{' '}
@@ -121,13 +122,13 @@ export default function PersonvernPage() {
                   <td style={td}>Berettiget interesse (art. 6 (1) f)</td>
                 </tr>
                 <tr>
-                  <td style={td}>Rolle (utleier / kommune / leietaker)</td>
+                  <td style={td}>Rolle (utleier / kommune/saksbehandler / leietaker)</td>
                   <td style={td}>Tilgangsstyring</td>
                   <td style={td}>Avtale</td>
                 </tr>
                 <tr>
                   <td style={td}>Kommuneregion</td>
-                  <td style={td}>Knytte bruker til riktig kommune</td>
+                  <td style={td}>Knytte bruker til riktig område</td>
                   <td style={td}>Avtale</td>
                 </tr>
                 <tr>
@@ -146,7 +147,7 @@ export default function PersonvernPage() {
                   <td style={td}>Avtale</td>
                 </tr>
                 <tr>
-                  <td style={td}>Signeringslogg (Signicat session-id, tidsstempel)</td>
+                  <td style={td}>Signeringslogg (teknisk referanse, tidsstempel)</td>
                   <td style={td}>Gyldighetsbevis for signert avtale</td>
                   <td style={td}>Rettslig forpliktelse (art. 6 (1) c)</td>
                 </tr>
@@ -155,7 +156,7 @@ export default function PersonvernPage() {
                     Bankkontonummer (valgfritt – kun hvis utleier velger kontobetaling for
                     fakturagrunnlag)
                   </td>
-                  <td style={td}>Generere fakturagrunnlag til kommunen ved formidling</td>
+                  <td style={td}>Generere fakturagrunnlag til kommunen/saksbehandler ved formidling</td>
                   <td style={td}>Avtale (art. 6 (1) b)</td>
                 </tr>
                 <tr>
@@ -169,7 +170,7 @@ export default function PersonvernPage() {
           <p style={p}>
             Bankkontonummer lagres <strong>kun</strong> dersom utleier aktivt har valgt
             kontobetaling i stedet for standard fakturabetaling. Tilgang er begrenset til
-            utleieren selv og kommune-ansatte i samme region (Postgres Row-Level Security), og
+            utleieren selv og autoriserte saksbehandlere i samme region (rolle- og områdefiltrering), og
             informasjonen slettes automatisk 24 måneder etter siste oppdatering når boligen
             ikke lenger er aktivt formidlet. Se §5.
           </p>
@@ -237,12 +238,12 @@ export default function PersonvernPage() {
           <ul style={ul}>
             <li>
               <strong>Kontoopplysninger:</strong> Så lenge kontoen er aktiv; kan slettes 12 måneder
-              etter siste innlogging (konfigurerbart per kommune).
+              etter siste innlogging (konfigurerbart hos behandlingsansvarlig).
             </li>
             <li>
               <strong>Signerte avtaler:</strong> 5 år etter at leieforholdet er avsluttet
-              (bokføringsloven § 13 (3), redusert fra 10 til 5 år i 2014). Kommunen kan
-              forlenge dette ved dokumentert arkiv- eller rettsbehov.
+              (bokføringsloven § 13 (3)). Behandlingsansvarlig kan forlenge dette ved dokumentert
+              arkiv- eller rettsbehov.
             </li>
             <li>
               <strong>Chat-meldinger og vedlegg:</strong> 24 måneder etter siste aktivitet
@@ -328,7 +329,8 @@ export default function PersonvernPage() {
             <li><strong>protestere</strong> mot behandling basert på berettiget interesse (art. 21).</li>
           </ul>
           <p style={p}>
-            Henvendelser sendes til kommunen der du bor (behandlingsansvarlig), eller til{' '}
+            Henvendelser om behandlingsansvarliges plikter sendes til kommunen/saksbehandler for ditt
+            område, eller til{' '}
             <a href="mailto:info@bolynorge.no" style={{ color: 'var(--color-accent)' }}>
               info@bolynorge.no
             </a>
@@ -352,12 +354,12 @@ export default function PersonvernPage() {
             <li>All kommunikasjon skjer over HTTPS (TLS 1.2+).</li>
             <li>Passord håndteres av Supabase Auth (bcrypt/argon2).</li>
             <li>
-              Database-tilgang er beskyttet av <strong>Row Level Security (RLS)</strong>; ingen
-              bruker kan lese data som tilhører en annen kommune eller bruker.
+              Tilgang til data styres slik at brukere normalt bare ser egne opplysninger og det som
+              er nødvendig for rollen og området de er knyttet til.
             </li>
             <li>
-              Signering av avtaler gjøres med <strong>BankID via Signicat</strong> (kvalifisert
-              elektronisk signatur).
+              Signering av avtaler gjøres med <strong>BankID</strong> (kvalifisert elektronisk
+              signatur).
             </li>
             <li>Ratebegrensning: maks 3 signeringsforsøk per konto per døgn.</li>
           </ul>

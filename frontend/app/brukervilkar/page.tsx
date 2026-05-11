@@ -32,9 +32,10 @@ export default function BrukervilkarPage() {
             Her ligger de <strong>generelle brukervilkårene</strong> for tilgang til og bruk av
             Boly som digital tjeneste. De regulerer alle som logger inn eller bruker nettstedet —
             ikke det kommunale avtalekjeden mellom Nav, utleiere og leverandører.{' '}
-            <strong>Utleiere</strong> har i tillegg egne, kommunegodkjente dokumenter som ofte
-            signeres med BankID (Signicat); det er alltid det dokumentet du faktisk signerer som
-            styrer utleierforpliktelsene dine mot kommunen/Nav der det er aktuelt. Personvern er
+            <strong>Utleiere</strong> har i tillegg egne, kommunegodkjente dokumenter som signeres
+            med BankID; det er alltid det dokumentet du faktisk signerer som styrer
+            utleierforpliktelsene dine mot kommunen/saksbehandler og Nav der det er aktuelt.
+            Personvern er
             beskrevet på{' '}
             <Link prefetch={false} href="/personvern/" style={{ color: 'var(--color-accent)' }}>
               personvernsiden

@@ -25,15 +25,15 @@
 
 ### 1. Hvem vi er
 
-Boly er en tjeneste som hjelper **kommuner** med å formidle kontakt mellom
-**utleiere** («homeowners») og **leietakere** i et regulert,
-kommune-godkjent kretsløp. Tjenesten utvikles og driftes av **Nav Narvik**
-i samarbeid med **Gamechanging**.
+Boly er en tjeneste for formidling av kontakt mellom **utleiere** («homeowners»)
+og **leietakere** i et regulert, kommune-godkjent kretsløp. **Gamechanging AS**
+eier og drifter Boly. Nav har bidratt til utviklingen i partnerskap med
+Gamechanging og er **ikke** databehandler for personopplysningene i plattformen.
 
 **Behandlingsansvarlig (Data Controller):**
-Kommunen som har aktivert Boly for sitt område er behandlingsansvarlig
-for personopplysningene om sine innbyggere. Boly opptrer som
-**databehandler** på vegne av kommunen.
+Kommunen/saksbehandler som har aktivert Boly for ditt område er
+behandlingsansvarlig for opplysningene som behandles i tjenesten. Boly
+(Gamechanging) opptrer som **databehandler** på vegne av behandlingsansvarlig.
 
 **Kontakt:** [info@bolynorge.no](mailto:info@bolynorge.no)
 
@@ -46,20 +46,20 @@ Vi behandler kun opplysninger som er nødvendige for å levere tjenesten
 |---|---|---|
 | Navn, e-post, telefon | Konto, innlogging, varsler | Avtale (art. 6 (1) b) |
 | Foretrukket språk | Språkvalg for UI og e-post | Berettiget interesse (art. 6 (1) f) |
-| Rolle (utleier / kommune / leietaker) | Tilgangsstyring | Avtale |
-| Kommuneregion | Knytte bruker til riktig kommune | Avtale |
+| Rolle (utleier / kommune/saksbehandler / leietaker) | Tilgangsstyring | Avtale |
+| Kommuneregion | Knytte bruker til riktig område | Avtale |
 | Adresse/koordinater på bolig | Formidling av utleieobjekt | Avtale |
 | Husregler, visuelle rapporter (overtakelsesrapporter) | Leieforholdet | Avtale |
 | Chat-meldinger, vedlegg | Kommunikasjon mellom partene | Avtale |
-| Signeringslogg (Signicat session-id, tidsstempel) | Gyldighetsbevis for signert avtale | Rettslig forpliktelse (art. 6 (1) c) |
+| Signeringslogg (teknisk referanse, tidsstempel) | Gyldighetsbevis for signert avtale | Rettslig forpliktelse (art. 6 (1) c) |
 | Lyd/logg fra BankID-flyt | Kun som transient token; ikke lagret i klartekst | — |
-| Bankkontonummer (valgfritt, kun hvis utleier velger kontobetaling for fakturagrunnlag) | Generere fakturagrunnlag til kommunen ved formidling | Avtale (art. 6 (1) b) |
+| Bankkontonummer (valgfritt, kun hvis utleier velger kontobetaling for fakturagrunnlag) | Generere fakturagrunnlag til kommunen/saksbehandler ved formidling | Avtale (art. 6 (1) b) |
 | Påloggingsstatistikk / audit logs | IT-sikkerhet, feilsøking | Berettiget interesse |
 
 Bankkontonummer lagres i tabellen `public.listing_invoice_basis` (én rad per
 bolig) kun dersom utleier aktivt har valgt *kontobetaling* i stedet for
 standard *fakturabetaling*. Tilgang er begrenset til utleier selv og
-kommune-ansatte i samme region via Postgres Row-Level Security. Informasjonen
+autoriserte saksbehandlere i samme region (rolle- og områdefiltrering). Informasjonen
 krypteres i hvile (AES-256) på databasenivå og slettes automatisk 24 måneder
 etter siste oppdatering når boligen ikke lenger er aktivt formidlet (se §5).
 
@@ -103,11 +103,10 @@ Boly sender **ikke** personopplysninger til land utenfor EU/EØS.
 ### 5. Lagringstid
 
 - **Kontoopplysninger:** Så lenge kontoen er aktiv; slettes 12 måneder etter
-  siste innlogging (konfigurerbart per kommune).
+  siste innlogging (konfigurerbart hos behandlingsansvarlig).
 - **Signerte avtaler:** 5 år etter at leieforholdet er avsluttet
-  (bokføringsloven § 13 (3), som ble redusert fra 10 til 5 år i 2014).
-  Kommunen som behandlingsansvarlig kan forlenge dette ved dokumentert
-  arkiv- eller rettsbehov.
+  (bokføringsloven § 13 (3)). Behandlingsansvarlig kan forlenge dette ved
+  dokumentert arkiv- eller rettsbehov.
 - **Chat/meldinger:** 24 måneder etter siste aktivitet.
 - **Overtakelsesrapporter:** 3 år etter at rapporten er godkjent.
 - **Bankkontonummer / fakturagrunnlag:** 24 måneder etter siste oppdatering
@@ -125,7 +124,8 @@ Du har rett til å:
 - få **dataportabilitet** (art. 20),
 - **protestere** mot behandling basert på berettiget interesse (art. 21).
 
-Henvendelser sendes til kommunen der du bor (behandlingsansvarlig), eller
+Henvendelser om behandlingsansvarliges plikter sendes til kommunen/saksbehandler for ditt
+område, eller
 til [info@bolynorge.no](mailto:info@bolynorge.no) som vil videreformidle.
 
 **Klagerett:** Du kan klage til [Datatilsynet](https://www.datatilsynet.no)
@@ -135,10 +135,9 @@ dersom du mener behandlingen er i strid med loven.
 
 - All kommunikasjon skjer over HTTPS (TLS 1.2+).
 - Passord håndteres av Supabase Auth (bcrypt/argon2).
-- Database-tilgang er beskyttet av **Row Level Security (RLS)**; ingen bruker
-  kan lese data som tilhører en annen kommune eller bruker.
-- Signering av avtaler gjøres med **BankID via Signicat** (kvalifisert
-  elektronisk signatur).
+- Tilgang til data styres slik at brukere normalt bare ser egne opplysninger og
+  det som er nødvendig for rollen og området de er knyttet til.
+- Signering av avtaler gjøres med **BankID** (kvalifisert elektronisk signatur).
 - Ratebegrensning: maks 3 signeringsforsøk per konto per døgn.
 
 ### 8. Endringer
@@ -151,14 +150,15 @@ Vesentlige endringer varsles via e-post og i appen minst 14 dager i forveien.
 
 ### 1. Who we are
 
-Boly is a service that helps **Norwegian municipalities** mediate rental
-agreements between **landlords** (homeowners) and **tenants** in a
-regulated, municipality-approved loop. The service is developed and
-operated by **Nav Narvik** in cooperation with **Gamechanging**.
+Boly is a service that mediates contact between **landlords** (homeowners)
+and **tenants** in a regulated, municipality-approved loop. **Gamechanging AS**
+owns and operates Boly. Nav has contributed to development in partnership with
+Gamechanging and is **not** a data processor for personal data in the platform.
 
-**Data Controller:** The municipality that activates Boly for its area
-is the data controller for personal data about its residents. Boly acts
-as a **data processor** on behalf of the municipality.
+**Data Controller:** The municipality / case-handler organisation that has
+activated Boly for your area is the controller for data processed in the
+service. Boly (Gamechanging) acts as a **data processor** on behalf of the
+controller.
 
 **Contact:** [info@bolynorge.no](mailto:info@bolynorge.no)
 
@@ -171,20 +171,20 @@ principle of **data minimization**, GDPR art. 5 (1) c):
 |---|---|---|
 | Name, email, phone | Account, login, notifications | Contract (art. 6 (1) b) |
 | Preferred locale | UI and email language | Legitimate interest (art. 6 (1) f) |
-| Role (landlord / municipality / tenant) | Access control | Contract |
-| Municipality region | Linking user to the right municipality | Contract |
+| Role (landlord / municipality / case handler / tenant) | Access control | Contract |
+| Municipality region | Linking user to the right area | Contract |
 | Property address / coordinates | Mediating rental objects | Contract |
 | House rules, handover reports | The tenancy | Contract |
 | Chat messages, attachments | Party communication | Contract |
-| Signing log (Signicat session-id, timestamp) | Proof of signed agreement | Legal obligation (art. 6 (1) c) |
-| Bank account number (optional, only if the landlord opts in to account-based invoicing) | Generating invoice basis for the municipality upon mediation | Contract (art. 6 (1) b) |
+| Signing log (technical reference, timestamp) | Proof of signed agreement | Legal obligation (art. 6 (1) c) |
+| Bank account number (optional, only if the landlord opts in to account-based invoicing) | Generating invoice basis for the municipality / case handler upon mediation | Contract (art. 6 (1) b) |
 | Login / audit logs | IT security, troubleshooting | Legitimate interest |
 
 Bank account numbers are stored in `public.listing_invoice_basis` (one row
 per listing) only when the landlord has actively selected *account-based*
 invoicing instead of the default *invoice-based* flow. Access is restricted
-to the landlord and municipality staff in the same region via Postgres
-Row-Level Security. The data is encrypted at rest (AES-256) at the database
+to the landlord and authorised case handlers in the same region (role- and
+area-based access controls). The data is encrypted at rest (AES-256) at the database
 level and automatically deleted 24 months after last update once the listing
 is no longer actively mediated (see §5).
 
@@ -227,11 +227,10 @@ Boly does **not** transfer personal data outside the EU/EEA.
 ### 5. Retention
 
 - **Account data:** As long as the account is active; deleted 12 months
-  after last login (configurable per municipality).
+  after last login (configurable by the controller).
 - **Signed agreements:** 5 years after the tenancy ends
-  (Norwegian Bookkeeping Act § 13 (3), reduced from 10 to 5 years in 2014).
-  The municipality as controller may extend this if an archival or
-  legal-claim need is documented.
+  (Norwegian Bookkeeping Act § 13 (3)). The controller may extend this if an
+  archival or legal-claim need is documented.
 - **Chat/messages:** 24 months after last activity.
 - **Handover reports:** 3 years after the report is approved.
 - **Bank account number / invoice basis:** 24 months after last update,
@@ -249,7 +248,8 @@ You have the right to:
 - **data portability** (art. 20),
 - **object** to processing based on legitimate interest (art. 21).
 
-Requests should be sent to your municipality (the controller), or to
+Requests about the controller’s obligations should be sent to your municipality
+/ case-handler organisation for your area, or to
 [info@bolynorge.no](mailto:info@bolynorge.no) who will forward them.
 
 **Right to complain:** You may complain to
@@ -260,10 +260,9 @@ believe the processing violates the law.
 
 - All traffic is encrypted with HTTPS (TLS 1.2+).
 - Passwords are handled by Supabase Auth (bcrypt/argon2).
-- Database access is protected by **Row Level Security (RLS)**; no user
-  can read data belonging to another municipality or user.
-- Agreements are signed via **BankID through Signicat** (qualified
-  electronic signature).
+- Access is designed so users normally only see their own data and what their
+  role and assigned area require.
+- Agreements are signed with **BankID** (qualified electronic signature).
 - Rate limiting: max 3 signing attempts per account per 24h.
 
 ### 8. Changes

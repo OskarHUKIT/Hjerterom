@@ -83,8 +83,9 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
   const [historyDateFrom, setHistoryDateFrom] = useState('')
   const [historyDateTo, setHistoryDateTo] = useState('')
   const [historyExpanded, setHistoryExpanded] = useState(false)
-  /** Kun kommune_admin ser endringshistorikk (audit logs). */
   const [viewerIsKommuneAdmin, setViewerIsKommuneAdmin] = useState(false)
+  /** Kommune-staff (ikke-admin) ser endringshistorikk for utleiere/leietakere; admin også for kollega-profiler (RLS). */
+  const [viewerIsKommuneStaff, setViewerIsKommuneStaff] = useState(false)
   /** Slett bolig / avslutt avtale (vilkår 1.10): kommune-staff med redigeringsrett eller admin. */
   const [viewerCanAdminAct, setViewerCanAdminAct] = useState(false)
   const [adminBusy, setAdminBusy] = useState(false)
@@ -108,6 +109,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
     setRegionAccessDenied(false)
     setRegionDenyKind(null)
     setViewerIsKommuneAdmin(false)
+    setViewerIsKommuneStaff(false)
     setViewerCanAdminAct(false)
     async function fetchData() {
       if (!id) return
@@ -125,6 +127,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
           (currentUser?.user_metadata?.role as string | undefined) || currentProfile?.role || null
         setViewerIsKommuneAdmin(isKommuneAdminRole(viewerRole))
         const staff = isKommuneStaffRole(viewerRole)
+        setViewerIsKommuneStaff(staff)
         const canEdit =
           isKommuneAdminRole(viewerRole) ||
           (currentProfile as { kommune_can_edit?: boolean | null } | null)?.kommune_can_edit !==
@@ -157,6 +160,10 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
         }
 
         const viewerAdmin = isKommuneAdminRole(viewerRole)
+        const targetRoleForAudit = profileRow.role ?? 'homeowner'
+        const fetchAuditLogs =
+          viewerAdmin ||
+          (isKommuneStaffRole(viewerRole) && !isKommuneStaffRole(targetRoleForAudit))
         const [{ data: agreements }, { data: listingsData }, logsRes] = await Promise.all([
           supabase
             .from('user_agreements')
@@ -164,7 +171,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
             .eq('user_id', id)
             .order('signed_at', { ascending: false }),
           supabase.from('listings').select('*').eq('owner_id', id),
-          viewerAdmin
+          fetchAuditLogs
             ? supabase
                 .from('audit_logs')
                 .select('*')
@@ -324,8 +331,10 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
     })
   }, [history, historySearch, historyDateFrom, historyDateTo])
 
-  const refreshAuditIfAdmin = async () => {
-    if (!viewerIsKommuneAdmin || !id) return
+  const refreshAuditLogs = async () => {
+    if (!id) return
+    const targetStaff = user ? isKommuneStaffRole((user as { role?: string }).role) : false
+    if (!viewerIsKommuneAdmin && (!viewerIsKommuneStaff || targetStaff)) return
     const { data: logs } = await supabase
       .from('audit_logs')
       .select('*')
@@ -375,7 +384,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
       }
       setListings((prev) => prev.filter((x) => x.id !== adminTargetListing.id))
       closeAdminModal()
-      await refreshAuditIfAdmin()
+      await refreshAuditLogs()
     } catch (e: unknown) {
       alert(t('kommuneRpcError_generic') + ' ' + (e instanceof Error ? e.message : String(e)))
     } finally {
@@ -410,7 +419,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
             }
           : u
       )
-      await refreshAuditIfAdmin()
+      await refreshAuditLogs()
     } catch (e: unknown) {
       alert(t('kommuneRpcError_generic') + ' ' + (e instanceof Error ? e.message : String(e)))
     } finally {
@@ -447,7 +456,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
           : u
       )
       closeAdminModal()
-      await refreshAuditIfAdmin()
+      await refreshAuditLogs()
     } catch (e: unknown) {
       alert(t('kommuneRpcError_generic') + ' ' + (e instanceof Error ? e.message : String(e)))
     } finally {
@@ -475,7 +484,8 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
 
   const targetIsStaff = isKommuneStaffRole(user.role)
   const showLandlordPanels = !targetIsStaff
-  const showChangeHistory = viewerIsKommuneAdmin
+  const showChangeHistory =
+    viewerIsKommuneAdmin || (viewerIsKommuneStaff && !targetIsStaff)
 
   if (regionAccessDenied) {
     const denyBody =

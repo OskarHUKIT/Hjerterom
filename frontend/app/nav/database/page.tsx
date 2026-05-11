@@ -1976,15 +1976,7 @@ export default function NavDatabase() {
             </p>
             <div style={{ marginBottom: 'var(--space-6)' }}>
               <label className="label">{t('periodDateRange')}</label>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: 'var(--space-3)',
-                  marginTop: 'var(--space-2)',
-                }}
-                className="formidlet-date-range"
-              >
+              <div className="formidlet-date-range" style={{ marginTop: 'var(--space-2)' }}>
                 <div>
                   <span
                     className="text-sm"

@@ -92,7 +92,7 @@ export const translations = {
     termsBodyLabel: 'Tekst',
     termsPdfLabel: 'PDF-fil',
     termsPdfHint:
-      'Kun PDF. Maks ca. 12 MB. Dette er dokumentet som sendes til Signicat ved BankID-signering.',
+      'Kun PDF. Maks ca. 12 MB. Dokumentet brukes ved BankID-signering.',
     termsOpenPdf: 'Åpne PDF',
     termsNoPdfOrText: 'Ingen PDF eller tekst lagret.',
     termsPdfInvalidType: 'Velg en PDF-fil.',
@@ -1047,7 +1047,7 @@ export const translations = {
     termsBodyLabel: 'Teaksta',
     termsPdfLabel: 'PDF-fiila',
     termsPdfHint:
-      'Dušše PDF. Badjel 12 MB. Dát lea dokumeanta mii sáddejuvvo Signicatii BankID-almmus.',
+      'Dušše PDF. Badjel 12 MB. Dát lea dokumeanta mii geavahuvvo BankID-almmus.',
     termsOpenPdf: 'Raba PDF',
     termsNoPdfOrText: 'Ii PDF dahje teaksta.',
     termsPdfInvalidType: 'Vállje PDF-fiilla.',
@@ -1983,7 +1983,7 @@ export const translations = {
     termsTitleLabel: 'Title',
     termsBodyLabel: 'Body text',
     termsPdfLabel: 'PDF file',
-    termsPdfHint: 'PDF only. Max about 12 MB. This file is sent to Signicat for BankID signing.',
+    termsPdfHint: 'PDF only. Max about 12 MB. The file is used for BankID signing.',
     termsOpenPdf: 'Open PDF',
     termsNoPdfOrText: 'No PDF or text stored.',
     termsPdfInvalidType: 'Choose a PDF file.',

@@ -67,6 +67,10 @@
   --calendar-tilgjengelig-bg: rgba(32, 187, 175, 0.25);
   --calendar-utilgjengelig-bg: rgba(239, 68, 68, 0.2);
 
+  /* Kalendercelle — fallback-bakgrunn i inline availability-calendar */
+  --listing-calendar-cell-bg: transparent;
+  --listing-availability-item-bg: rgba(255, 255, 255, 0.04);
+
   /* Motion — konsistent taktil feedback */
   --transition-fast: 0.2s;
   --transition-smooth: 0.25s;
@@ -103,6 +107,10 @@
   --calendar-formidlet-range-bg: rgba(3, 105, 161, 0.32);
   --calendar-tilgjengelig-bg: rgba(13, 148, 136, 0.45);
   --calendar-utilgjengelig-bg: rgba(239, 68, 68, 0.4);
+
+  /* Kalendercelle — fallback-bakgrunn i inline availability-calendar */
+  --listing-calendar-cell-bg: transparent;
+  --listing-availability-item-bg: rgba(0, 0, 0, 0.03);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -160,6 +168,8 @@ body {
 @media (max-width: 768px) {
   body {
     background-attachment: scroll; /* Fixes iOS perf, prevents parallax jank */
+    /* Crop mot nedre del av motivet (hav) — øvre del er ofte flat grå himmel når cover zoomer */
+    background-position: center bottom;
   }
 }
 
@@ -167,6 +177,12 @@ body {
   background-image:
     linear-gradient(to bottom, rgba(248, 250, 252, 0.92) 0%, rgba(241, 245, 249, 0.95) 100%),
     url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
+}
+
+@media (max-width: 768px) {
+  [data-theme='light'] body {
+    background-position: center bottom;
+  }
 }
 
 a {
@@ -1428,6 +1444,30 @@ body {
   }
 }
 
+/* Utleier oversikt: filterpanel — mykere mot hav-bakgrunn, ikke «svart blokk» */
+.hm-filters-panel {
+  background: color-mix(in srgb, var(--bg-card) 62%, transparent) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='light'] .hm-filters-panel {
+  background: color-mix(in srgb, #ffffff 88%, rgba(248, 250, 252, 0.55)) !important;
+  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+}
+
+.hm-filters-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
 /* Utleier Mine boliger: mobilvennlig layout */
 @media (max-width: 900px) {
   .hm-layout {
@@ -1485,16 +1525,24 @@ body {
     padding-bottom: var(--space-2);
     margin-top: calc(-1 * var(--space-2));
   }
-  .hm-filters-row > div:first-child {
+  .hm-filters-buttons {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 4px;
     display: flex;
     flex-wrap: nowrap;
     gap: var(--space-2);
+    scrollbar-width: thin;
   }
-  .hm-filters-row > div:first-child button {
+  .hm-filters-buttons button {
     flex-shrink: 0;
+  }
+  .hm-filters-row > div:last-child {
+    text-align: center;
+    padding-top: var(--space-2);
+    margin-top: var(--space-1);
+    border-top: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+    align-self: stretch;
   }
   .hm-listing-row {
     flex-direction: column !important;
@@ -1819,11 +1867,105 @@ body {
 
 .listing-sidebar-formidlet-dates {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+}
+
+.listing-sidebar-formidlet-dates > * {
+  min-width: 0;
+}
+
+/* Formidling / modaler: to datoer side om side — minmax hindrer overflow fra kalenderknapp */
+.formidlet-date-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+}
+
+.formidlet-date-range > * {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .formidlet-date-range {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Nav: dato-rad med knapp — stable kolonner på smal skjerm */
+.listing-mediation-dates-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+}
+
+.listing-mediation-dates-row > .listing-mediation-date-field {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .listing-mediation-dates-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .listing-mediation-dates-row > .listing-mediation-date-field {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .listing-mediation-dates-row > .listing-mediation-submit {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.listing-details-main {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: clip;
+}
+
+.listing-details-grid {
+  min-width: 0;
+}
+
+.listing-details-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.listing-details-back-link {
+  margin-left: -1rem;
+}
+
+@media (max-width: 600px) {
+  .listing-details-back-link {
+    margin-left: 0;
+  }
+}
+
+.listing-nav-price-card {
+  padding: var(--space-8);
 }
 
 @media (max-width: 768px) {
+  .listing-nav-price-card {
+    padding: var(--space-4) !important;
+  }
+
+  .listing-sidebar-formidlet-dates {
+    grid-template-columns: 1fr !important;
+  }
+
   .listing-details-grid {
     grid-template-columns: 1fr !important;
   }
@@ -1859,10 +2001,6 @@ body {
     max-width: 100%;
     box-sizing: border-box;
     justify-content: center !important;
-  }
-
-  .listing-sidebar-formidlet-dates {
-    grid-template-columns: 1fr !important;
   }
 
   /**

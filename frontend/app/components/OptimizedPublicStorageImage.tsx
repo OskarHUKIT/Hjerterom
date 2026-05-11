@@ -9,6 +9,10 @@ type Base = {
   alt: string
   sizes: string
   priority?: boolean
+  /** true = ingen Next-komprimering/skalering; bruk f.eks. fullskjerm for original fra Storage. */
+  unoptimized?: boolean
+  /** 1–100; ignorert når `unoptimized` er true. Standard 85 for bedre foto enn Next-default 75. */
+  quality?: number
   className?: string
   style?: CSSProperties
 }
@@ -29,7 +33,7 @@ export type OptimizedPublicStorageImageProps = FillVariant | FixedVariant
  *     Priority-bilder (f.eks. første galleri-bilde) lastes eagerly/sync for LCP.
  */
 export function OptimizedPublicStorageImage(props: OptimizedPublicStorageImageProps) {
-  const { src, alt, sizes, priority, className, style } = props
+  const { src, alt, sizes, priority, unoptimized, quality = 85, className, style } = props
   const ok = listingImageSupportsNextOptimization(src)
   const rawLoading: 'eager' | 'lazy' = priority ? 'eager' : 'lazy'
   const rawDecoding: 'sync' | 'async' = priority ? 'sync' : 'async'
@@ -45,6 +49,8 @@ export function OptimizedPublicStorageImage(props: OptimizedPublicStorageImagePr
           className={className}
           style={style}
           priority={priority}
+          unoptimized={unoptimized}
+          {...(unoptimized ? {} : { quality })}
         />
       )
     }
@@ -78,6 +84,8 @@ export function OptimizedPublicStorageImage(props: OptimizedPublicStorageImagePr
         className={className}
         style={style}
         priority={priority}
+        unoptimized={unoptimized}
+        {...(unoptimized ? {} : { quality })}
       />
     )
   }

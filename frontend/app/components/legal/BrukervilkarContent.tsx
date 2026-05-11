@@ -60,8 +60,8 @@ export function BrukervilkarContent() {
         </p>
         <p style={body}>
           Boly bygger på et samarbeid der <strong>Nav Narvik</strong> og{' '}
-          <strong>Gamechanging AS</strong> leverer utvikling og drift av programvaren, mens den
-          enkelte <strong>kommune</strong> som har aktivert Boly er behandlingsansvarlig for
+          <strong>Gamechanging AS</strong> leverer utvikling og drift av programvaren,           mens den
+          enkelte <strong>kommune/saksbehandler</strong> som har aktivert Boly er behandlingsansvarlig for
           personopplysninger i den kommunale boligformidlingskjeden, jf. personvernerklæringen.
         </p>
         <p style={body}>
@@ -76,7 +76,7 @@ export function BrukervilkarContent() {
           </li>
           <li>
             <strong>Nav og utleiere i boligbanken</strong> — særskilte vilkår og dokumenter som
-            kommunen/Nav benytter overfor utleiere i det kommunale kretsløpet (typisk egne
+            kommunen/saksbehandler og Nav benytter overfor utleiere i det kommunale kretsløpet (typisk egne
             avtalevilkår og signering i boligbanken).
           </li>
           <li>
@@ -86,9 +86,9 @@ export function BrukervilkarContent() {
           </li>
         </ul>
         <p style={body}>
-          <strong>Som utleier</strong> vil du derfor ofte ha <strong>ytterligere forpliktelser</strong>{' '}
+          <strong>Som utleier</strong> vil du derfor ha <strong>ytterligere forpliktelser</strong>{' '}
           utover disse brukervilkårene, herunder plikt til å signere og følge den gjeldende,
-          kommunegodkjente avtalen for ditt område (BankID via Signicat der dette er aktivert). Ved
+          kommunegodkjente avtalen for ditt område (via BankID). Ved
           motstrid mellom disse brukervilkårene og slik separat, signert utleieravtale, har den
           signerte utleieravtalen forrang for utleierforholdet; brukervilkårene gjelder fortsatt for
           din generelle bruk av plattformen (konto, sikkerhet, akseptabel bruk m.m.).
@@ -128,7 +128,7 @@ export function BrukervilkarContent() {
         <p style={body}>
           Du skal bruke tjenesten i samsvar med norsk lov, offentlighetsloven der den treffer inn,
           personvernregelverket og eventuelle interne retningslinjer som gjelder for din rolle
-          (kommune/Nav/utleier/leietaker).
+          (kommune/saksbehandler/Nav/utleier/leietaker).
         </p>
         <p style={body}>Det er blant annet ikke tillatt å:</p>
         <ul style={ul}>
@@ -150,10 +150,10 @@ export function BrukervilkarContent() {
           opplysninger du har rett til å behandle, og som er nødvendige for formålet. Du gir Boly og
           de underliggende leverandørene en begrenset, ikke-eksklusiv lisens til å lagre, vise og
           teknisk reprodusere innholdet i den utstrekning det er nødvendig for å drive tjenesten og
-          oppfylle avtale med kommune og brukere.
+          oppfylle avtale med kommune/saksbehandler og brukere.
         </p>
         <p style={body}>
-          Kommunen kan bruke tjenesten til å understøtte formidling. Kommunen er i utgangspunktet
+          Kommunen/saksbehandler kan bruke tjenesten til å understøtte formidling. Kommunen/saksbehandler er i utgangspunktet
           ikke part i et privat leieforhold med mindre annet følger av avtale eller lov; krav som
           gjelder selve husleieforholdet reguleres særskilt (leiekontrakt, husleieloven m.m.).
         </p>
@@ -177,7 +177,7 @@ export function BrukervilkarContent() {
           </Link>
           . Ved motstrid mellom korte henvisninger her og personvernerklæringen, går
           personvernerklæringen foran for personvern. Du kan utøve rettigheter etter GDPR kapittel
-          III; henvendelser kan rettes til kommunen som behandlingsansvarlig og til{' '}
+          III; henvendelser kan rettes til kommunen/saksbehandler som behandlingsansvarlig og til{' '}
           <a href="mailto:info@bolynorge.no" style={{ color: 'var(--color-accent)' }}>
             info@bolynorge.no
           </a>{' '}
@@ -242,7 +242,7 @@ export function BrukervilkarContent() {
           <a href="mailto:info@bolynorge.no" style={{ color: 'var(--color-accent)' }}>
             info@bolynorge.no
           </a>
-          . Juridiske og personvernhenvendelser kan i tillegg rettes til kommunen der du er
+          . Juridiske og personvernhenvendelser kan i tillegg rettes til kommunen/saksbehandler der du er
           registrert som bruker, når det gjelder behandlingsansvarliges plikter.
         </p>
       </section>

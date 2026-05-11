@@ -102,7 +102,8 @@ export function DateInput({
   }, [disabled])
 
   // Track the anchor element position so the portal calendar stays pinned below
-  // the input even while scrolling or resizing.
+  // the input even while scrolling or resizing. Clamps to viewport edges so the
+  // calendar never overflows off-screen on any viewport size.
   useLayoutEffect(() => {
     if (!open) {
       setPanelPos(null)
@@ -112,10 +113,42 @@ export function DateInput({
       const el = wrapRef.current
       if (!el) return
       const r = el.getBoundingClientRect()
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const margin = 8
+      const minWidth = Math.min(Math.max(r.width, 260), vw - margin * 2)
+
+      // Estimate panel height for flip decision (conservative: 7 rows × 34px + nav + legend + padding)
+      const estimatedHeight = 380
+
+      // Default: position below the anchor
+      let top = r.bottom + 4
+      let left = r.left
+
+      // Flip above if there isn't enough room below AND there's room above
+      if (top + estimatedHeight > vh - margin && r.top - estimatedHeight - 4 >= margin) {
+        top = r.top - estimatedHeight - 4
+      }
+
+      // Clamp horizontal: keep the panel fully inside the viewport
+      if (left + minWidth > vw - margin) {
+        left = Math.max(margin, vw - minWidth - margin)
+      }
+      if (left < margin) {
+        left = margin
+      }
+
+      // Clamp vertical: never let the panel go above or below the viewport
+      if (top < margin) {
+        top = margin
+      } else if (top + estimatedHeight > vh - margin) {
+        top = Math.max(margin, vh - estimatedHeight - margin)
+      }
+
       setPanelPos({
-        top: r.bottom + 4,
-        left: r.left,
-        minWidth: Math.max(r.width, 260),
+        top,
+        left,
+        minWidth,
       })
     }
     recalc()
@@ -245,7 +278,7 @@ export function DateInput({
   }
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+    <div ref={wrapRef} style={{ position: 'relative', display: 'block', width: '100%', minWidth: 0 }}>
       <div
         style={{
           display: 'flex',

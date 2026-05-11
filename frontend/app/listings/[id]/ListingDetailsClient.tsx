@@ -1272,7 +1272,7 @@ export default function ListingDetailsClient() {
   }
 
   return (
-    <main className="container">
+    <main className="container listing-details-main">
       {pendingDeletePeriod && (
         <div
           role="dialog"
@@ -1338,12 +1338,11 @@ export default function ListingDetailsClient() {
       >
         <Link
           href={isNavView ? '/nav/database' : '/homeowner/manage'}
-          className="nav-link"
+          className="nav-link listing-details-back-link"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: 'var(--space-2)',
-            marginLeft: '-1rem',
           }}
         >
           <ArrowLeft size={18} /> {isNavView ? t('backToHousingBank') : t('backToMyProperties')}
@@ -3025,15 +3024,8 @@ export default function ListingDetailsClient() {
                     >
                       {t('periodDateRange')}
                     </label>
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 'var(--space-2)',
-                        alignItems: 'flex-end',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: '120px' }}>
+                    <div className="listing-mediation-dates-row">
+                      <div className="listing-mediation-date-field">
                         <span
                           className="text-sm"
                           style={{
@@ -3075,7 +3067,7 @@ export default function ListingDetailsClient() {
                           }
                         />
                       </div>
-                      <div style={{ flex: 1, minWidth: '120px' }}>
+                      <div className="listing-mediation-date-field">
                         <span
                           className="text-sm"
                           style={{
@@ -3126,7 +3118,7 @@ export default function ListingDetailsClient() {
                             mediationReservation.reserved_by !== currentUser?.id
                           )
                         }
-                        className="button"
+                        className="button listing-mediation-submit"
                         style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}
                       >
                         <ShieldCheck size={14} /> {t('addSubmit')}
@@ -4207,6 +4199,8 @@ export default function ListingDetailsClient() {
                         : `Boligbilde ${currentImageIndex + 1} av ${allImages.length}`
                     }
                     sizes="100vw"
+                    unoptimized
+                    priority
                     style={{ objectFit: 'contain' }}
                   />
                 </div>
@@ -4342,9 +4336,8 @@ export default function ListingDetailsClient() {
         {isNavView && (
           <div className="listing-details-sticky-sidebar" style={{ position: 'sticky', top: '20px' }}>
             <div
-              className="card"
+              className="card listing-nav-price-card"
               style={{
-                padding: 'var(--space-8)',
                 border: '1px solid var(--color-royal-blue)',
                 background: 'var(--color-dark-navy)',
               }}
