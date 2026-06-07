@@ -6,9 +6,9 @@ import { useLanguage } from '../../../context/LanguageContext'
 export default function OpsGdprBanner() {
   const { t } = useLanguage()
   return (
-    <div className="ops-gdpr-banner" role="note">
+    <aside className="ops-gdpr-banner" role="note" aria-label={t('opsGdprNotice')}>
       <AlertTriangle size={18} aria-hidden />
-      <p>{t('opsGdprNotice')}</p>
-    </div>
+      <p className="ops-gdpr-banner-text">{t('opsGdprNotice')}</p>
+    </aside>
   )
 }

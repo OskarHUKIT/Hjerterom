@@ -1,11 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
 import { useLanguage } from '../../../../context/LanguageContext'
 import OpsGdprBanner from '../../components/OpsGdprBanner'
-import LoadingPlaceholder from '../../../components/LoadingPlaceholder'
+import OpsPageHeader from '../../components/OpsPageHeader'
+import OpsPanel from '../../components/OpsPanel'
+import OpsTabs from '../../components/OpsTabs'
+import OpsKpiGrid from '../../components/OpsKpiGrid'
+import OpsBadge, { opsHealthTone, opsKommuneStatusTone, opsSeverityTone } from '../../components/OpsBadge'
+import OpsAlert from '../../components/OpsAlert'
+import OpsEmptyState from '../../components/OpsEmptyState'
+import OpsDataTable from '../../components/OpsDataTable'
+import { OpsTableSkeleton } from '../../components/OpsSkeleton'
 import { Button } from '../../../components/ui/Button'
 import { formatDateTimeNo } from '../../../lib/dateFormat'
 import {
@@ -21,12 +30,6 @@ import {
 import { opsHealthKey, opsKommuneStatusKey } from '../../../lib/opsLabels'
 
 type Tab = 'overview' | 'people' | 'access' | 'terms' | 'compliance' | 'regions' | 'activity'
-
-function healthClass(h: string) {
-  if (h === 'green') return 'ops-health-pill--green'
-  if (h === 'amber') return 'ops-health-pill--amber'
-  return 'ops-health-pill--red'
-}
 
 export default function OpsKommuneDetailPage() {
   const params = useParams()
@@ -69,6 +72,7 @@ export default function OpsKommuneDetailPage() {
   const setStatus = async (status: string) => {
     if (!slug) return
     setBusy(true)
+    setError(null)
     try {
       await opsSetKommuneStatus(slug, status)
       await load()
@@ -87,6 +91,7 @@ export default function OpsKommuneDetailPage() {
       .filter((e) => e.includes('@'))
     if (emails.length === 0) return
     setBusy(true)
+    setError(null)
     try {
       await opsBulkWhitelist(detail.kommune.id, emails)
       setWhitelistRaw('')
@@ -100,6 +105,7 @@ export default function OpsKommuneDetailPage() {
 
   const deactivate = async (id: string) => {
     setBusy(true)
+    setError(null)
     try {
       await opsDeactivateWhitelist(id)
       await load()
@@ -113,6 +119,7 @@ export default function OpsKommuneDetailPage() {
   const saveDpo = async () => {
     if (!detail || !dpoEmail.trim()) return
     setBusy(true)
+    setError(null)
     try {
       await opsUpsertDpo(detail.kommune.id, dpoEmail.trim(), dpoName.trim() || null, dpoPhone.trim() || null)
       await load()
@@ -123,273 +130,288 @@ export default function OpsKommuneDetailPage() {
     }
   }
 
-  if (loading) return <LoadingPlaceholder minHeight={240} />
-  if (error || !detail) return <p style={{ color: '#ef4444' }}>{error || t('pageLoadStuck')}</p>
+  const tabs = useMemo(() => {
+    if (!detail) return []
+    const h = detail.health_metrics
+    return [
+      { id: 'overview' as const, label: t('opsTabOverview') },
+      { id: 'people' as const, label: t('opsTabPeople'), badge: detail.staff.length },
+      { id: 'access' as const, label: t('opsTabAccess'), badge: detail.whitelist.filter((w) => w.is_active).length },
+      { id: 'terms' as const, label: t('opsTabTerms'), badge: h.terms_pending || undefined },
+      { id: 'compliance' as const, label: t('opsTabCompliance') },
+      { id: 'regions' as const, label: t('opsTabRegions'), badge: mismatches.length || undefined },
+      { id: 'activity' as const, label: t('opsTabActivity'), badge: detail.recent_events.length || undefined },
+    ]
+  }, [detail, mismatches.length, t])
+
+  if (loading) return <OpsTableSkeleton rows={6} cols={4} />
+  if (error && !detail) return <OpsAlert tone="error">{error}</OpsAlert>
+  if (!detail) return <OpsAlert tone="error">{t('pageLoadStuck')}</OpsAlert>
 
   const k = detail.kommune
   const h = detail.health_metrics
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'overview', label: t('opsTabOverview') },
-    { id: 'people', label: t('opsTabPeople') },
-    { id: 'access', label: t('opsTabAccess') },
-    { id: 'terms', label: t('opsTabTerms') },
-    { id: 'compliance', label: t('opsTabCompliance') },
-    { id: 'regions', label: t('opsTabRegions') },
-    { id: 'activity', label: t('opsTabActivity') },
-  ]
+  const dpoStatus =
+    h.has_dpo ? t('opsKommuneDpoOk') : h.dpo_fallback_only ? t('opsKommuneDpoFallback') : t('opsKommuneDpoMissing')
 
   return (
-    <div>
-      <p className="ops-meta" style={{ marginBottom: 'var(--space-2)' }}>
-        <Link href="/ops/kommuner" className="ops-link">{t('opsNavKommuner')}</Link>
-      </p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-3)' }}>
-        <div>
-          <h1 className="ops-page-title">{k.display_name}</h1>
-          <p className="ops-page-lead" style={{ marginBottom: 'var(--space-2)' }}>
-            {t(opsKommuneStatusKey(k.status))} · {k.slug}
-          </p>
-          <span className={`ops-health-pill ${healthClass(h.health)}`}>{t(opsHealthKey(h.health))}</span>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-          {k.status !== 'active' ? (
-            <Button variant="primary" disabled={busy} onClick={() => void setStatus('active')}>
-              {t('opsKommuneMarkActive')}
-            </Button>
-          ) : null}
-          {k.status !== 'pilot' && k.status !== 'active' ? (
-            <Button variant="secondary" disabled={busy} onClick={() => void setStatus('pilot')}>
-              {t('opsKommuneMarkPilot')}
-            </Button>
-          ) : null}
-          {k.status !== 'suspended' ? (
-            <Button variant="secondary" disabled={busy} onClick={() => void setStatus('suspended')}>
-              {t('opsKommuneSuspend')}
-            </Button>
-          ) : (
-            <Button variant="secondary" disabled={busy} onClick={() => void setStatus('active')}>
-              {t('opsKommuneReactivate')}
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className="ops-stack ops-stack--lg">
+      <OpsPageHeader
+        breadcrumb={
+          <Link href="/ops/kommuner" className="ops-link ops-breadcrumb-link">
+            <ArrowLeft size={14} aria-hidden className="ops-icon-inline" />
+            {t('opsNavKommuner')}
+          </Link>
+        }
+        title={k.display_name}
+        lead={
+          <>
+            <OpsBadge tone={opsKommuneStatusTone(k.status)}>{t(opsKommuneStatusKey(k.status))}</OpsBadge>
+            <span className="ops-meta"> · {k.slug}</span>
+            <span className="ops-meta"> · </span>
+            <OpsBadge tone={opsHealthTone(h.health)}>{t(opsHealthKey(h.health))}</OpsBadge>
+          </>
+        }
+        actions={
+          <div className="ops-inline-actions">
+            {k.status !== 'active' ? (
+              <Button variant="primary" disabled={busy} onClick={() => void setStatus('active')}>
+                {t('opsKommuneMarkActive')}
+              </Button>
+            ) : null}
+            {k.status !== 'pilot' && k.status !== 'active' ? (
+              <Button variant="secondary" disabled={busy} onClick={() => void setStatus('pilot')}>
+                {t('opsKommuneMarkPilot')}
+              </Button>
+            ) : null}
+            {k.status !== 'suspended' ? (
+              <Button variant="secondary" disabled={busy} onClick={() => void setStatus('suspended')}>
+                {t('opsKommuneSuspend')}
+              </Button>
+            ) : (
+              <Button variant="secondary" disabled={busy} onClick={() => void setStatus('active')}>
+                {t('opsKommuneReactivate')}
+              </Button>
+            )}
+          </div>
+        }
+      />
       <OpsGdprBanner />
+      {error ? <OpsAlert tone="error">{error}</OpsAlert> : null}
 
-      <div className="ops-tabs" role="tablist">
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === item.id}
-            className={`ops-tab${tab === item.id ? ' ops-tab--active' : ''}`}
-            onClick={() => setTab(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <OpsTabs tabs={tabs} active={tab} onChange={setTab} ariaLabel={k.display_name} />
 
       {tab === 'overview' ? (
-        <div className="ops-kpi-grid" style={{ marginTop: 'var(--space-4)' }}>
-          <div className="card ops-kpi-card">
-            <p className="ops-kpi-label">{t('opsKommuneStaff')}</p>
-            <p className="ops-kpi-value">{h.staff_count}</p>
-            <p className="ops-kpi-hint">{t('opsKommuneAdmins')}: {h.admin_count}</p>
-          </div>
-          <div className="card ops-kpi-card">
-            <p className="ops-kpi-label">{t('opsKommuneListings')}</p>
-            <p className="ops-kpi-value">{h.listings_matched}</p>
-            <p className="ops-kpi-hint">{t('opsKommuneMatchRate')}: {h.region_match_rate}%</p>
-          </div>
-          <div className="card ops-kpi-card">
-            <p className="ops-kpi-label">{t('opsKommuneTermsApproved')}</p>
-            <p className="ops-kpi-value">{h.terms_approved}</p>
-            <p className="ops-kpi-hint">{t('opsKpiPendingTerms')}: {h.terms_pending}</p>
-          </div>
-          <div className="card ops-kpi-card">
-            <p className="ops-kpi-label">{t('opsKommuneSign7d')}</p>
-            <p className="ops-kpi-value">{h.sign_completed_7d}/{h.sign_initiated_7d}</p>
-          </div>
-          <div className="card ops-kpi-card">
-            <p className="ops-kpi-label">{t('opsKommuneDpo')}</p>
-            <p className="ops-kpi-value" style={{ fontSize: '1rem' }}>
-              {h.has_dpo ? t('opsKommuneDpoOk') : h.dpo_fallback_only ? t('opsKommuneDpoFallback') : t('opsKommuneDpoMissing')}
-            </p>
-          </div>
+        <div className="ops-tab-panel">
+          <OpsKpiGrid
+            items={[
+              {
+                label: t('opsKommuneStaff'),
+                value: h.staff_count,
+                hint: `${t('opsKommuneAdmins')}: ${h.admin_count}`,
+              },
+              {
+                label: t('opsKommuneListings'),
+                value: h.listings_matched,
+                hint: `${t('opsKommuneMatchRate')}: ${h.region_match_rate}%`,
+              },
+              {
+                label: t('opsKommuneTermsApproved'),
+                value: h.terms_approved,
+                hint: `${t('opsKpiPendingTerms')}: ${h.terms_pending}`,
+              },
+              {
+                label: t('opsKommuneSign7d'),
+                value: `${h.sign_completed_7d}/${h.sign_initiated_7d}`,
+              },
+              {
+                label: t('opsKommuneDpo'),
+                value: dpoStatus,
+              },
+            ]}
+          />
         </div>
       ) : null}
 
       {tab === 'people' ? (
-        <section style={{ marginTop: 'var(--space-4)' }}>
+        <div className="ops-tab-panel">
           {detail.staff.length === 0 ? (
-            <p className="ops-meta">{t('opsKommuneNoStaff')}</p>
+            <OpsEmptyState title={t('opsKommuneNoStaff')} />
           ) : (
-            <div className="ops-table-wrap">
-              <table className="ops-table">
-                <thead>
-                  <tr>
-                    <th>{t('opsName')}</th>
-                    <th>{t('opsEmail')}</th>
-                    <th>{t('opsRole')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detail.staff.map((s) => (
-                    <tr key={s.id}>
-                      <td>
-                        <Link href={`/ops/accounts/${s.id}`} className="ops-link">{s.full_name}</Link>
-                      </td>
-                      <td>{s.email_masked}</td>
-                      <td>{s.role}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <OpsDataTable
+              rows={detail.staff}
+              columns={[
+                {
+                  key: 'name',
+                  header: t('opsName'),
+                  render: (s) => (
+                    <Link href={`/ops/accounts/${s.id}`} className="ops-link">
+                      {s.full_name}
+                    </Link>
+                  ),
+                },
+                { key: 'email', header: t('opsEmail'), render: (s) => s.email_masked },
+                { key: 'role', header: t('opsRole'), render: (s) => s.role },
+              ]}
+            />
           )}
-        </section>
+        </div>
       ) : null}
 
       {tab === 'access' ? (
-        <section style={{ marginTop: 'var(--space-4)' }}>
-          <div className="card" style={{ padding: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-            <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>{t('opsBulkWhitelist')}</h3>
-            <textarea className="ops-input" rows={3} value={whitelistRaw} onChange={(e) => setWhitelistRaw(e.target.value)} placeholder="email@kommune.no" />
-            <Button variant="primary" disabled={busy} style={{ marginTop: 'var(--space-3)' }} onClick={() => void addWhitelist()}>
-              {t('opsAddWhitelist')}
-            </Button>
-          </div>
-          <div className="ops-table-wrap">
-            <table className="ops-table">
-              <thead>
-                <tr>
-                  <th>{t('opsEmail')}</th>
-                  <th>{t('opsStatus')}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {detail.whitelist.map((w) => (
-                  <tr key={w.id}>
-                    <td>{w.email}</td>
-                    <td>{w.is_active ? t('opsActive') : t('opsInactive')}</td>
-                    <td>
-                      {w.is_active ? (
-                        <Button variant="secondary" disabled={busy} onClick={() => void deactivate(w.id)}>
-                          {t('opsDeactivate')}
-                        </Button>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <div className="ops-tab-panel ops-stack">
+          <OpsPanel title={t('opsBulkWhitelist')}>
+            <div className="ops-form-stack">
+              <textarea
+                className="ops-input"
+                rows={3}
+                value={whitelistRaw}
+                onChange={(e) => setWhitelistRaw(e.target.value)}
+                placeholder="email@kommune.no"
+              />
+              <div className="ops-inline-actions">
+                <Button variant="primary" disabled={busy} onClick={() => void addWhitelist()}>
+                  {t('opsAddWhitelist')}
+                </Button>
+              </div>
+            </div>
+          </OpsPanel>
+          {detail.whitelist.length === 0 ? (
+            <OpsEmptyState title={t('opsKommuneNoWhitelist')} />
+          ) : (
+            <OpsDataTable
+              rows={detail.whitelist}
+              columns={[
+                { key: 'email', header: t('opsEmail'), render: (w) => w.email },
+                {
+                  key: 'status',
+                  header: t('opsStatus'),
+                  render: (w) => (
+                    <OpsBadge tone={w.is_active ? 'success' : 'neutral'}>
+                      {w.is_active ? t('opsActive') : t('opsInactive')}
+                    </OpsBadge>
+                  ),
+                },
+                {
+                  key: 'actions',
+                  header: '',
+                  className: 'ops-table-cell--actions',
+                  render: (w) =>
+                    w.is_active ? (
+                      <Button variant="secondary" disabled={busy} onClick={() => void deactivate(w.id)}>
+                        {t('opsDeactivate')}
+                      </Button>
+                    ) : null,
+                },
+              ]}
+            />
+          )}
+        </div>
       ) : null}
 
       {tab === 'terms' ? (
-        <section style={{ marginTop: 'var(--space-4)' }}>
-          <Link href="/ops/terms" className="ops-link">{t('opsGoTermsQueue')}</Link>
-          <div className="ops-table-wrap" style={{ marginTop: 'var(--space-4)' }}>
-            <table className="ops-table">
-              <thead>
-                <tr>
-                  <th>{t('opsTermsTitle')}</th>
-                  <th>{t('opsVersion')}</th>
-                  <th>{t('opsStatus')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.terms.map((doc) => (
-                  <tr key={doc.id}>
-                    <td>{doc.title}</td>
-                    <td>{doc.version}</td>
-                    <td>{doc.approved_for_utleier_signing ? t('opsApproved') : t('opsPending')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <div className="ops-tab-panel ops-stack">
+          <OpsPanel
+            title={t('opsTabTerms')}
+            description={t('opsWizardTermsHint')}
+            actions={
+              <Link href="/ops/terms" className="ops-link">
+                {t('opsGoTermsQueue')}
+              </Link>
+            }
+          >
+            {detail.terms.length === 0 ? (
+              <OpsEmptyState title={t('opsNoTermsDocs')} />
+            ) : (
+              <OpsDataTable
+                rows={detail.terms}
+                columns={[
+                  { key: 'title', header: t('opsTermsTitle'), render: (doc) => doc.title },
+                  { key: 'version', header: t('opsVersion'), render: (doc) => doc.version },
+                  {
+                    key: 'status',
+                    header: t('opsStatus'),
+                    render: (doc) => (
+                      <OpsBadge tone={doc.approved_for_utleier_signing ? 'success' : 'warning'}>
+                        {doc.approved_for_utleier_signing ? t('opsApproved') : t('opsPending')}
+                      </OpsBadge>
+                    ),
+                  },
+                ]}
+              />
+            )}
+          </OpsPanel>
+        </div>
       ) : null}
 
       {tab === 'compliance' ? (
-        <section className="card" style={{ padding: 'var(--space-5)', marginTop: 'var(--space-4)' }}>
-          <h3 style={{ marginTop: 0, fontSize: '0.95rem' }}>{t('opsTabCompliance')}</h3>
-          <div className="ops-form-stack">
-            <label>
-              {t('opsDpoEmail')}
-              <input className="ops-input" type="email" value={dpoEmail} onChange={(e) => setDpoEmail(e.target.value)} />
-            </label>
-            <label>
-              {t('opsDpoName')}
-              <input className="ops-input" value={dpoName} onChange={(e) => setDpoName(e.target.value)} />
-            </label>
-            <label>
-              {t('opsDpoPhone')}
-              <input className="ops-input" value={dpoPhone} onChange={(e) => setDpoPhone(e.target.value)} />
-            </label>
-          </div>
-          <Button variant="primary" disabled={busy} style={{ marginTop: 'var(--space-3)' }} onClick={() => void saveDpo()}>
-            {t('opsSave')}
-          </Button>
-        </section>
+        <div className="ops-tab-panel">
+          <OpsPanel title={t('opsTabCompliance')} description={t('opsDpoLead')}>
+            <div className="ops-form-stack">
+              <label className="ops-field">
+                {t('opsDpoEmail')}
+                <input className="ops-input" type="email" value={dpoEmail} onChange={(e) => setDpoEmail(e.target.value)} />
+              </label>
+              <label className="ops-field">
+                {t('opsDpoName')}
+                <input className="ops-input" value={dpoName} onChange={(e) => setDpoName(e.target.value)} />
+              </label>
+              <label className="ops-field">
+                {t('opsDpoPhone')}
+                <input className="ops-input" value={dpoPhone} onChange={(e) => setDpoPhone(e.target.value)} />
+              </label>
+              <div className="ops-inline-actions">
+                <Button variant="primary" disabled={busy || !dpoEmail.trim()} onClick={() => void saveDpo()}>
+                  {t('opsSave')}
+                </Button>
+              </div>
+            </div>
+          </OpsPanel>
+        </div>
       ) : null}
 
       {tab === 'regions' ? (
-        <section style={{ marginTop: 'var(--space-4)' }}>
-          <p className="ops-meta">{t('opsRegionMismatchLead')}</p>
-          <p className="ops-meta">{t('opsKommuneRegionKeys')}: {k.region_keys.join(', ')}</p>
+        <div className="ops-tab-panel ops-stack">
+          <OpsPanel title={t('opsTabRegions')} description={t('opsRegionMismatchLead')}>
+            <p className="ops-meta">
+              {t('opsKommuneRegionKeys')}: {k.region_keys.join(', ')}
+            </p>
+          </OpsPanel>
           {mismatches.length === 0 ? (
-            <p className="ops-meta">{t('opsRegionMismatchNone')}</p>
+            <OpsEmptyState title={t('opsRegionMismatchNone')} />
           ) : (
-            <div className="ops-table-wrap">
-              <table className="ops-table">
-                <thead>
-                  <tr>
-                    <th>{t('opsAddress')}</th>
-                    <th>{t('opsCity')}</th>
-                    <th>{t('opsNormalized')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mismatches.map((m) => (
-                    <tr key={m.id}>
-                      <td>{m.address ?? '—'}</td>
-                      <td>{m.city ?? '—'}</td>
-                      <td>{m.city_normalized}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <OpsDataTable
+              rows={mismatches}
+              columns={[
+                { key: 'address', header: t('opsAddress'), render: (m) => m.address ?? '—' },
+                { key: 'city', header: t('opsCity'), render: (m) => m.city ?? '—' },
+                { key: 'normalized', header: t('opsNormalized'), render: (m) => m.city_normalized },
+              ]}
+            />
           )}
-        </section>
+        </div>
       ) : null}
 
       {tab === 'activity' ? (
-        <section style={{ marginTop: 'var(--space-4)' }}>
+        <div className="ops-tab-panel">
           {detail.recent_events.length === 0 ? (
-            <p className="ops-meta">{t('opsNoEvents')}</p>
+            <OpsEmptyState title={t('opsNoEvents')} />
           ) : (
             <div className="ops-card-list">
               {detail.recent_events.map((ev) => (
-                <div key={ev.id} className="card ops-list-card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)' }}>
+                <article key={ev.id} className="ops-list-card">
+                  <div className="ops-list-card-head">
                     <p className="ops-list-card-title">{ev.code}</p>
-                    <span className={`ops-health-pill ops-health-pill--${ev.severity === 'error' ? 'red' : ev.severity === 'warn' ? 'amber' : 'green'}`}>
-                      {ev.severity}
-                    </span>
+                    <OpsBadge tone={opsSeverityTone(ev.severity)}>{ev.severity}</OpsBadge>
                   </div>
                   <p className="ops-meta">{ev.message}</p>
-                  <p className="ops-meta">{formatDateTimeNo(ev.created_at)} · {ev.source}</p>
-                </div>
+                  <p className="ops-meta">
+                    {formatDateTimeNo(ev.created_at)} · {ev.source}
+                  </p>
+                </article>
               ))}
             </div>
           )}
-        </section>
+        </div>
       ) : null}
     </div>
   )

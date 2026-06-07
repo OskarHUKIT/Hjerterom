@@ -3,8 +3,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '../../../context/LanguageContext'
+import OpsPageHeader from '../components/OpsPageHeader'
 import OpsGdprBanner from '../components/OpsGdprBanner'
-import LoadingPlaceholder from '../../components/LoadingPlaceholder'
+import OpsKpiGrid from '../components/OpsKpiGrid'
+import OpsPanel from '../components/OpsPanel'
+import OpsBadge, { opsSecurityTone } from '../components/OpsBadge'
+import { OpsPageSkeleton } from '../components/OpsSkeleton'
 import { Button } from '../../components/ui/Button'
 import {
   runSupabaseDiagnostics,
@@ -67,23 +71,27 @@ export default function OpsHealthPage() {
     }
   }
 
-  if (loading) return <LoadingPlaceholder minHeight={240} />
+  if (loading) return <OpsPageSkeleton />
 
   return (
-    <div>
-      <h1 className="ops-page-title">{t('opsNavHealth')}</h1>
-      <p className="ops-page-lead">{t('opsHealthLead')}</p>
+    <div className="ops-stack ops-stack--lg">
+      <OpsPageHeader title={t('opsNavHealth')} lead={t('opsHealthLead')} />
       <OpsGdprBanner />
 
       <div className="ops-status-strip">
         {security ? (
-          <span className={`ops-status-pill ops-status-pill--${security.status}`}>
+          <OpsBadge tone={opsSecurityTone(security.status)} dot>
             {t(`opsSecurityStatus_${security.status}`)}
-          </span>
+          </OpsBadge>
         ) : null}
-        <label className="ops-meta" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {t('opsHealthSince')}
-          <select className="ops-input" style={{ width: 'auto', padding: '4px 8px' }} value={sinceDays} onChange={(e) => setSinceDays(Number(e.target.value))}>
+        <label className="ops-field" style={{ flexDirection: 'row', alignItems: 'center', width: 'auto' }}>
+          <span className="ops-meta">{t('opsHealthSince')}</span>
+          <select
+            className="ops-input"
+            style={{ width: 'auto', minHeight: 36, padding: '4px 10px' }}
+            value={sinceDays}
+            onChange={(e) => setSinceDays(Number(e.target.value))}
+          >
             <option value={1}>24h</option>
             <option value={7}>7d</option>
             <option value={30}>30d</option>
@@ -93,27 +101,16 @@ export default function OpsHealthPage() {
 
       {overview ? (
         <>
-          <div className="ops-kpi-grid" style={{ marginTop: 'var(--space-4)' }}>
-            <div className="card ops-kpi-card">
-              <p className="ops-kpi-label">{t('opsHealthErrors24h')}</p>
-              <p className="ops-kpi-value">{overview.funnel.errors_24h}</p>
-            </div>
-            <div className="card ops-kpi-card">
-              <p className="ops-kpi-label">{t('opsHealthWarnings24h')}</p>
-              <p className="ops-kpi-value">{overview.funnel.warnings_24h}</p>
-            </div>
-            <div className="card ops-kpi-card">
-              <p className="ops-kpi-label">{t('opsHealthSignInitiated')}</p>
-              <p className="ops-kpi-value">{overview.funnel.sign_initiated}</p>
-            </div>
-            <div className="card ops-kpi-card">
-              <p className="ops-kpi-label">{t('opsHealthSignCompleted')}</p>
-              <p className="ops-kpi-value">{overview.funnel.sign_completed}</p>
-            </div>
-          </div>
+          <OpsKpiGrid
+            items={[
+              { label: t('opsHealthErrors24h'), value: overview.funnel.errors_24h },
+              { label: t('opsHealthWarnings24h'), value: overview.funnel.warnings_24h },
+              { label: t('opsHealthSignInitiated'), value: overview.funnel.sign_initiated },
+              { label: t('opsHealthSignCompleted'), value: overview.funnel.sign_completed },
+            ]}
+          />
 
-          <section className="card" style={{ padding: 'var(--space-5)', marginTop: 'var(--space-6)' }}>
-            <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsHealthBySource')}</h2>
+          <OpsPanel title={t('opsHealthBySource')} padding="md">
             {overview.by_source.length === 0 ? (
               <p className="ops-meta">{t('opsNoData')}</p>
             ) : (
@@ -136,17 +133,16 @@ export default function OpsHealthPage() {
                 </table>
               </div>
             )}
-          </section>
+          </OpsPanel>
 
-          <section className="card" style={{ padding: 'var(--space-5)', marginTop: 'var(--space-6)' }}>
-            <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsHealthInbox')}</h2>
+          <OpsPanel title={t('opsHealthInbox')} padding="md">
             {overview.recent.length === 0 ? (
               <p className="ops-meta">{t('opsHealthInboxEmpty')}</p>
             ) : (
               <div className="ops-card-list">
                 {overview.recent.map((ev) => (
-                  <div key={ev.id} className="card ops-list-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                  <div key={ev.id} className="ops-list-card">
+                    <div className="ops-list-card-head">
                       <p className="ops-list-card-title">{ev.code}</p>
                       <span className={`ops-health-pill ${severityClass(ev.severity)}`}>{ev.severity}</span>
                     </div>
@@ -164,13 +160,11 @@ export default function OpsHealthPage() {
                 ))}
               </div>
             )}
-          </section>
+          </OpsPanel>
         </>
       ) : null}
 
-      <section className="card" style={{ padding: 'var(--space-5)', marginTop: 'var(--space-6)' }}>
-        <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsHealthIntegrations')}</h2>
-        <p className="ops-meta">{t('opsHealthIntegrationsHint')}</p>
+      <OpsPanel title={t('opsHealthIntegrations')} padding="md" description={t('opsHealthIntegrationsHint')}>
         <Button variant="secondary" disabled={running} onClick={() => void runDiagnostics()}>
           {running ? t('opsRunning') : t('opsRunDiagnostics')}
         </Button>
@@ -179,7 +173,7 @@ export default function OpsHealthPage() {
             {JSON.stringify(report, null, 2)}
           </pre>
         ) : null}
-      </section>
+      </OpsPanel>
     </div>
   )
 }

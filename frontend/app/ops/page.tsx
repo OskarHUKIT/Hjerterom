@@ -5,9 +5,19 @@ import Link from 'next/link'
 import { useLanguage } from '../../context/LanguageContext'
 import OpsKpiGrid from './components/OpsKpiGrid'
 import OpsGdprBanner from './components/OpsGdprBanner'
-import LoadingPlaceholder from '../components/LoadingPlaceholder'
+import OpsPageHeader from './components/OpsPageHeader'
+import OpsPanel from './components/OpsPanel'
+import OpsBadge, { opsSecurityTone } from './components/OpsBadge'
+import OpsAlert from './components/OpsAlert'
+import { OpsPageSkeleton } from './components/OpsSkeleton'
 import { Button } from '../components/ui/Button'
-import { opsGetDashboardStats, opsGetSecuritySnapshot, opsListAuditEvents, type OpsDashboardStats, type OpsAuditItem } from '../lib/opsApi'
+import {
+  opsGetDashboardStats,
+  opsGetSecuritySnapshot,
+  opsListAuditEvents,
+  type OpsDashboardStats,
+  type OpsAuditItem,
+} from '../lib/opsApi'
 import { formatDateTimeNo } from '../lib/dateFormat'
 
 export default function OpsDashboardPage() {
@@ -32,9 +42,18 @@ export default function OpsDashboardPage() {
         if (cancelled) return
         setStats(s)
         setSecurityStatus(sec.status)
-        const signAudit = await opsListAuditEvents('SIGN_', new Date(Date.now() - 7 * 86400000).toISOString(), 5, 0)
+        const signAudit = await opsListAuditEvents(
+          'SIGN_',
+          new Date(Date.now() - 7 * 86400000).toISOString(),
+          5,
+          0
+        )
         if (!cancelled) {
-          setRecent([...audit.items, ...signAudit.items].sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 8))
+          setRecent(
+            [...audit.items, ...signAudit.items]
+              .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+              .slice(0, 8)
+          )
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'error')
@@ -47,27 +66,25 @@ export default function OpsDashboardPage() {
     }
   }, [])
 
-  if (loading) {
-    return <LoadingPlaceholder minHeight={240} />
-  }
-
+  if (loading) return <OpsPageSkeleton />
   if (error || !stats) {
-    return <p style={{ color: '#ef4444' }}>{error || t('pageLoadStuck')}</p>
+    return <OpsAlert tone="error">{error || t('pageLoadStuck')}</OpsAlert>
   }
 
   return (
-    <div>
-      <h1 className="ops-page-title">{t('opsNavDashboard')}</h1>
-      <p className="ops-page-lead">{t('opsDashboardLead')}</p>
+    <div className="ops-stack ops-stack--lg">
+      <OpsPageHeader title={t('opsNavDashboard')} lead={t('opsDashboardLead')} />
       <OpsGdprBanner />
 
       <div className="ops-status-strip">
-        <span className={`ops-status-pill ops-status-pill--${securityStatus}`}>
+        <OpsBadge tone={opsSecurityTone(securityStatus)} dot>
           {t(`opsSecurityStatus_${securityStatus}`)}
-        </span>
+        </OpsBadge>
         {stats.terms_pending > 0 ? (
-          <Link href="/ops/terms" className="ops-status-pill ops-status-pill--warning">
-            {t('opsPendingTermsCount').replace('{count}', String(stats.terms_pending))}
+          <Link href="/ops/terms">
+            <OpsBadge tone="warning" dot>
+              {t('opsPendingTermsCount').replace('{count}', String(stats.terms_pending))}
+            </OpsBadge>
           </Link>
         ) : null}
       </div>
@@ -85,36 +102,51 @@ export default function OpsDashboardPage() {
         ]}
       />
 
-      <div style={{ marginTop: 'var(--space-8)', display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-        <Link href="/ops/terms">
-          <Button variant="primary">{t('opsGoTermsQueue')}</Button>
-        </Link>
-        <Link href="/ops/accounts">
-          <Button variant="secondary">{t('opsGoAccounts')}</Button>
-        </Link>
-        <Link href="/ops/kommuner">
-          <Button variant="secondary">{t('opsNavKommuner')}</Button>
-        </Link>
-        <Link href="/ops/health">
-          <Button variant="secondary">{t('opsNavHealth')}</Button>
-        </Link>
-        <Link href="/ops/security">
-          <Button variant="secondary">{t('opsGoSecurity')}</Button>
-        </Link>
-      </div>
+      <OpsPanel title={t('opsQuickActions')} padding="md">
+        <div className="ops-actions-row">
+          <Link href="/ops/terms">
+            <Button variant="primary">{t('opsGoTermsQueue')}</Button>
+          </Link>
+          <Link href="/ops/accounts">
+            <Button variant="secondary">{t('opsGoAccounts')}</Button>
+          </Link>
+          <Link href="/ops/kommuner">
+            <Button variant="secondary">{t('opsNavKommuner')}</Button>
+          </Link>
+          <Link href="/ops/health">
+            <Button variant="secondary">{t('opsNavHealth')}</Button>
+          </Link>
+          <Link href="/ops/security">
+            <Button variant="secondary">{t('opsGoSecurity')}</Button>
+          </Link>
+        </div>
+      </OpsPanel>
 
       {recent.length > 0 ? (
-        <section style={{ marginTop: 'var(--space-8)' }}>
-          <h2 style={{ fontSize: '1.1rem', marginBottom: 'var(--space-4)' }}>{t('opsRecentEvents')}</h2>
-          <div className="ops-card-list">
-            {recent.map((row) => (
-              <div key={row.id} className="card ops-list-card">
-                <p className="ops-list-card-title">{row.action_type}</p>
-                <p className="ops-meta">{formatDateTimeNo(row.created_at)}</p>
-              </div>
-            ))}
+        <OpsPanel title={t('opsAuditTrail')} padding="md">
+          <div className="ops-table-wrap" style={{ maxHeight: 360 }}>
+            <table className="ops-table">
+              <thead>
+                <tr>
+                  <th>{t('opsSource')}</th>
+                  <th>{t('opsCreated')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recent.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <span className="ops-list-card-title" style={{ fontSize: '0.875rem' }}>
+                        {row.action_type}
+                      </span>
+                    </td>
+                    <td className="ops-meta">{formatDateTimeNo(row.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </section>
+        </OpsPanel>
       ) : null}
     </div>
   )

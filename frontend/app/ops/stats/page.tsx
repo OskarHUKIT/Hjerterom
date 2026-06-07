@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '../../../context/LanguageContext'
+import OpsPageHeader from '../components/OpsPageHeader'
+import OpsPanel from '../components/OpsPanel'
+import OpsAlert from '../components/OpsAlert'
 import OpsGdprBanner from '../components/OpsGdprBanner'
-import LoadingPlaceholder from '../../components/LoadingPlaceholder'
+import { OpsPageSkeleton } from '../components/OpsSkeleton'
 import {
   opsGetDashboardStats,
   opsGetTimeSeries,
@@ -19,13 +22,13 @@ import {
 function MiniBar({ label, value, max }: { label: string; value: number; max: number }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0
   return (
-    <div style={{ marginBottom: 'var(--space-3)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: 4 }}>
+    <div className="ops-chart-bar">
+      <div className="ops-chart-bar-head">
         <span>{label}</span>
         <span>{value}</span>
       </div>
-      <div style={{ height: 8, borderRadius: 999, background: 'var(--border-subtle)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: 'var(--color-accent)' }} />
+      <div className="ops-chart-bar-track">
+        <div className="ops-chart-bar-fill" style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -34,13 +37,13 @@ function MiniBar({ label, value, max }: { label: string; value: number; max: num
 function FunnelStep({ label, value, max }: { label: string; value: number; max: number }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0
   return (
-    <div style={{ marginBottom: 'var(--space-2)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+    <div className="ops-chart-bar">
+      <div className="ops-chart-bar-head">
         <span>{label}</span>
         <span>{value} ({pct}%)</span>
       </div>
-      <div style={{ height: 10, borderRadius: 999, background: 'var(--border-subtle)', overflow: 'hidden', marginTop: 4 }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: 'var(--color-accent)' }} />
+      <div className="ops-chart-bar-track ops-chart-bar-track--tall">
+        <div className="ops-chart-bar-fill" style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -79,8 +82,8 @@ export default function OpsStatsPage() {
     }
   }, [])
 
-  if (loading) return <LoadingPlaceholder minHeight={240} />
-  if (!stats || !series || !funnel) return <p>{t('pageLoadStuck')}</p>
+  if (loading) return <OpsPageSkeleton />
+  if (!stats || !series || !funnel) return <OpsAlert tone="error">{t('pageLoadStuck')}</OpsAlert>
 
   const signupMax = Math.max(1, ...series.signups_by_week.map((x) => x.count))
   const listingMax = Math.max(1, ...series.listings_by_week.map((x) => x.count))
@@ -88,45 +91,43 @@ export default function OpsStatsPage() {
   const funnelMax = funnel.users_total || 1
 
   return (
-    <div>
-      <h1 className="ops-page-title">{t('opsNavStats')}</h1>
-      <p className="ops-page-lead">{t('opsStatsLead')}</p>
+    <div className="ops-stack ops-stack--lg">
+      <OpsPageHeader title={t('opsNavStats')} lead={t('opsStatsLead')} />
       <OpsGdprBanner />
 
-      <div className="ops-kpi-grid" style={{ marginBottom: 'var(--space-8)' }}>
-        <div className="card ops-kpi-card">
+      <div className="ops-kpi-grid">
+        <div className="ops-kpi-card">
           <p className="ops-kpi-label">{t('opsKpiTerminatedAgreements')}</p>
           <p className="ops-kpi-value">{stats.agreements_terminated}</p>
         </div>
-        <div className="card ops-kpi-card">
+        <div className="ops-kpi-card">
           <p className="ops-kpi-label">{t('opsKpiResignPending')}</p>
           <p className="ops-kpi-value">{stats.resign_pending}</p>
         </div>
-        <div className="card ops-kpi-card">
+        <div className="ops-kpi-card">
           <p className="ops-kpi-label">{t('opsKpiSign30d')}</p>
           <p className="ops-kpi-value">{stats.sign_events_30d}</p>
         </div>
-        <div className="card ops-kpi-card">
+        <div className="ops-kpi-card">
           <p className="ops-kpi-label">{t('opsKpiTermsApproved')}</p>
           <p className="ops-kpi-value">{stats.terms_approved}</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: 'var(--space-6)' }}>
-        <section className="card" style={{ padding: 'var(--space-5)' }}>
-          <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsStatsFunnel')}</h2>
+      <div className="ops-stack">
+        <OpsPanel title={t('opsStatsFunnel')} padding="md">
           <FunnelStep label={t('opsFunnelUsers')} value={funnel.users_total} max={funnelMax} />
           <FunnelStep label={t('opsFunnelConfirmed')} value={funnel.users_confirmed} max={funnelMax} />
           <FunnelStep label={t('opsFunnelLandlords')} value={funnel.landlords} max={funnelMax} />
           <FunnelStep label={t('opsFunnelListings')} value={funnel.listings_total} max={funnelMax} />
           <FunnelStep label={t('opsFunnelSigned')} value={funnel.agreements_signed} max={funnelMax} />
           <p className="ops-meta" style={{ marginTop: 'var(--space-4)' }}>
-            {t('opsFunnelSignInitiated')}: {funnel.sign_initiated_30d} · {t('opsFunnelSignCompleted')}: {funnel.sign_completed_30d}
+            {t('opsFunnelSignInitiated')}: {funnel.sign_initiated_30d} · {t('opsFunnelSignCompleted')}:{' '}
+            {funnel.sign_completed_30d}
           </p>
-        </section>
+        </OpsPanel>
 
-        <section className="card" style={{ padding: 'var(--space-5)' }}>
-          <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsStatsSignups')}</h2>
+        <OpsPanel title={t('opsStatsSignups')} padding="md">
           {series.signups_by_week.length === 0 ? (
             <p className="ops-meta">{t('opsNoData')}</p>
           ) : (
@@ -134,10 +135,9 @@ export default function OpsStatsPage() {
               <MiniBar key={row.week_start} label={row.week_start} value={row.count} max={signupMax} />
             ))
           )}
-        </section>
+        </OpsPanel>
 
-        <section className="card" style={{ padding: 'var(--space-5)' }}>
-          <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsStatsListings')}</h2>
+        <OpsPanel title={t('opsStatsListings')} padding="md">
           {series.listings_by_week.length === 0 ? (
             <p className="ops-meta">{t('opsNoData')}</p>
           ) : (
@@ -145,10 +145,9 @@ export default function OpsStatsPage() {
               <MiniBar key={row.week_start} label={row.week_start} value={row.count} max={listingMax} />
             ))
           )}
-        </section>
+        </OpsPanel>
 
-        <section className="card" style={{ padding: 'var(--space-5)' }}>
-          <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsStatsTermsApprovedWeek')}</h2>
+        <OpsPanel title={t('opsStatsTermsApprovedWeek')} padding="md">
           {series.terms_approved_by_week.length === 0 ? (
             <p className="ops-meta">{t('opsNoData')}</p>
           ) : (
@@ -156,10 +155,9 @@ export default function OpsStatsPage() {
               <MiniBar key={row.week_start} label={row.week_start} value={row.count} max={termsMax} />
             ))
           )}
-        </section>
+        </OpsPanel>
 
-        <section className="card" style={{ padding: 'var(--space-5)' }}>
-          <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsStatsKommuneLeaderboard')}</h2>
+        <OpsPanel title={t('opsStatsKommuneLeaderboard')} padding="md">
           {kommuner.length === 0 ? (
             <p className="ops-meta">{t('opsNoData')}</p>
           ) : (
@@ -177,7 +175,9 @@ export default function OpsStatsPage() {
                   {kommuner.slice(0, 20).map((k) => (
                     <tr key={k.id}>
                       <td>
-                        <Link href={`/ops/kommuner/${k.slug}`} className="ops-link">{k.display_name}</Link>
+                        <Link href={`/ops/kommuner/${k.slug}`} className="ops-link">
+                          {k.display_name}
+                        </Link>
                       </td>
                       <td>{k.listings}</td>
                       <td>{k.landlords}</td>
@@ -188,10 +188,9 @@ export default function OpsStatsPage() {
               </table>
             </div>
           )}
-        </section>
+        </OpsPanel>
 
-        <section className="card" style={{ padding: 'var(--space-5)' }}>
-          <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsStatsByRegion')}</h2>
+        <OpsPanel title={t('opsStatsByRegion')} padding="md">
           <div className="ops-table-wrap">
             <table className="ops-table">
               <thead>
@@ -210,7 +209,7 @@ export default function OpsStatsPage() {
               </tbody>
             </table>
           </div>
-        </section>
+        </OpsPanel>
       </div>
     </div>
   )

@@ -224,6 +224,11 @@ a {
   min-height: calc(100svh - var(--site-header-estimate));
 }
 
+.site-main--ops {
+  min-height: 100dvh;
+  flex: 1 1 auto;
+}
+
 /* Forside: fyll site-main slik at kort kan sentreres vertikalt mot fold (footer under scroll) */
 .site-main > main.home-landing {
   flex: 1 1 auto;

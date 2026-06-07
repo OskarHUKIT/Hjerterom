@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Sans, Fraunces } from 'next/font/google'
 import './globals.css'
-import Header from './components/Header'
-import Footer from './components/Footer'
+import SiteChrome from './components/SiteChrome'
 import PushSubscription from './components/PushSubscription'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import { Providers } from './providers'
@@ -80,9 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <PushSubscription />
           <PWAInstallPrompt />
-          <Header />
-          <div className="site-main">{children}</div>
-          <Footer />
+          <SiteChrome>{children}</SiteChrome>
         </Providers>
       </body>
     </html>

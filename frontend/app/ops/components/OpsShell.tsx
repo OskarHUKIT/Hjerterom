@@ -11,13 +11,14 @@ import {
   Menu,
   Building2,
   HeartPulse,
+  ArrowLeft,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useLanguage } from '../../../context/LanguageContext'
 import { useOpsAccess } from '../../hooks/useOpsAccess'
-import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import BottomSheet from '../../components/BottomSheet'
 import OpsMobileNav from './OpsMobileNav'
+import { OpsPageSkeleton } from './OpsSkeleton'
 
 const NAV_ITEMS = [
   { href: '/ops', icon: LayoutDashboard, labelKey: 'opsNavDashboard' as const, exact: true },
@@ -34,6 +35,11 @@ function isActive(pathname: string, href: string, exact?: boolean) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
+function currentPageLabel(pathname: string, t: ReturnType<typeof useLanguage>['t']) {
+  const match = NAV_ITEMS.find((item) => isActive(pathname, item.href, 'exact' in item ? item.exact : undefined))
+  return match ? t(match.labelKey) : t('opsConsoleTitle')
+}
+
 export default function OpsShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t } = useLanguage()
@@ -42,59 +48,78 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
 
   if (access.isLoading || access.data?.kind === 'unauthenticated') {
     return (
-      <main className="container" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <LoadingPlaceholder minHeight={120} />
-      </main>
+      <div className="ops-root">
+        <div className="ops-content">
+          <OpsPageSkeleton />
+        </div>
+      </div>
     )
   }
 
   if (access.data?.kind === 'forbidden') {
     return (
-      <main className="container" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
+      <div className="ops-root ops-access-denied">
         <p>{t('opsAccessDenied')}</p>
-      </main>
+      </div>
     )
   }
 
-  return (
-    <div className="ops-shell">
-      <aside className="ops-sidebar" aria-label={t('opsConsoleTitle')}>
-        <div className="ops-sidebar-head">
-          <p className="ops-sidebar-kicker">{t('opsConsoleKicker')}</p>
-          <h1 className="ops-sidebar-title">{t('opsConsoleTitle')}</h1>
-        </div>
-        <nav className="ops-sidebar-nav">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon
-            const active = isActive(pathname ?? '', item.href, item.exact)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`ops-nav-link${active ? ' ops-nav-link--active' : ''}`}
-              >
-                <Icon size={18} aria-hidden />
-                <span>{t(item.labelKey)}</span>
-              </Link>
-            )
-          })}
-        </nav>
-      </aside>
+  const pageTitle = currentPageLabel(pathname ?? '', t)
 
-      <div className="ops-main">
-        <header className="ops-mobile-topbar">
-          <button
-            type="button"
-            className="ops-mobile-menu-btn"
-            onClick={() => setMenuOpen(true)}
-            aria-label={t('opsOpenMenu')}
-          >
-            <Menu size={22} />
-          </button>
-          <span className="ops-mobile-topbar-title">{t('opsConsoleTitle')}</span>
-        </header>
-        <div className="ops-content">{children}</div>
-        <OpsMobileNav />
+  return (
+    <div className="ops-root">
+      <div className="ops-shell">
+        <aside className="ops-sidebar" aria-label={t('opsConsoleTitle')}>
+          <div className="ops-sidebar-brand">
+            <p className="ops-sidebar-kicker">{t('opsConsoleKicker')}</p>
+            <h1 className="ops-sidebar-title">{t('opsConsoleTitle')}</h1>
+            <p className="ops-sidebar-sub">{t('opsConsoleSubtitle')}</p>
+          </div>
+          <nav className="ops-sidebar-nav">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon
+              const active = isActive(pathname ?? '', item.href, item.exact)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`ops-nav-link${active ? ' ops-nav-link--active' : ''}`}
+                >
+                  <Icon size={18} aria-hidden />
+                  <span>{t(item.labelKey)}</span>
+                </Link>
+              )
+            })}
+          </nav>
+          <div className="ops-sidebar-foot">
+            <Link href="/" className="ops-sidebar-exit">
+              <ArrowLeft size={16} aria-hidden />
+              {t('opsExitToApp')}
+            </Link>
+          </div>
+        </aside>
+
+        <div className="ops-main">
+          <header className="ops-topbar">
+            <div className="ops-topbar-left">
+              <button
+                type="button"
+                className="ops-mobile-menu-btn ops-mobile-only"
+                onClick={() => setMenuOpen(true)}
+                aria-label={t('opsOpenMenu')}
+              >
+                <Menu size={22} />
+              </button>
+              <h2 className="ops-topbar-title">{pageTitle}</h2>
+            </div>
+            <div className="ops-topbar-org-slot" title={t('opsOrgFilterFutureHint')}>
+              {t('opsOrgFilterFuture')}
+            </div>
+          </header>
+
+          <div className="ops-content">{children}</div>
+          <OpsMobileNav onOpenMenu={() => setMenuOpen(true)} />
+        </div>
       </div>
 
       <BottomSheet
@@ -103,7 +128,7 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
         title={t('opsConsoleTitle')}
         closeLabel={t('close')}
       >
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon
             const active = isActive(pathname ?? '', item.href, item.exact)
@@ -113,13 +138,16 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
                 className={`ops-nav-link${active ? ' ops-nav-link--active' : ''}`}
-                style={{ borderRadius: 10 }}
               >
                 <Icon size={18} aria-hidden />
                 <span>{t(item.labelKey)}</span>
               </Link>
             )
           })}
+          <Link href="/" onClick={() => setMenuOpen(false)} className="ops-sidebar-exit" style={{ marginTop: 'var(--space-2)' }}>
+            <ArrowLeft size={16} aria-hidden />
+            {t('opsExitToApp')}
+          </Link>
         </nav>
       </BottomSheet>
     </div>

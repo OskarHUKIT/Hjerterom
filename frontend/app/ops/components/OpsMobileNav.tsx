@@ -2,28 +2,27 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, BarChart3, Building2, HeartPulse } from 'lucide-react'
+import { LayoutDashboard, Users, Building2, MoreHorizontal } from 'lucide-react'
 import { useLanguage } from '../../../context/LanguageContext'
 
-const ITEMS = [
+const PRIMARY = [
   { href: '/ops', icon: LayoutDashboard, labelKey: 'opsNavDashboard' as const, exact: true },
   { href: '/ops/kommuner', icon: Building2, labelKey: 'opsNavKommuner' as const },
   { href: '/ops/accounts', icon: Users, labelKey: 'opsNavAccounts' as const },
-  { href: '/ops/health', icon: HeartPulse, labelKey: 'opsNavHealth' as const },
-  { href: '/ops/stats', icon: BarChart3, labelKey: 'opsNavStats' as const },
-]
+] as const
 
-export default function OpsMobileNav() {
+export default function OpsMobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = usePathname()
   const { t } = useLanguage()
 
   return (
     <nav className="ops-mobile-nav" aria-label={t('opsConsoleTitle')}>
-      {ITEMS.map((item) => {
+      {PRIMARY.map((item) => {
         const Icon = item.icon
-        const active = item.exact
-          ? pathname === item.href
-          : pathname === item.href || pathname?.startsWith(`${item.href}/`)
+        const active =
+          'exact' in item && item.exact
+            ? pathname === item.href
+            : pathname === item.href || pathname?.startsWith(`${item.href}/`)
         return (
           <Link
             key={item.href}
@@ -35,6 +34,15 @@ export default function OpsMobileNav() {
           </Link>
         )
       })}
+      <button
+        type="button"
+        className="ops-mobile-nav-item ops-mobile-nav-item--menu"
+        onClick={onOpenMenu}
+        aria-label={t('opsOpenMenu')}
+      >
+        <MoreHorizontal size={20} aria-hidden />
+        <span>{t('opsMoreNav')}</span>
+      </button>
     </nav>
   )
 }

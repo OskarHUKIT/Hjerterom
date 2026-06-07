@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { useLanguage } from '../../../context/LanguageContext'
 import OpsGdprBanner from '../components/OpsGdprBanner'
-import LoadingPlaceholder from '../../components/LoadingPlaceholder'
+import OpsPageHeader from '../components/OpsPageHeader'
+import OpsPanel from '../components/OpsPanel'
+import OpsBadge from '../components/OpsBadge'
+import OpsAlert from '../components/OpsAlert'
+import OpsEmptyState from '../components/OpsEmptyState'
+import OpsActionMenu from '../components/OpsActionMenu'
+import { OpsTableSkeleton } from '../components/OpsSkeleton'
 import { Button, buttonClassName } from '../../components/ui/Button'
 import BottomSheet from '../../components/BottomSheet'
 import { opsApproveTerms, opsListPendingTerms, type OpsTermsItem } from '../../lib/opsApi'
@@ -20,6 +26,7 @@ export default function OpsTermsPage() {
   const [confirmDoc, setConfirmDoc] = useState<OpsTermsItem | null>(null)
   const [note, setNote] = useState('')
   const [message, setMessage] = useState<string | null>(null)
+  const [messageTone, setMessageTone] = useState<'success' | 'error'>('success')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -47,11 +54,13 @@ export default function OpsTermsPage() {
     setMessage(null)
     try {
       await opsApproveTerms(confirmDoc.id, approved, note.trim() || null)
+      setMessageTone('success')
       setMessage(approved ? t('opsTermsApprovedOk') : t('opsTermsRejectedOk'))
       setConfirmDoc(null)
       setNote('')
       await load()
     } catch (e) {
+      setMessageTone('error')
       setMessage(e instanceof Error ? e.message : t('pageLoadStuck'))
     } finally {
       setBusyId(null)
@@ -59,25 +68,20 @@ export default function OpsTermsPage() {
   }
 
   return (
-    <div>
-      <h1 className="ops-page-title">{t('opsNavTerms')}</h1>
-      <p className="ops-page-lead">{t('opsTermsLead')}</p>
+    <div className="ops-stack ops-stack--lg">
+      <OpsPageHeader title={t('opsNavTerms')} lead={t('opsTermsLead')} />
       <OpsGdprBanner />
 
-      {message ? (
-        <p style={{ marginBottom: 'var(--space-4)', color: 'var(--color-accent)' }}>{message}</p>
-      ) : null}
+      {message ? <OpsAlert tone={messageTone}>{message}</OpsAlert> : null}
 
       {loading ? (
-        <LoadingPlaceholder minHeight={200} />
+        <OpsTableSkeleton rows={4} cols={3} />
       ) : total === 0 ? (
-        <div className="card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
-          <p>{t('opsTermsQueueEmpty')}</p>
-        </div>
+        <OpsEmptyState title={t('opsTermsQueueEmpty')} />
       ) : (
         <div className="ops-card-list">
           {items.map((row) => (
-            <article key={row.id} className="card ops-list-card">
+            <OpsPanel key={row.id} padding="md">
               <div className="ops-list-card-head">
                 <div>
                   <h2 className="ops-list-card-title">{row.title || t('opsUntitledDoc')}</h2>
@@ -89,6 +93,7 @@ export default function OpsTermsPage() {
                     <p className="ops-meta">{t('opsUploadedBy').replace('{name}', row.created_by_name)}</p>
                   ) : null}
                 </div>
+                <OpsBadge tone="warning">{t('opsPending')}</OpsBadge>
               </div>
               <div className="ops-actions-row">
                 {pdfUrl(row) ? (
@@ -112,8 +117,30 @@ export default function OpsTermsPage() {
                 >
                   {t('opsReviewDoc')}
                 </Button>
+                <OpsActionMenu
+                  label={t('opsTableActions')}
+                  items={[
+                    {
+                      id: 'review',
+                      label: t('opsReviewDoc'),
+                      onSelect: () => {
+                        setConfirmDoc(row)
+                        setNote('')
+                      },
+                    },
+                    ...(pdfUrl(row)
+                      ? [
+                          {
+                            id: 'pdf',
+                            label: t('opsViewPdf'),
+                            onSelect: () => window.open(pdfUrl(row), '_blank', 'noopener,noreferrer'),
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
               </div>
-            </article>
+            </OpsPanel>
           ))}
         </div>
       )}
@@ -124,22 +151,10 @@ export default function OpsTermsPage() {
         title={confirmDoc?.title || t('opsReviewDoc')}
         closeLabel={t('close')}
       >
-        <p style={{ marginTop: 0, color: 'var(--text-body)', lineHeight: 1.5 }}>{t('opsTermsApproveConfirm')}</p>
-        <label style={{ display: 'grid', gap: 8, marginBottom: 'var(--space-4)' }}>
+        <p className="ops-panel-desc">{t('opsTermsApproveConfirm')}</p>
+        <label className="ops-field" style={{ marginBottom: 'var(--space-4)' }}>
           <span>{t('opsNoteOptional')}</span>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={3}
-            style={{
-              width: '100%',
-              padding: '0.65rem',
-              borderRadius: 10,
-              border: '1px solid var(--border-subtle)',
-              background: 'var(--bg-app)',
-              color: 'var(--text-main)',
-            }}
-          />
+          <textarea className="ops-input" value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
         </label>
         <div className="ops-actions-row">
           <Button variant="primary" disabled={!!busyId} onClick={() => void handleApprove(true)}>

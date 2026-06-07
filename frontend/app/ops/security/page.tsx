@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLanguage } from '../../../context/LanguageContext'
 import OpsGdprBanner from '../components/OpsGdprBanner'
-import LoadingPlaceholder from '../../components/LoadingPlaceholder'
+import OpsPageHeader from '../components/OpsPageHeader'
+import OpsPanel from '../components/OpsPanel'
+import OpsBadge, { opsSecurityTone } from '../components/OpsBadge'
+import OpsChecklist from '../components/OpsChecklist'
+import OpsEmptyState from '../components/OpsEmptyState'
+import { OpsCardSkeleton } from '../components/OpsSkeleton'
 import { Button } from '../../components/ui/Button'
 import {
   runSupabaseDiagnostics,
@@ -58,19 +63,25 @@ export default function OpsSecurityPage() {
     }
   }
 
-  if (loading) return <LoadingPlaceholder minHeight={240} />
+  const checklist = [
+    t('opsCheckNoPublicDiagnostics'),
+    t('opsCheckNoServiceRoleInClient'),
+    t('opsCheckCronSecret'),
+    t('opsCheckAuthSmtp'),
+  ]
+
+  if (loading) return <OpsCardSkeleton count={3} />
 
   return (
-    <div>
-      <h1 className="ops-page-title">{t('opsNavSecurity')}</h1>
-      <p className="ops-page-lead">{t('opsSecurityLead')}</p>
+    <div className="ops-stack ops-stack--lg">
+      <OpsPageHeader title={t('opsNavSecurity')} lead={t('opsSecurityLead')} />
       <OpsGdprBanner />
 
       {snapshot ? (
         <div className="ops-status-strip">
-          <span className={`ops-status-pill ops-status-pill--${snapshot.status}`}>
+          <OpsBadge tone={opsSecurityTone(snapshot.status)}>
             {t(`opsSecurityStatus_${snapshot.status}`)}
-          </span>
+          </OpsBadge>
           <span className="ops-meta">
             {t('opsSignLastHour')}: {snapshot.sign_initiated_last_hour}
           </span>
@@ -80,60 +91,47 @@ export default function OpsSecurityPage() {
         </div>
       ) : null}
 
-      <section className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-6)' }}>
-        <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsSecurityChecklist')}</h2>
-        <ul style={{ margin: 0, paddingLeft: '1.2rem', lineHeight: 1.6 }}>
-          <li>{t('opsCheckNoPublicDiagnostics')}</li>
-          <li>{t('opsCheckNoServiceRoleInClient')}</li>
-          <li>{t('opsCheckCronSecret')}</li>
-          <li>{t('opsCheckAuthSmtp')}</li>
-        </ul>
-        <div style={{ marginTop: 'var(--space-4)' }}>
+      <OpsPanel
+        title={t('opsSecurityChecklist')}
+        actions={
           <Button variant="primary" onClick={() => void runDiagnostics()} disabled={running}>
             {running ? t('loadingPleaseWait') : t('opsRunDiagnostics')}
           </Button>
-        </div>
+        }
+      >
+        <OpsChecklist items={checklist} />
         {report ? (
-          <pre
-            style={{
-              marginTop: 'var(--space-4)',
-              padding: 'var(--space-4)',
-              borderRadius: 10,
-              background: 'var(--bg-app)',
-              overflow: 'auto',
-              fontSize: '0.8rem',
-            }}
-          >
-            {JSON.stringify(report, null, 2)}
-          </pre>
+          <pre className="ops-diagnostics-pre">{JSON.stringify(report, null, 2)}</pre>
         ) : null}
-      </section>
+      </OpsPanel>
 
       {snapshot?.warnings?.length ? (
-        <section className="card" style={{ padding: 'var(--space-5)', marginBottom: 'var(--space-6)' }}>
-          <h2 style={{ marginTop: 0, fontSize: '1rem' }}>{t('opsWarnings')}</h2>
+        <OpsPanel title={t('opsWarnings')}>
           <div className="ops-card-list">
             {snapshot.warnings.map((w) => (
-              <div key={w.code} className="ops-list-card">
+              <article key={w.code} className="ops-list-card ops-list-card--warn">
                 <p className="ops-list-card-title">{w.code}</p>
                 <p className="ops-meta">{w.message}</p>
-              </div>
+              </article>
             ))}
           </div>
-        </section>
+        </OpsPanel>
       ) : null}
 
-      <section>
-        <h2 style={{ fontSize: '1rem' }}>{t('opsAuditLog')}</h2>
-        <div className="ops-card-list">
-          {audit.map((row) => (
-            <div key={row.id} className="card ops-list-card">
-              <p className="ops-list-card-title">{row.action_type}</p>
-              <p className="ops-meta">{formatDateTimeNo(row.created_at)}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <OpsPanel title={t('opsAuditLog')}>
+        {audit.length === 0 ? (
+          <OpsEmptyState title={t('opsNoAuditEvents')} />
+        ) : (
+          <div className="ops-card-list">
+            {audit.map((row) => (
+              <article key={row.id} className="ops-list-card">
+                <p className="ops-list-card-title">{row.action_type}</p>
+                <p className="ops-meta">{formatDateTimeNo(row.created_at)}</p>
+              </article>
+            ))}
+          </div>
+        )}
+      </OpsPanel>
     </div>
   )
 }
