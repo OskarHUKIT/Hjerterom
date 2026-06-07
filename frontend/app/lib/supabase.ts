@@ -87,10 +87,22 @@ function isInvalidRefreshTokenError(err: unknown): boolean {
   return /refresh token not found|invalid refresh token|refresh_token/i.test(msg)
 }
 
+function shouldRedirectAfterInvalidRefresh(): boolean {
+  if (typeof window === 'undefined') return false
+  const path = window.location.pathname
+  if (path === '/' || path === '/login' || path.startsWith('/login/')) return false
+  if (path.startsWith('/auth/')) return false
+  const q = new URLSearchParams(window.location.search)
+  if (q.get('token_hash') || q.get('type') === 'recovery' || q.get('recovery') === '1') return false
+  const hash = window.location.hash.replace(/^#/, '')
+  if (hash && /type=recovery|access_token=/.test(hash)) return false
+  return true
+}
+
 /** Ved ugyldig refresh token: sign out lokalt og redirect til forsiden (unngår AuthApiError i konsollen ved neste kall). */
 async function handleInvalidRefreshToken(): Promise<void> {
   await client.auth.signOut({ scope: 'local' })
-  if (typeof window !== 'undefined' && !/^\/(login)?(\?|#|$)/.test(window.location.pathname)) {
+  if (shouldRedirectAfterInvalidRefresh()) {
     window.location.href = '/'
   }
 }

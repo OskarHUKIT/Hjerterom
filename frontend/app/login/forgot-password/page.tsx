@@ -86,13 +86,10 @@ export default function ForgotPasswordPage() {
     }
 
     /**
-     * Send brukeren via /auth/callback slik at både PKCE (`?code=`) og implicit (`#access_token`)
-     * håndteres på ett sted, og recovery alltid ender på update-password med `?recovery=1`.
-     *
-     * Anbefalt Supabase recovery-e-postmal (token_hash, scanner-sikker):
-     * {{ .SiteURL }}/login/update-password?token_hash={{ .TokenHash }}&type=recovery
+     * redirectTo må være på Supabase allow-list (uten query-streng er enklest).
+     * E-postmalen bør peke direkte på appen med token_hash — se supabase/templates/recovery.html.
      */
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent('/login/update-password')}&type=recovery`
+    const redirectTo = `${window.location.origin}/login/update-password`
 
     try {
       let lastError: unknown = null

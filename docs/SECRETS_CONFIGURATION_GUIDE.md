@@ -56,13 +56,20 @@ Under **Authentication → URL Configuration**:
 | Setting | Production example |
 |---------|-------------------|
 | **Site URL** | `https://www.bolynorge.no` (eller domenet du faktisk bruker) |
-| **Redirect URLs** (allow list) | Legg til **alle** disse (justér www/non-www etter behov): |
+| **Redirect URLs** (allow list) | Legg til **wildcard** for begge varianter (www og uten www): |
 
 ```
-https://www.bolynorge.no/auth/callback
+https://www.bolynorge.no/**
+https://bolynorge.no/**
+```
+
+Minimum (hvis wildcard ikke er tilgjengelig):
+
+```
 https://www.bolynorge.no/login/update-password
-https://bolynorge.no/auth/callback
+https://www.bolynorge.no/auth/callback
 https://bolynorge.no/login/update-password
+https://bolynorge.no/auth/callback
 ```
 
 Uten disse havner brukeren på feil side eller får «lenken er utløpt» etter passord-reset.

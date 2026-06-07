@@ -10,7 +10,11 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../app/lib/supabase'
-import { recoveryPasswordPageHref } from '../app/lib/authRecovery'
+import {
+  establishRecoverySessionFromUrl,
+  hasRecoveryTokenInUrl,
+  recoveryPasswordPageHref,
+} from '../app/lib/authRecovery'
 
 export type AuthSessionContextValue = {
   user: User | null
@@ -32,64 +36,89 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
-    /**
-     * Supabase legger ev. feil på `redirect_to` (eller Site URL når allowlist ikke matcher) som
-     * ?error_code=...&error_description=... OG gjentar det i hash-fragmentet. Fang dette opp
-     * tidlig slik at brukeren ikke bare lander på en stille forside.
-     */
-    if (typeof window !== 'undefined') {
-      const parseParams = (raw: string) => new URLSearchParams(raw.startsWith('#') ? raw.slice(1) : raw)
-      const q = parseParams(window.location.search)
-      const h = parseParams(window.location.hash)
-      const errorCode = q.get('error_code') || h.get('error_code')
-      const errorDescription = q.get('error_description') || h.get('error_description')
-      if (errorCode || errorDescription) {
-        const reason = errorDescription
-          ? decodeURIComponent(errorDescription.replace(/\+/g, ' '))
-          : errorCode || 'auth_error'
-        const target = new URL('/auth/auth-code-error', window.location.origin)
-        target.searchParams.set('reason', reason)
-        window.location.replace(target.toString())
-        return
-      }
-
+    const init = async () => {
       /**
-       * Supabase leverer av og til PKCE-koden rett til Site URL (f.eks. `/?code=...`) i stedet for
-       * `/auth/callback` – typisk fordi Redirect URL-allowlisten ikke matcher. Når vi ser en `code`
-       * i URL-en og ikke allerede er på auth-callback eller update-password, videresender vi til
-       * `/auth/callback` (client-side page) som kan bytte koden inn i en sesjon med det
-       * browserlagrede PKCE code_verifier og rute videre til `/login/update-password`.
+       * Supabase legger ev. feil på `redirect_to` (eller Site URL når allowlist ikke matcher) som
+       * ?error_code=...&error_description=... OG gjentar det i hash-fragmentet. Fang dette opp
+       * tidlig slik at brukeren ikke bare lander på en stille forside.
        */
-      const codeParam = q.get('code') || h.get('code')
-      const authType = q.get('type') || h.get('type')
-      const path = window.location.pathname
-      if (
-        codeParam &&
-        !path.startsWith('/auth/callback') &&
-        !path.startsWith('/login/update-password')
-      ) {
-        const target = new URL('/auth/callback', window.location.origin)
-        target.searchParams.set('code', codeParam)
-        /** Kun passord-reset skal ende på update-password; signup-bekreftelse bruker også `?code=`. */
-        target.searchParams.set(
-          'next',
-          authType === 'recovery' ? '/login/update-password' : '/'
-        )
-        window.location.replace(target.toString())
-        return
-      }
-    }
+      if (typeof window !== 'undefined') {
+        const parseParams = (raw: string) =>
+          new URLSearchParams(raw.startsWith('#') ? raw.slice(1) : raw)
+        const q = parseParams(window.location.search)
+        const h = parseParams(window.location.hash)
+        const errorCode = q.get('error_code') || h.get('error_code')
+        const errorDescription = q.get('error_description') || h.get('error_description')
+        if (errorCode || errorDescription) {
+          const reason = errorDescription
+            ? decodeURIComponent(errorDescription.replace(/\+/g, ' '))
+            : errorCode || 'auth_error'
+          const target = new URL('/auth/auth-code-error', window.location.origin)
+          target.searchParams.set('reason', reason)
+          window.location.replace(target.toString())
+          return
+        }
 
-    void supabase.auth
-      .getSession()
-      .then(({ data: { session: s } }) => {
+        /**
+         * Verifiser recovery-token FØR getSession — gammel/ugyldig cookie kan ellers avbryte
+         * flyten og sende brukeren bort fra update-password før verifyOtp rekker å kjøre.
+         */
+        if (hasRecoveryTokenInUrl(q)) {
+          const established = await establishRecoverySessionFromUrl(supabase, q)
+          if (cancelled) return
+          if (established.ok) {
+            if (!window.location.pathname.startsWith('/login/update-password')) {
+              window.location.replace(recoveryPasswordPageHref())
+              return
+            }
+          } else if (established.error !== 'no_recovery_params') {
+            const target = new URL('/auth/auth-code-error', window.location.origin)
+            target.searchParams.set('reason', established.error)
+            window.location.replace(target.toString())
+            return
+          }
+        }
+
+        /**
+         * Supabase leverer av og til PKCE-koden rett til Site URL (f.eks. `/?code=...`) i stedet for
+         * `/auth/callback` – typisk fordi Redirect URL-allowlisten ikke matcher. Når vi ser en `code`
+         * i URL-en og ikke allerede er på auth-callback eller update-password, videresender vi til
+         * `/auth/callback` (client-side page) som kan bytte koden inn i en sesjon med det
+         * browserlagrede PKCE code_verifier og rute videre til `/login/update-password`.
+         */
+        const codeParam = q.get('code') || h.get('code')
+        const authType = q.get('type') || h.get('type')
+        const path = window.location.pathname
+        if (
+          codeParam &&
+          !path.startsWith('/auth/callback') &&
+          !path.startsWith('/login/update-password')
+        ) {
+          const target = new URL('/auth/callback', window.location.origin)
+          target.searchParams.set('code', codeParam)
+          /** Kun passord-reset skal ende på update-password; signup-bekreftelse bruker også `?code=`. */
+          target.searchParams.set(
+            'next',
+            authType === 'recovery' ? '/login/update-password' : '/'
+          )
+          window.location.replace(target.toString())
+          return
+        }
+      }
+
+      try {
+        const {
+          data: { session: s },
+        } = await supabase.auth.getSession()
         if (cancelled) return
         setSession(s ?? null)
         setIsReady(true)
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setIsReady(true)
-      })
+      }
+    }
+
+    void init()
 
     const {
       data: { subscription },
