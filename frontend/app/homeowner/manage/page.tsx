@@ -11,7 +11,6 @@ import {
   Edit3,
   Clock,
   FileText,
-  ShieldCheck,
   MessageSquare,
   Sparkles,
   LayoutDashboard,

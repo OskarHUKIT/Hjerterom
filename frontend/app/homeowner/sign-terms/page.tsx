@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Lock,
   ArrowLeft,
-  History,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
@@ -18,9 +17,8 @@ import {
   insertListingFromPendingDraft,
   EXPECT_PENDING_LISTING_AFTER_SIGN_KEY,
 } from '../lib/pendingFirstListing'
-import { formatDateNo } from '../../lib/dateFormat'
-import type { TranslationKey } from '../../../lib/translations'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import type { TranslationKey } from '../../../lib/translations'
 import { logError } from '@/app/lib/appLogger'
 import { publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
 
@@ -33,7 +31,7 @@ type SignedTermsCard = {
   status: 'active' | 'superseded'
 }
 
-function SignedAgreementCard({
+function SignedAgreementPdfButton({
   item: a,
   variant,
   t,
@@ -46,121 +44,26 @@ function SignedAgreementCard({
 }) {
   const historic = variant === 'historic'
   return (
-    <div
-      className="card"
+    <a
+      href={a.pdfHref ?? fallbackTermsPdfHref}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="button"
       style={{
-        padding: 'var(--space-6)',
-        textAlign: 'left',
-        border: historic ? '1px solid rgba(148, 163, 184, 0.4)' : '1px solid var(--border-medium)',
-        background: 'var(--bg-card)',
-        boxShadow: historic ? 'none' : undefined,
+        width: '100%',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 'var(--space-2)',
+        textDecoration: 'none',
+        opacity: historic ? 0.95 : 1,
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 'var(--space-3)',
-          marginBottom: 'var(--space-4)',
-        }}
-      >
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-          <span
-            style={{
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              padding: '4px 10px',
-              borderRadius: '8px',
-              background: historic ? 'rgba(148, 163, 184, 0.12)' : 'rgba(45, 212, 191, 0.15)',
-              color: historic ? 'var(--text-muted)' : 'var(--color-teal)',
-              border: historic
-                ? '1px solid rgba(148, 163, 184, 0.3)'
-                : '1px solid rgba(45, 212, 191, 0.35)',
-            }}
-          >
-            {a.regionLabel ?? t('termsScopeGlobalBadge')}
-          </span>
-          {historic ? (
-            <span
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                padding: '4px 10px',
-                borderRadius: '8px',
-                background: 'rgba(245, 158, 11, 0.12)',
-                color: '#d97706',
-                border: '1px solid rgba(245, 158, 11, 0.35)',
-              }}
-            >
-              {t('termsStatusSuperseded')}
-            </span>
-          ) : null}
-        </div>
-        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          {t('termsSignedOn').replace('{date}', formatDateNo(a.signedAt))}
-        </span>
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 'var(--space-3)',
-          marginBottom: 'var(--space-4)',
-        }}
-      >
-        {historic ? (
-          <History size={28} style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: 2 }} />
-        ) : (
-          <ShieldCheck
-            size={28}
-            style={{ color: 'var(--color-teal)', flexShrink: 0, marginTop: 2 }}
-          />
-        )}
-        <div>
-          <h2 style={{ margin: '0 0 var(--space-2)', fontSize: '1.15rem' }}>
-            {historic ? t('termsHistoricalCardTitle') : 'Avtalen er aktiv'}
-          </h2>
-          <p style={{ margin: 0, opacity: 0.75, fontSize: '0.9rem' }}>
-            {historic ? t('termsHistoricalCardNote') : 'Signert med BankID v1.0'}
-          </p>
-        </div>
-      </div>
-      {a.versionLine ? (
-        <p
-          className="text-sm"
-          style={{ marginBottom: 'var(--space-4)', color: 'var(--text-body)', lineHeight: 1.5 }}
-        >
-          {a.versionLine}
-        </p>
-      ) : (
-        <p
-          className="text-sm"
-          style={{ marginBottom: 'var(--space-4)', color: 'var(--text-muted)', lineHeight: 1.5 }}
-        >
-          {t('termsNoDbVersion')}
-        </p>
-      )}
-      <a
-        href={a.pdfHref ?? fallbackTermsPdfHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="button"
-        style={{
-          width: '100%',
-          maxWidth: '360px',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 'var(--space-2)',
-          textDecoration: 'none',
-          opacity: historic ? 0.95 : 1,
-        }}
-      >
-        <FileText size={20} /> Les avtalen du signerte (PDF)
-      </a>
-    </div>
+      <FileText size={20} />
+      {a.regionLabel && a.regionLabel !== t('termsScopeGlobalBadge')
+        ? `${t('signedAgreement')} – ${a.regionLabel}`
+        : t('signedAgreement')}
+    </a>
   )
 }
 
@@ -576,7 +479,7 @@ function SignTermsContent() {
 
     return (
       <main className="container">
-        <div style={{ maxWidth: '880px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '560px', margin: '0 auto' }}>
           <div style={{ marginBottom: 'var(--space-8)' }}>
             <Link
               href="/homeowner/manage"
@@ -589,167 +492,54 @@ function SignTermsContent() {
                 gap: 'var(--space-2)',
               }}
             >
-              ← Mine boliger
+              ← {t('myProperties')}
             </Link>
-            <h1 style={{ fontSize: 'var(--fluid-h1-hero)' }}>{t('termsSignedAgreementsTitle')}</h1>
-            <p style={{ fontSize: '1.125rem', opacity: 0.8, lineHeight: 1.5 }}>
-              {t('termsSignedAgreementsIntro')}
-            </p>
-            <p
-              style={{
-                fontSize: '0.9rem',
-                opacity: 0.75,
-                marginTop: 'var(--space-3)',
-                lineHeight: 1.5,
-              }}
-            >
-              {t('termsBankidUmbrellaNote')}
-            </p>
+            <h1 style={{ fontSize: 'var(--fluid-h1-hero)', margin: 0 }}>{t('signedAgreement')}</h1>
           </div>
 
-          {signedAcceptances.length === 0 ? (
-            <div className="card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
-              <div style={{ color: 'var(--color-teal)', marginBottom: 'var(--space-4)' }}>
-                <ShieldCheck size={64} style={{ margin: '0 auto' }} />
-              </div>
-              <h2 style={{ marginBottom: 'var(--space-2)' }}>Avtalen er aktiv</h2>
-              <p style={{ marginBottom: 'var(--space-3)', opacity: 0.7 }}>
-                Signert med BankID v1.0
-              </p>
-              <p
-                className="text-sm"
-                style={{
-                  marginBottom: 'var(--space-6)',
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.5,
+          <div style={{ display: 'grid', gap: 'var(--space-3)', marginBottom: 'var(--space-8)' }}>
+            {signedAcceptances.length === 0 ? (
+              <SignedAgreementPdfButton
+                item={{
+                  id: 'fallback',
+                  signedAt: '',
+                  pdfHref: null,
+                  versionLine: null,
+                  regionLabel: null,
+                  status: 'active',
                 }}
-              >
-                {t('termsNoDbVersion')}
-              </p>
-              <a
-                href={fallbackTermsPdfHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="button"
-                style={{
-                  width: '100%',
-                  maxWidth: '400px',
-                  margin: '0 auto var(--space-4)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 'var(--space-2)',
-                  textDecoration: 'none',
-                }}
-              >
-                <FileText size={20} /> Les avtalen du signerte (PDF)
-              </a>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: 'var(--space-8)', marginBottom: 'var(--space-6)' }}>
-              <section aria-labelledby="terms-active-heading">
-                <h2
-                  id="terms-active-heading"
-                  style={{
-                    fontSize: '1.15rem',
-                    fontWeight: 800,
-                    margin: '0 0 var(--space-2)',
-                    color: 'var(--text-main)',
-                    letterSpacing: '0.02em',
-                  }}
-                >
-                  {t('termsActiveSectionTitle')}
-                </h2>
-                <p
-                  style={{
-                    margin: '0 0 var(--space-4)',
-                    fontSize: '0.9rem',
-                    opacity: 0.8,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {t('termsActiveSectionHint')}
-                </p>
-                <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-                  {activeAcceptances.length === 0 ? (
-                    <p style={{ fontSize: '0.9rem', opacity: 0.75, margin: 0 }}>
-                      {t('termsActiveEmptyFallback')}
-                    </p>
-                  ) : (
-                    activeAcceptances.map((a) => (
-                      <SignedAgreementCard
-                        key={a.id}
-                        item={a}
-                        variant="active"
-                        t={t}
-                        fallbackTermsPdfHref={fallbackTermsPdfHref}
-                      />
-                    ))
-                  )}
-                </div>
-              </section>
-
-              {historicAcceptances.length > 0 ? (
-                <section
-                  aria-labelledby="terms-historical-heading"
-                  style={{
-                    borderTop: '1px solid var(--border-subtle)',
-                    paddingTop: 'var(--space-6)',
-                  }}
-                >
-                  <h2
-                    id="terms-historical-heading"
-                    style={{
-                      fontSize: '1.15rem',
-                      fontWeight: 800,
-                      margin: '0 0 var(--space-2)',
-                      color: 'var(--text-main)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <History size={22} style={{ opacity: 0.85 }} />
-                    {t('termsHistoricalSectionTitle')}
-                    <span
-                      style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        padding: '2px 8px',
-                        borderRadius: '999px',
-                        background: 'rgba(148, 163, 184, 0.15)',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      {historicAcceptances.length}
-                    </span>
-                  </h2>
-                  <p
-                    style={{
-                      margin: '0 0 var(--space-4)',
-                      fontSize: '0.9rem',
-                      opacity: 0.8,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {t('termsHistoricalSectionHint')}
-                  </p>
+                variant="active"
+                t={t}
+                fallbackTermsPdfHref={fallbackTermsPdfHref}
+              />
+            ) : (
+              <>
+                {(activeAcceptances.length > 0 ? activeAcceptances : signedAcceptances).map((a) => (
+                  <SignedAgreementPdfButton
+                    key={a.id}
+                    item={a}
+                    variant="active"
+                    t={t}
+                    fallbackTermsPdfHref={fallbackTermsPdfHref}
+                  />
+                ))}
+                {historicAcceptances.length > 0 ? (
                   <details
                     style={{
                       border: '1px solid var(--border-subtle)',
                       borderRadius: '12px',
                       padding: 'var(--space-2) var(--space-4)',
-                      background: 'rgba(0,0,0,0.12)',
+                      background: 'var(--bg-card)',
                     }}
                   >
                     <summary
                       style={{
                         cursor: 'pointer',
                         fontWeight: 600,
-                        fontSize: '0.95rem',
+                        fontSize: '0.9rem',
                         padding: 'var(--space-2) 0',
                         listStyle: 'none',
+                        color: 'var(--text-muted)',
                       }}
                     >
                       {t('termsHistoricalDetailsSummary')} ({historicAcceptances.length})
@@ -757,12 +547,13 @@ function SignTermsContent() {
                     <div
                       style={{
                         display: 'grid',
-                        gap: 'var(--space-4)',
-                        marginTop: 'var(--space-4)',
+                        gap: 'var(--space-3)',
+                        marginTop: 'var(--space-3)',
+                        paddingBottom: 'var(--space-2)',
                       }}
                     >
                       {historicAcceptances.map((a) => (
-                        <SignedAgreementCard
+                        <SignedAgreementPdfButton
                           key={a.id}
                           item={a}
                           variant="historic"
@@ -772,66 +563,30 @@ function SignTermsContent() {
                       ))}
                     </div>
                   </details>
-                </section>
-              ) : null}
-            </div>
-          )}
+                ) : null}
+              </>
+            )}
+          </div>
 
-          <div className="card" style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
-            <div
+          <div className="card" style={{ padding: 'var(--space-6)' }}>
+            <button
+              type="button"
+              onClick={handleTerminate}
+              disabled={loading}
+              className="button button-danger"
               style={{
-                display: 'grid',
-                gap: 'var(--space-4)',
-                maxWidth: '400px',
-                margin: '0 auto',
+                width: '100%',
+                padding: 'var(--space-4)',
+                borderRadius: '10px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontWeight: 600,
+                opacity: loading ? 0.7 : 1,
               }}
             >
-              <Link href="/homeowner/manage" className="button" style={{ width: '100%' }}>
-                Gå til mine boliger
-              </Link>
+              {loading ? 'Behandler...' : 'Si opp avtale'}
+            </button>
 
-              <button
-                type="button"
-                onClick={handleTerminate}
-                disabled={loading}
-                className="button button-danger"
-                style={{
-                  width: '100%',
-                  padding: 'var(--space-4)',
-                  borderRadius: '10px',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontWeight: 600,
-                  opacity: loading ? 0.7 : 1,
-                }}
-              >
-                {loading ? 'Behandler...' : 'Si opp avtale'}
-              </button>
-
-              <button
-                type="button"
-                onClick={async () => {
-                  const user = await getAuthUserDeduped()
-                  if (user) {
-                    await supabase.from('user_agreements').delete().eq('user_id', user.id)
-                    window.location.reload()
-                  }
-                }}
-                style={{
-                  background: 'none',
-                  border: '1px dashed var(--border-subtle)',
-                  color: 'var(--text-muted)',
-                  fontSize: '0.75rem',
-                  marginTop: 'var(--space-4)',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '8px',
-                }}
-              >
-                DEBUG: Nullstill avtale (for å teste ekte signering)
-              </button>
-            </div>
-
-            <p className="text-sm" style={{ marginTop: 'var(--space-6)', color: '#ef4444' }}>
+            <p className="text-sm" style={{ marginTop: 'var(--space-4)', marginBottom: 0, color: '#ef4444' }}>
               <CheckCircle2
                 size={14}
                 style={{

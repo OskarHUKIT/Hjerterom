@@ -2494,25 +2494,6 @@ export default function ListingDetailsClient() {
                     <MessageSquare size={18} /> {t('message')}
                   </Link>
                 )}
-                {listing.last_verified && (
-                  <div
-                    style={{
-                      marginTop: 'var(--space-2)',
-                      padding: 'var(--space-3)',
-                      background: 'rgba(45, 212, 191, 0.12)',
-                      borderRadius: '8px',
-                      fontSize: '0.75rem',
-                      color: 'var(--color-teal)',
-                      border: '1px solid rgba(45, 212, 191, 0.3)',
-                    }}
-                  >
-                    <ShieldCheck
-                      size={14}
-                      style={{ display: 'inline', marginRight: '6px', color: 'var(--color-teal)' }}
-                    />
-                    Vilkår signert: {formatDateNo(listing.last_verified)}
-                  </div>
-                )}
               </div>
             </section>
           )}
@@ -4742,23 +4723,6 @@ export default function ListingDetailsClient() {
                     <MessageSquare size={18} /> {t('message')}
                   </Link>
                 )}
-                <div
-                  style={{
-                    marginTop: 'var(--space-2)',
-                    padding: 'var(--space-3)',
-                    background: 'rgba(45, 212, 191, 0.12)',
-                    borderRadius: '8px',
-                    fontSize: '0.75rem',
-                    color: 'var(--color-teal)',
-                    border: '1px solid rgba(45, 212, 191, 0.3)',
-                  }}
-                >
-                  <ShieldCheck
-                    size={14}
-                    style={{ display: 'inline', marginRight: '6px', color: 'var(--color-teal)' }}
-                  />
-                  Vilkår signert: {formatDateNo(listing.last_verified)}
-                </div>
               </div>
             </div>
           </div>
