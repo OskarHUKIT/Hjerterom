@@ -3831,7 +3831,8 @@ export default function ListingDetailsClient() {
                         ? `${listing.address} — bilde ${currentImageIndex + 1} av ${allImages.length}`
                         : `Boligbilde ${currentImageIndex + 1} av ${allImages.length}`
                     }
-                    sizes="(max-width: 768px) 100vw, min(960px, 90vw)"
+                    sizes="100vw"
+                    quality={95}
                     priority={currentImageIndex === 0}
                     style={{
                       objectFit: 'cover',

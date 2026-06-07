@@ -166,6 +166,7 @@ serve(async (req) => {
       const recipients = (kommuneProfiles || []).filter((p) => p.id !== userId)
 
       if (recipients.length > 0) {
+        const eventId = crypto.randomUUID()
         const notifications = recipients
           .filter((p) => p.id !== userId)
           .map((p) => ({
@@ -174,6 +175,7 @@ serve(async (req) => {
             title: "Vilkårsavtale signert",
             message: `${userName} har signert vilkårsavtalen.`,
             status: "unread",
+            event_id: eventId,
           }))
         if (notifications.length > 0) {
           await supabaseAdmin.from("notifications").insert(notifications)

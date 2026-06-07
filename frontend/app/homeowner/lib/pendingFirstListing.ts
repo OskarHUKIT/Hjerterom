@@ -100,6 +100,7 @@ export async function insertListingFromPendingDraft(
     .select('id')
     .in('role', ['kommune_ansatt', 'kommune_admin'])
 
+  const eventId = crypto.randomUUID()
   const rows = (kommuneProfiles || []).map((p: { id: string }) => ({
     listing_id: listingId,
     owner_id: p.id,
@@ -107,6 +108,7 @@ export async function insertListingFromPendingDraft(
     title: 'Ny bolig registrert',
     message: `${userName} har registrert en ny bolig i ${row.city ?? ''}: ${row.address ?? ''}`,
     municipality: row.city,
+    event_id: eventId,
   }))
 
   if (rows.length > 0) {

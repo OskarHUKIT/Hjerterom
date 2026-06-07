@@ -8,6 +8,7 @@ import { ThemeProvider } from '../context/ThemeContext'
 import { CookieConsentProvider } from '../context/CookieConsentContext'
 import NavigationProgress from './components/NavigationProgress'
 import AuthQuerySync from './components/AuthQuerySync'
+import NotificationsRealtimeSync from './components/NotificationsRealtimeSync'
 import PrefetchAuthUser from './components/PrefetchAuthUser'
 import CookieBanner from './components/CookieBanner'
 
@@ -35,6 +36,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <CookieConsentProvider>
               <PrefetchAuthUser />
               <AuthQuerySync />
+              <NotificationsRealtimeSync />
               <NavigationProgress />
               {children}
               <CookieBanner />

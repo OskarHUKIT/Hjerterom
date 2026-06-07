@@ -491,6 +491,7 @@ export default function HomeownerRegister() {
         .from('profiles')
         .select('id')
         .in('role', ['kommune_ansatt', 'kommune_admin'])
+      const eventId = crypto.randomUUID()
       const rows = (kommuneProfiles || []).map((p: { id: string }) => ({
         listing_id: listingId,
         owner_id: p.id,
@@ -498,6 +499,7 @@ export default function HomeownerRegister() {
         title: 'Ny bolig registrert',
         message: `${userName} har registrert en ny bolig i ${formData.city}: ${formData.address}`,
         municipality: formData.city,
+        event_id: eventId,
       }))
       if (rows.length > 0) {
         await supabase.from('notifications').insert(rows)

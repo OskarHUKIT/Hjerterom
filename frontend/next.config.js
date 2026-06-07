@@ -47,6 +47,9 @@ const nextConfig = {
   images: {
     unoptimized: false,
     remotePatterns: storageRemotePatterns(),
+    /** Next 16 default er kun [75]; uten dette blir quality={85} tvunget ned til 75. */
+    qualities: [75, 85, 90, 95, 100],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1600, 1920, 2560, 3840],
   },
   env: {
     API_URL: process.env.API_URL || 'http://localhost:3002',

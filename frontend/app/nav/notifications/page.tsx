@@ -21,6 +21,7 @@ import {
   Receipt,
 } from 'lucide-react'
 import { getAuthUserDeduped, supabase } from '../../lib/supabase'
+import { devWarn } from '@/app/lib/appLogger'
 import { formatDateTimeNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
@@ -31,6 +32,9 @@ import {
   fetchNotificationsList,
   notificationsListQueryKey,
 } from '../../lib/queries/notificationsListQuery'
+import { kommuneNotificationSiblingIds } from '../../lib/notificationSiblings'
+import { setNotificationStatus } from '../../lib/setNotificationStatus'
+import { QK } from '../../lib/queries/queryKeys'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 
@@ -108,6 +112,15 @@ export default function NavNotifications() {
     )
     const user = await getAuthUserDeduped()
     const resolverId = newStatus === 'completed' ? (user?.id ?? 'me') : null
+    const target = previous?.rows.find((n) => n.id === id)
+    const isKommuneStaff = isKommuneStaffRole(role)
+    const siblingIds = new Set(
+      target && isKommuneStaff
+        ? kommuneNotificationSiblingIds(previous?.rows ?? [], target)
+        : [id]
+    )
+    const resolvedAt = newStatus === 'completed' ? new Date().toISOString() : null
+
     queryClient.setQueryData<NotificationsListPayload | null>(
       notificationsListQueryKey,
       (prev) => {
@@ -115,12 +128,12 @@ export default function NavNotifications() {
         return {
           ...prev,
           rows: prev.rows.map((n) =>
-            n.id === id
+            siblingIds.has(n.id)
               ? {
                   ...n,
                   status: newStatus,
                   resolved_by: resolverId,
-                  resolved_at: newStatus === 'completed' ? new Date().toISOString() : null,
+                  resolved_at: resolvedAt,
                 }
               : n
           ),
@@ -128,17 +141,15 @@ export default function NavNotifications() {
       }
     )
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({
-          status: newStatus,
-          resolved_by: newStatus === 'completed' ? user?.id : null,
-          resolved_at: newStatus === 'completed' ? new Date().toISOString() : null,
-        })
-        .eq('id', id)
-
-      if (error) throw error
-      void queryClient.invalidateQueries({ queryKey: ['header'] })
+      const result = await setNotificationStatus(id, newStatus)
+      if (!result.ok) throw new Error(result.error)
+      if (isKommuneStaff && result.updated < 2) {
+        devWarn(
+          `[notifications] expected shared update for kommune event, got updated=${result.updated}`
+        )
+      }
+      void queryClient.invalidateQueries({ queryKey: QK.headerBundle })
+      void queryClient.invalidateQueries({ queryKey: QK.notificationsList })
     } catch (err: any) {
       queryClient.setQueryData(notificationsListQueryKey, previous)
       alert(t('errNotificationUpdate') + err.message)
