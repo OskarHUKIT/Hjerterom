@@ -86,12 +86,13 @@ export default function ForgotPasswordPage() {
     }
 
     /**
-     * Med `flowType: 'implicit'` sender Supabase brukeren til `redirectTo` med
-     * `#access_token=...&type=recovery` i URL-hashen. supabase-js leser dette automatisk når
-     * siden lastes, og fyrer `PASSWORD_RECOVERY`. Derfor peker vi rett på skjemaet – ingen
-     * behov for en ekstra utveksling via /auth/callback.
+     * Send brukeren via /auth/callback slik at både PKCE (`?code=`) og implicit (`#access_token`)
+     * håndteres på ett sted, og recovery alltid ender på update-password med `?recovery=1`.
+     *
+     * Anbefalt Supabase recovery-e-postmal (token_hash, scanner-sikker):
+     * {{ .SiteURL }}/login/update-password?token_hash={{ .TokenHash }}&type=recovery
      */
-    const redirectTo = `${window.location.origin}/login/update-password`
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent('/login/update-password')}&type=recovery`
 
     try {
       let lastError: unknown = null

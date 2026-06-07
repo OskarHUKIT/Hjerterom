@@ -49,6 +49,34 @@ The **anon** key is still the same underlying “anonymous” key Supabase has a
 
 **After editing `frontend/.env.local`:** stop and restart `npm run dev`.
 
+### Auth redirect URLs (passord-reset og e-postbekreftelse)
+
+Under **Authentication → URL Configuration**:
+
+| Setting | Production example |
+|---------|-------------------|
+| **Site URL** | `https://www.bolynorge.no` (eller domenet du faktisk bruker) |
+| **Redirect URLs** (allow list) | Legg til **alle** disse (justér www/non-www etter behov): |
+
+```
+https://www.bolynorge.no/auth/callback
+https://www.bolynorge.no/login/update-password
+https://bolynorge.no/auth/callback
+https://bolynorge.no/login/update-password
+```
+
+Uten disse havner brukeren på feil side eller får «lenken er utløpt» etter passord-reset.
+
+**Recovery-e-postmal (anbefalt):** **Authentication → Email Templates → Reset password**. Erstatt standard `{{ .ConfirmationURL }}` med en lenke som går direkte til appen (unngår at Outlook Safe Links forbruker tokenet):
+
+```html
+<a href="{{ .SiteURL }}/login/update-password?token_hash={{ .TokenHash }}&type=recovery">
+  Velg nytt passord
+</a>
+```
+
+Mal-fil i repo: `supabase/templates/recovery.html`. Sett **Site URL** i Supabase til samme domene som i produksjon.
+
 ### Reserved secrets on hosted Edge Functions
 
 On **Project Settings → Edge Functions → Secrets**, Supabase may list **reserved** names: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, sometimes `SUPABASE_DB_URL`.

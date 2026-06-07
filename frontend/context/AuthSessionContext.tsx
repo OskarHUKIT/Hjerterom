@@ -10,6 +10,7 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../app/lib/supabase'
+import { recoveryPasswordPageHref } from '../app/lib/authRecovery'
 
 export type AuthSessionContextValue = {
   user: User | null
@@ -106,7 +107,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
         typeof window !== 'undefined' &&
         !window.location.pathname.startsWith('/login/update-password')
       ) {
-        window.location.replace('/login/update-password')
+        window.location.replace(recoveryPasswordPageHref())
       }
     })
 

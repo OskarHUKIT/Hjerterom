@@ -1,0 +1,12 @@
+<h2>Tilbakestill passord</h2>
+<p>Du ba om å tilbakestille passordet ditt for Boly.</p>
+<p>
+  <a href="{{ .SiteURL }}/login/update-password?token_hash={{ .TokenHash }}&type=recovery">
+    Velg nytt passord
+  </a>
+</p>
+<p>Lenken er gyldig i én time. Hvis du ikke ba om dette, kan du se bort fra e-posten.</p>
+<p style="font-size: 0.85rem; color: #666;">
+  Fungerer ikke knappen? Kopier denne adressen til nettleseren:<br />
+  {{ .SiteURL }}/login/update-password?token_hash={{ .TokenHash }}&type=recovery
+</p>

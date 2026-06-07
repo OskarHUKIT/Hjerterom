@@ -20,8 +20,17 @@ import { useSearchParams } from 'next/navigation'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase'
 import { resolvePostAuthHref } from '../../lib/landlordNavGate'
 import { useLanguage } from '../../../context/LanguageContext'
+import {
+  establishRecoverySessionFromUrl,
+  isPasswordRecoveryUrl,
+  recoveryPasswordPageHref,
+} from '../../lib/authRecovery'
 
 async function goAfterAuth(next: string | null, otpType: string | null) {
+  if (otpType === 'recovery' || next === '/login/update-password') {
+    window.location.replace(recoveryPasswordPageHref())
+    return
+  }
   const href =
     otpType === 'signup'
       ? '/homeowner/register'
@@ -56,6 +65,21 @@ function AuthCallbackInner() {
         return
       }
 
+      if (isPasswordRecoveryUrl(params) || otpType === 'recovery' || next === '/login/update-password') {
+        const established = await establishRecoverySessionFromUrl(supabase, params)
+        if (cancelled) return
+        if (established.ok) {
+          window.location.replace(recoveryPasswordPageHref())
+          return
+        }
+        if (established.error !== 'no_recovery_params') {
+          const target = new URL('/auth/auth-code-error', window.location.origin)
+          target.searchParams.set('reason', established.error)
+          window.location.replace(target.toString())
+          return
+        }
+      }
+
       /**
        * Token-hash-flyt for signup- og email-change-bekreftelse. Bruker samme mønster som
        * passord-reset: e-post-lenken peker på vår domenet og verifiseres kun når JS kjører,
@@ -86,7 +110,7 @@ function AuthCallbackInner() {
           window.location.replace(target.toString())
           return
         }
-        await goAfterAuth(next, null)
+        await goAfterAuth(next, otpType)
         return
       }
 
@@ -97,7 +121,7 @@ function AuthCallbackInner() {
       for (let attempt = 0; attempt < 6 && !cancelled; attempt++) {
         const { data } = await supabase.auth.getSession()
         if (data.session?.user) {
-          await goAfterAuth(next, null)
+          await goAfterAuth(next, otpType)
           return
         }
         await new Promise((r) => setTimeout(r, 300))
