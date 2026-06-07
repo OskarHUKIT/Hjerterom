@@ -1,0 +1,195 @@
+@page {
+  size: A4;
+  margin: 22mm 18mm 22mm 18mm;
+}
+
+html, body {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+  color: #1a1a1a;
+  background: #ffffff;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+}
+
+/* Headings */
+h1 {
+  font-size: 22pt;
+  font-weight: 700;
+  margin: 0 0 6pt 0;
+  color: #0a2540;
+  letter-spacing: -0.01em;
+  border-bottom: 3px solid #0a2540;
+  padding-bottom: 8pt;
+}
+
+h1 + p em,
+h1 + p > em:only-child {
+  display: block;
+  font-size: 11pt;
+  color: #475569;
+  font-style: italic;
+  margin-top: -2pt;
+}
+
+h2 {
+  font-size: 15pt;
+  font-weight: 700;
+  color: #0a2540;
+  margin-top: 18pt;
+  margin-bottom: 6pt;
+  padding-bottom: 3pt;
+  border-bottom: 1px solid #cbd5e1;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: 12pt;
+  font-weight: 700;
+  color: #0a2540;
+  margin-top: 12pt;
+  margin-bottom: 4pt;
+  page-break-after: avoid;
+}
+
+h4 {
+  font-size: 11pt;
+  font-weight: 700;
+  color: #334155;
+  margin-top: 10pt;
+  margin-bottom: 3pt;
+  page-break-after: avoid;
+}
+
+p { margin: 0 0 6pt 0; }
+
+/* Front-matter blockquote = title card */
+blockquote {
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #0a2540;
+  background: #f8fafc;
+  padding: 10pt 14pt;
+  margin: 10pt 0 18pt 0;
+  border-radius: 3px;
+  font-size: 10.5pt;
+  color: #1e293b;
+  page-break-inside: avoid;
+}
+
+blockquote p { margin: 0 0 4pt 0; }
+blockquote p:last-child { margin-bottom: 0; }
+blockquote strong { color: #0a2540; }
+blockquote em { color: #475569; }
+
+/* Inline code / tech identifiers */
+code {
+  font-family: "Consolas", "Menlo", "Courier New", monospace;
+  font-size: 9.5pt;
+  background: #eef2f7;
+  color: #0a2540;
+  padding: 0.5pt 3pt;
+  border-radius: 2px;
+}
+
+pre code { background: none; padding: 0; }
+
+pre {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px;
+  padding: 8pt;
+  font-size: 9pt;
+  overflow: auto;
+  page-break-inside: avoid;
+}
+
+/* Links */
+a {
+  color: #0a66c2;
+  text-decoration: none;
+  word-break: break-word;
+}
+a:hover { text-decoration: underline; }
+
+/* Lists */
+ul, ol {
+  margin: 4pt 0 8pt 0;
+  padding-left: 20pt;
+}
+li { margin-bottom: 2pt; }
+li > p { margin-bottom: 2pt; }
+
+/* Horizontal rule = section separator */
+hr {
+  border: none;
+  border-top: 1px solid #cbd5e1;
+  margin: 14pt 0;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8pt 0 12pt 0;
+  font-size: 9.5pt;
+  page-break-inside: auto;
+}
+
+thead {
+  display: table-header-group;
+}
+
+tr { page-break-inside: avoid; }
+
+th, td {
+  border: 1px solid #cbd5e1;
+  padding: 5pt 7pt;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #0a2540;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 9.5pt;
+}
+
+tr:nth-child(even) td { background: #f8fafc; }
+
+td code { font-size: 9pt; }
+
+/* Callout for the A.4 warning-style blockquote (appears mid-document) */
+h2 + blockquote,
+h3 + blockquote,
+h4 + blockquote,
+p + blockquote,
+ul + blockquote {
+  border-left: 4px solid #b45309;
+  background: #fffbeb;
+}
+
+/* Keep the title blockquote (first one under h1) with the brand color */
+h1 + blockquote {
+  border-left: 4px solid #0a2540;
+  background: #f8fafc;
+}
+
+strong { color: #0a2540; }
+
+/* Page break hints */
+h2 { page-break-before: auto; }
+
+/* Last-page footer-style disclaimer */
+body > p:last-child em {
+  display: block;
+  font-size: 9pt;
+  color: #64748b;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 8pt;
+  margin-top: 14pt;
+}

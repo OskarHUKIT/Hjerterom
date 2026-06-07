@@ -1,0 +1,187 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { edgeLog } from "../_shared/edgeLog.ts"
+import { isAllowedAppUrl, safeAppRedirectUrl } from "../_shared/safeRedirect.ts"
+
+const SIGNICAT_DISCOVERY_URL = "https://kunnskapstrening-it.sandbox.signicat.com/auth/open/.well-known/openid-configuration"
+const CLIENT_ID = "sandbox-smug-hair-945"
+const CLIENT_SECRET = Deno.env.get("SIGNICAT_SECRET_LOGIN")?.trim()
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+
+/** Må samsvare med redirect URI registrert hos Signicat for denne OAuth-klienten. */
+function authSignicatRedirectUri(): string {
+  const base = (SUPABASE_URL || "").replace(/\/$/, "")
+  return `${base}/functions/v1/auth-signicat`
+}
+
+serve(async (req) => {
+  const url = new URL(req.url)
+  const code = url.searchParams.get("code")
+  const state = url.searchParams.get("state") // OAuth state = return_to from callback
+  const returnTo = url.searchParams.get("return_to") // From initial request
+
+  const redirectUri = authSignicatRedirectUri()
+  
+  if (!CLIENT_SECRET) {
+    return errorPage("SIGNICAT_SECRET_LOGIN er ikke satt i Supabase. Legg til hemmeligheten under Project Settings → Edge Functions → Secrets.", state, url)
+  }
+  if (!SUPABASE_URL?.trim()) {
+    return errorPage("SUPABASE_URL mangler (reservert hemmelighet fra Supabase – sjekk at prosjektet er korrekt).", state, url)
+  }
+
+  if (!code) {
+    try {
+      const response = await fetch(SIGNICAT_DISCOVERY_URL)
+      const discovery = await response.json()
+      const authorizeUrl = new URL(discovery.authorization_endpoint)
+      
+      authorizeUrl.searchParams.set("client_id", CLIENT_ID)
+      authorizeUrl.searchParams.set("response_type", "code")
+      authorizeUrl.searchParams.set("scope", "openid profile email")
+      authorizeUrl.searchParams.set("redirect_uri", redirectUri)
+      const rawUi = url.searchParams.get("ui_locales")?.trim().toLowerCase()
+      /** OIDC `ui_locales`; Signicat supports e.g. no, en. Sami → use no. */
+      const uiLocales = rawUi === "en" ? "en" : "no"
+      authorizeUrl.searchParams.set("ui_locales", uiLocales)
+      if (returnTo && returnTo.length <= 2048) {
+        let decoded = returnTo.trim()
+        try {
+          decoded = decodeURIComponent(returnTo.trim())
+        } catch {
+          /* bruk trim */
+        }
+        if (decoded.startsWith("http") && isAllowedAppUrl(decoded)) {
+          authorizeUrl.searchParams.set("state", returnTo.trim())
+        }
+      }
+      
+      return Response.redirect(authorizeUrl.toString(), 302)
+    } catch (e) {
+      const details = e instanceof Error ? e.message : String(e)
+      return new Response(JSON.stringify({ error: "Kunne ikke kontakte Signicat Discovery", details }), {
+        status: 500,
+      })
+    }
+  }
+
+  try {
+    const discoveryRes = await fetch(SIGNICAT_DISCOVERY_URL)
+    const discovery = await discoveryRes.json()
+    
+    const tokenRes = await fetch(discovery.token_endpoint, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": "Basic " + btoa(`${CLIENT_ID}:${CLIENT_SECRET}`)
+      },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+      }),
+    })
+    
+    const tokens = await tokenRes.json()
+    if (tokens.error) throw new Error(tokens.error_description || tokens.error)
+
+    const base64Payload = tokens.id_token.split('.')[1]
+    const payload = JSON.parse(atob(base64Payload))
+    const bankIdName = payload.name || "BankID Bruker"
+    const email = payload.email || `${payload.sub}@bankid.no`
+
+    const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!)
+    
+    // 1. Forsøk å opprette bruker. 
+    // Vi pakker dette inn i en try/catch slik at vi ignorerer feilen hvis de finnes fra før.
+    let userId;
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: email,
+      email_confirm: true,
+      user_metadata: { 
+        full_name: bankIdName, 
+        bankid_sub: payload.sub,
+        provider: 'signicat_bankid'
+      }
+    })
+
+    if (createError) {
+      // Hvis brukeren finnes, henter vi dem bare i stedet for å kaste feil
+      if (createError.message.includes("already been registered")) {
+        const { data: listData } = await supabaseAdmin.auth.admin.listUsers()
+        const existing = listData.users.find(u => u.email === email)
+        userId = existing?.id
+      } else {
+        throw createError
+      }
+    } else {
+      userId = newUser.user.id
+    }
+
+    // 2. Oppdater profil med navn (rolle settes av handle_new_user/whitelist for nye, behold eksisterende for andre)
+    if (userId) {
+      const { data: whitelistRegion } = await supabaseAdmin.rpc('get_whitelist_region_for_email', { p_email: email })
+
+      const profileUpdate: Record<string, unknown> = {
+        id: userId,
+        full_name: bankIdName,
+        email: email,
+        updated_at: new Date().toISOString()
+      }
+      if (whitelistRegion) {
+        profileUpdate.role = 'kommune_ansatt'
+        profileUpdate.kommune_region = whitelistRegion
+      }
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .upsert(profileUpdate)
+      if (profileError) console.error("Profil-oppdatering feilet:", profileError.message)
+    }
+
+    // 3. Generer innloggingslenke — kun tillatte URLer (ingen åpen redirect)
+    const finalRedirect = safeAppRedirectUrl(state, url.host.includes("localhost"))
+    const redirectWithBankId = finalRedirect + (finalRedirect.includes("?") ? "&" : "?") + "bankid=1"
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email,
+      options: { redirectTo: redirectWithBankId }
+    })
+
+    if (linkError) throw linkError
+
+    return Response.redirect(linkData.properties.action_link, 302)
+
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    edgeLog("error", "auth-signicat", { message: msg })
+    return errorPage(msg, state, url)
+  }
+})
+
+function escapeHtml(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function loginPageHref(state: string | null | undefined, reqUrl?: URL): string {
+  const base = safeAppRedirectUrl(state, reqUrl?.host?.includes("localhost") ?? false)
+  try {
+    return new URL("/login", base).href
+  } catch {
+    return "http://localhost:3000/login"
+  }
+}
+
+function errorPage(msg: string, state?: string | null, url?: URL): Response {
+  try {
+    const loginUrl = loginPageHref(state ?? null, url)
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>BankID-feil</title></head><body style="font-family:system-ui;max-width:480px;margin:80px auto;padding:24px;background:#0f172a;color:#e2e8f0;">
+      <h1 style="color:#ef4444;">BankID-innlogging feilet</h1>
+      <p style="opacity:0.9;">${escapeHtml(msg)}</p>
+      <p style="font-size:0.9rem;opacity:0.7;">Vanlige årsaker: Manglende SIGNICAT_SECRET_LOGIN, feil redirect_uri i Signicat-dashboard, eller utløpt BankID-kode.</p>
+      <a href="${escapeHtml(loginUrl)}" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#3b82f6;color:white;text-decoration:none;border-radius:8px;">Prøv igjen</a>
+    </body></html>`
+    return new Response(html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } })
+  } catch {
+    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: { "Content-Type": "application/json" } })
+  }
+}

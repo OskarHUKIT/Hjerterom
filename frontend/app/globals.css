@@ -1,0 +1,2310 @@
+/* Professional Dark Design System with Northern Scenery */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Styrer OS/nettleser (skjema, native select-lister) slik at lys/mørk matcher app-tema */
+  color-scheme: dark;
+  /* Mobile breakpoints (use in media queries) */
+  --bp-sm: 480px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+
+  /* Touch-friendly sizing */
+  --touch-target: 44px;
+  --touch-target-sm: 44px;
+
+  /* Core Colors — Option B: blå-forward; teal = suksess / formidling */
+  --color-dark-navy: #0f172a;
+  --color-royal-blue: #3b82f6;
+  --color-muted-blue: #60a5fa;
+  --color-sky-blue: #7dd3fc;
+  --color-teal: #2dd4bf;
+  --color-dark-teal: #0d9488;
+  /* Sekundær interaksjon (outline/CTA #2) */
+  --color-blue-cta-secondary: #38bdf8;
+  --color-blue-cta-secondary-hover: #0ea5e9;
+
+  /* Neutral Palette - Dark Mode */
+  --bg-app: #020617;
+  --bg-card: #0f172a;
+  --border-subtle: rgba(51, 65, 85, 0.4);
+  --border-medium: rgba(51, 65, 85, 0.8);
+
+  /* Typography Colors */
+  --text-main: #f8fafc;
+  --text-body: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-on-dark: #ffffff;
+
+  /* Spacing (8px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-8: 64px;
+  --space-10: 80px;
+
+  /* Layout: høyde ca. sticky header (logo + padding) — brukes til min-hovedflate */
+  --site-header-estimate: 5.5rem;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+
+  /* Accent/link color – darker in light mode for contrast */
+  --color-accent: var(--color-sky-blue);
+
+  /* Kalenderstatus (dark mode) */
+  --calendar-formidlet-bg: rgba(59, 130, 246, 0.35);
+  --calendar-formidlet-range-bg: rgba(59, 130, 246, 0.25);
+  --calendar-tilgjengelig-bg: rgba(32, 187, 175, 0.25);
+  --calendar-utilgjengelig-bg: rgba(239, 68, 68, 0.2);
+
+  /* Kalendercelle — fallback-bakgrunn i inline availability-calendar */
+  --listing-calendar-cell-bg: transparent;
+  --listing-availability-item-bg: rgba(255, 255, 255, 0.04);
+
+  /* Motion — konsistent taktil feedback */
+  --transition-fast: 0.2s;
+  --transition-smooth: 0.25s;
+  --ease-out-soft: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /**
+   * Fluid typography-tokens for inline-styles som overstyrer base h1.
+   * Bruk `var(--fluid-h1-page)` for vanlige side-h1, `var(--fluid-h1-hero)`
+   * for landings-/register-/hero-overskrifter. Skalerer glatt mellom mobil og
+   * desktop uten rigide breakpoints.
+   *   --fluid-h1-page:  360px→1.5rem  · 768px→~2rem    · 1280px→2.25rem
+   *   --fluid-h1-hero:  360px→1.75rem · 768px→~2.25rem · 1280px→2.75rem
+   */
+  --fluid-h1-page: clamp(1.5rem, 1rem + 2.2vw, 2.25rem);
+  --fluid-h1-hero: clamp(1.75rem, 1rem + 3.5vw, 2.75rem);
+}
+
+/* Light mode – overrides when data-theme="light" */
+[data-theme='light'] {
+  color-scheme: light;
+  --bg-app: #f8fafc;
+  --bg-card: #ffffff;
+  --border-subtle: rgba(15, 23, 42, 0.12);
+  --border-medium: rgba(15, 23, 42, 0.25);
+  --text-main: #0f172a;
+  --text-body: #334155;
+  --text-muted: #64748b;
+  --text-on-dark: #ffffff;
+  --color-accent: #0369a1; /* Mørkere blå for god kontrast på lys bakgrunn */
+  --color-sky-blue: #0369a1; /* Samme mørkere blå – erstatter lyseblå i lys modus */
+  --color-royal-blue: #0369a1; /* Konsistent med accent i lys modus */
+  /* Kalenderstatus – klarere farger i lys modus */
+  --calendar-formidlet-bg: rgba(3, 105, 161, 0.4);
+  --calendar-formidlet-range-bg: rgba(3, 105, 161, 0.32);
+  --calendar-tilgjengelig-bg: rgba(13, 148, 136, 0.45);
+  --calendar-utilgjengelig-bg: rgba(239, 68, 68, 0.4);
+
+  /* Kalendercelle — fallback-bakgrunn i inline availability-calendar */
+  --listing-calendar-cell-bg: transparent;
+  --listing-availability-item-bg: rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  /* Prevent font-size inflation on mobile (iOS) */
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
+body {
+  /* `100%` (ikke `100vw`) for å unngå at content blir bredere enn synlig viewport
+     når vertikal scrollbar er synlig (Chrome/Edge/desktop-simulator) — det opplevdes
+     som «klippet i høyre kant» fordi siste 14–17 px ble dekket av scrollbaren. */
+  max-width: 100%;
+  overflow-x: hidden;
+  font-family:
+    var(--font-body),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  /* Ensure tap highlight doesn't obscure content */
+  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
+}
+
+body {
+  color: var(--text-main);
+  background-color: var(--bg-app);
+  min-height: 100vh; /* fallback for pre-2022 browsers */
+  min-height: 100svh; /* Small viewport: intrinsic stability — layout "låses" til minste viewport og hopper ikke når mobile adresselinjer skjules/vises. */
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to bottom, rgba(2, 6, 23, 0.7) 0%, rgba(2, 6, 23, 0.95) 100%),
+    url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
+  background-size: cover;
+  background-position: center 70%;
+  background-repeat: no-repeat;
+}
+
+@media (max-width: 768px) {
+  body::before {
+    background-position: 42% 78%;
+  }
+}
+
+[data-theme='light'] body::before {
+  background-image:
+    linear-gradient(to bottom, rgba(248, 250, 252, 0.92) 0%, rgba(241, 245, 249, 0.95) 100%),
+    url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
+}
+
+@media (max-width: 768px) {
+  [data-theme='light'] body::before {
+    background-position: 42% 78%;
+    background-image:
+      linear-gradient(to bottom, rgba(248, 250, 252, 0.82) 0%, rgba(241, 245, 249, 0.94) 100%),
+      url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
+  }
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Kolonne: header → hovedinnhold (min. én skjerm minus header) → footer under fold ved kort innhold.
+   Rekkefølge: vh-fallback først, svh-enhancement vinner når støttet (alle moderne browsere ≥2022).
+   svh (small viewport) gir intrinsic stability: layout hopper ikke når mobile adresselinjer skjules/vises. */
+.site-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  position: relative;
+  z-index: 1;
+}
+
+.site-main {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: calc(100vh - var(--site-header-estimate));
+  min-height: calc(100svh - var(--site-header-estimate));
+}
+
+/* Forside: fyll site-main slik at kort kan sentreres vertikalt mot fold (footer under scroll) */
+.site-main > main.home-landing {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-self: stretch;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --site-header-estimate: 6rem;
+  }
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--space-4) var(--space-3);
+    padding-left: max(var(--space-3), env(safe-area-inset-left));
+    padding-right: max(var(--space-3), env(safe-area-inset-right));
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: var(--space-3) var(--space-2);
+    padding-left: max(var(--space-2), env(safe-area-inset-left));
+    padding-right: max(var(--space-2), env(safe-area-inset-right));
+  }
+}
+
+.header {
+  background: rgba(15, 23, 42, 0.8);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-4) 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(16px);
+}
+
+[data-theme='light'] .header {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom-color: rgba(15, 23, 42, 0.1);
+}
+
+[data-theme='light'] .header-hamburger {
+  color: var(--text-main) !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme='light'] .header .header-mobile-actions a,
+[data-theme='light'] .header .header-mobile-actions button {
+  color: var(--text-main) !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+@media (max-width: 480px) {
+  .header .header-logo-wrap {
+    height: 48px !important;
+    max-height: 48px;
+    width: auto !important;
+  }
+}
+
+.card {
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: var(--space-5);
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.25s ease,
+    background 0.25s ease;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: var(--space-4);
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: var(--space-3);
+    border-radius: 12px;
+  }
+}
+
+.card:not(.no-hover):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.35);
+  border-color: rgba(59, 130, 246, 0.25);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+[data-theme='light'] .card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+[data-theme='light'] .card:not(.no-hover):hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(59, 130, 246, 0.2);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Innstillings-/filterpaneler: bruk temaets bakgrunn (ingen mørk override) */
+.card-settings-panel {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-subtle);
+}
+.card-settings-option {
+  background: rgba(255, 255, 255, 0.05);
+}
+[data-theme='light'] .card-settings-option {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Portal-kort: mørk bakgrunn i dark mode */
+.portal-card {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+/* Portal cards: align buttons at bottom when side-by-side */
+.portal-card-align-buttons {
+  min-height: 0;
+}
+.portal-card-align-buttons .portal-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.portal-card-align-buttons .portal-card-cta {
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+
+/* Lys modus: portal-kort og trust-section – bedre lesbarhet */
+[data-theme='light'] .portal-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='light'] .portal-card:hover {
+  background: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='light'] .portal-card-desc {
+  color: var(--text-body) !important;
+}
+
+[data-theme='light'] .portal-card h2 {
+  color: var(--text-main);
+}
+
+[data-theme='light'] .trust-section {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.no-hover {
+  cursor: default;
+}
+
+/* Dokumentopplasting – skjult filvelger, egen knapp og lesbar sone */
+.doc-upload-zone {
+  padding: var(--space-5);
+  border: 1px dashed var(--border-medium);
+  border-radius: 12px;
+  background: var(--bg-card);
+  text-align: center;
+  position: relative;
+}
+
+[data-theme='light'] .doc-upload-zone {
+  background: rgba(248, 250, 252, 0.9);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.doc-upload-input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.doc-upload-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  min-height: 120px;
+}
+
+.doc-upload-submit {
+  background: var(--color-royal-blue) !important;
+  color: white !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-upload-submit:hover {
+  background: #2563eb !important;
+}
+
+.doc-list-link {
+  padding: 1.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(59, 130, 246, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition:
+    transform var(--transition-fast) var(--ease-out-soft),
+    box-shadow var(--transition-fast) var(--ease-out-soft);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+[data-theme='light'] .doc-list-link {
+  background: rgba(59, 130, 246, 0.04);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+.doc-list-link:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+}
+
+/* PWA-installasjonspopup – overlay og kort */
+.pwa-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10070;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--space-4);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  animation: pwa-overlay-in 0.2s ease-out;
+}
+
+.pwa-prompt-card {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-6);
+  margin: 0;
+  border-radius: 16px;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  animation: pwa-card-in 0.25s ease-out;
+}
+
+[data-theme='light'] .pwa-prompt-card {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.18);
+}
+
+/* Cookie-samtykke: helt ugjennomsiktig flate (ikke halvtransparent over innhold). */
+.cookie-banner {
+  background: var(--bg-app);
+  background-image: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--bg-card) 100%, transparent),
+    var(--bg-app)
+  );
+  border-top: 1px solid var(--border-subtle);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.28);
+}
+
+[data-theme='light'] .cookie-banner {
+  box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.12);
+}
+
+@keyframes boly-nav-progress-shimmer {
+  0% {
+    opacity: 0.55;
+    transform: scaleX(0.35);
+    transform-origin: left center;
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(0.85);
+    transform-origin: left center;
+  }
+  100% {
+    opacity: 0.55;
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+}
+
+.navigation-progress-bar {
+  background: linear-gradient(
+    90deg,
+    var(--color-accent, #3b82f6),
+    var(--color-sky-blue, #38bdf8)
+  );
+  animation: boly-nav-progress-shimmer 1.1s ease-in-out infinite;
+}
+
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app-spin {
+  animation: app-spin 0.85s linear infinite;
+}
+
+@keyframes pwa-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pwa-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background-color: var(--color-royal-blue);
+  color: var(--text-on-dark);
+  border: none;
+  padding: var(--space-3) var(--space-5);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition:
+    background-color var(--transition-fast) var(--ease-out-soft),
+    color var(--transition-fast) var(--ease-out-soft),
+    border-color var(--transition-fast) var(--ease-out-soft),
+    transform var(--transition-fast) var(--ease-out-soft),
+    box-shadow var(--transition-fast) var(--ease-out-soft);
+  box-shadow: var(--shadow-sm);
+  /* Touch-friendly minimum height */
+  min-height: var(--touch-target-sm);
+}
+
+.button:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme='light'] .button {
+  background-color: var(--color-accent);
+}
+[data-theme='light'] .button:hover {
+  background-color: #025a8a;
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+/* Sekundær blå CTA (Option B — ikke formidling) */
+.button-accent {
+  background-color: var(--color-blue-cta-secondary);
+  color: #0f172a;
+}
+
+.button-accent:hover {
+  background-color: var(--color-blue-cta-secondary-hover);
+  color: #0f172a;
+}
+
+[data-theme='light'] .button-accent {
+  background-color: var(--color-muted-blue);
+  color: #ffffff;
+}
+
+[data-theme='light'] .button-accent:hover {
+  background-color: var(--color-royal-blue);
+  color: #ffffff;
+}
+
+/* Suksess / formidling — behold teal */
+.button-success {
+  background-color: var(--color-teal);
+  color: #042f2e;
+}
+
+.button-success:hover {
+  background-color: var(--color-dark-teal);
+  color: #ffffff;
+}
+
+[data-theme='light'] .button-success {
+  color: #ffffff;
+}
+
+[data-theme='light'] .button-success:hover {
+  background-color: #0f766e;
+  color: #ffffff;
+}
+
+/* Destruktiv handling */
+.button-danger {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  box-shadow: none !important;
+}
+
+.button-danger:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #fecaca !important;
+}
+
+[data-theme='light'] .button-danger {
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: #b91c1c !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+[data-theme='light'] .button-danger:hover {
+  background: rgba(239, 68, 68, 0.14) !important;
+}
+
+/* Diskret / lukk / tertiaer */
+.button-ghost {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+
+.button-ghost:hover {
+  color: var(--text-main) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: var(--border-subtle) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme='light'] .button-ghost:hover {
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+.button:focus-visible,
+.button-accent:focus-visible,
+.button-secondary:focus-visible,
+.button-success:focus-visible,
+.button-danger:focus-visible,
+.button-ghost:focus-visible {
+  outline: 2px solid var(--color-royal-blue);
+  outline-offset: 2px;
+}
+
+/* Sekundær/lys knapp – alltid lesbar tekst mot bakgrunn (lys modus og mørk modus) */
+.button-secondary,
+a.button-secondary,
+button.button-secondary {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-medium);
+}
+
+.button-secondary:hover,
+a.button-secondary:hover,
+button.button-secondary:hover {
+  background-color: var(--bg-app) !important;
+  border-color: var(--border-medium);
+  color: var(--text-main) !important;
+}
+
+.input,
+select,
+textarea {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--border-medium);
+  border-radius: 10px;
+  font-size: 1rem;
+  margin-bottom: var(--space-3);
+  background-color: rgba(2, 6, 23, 0.5);
+  transition: all 0.2s;
+  color: var(--text-main);
+}
+
+/* 16px minimum on mobile prevents iOS zoom on input focus */
+@media (max-width: 768px) {
+  .input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-royal-blue);
+  background-color: rgba(2, 6, 23, 0.8);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+[data-theme='light'] .input,
+[data-theme='light'] select,
+[data-theme='light'] textarea {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.2);
+  color: var(--text-main);
+}
+
+[data-theme='light'] .input:focus {
+  background-color: #fff;
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+  color: var(--color-accent);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Typography — display: Fraunces; UI: DM Sans (next/font på <html>) */
+h1,
+h2,
+h3,
+.hero-title,
+.portal-card h2 {
+  font-family: var(--font-display), ui-serif, 'Iowan Old Style', 'Apple Garamond', Georgia, serif;
+  /* Lange norske sammensatte ord (f.eks. «informasjonskapsler», «personopplysninger»)
+     spiser fort 320–390px-skjermer og klippes på høyre side. `hyphens: auto` aktiverer
+     nettleserens orddelingsmønstre — `lang="nb"` står på <html> så bokmålsmønstre
+     brukes — og bindestrek settes kun inn når ordet ellers ville brutt utenfor boksen. */
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+/**
+ * Fluid typography: clamp(min, preferred-based-on-vw, max) skalerer glatt mellom
+ * mobil og desktop uten rigide breakpoints. Preferred-verdien kombinerer et rem-
+ * basert "anchor" med en vw-komponent, slik at skalering følger viewport-bredde.
+ * Forventet oppførsel ved nominelle skjermstørrelser:
+ *   h1  360px→1.75rem · 768px→~2.5rem · 1280px→3.5rem
+ *   h2  360px→1.25rem · 768px→~1.5rem · 1280px→1.875rem
+ *   h3  360px→1.1rem  · 768px→~1.2rem · 1280px→1.3rem
+ */
+h1 {
+  color: var(--text-main);
+  font-size: clamp(1.75rem, 1rem + 3.25vw, 3.5rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-4);
+}
+
+h2 {
+  color: var(--text-main);
+  font-size: clamp(1.25rem, 0.9rem + 1.3vw, 1.875rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin-bottom: var(--space-3);
+}
+
+h3 {
+  color: var(--text-main);
+  font-size: clamp(1.1rem, 1rem + 0.4vw, 1.3rem);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+[data-theme='light'] h1,
+[data-theme='light'] h2,
+[data-theme='light'] h3 {
+  color: var(--text-main);
+}
+
+p {
+  color: var(--text-body);
+  line-height: 1.6;
+  font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.125rem);
+}
+
+.text-sm {
+  font-size: clamp(0.8rem, 0.78rem + 0.15vw, 0.875rem);
+  color: var(--text-muted);
+}
+
+.nav-link {
+  color: var(--text-muted);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+/* Gjest-header: jevn vertikal linje mellom globus, språkliste og Logg inn */
+.header-guest-lang-select {
+  cursor: pointer;
+  align-self: center;
+}
+
+/* Gjest-header: hindre at primær-CTA wrapper på smale skjermer. */
+.header-guest-toolbar .button {
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .header-guest-toolbar {
+    gap: var(--space-1) !important;
+    margin-left: 0 !important;
+  }
+  .header-guest-toolbar .button {
+    padding: 0 var(--space-3) !important;
+    font-size: 0.8rem !important;
+  }
+  .header-guest-lang-select {
+    font-size: 0.8rem !important;
+    max-width: 110px !important;
+  }
+}
+
+.nav-link:hover {
+  background: rgba(125, 211, 252, 0.1);
+  color: var(--color-accent);
+}
+
+[data-theme='light'] .nav-link:hover {
+  background: rgba(3, 105, 161, 0.08);
+}
+
+/* Footer Styles */
+.footer {
+  background: rgba(15, 23, 42, 0.8);
+  border-top: 1px solid var(--border-subtle);
+  backdrop-filter: blur(16px);
+  width: 100%;
+  flex-shrink: 0;
+}
+
+[data-theme='light'] .footer {
+  background: rgba(255, 255, 255, 0.95);
+  border-top-color: rgba(15, 23, 42, 0.1);
+}
+
+[data-theme='light'] .footer h3 {
+  color: var(--text-main);
+}
+
+/* Light mode: fix contrast for elements that use light bg + light text */
+[data-theme='light'] .menu-item,
+[data-theme='light'] .menu-item:hover {
+  color: var(--text-main);
+}
+[data-theme='light'] .menu-item:hover {
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme='light'] select {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+  color: var(--text-main);
+}
+
+/*
+ * Native <select>: I mørk modus kan OS/nettleser tegne nedtrekkslisten «lys» mens tekst
+ * arver lys farge fra select → uleselig. color-scheme + option-farger synker liste og tekst.
+ */
+select {
+  color-scheme: dark;
+}
+[data-theme='light'] select {
+  color-scheme: light;
+}
+
+select option,
+select optgroup {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+}
+
+[data-theme='light'] .footer-link {
+  color: var(--text-body);
+}
+
+[data-theme='light'] .footer-link:hover {
+  color: var(--color-accent);
+}
+
+/* Fysisk tilrettelegging – infoboks lesbar i begge temaer */
+.physical-access-info-title {
+  color: var(--color-sky-blue);
+}
+
+[data-theme='light'] .physical-access-info {
+  background: rgba(3, 105, 161, 0.08);
+  border-color: rgba(3, 105, 161, 0.22);
+  color: var(--text-body);
+}
+
+[data-theme='light'] .physical-access-info-title {
+  color: var(--color-accent);
+}
+
+.footer-brand-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  overflow: visible;
+}
+
+.footer-developed-credit {
+  margin: 0 0 var(--space-5);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: center;
+  width: 100%;
+}
+
+.footer-logos-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  /* Luft mellom logoene (litt videre enn forrige steg) */
+  gap: clamp(1.75rem, 5.5vw, 3.25rem);
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow: visible;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 3fr 1fr 1fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.footer-logo-container {
+  background: transparent;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/**
+ * Partnerlogoer: samme høyde, bredde følger bilde (unngår enorm tom avstand ved 50/50-flex).
+ * Nav-PNG har mer luft i filen enn Gamechanging — skaleres opp med egen modifikator.
+ */
+.footer-logo-container.footer-partner-logo-slot {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  height: 110px;
+  max-width: min(360px, 48vw);
+}
+
+.footer-logo-container.footer-partner-logo-slot--nav {
+  overflow: visible;
+}
+
+.footer-logo-container.footer-partner-logo-slot--nav img {
+  transform: scale(1.38);
+  transform-origin: center center;
+}
+
+.footer-logo-container img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.footer-logo-container.footer-partner-logo-slot img {
+  max-width: min(360px, 48vw);
+}
+
+.footer-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.footer-link:hover {
+  color: var(--color-sky-blue);
+}
+
+.footer-section h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+  .footer-logo-container {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-logos-row {
+    gap: clamp(1.1rem, 4.25vw, 2.25rem);
+  }
+
+  .footer-logo-container.footer-partner-logo-slot {
+    height: 96px;
+    max-width: min(300px, 46vw);
+  }
+
+  .footer-logo-container.footer-partner-logo-slot img {
+    max-width: min(300px, 46vw);
+  }
+
+  .footer-logo-container.footer-partner-logo-slot--nav img {
+    transform: scale(1.28);
+  }
+}
+
+/* Utilities */
+.grid-portal {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: var(--space-5);
+}
+
+/* Forside: hero øverst; kort sentrert i rommet ned til bunn av første skjerm (footer under scroll) */
+.home-landing {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-top: clamp(1.25rem, 4vmin, 2.75rem);
+  padding-bottom: var(--space-6);
+}
+
+.home-landing-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  align-items: stretch;
+}
+
+.home-landing .hero-section {
+  text-align: left;
+  width: 100%;
+  /* Samme maksbredde som .grid-portal — hero og kort (Logg inn) deler vertikal linje */
+  max-width: min(100%, 56rem);
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 0;
+  padding-top: clamp(var(--space-4), 2.5dvh, var(--space-6));
+  padding-bottom: clamp(var(--space-2), 1.5dvh, var(--space-4));
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.home-landing .hero-title {
+  margin-bottom: var(--space-4);
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.5rem, 3.4vw + 0.55rem, 2.95rem) !important;
+}
+
+.home-landing .hero-lead {
+  margin: 0;
+  max-width: none;
+  color: var(--text-body);
+  line-height: 1.5;
+  font-size: clamp(0.92rem, 1.15vw + 0.72rem, 1.15rem);
+}
+
+.home-landing .grid-portal {
+  width: 100%;
+  max-width: 56rem;
+  min-width: 0;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0;
+  gap: var(--space-4);
+}
+
+/* Vertikal senter i området under hero (ned mot bunn av første skjerm) */
+.home-landing-layout .grid-portal {
+  align-self: center;
+}
+
+.home-landing .grid-portal > * {
+  min-width: 0;
+}
+
+.home-landing .portal-card h2 {
+  text-align: center;
+}
+
+.home-landing .portal-card > div:first-child {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 768px) {
+  .home-landing {
+    padding-top: clamp(1.5rem, 5dvh, 3.25rem);
+    padding-bottom: var(--space-8);
+  }
+
+  .home-landing .hero-section {
+    padding-top: clamp(var(--space-5), 3dvh, var(--space-6));
+  }
+
+  .home-landing .grid-portal {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Lave vinduer: fortsatt litt luft øverst; ikke lim alt til kanten */
+@media (max-height: 780px) {
+  .home-landing {
+    padding-top: clamp(1.5rem, 5dvh, 3rem);
+    padding-bottom: var(--space-5);
+  }
+
+  .home-landing .hero-section {
+    padding-top: clamp(var(--space-4), 2dvh, var(--space-5));
+    padding-bottom: var(--space-2);
+  }
+
+  .home-landing .hero-title {
+    margin-bottom: var(--space-3);
+    font-size: clamp(1.4rem, 3.2vw, 2.5rem) !important;
+  }
+
+  .home-landing .hero-lead {
+    line-height: 1.45;
+    font-size: 0.96rem;
+  }
+
+}
+
+@media (max-width: 480px) {
+  .home-landing .portal-card.card {
+    padding: var(--space-4);
+  }
+}
+
+/* Tittel/ingress øverst på enkeltsider: sentrert fra tablet; venstre på smal skjerm */
+.page-hero {
+  margin-bottom: var(--space-8);
+}
+
+.page-hero-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .page-hero {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid-portal,
+  .home-landing .grid-portal {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-6);
+    padding-left: max(var(--space-3), env(safe-area-inset-left));
+    padding-right: max(var(--space-3), env(safe-area-inset-right));
+  }
+}
+
+@media (max-width: 768px) {
+  .trust-section {
+    padding: var(--space-4) !important;
+    margin-top: var(--space-6) !important;
+    grid-template-columns: 1fr !important;
+    gap: var(--space-6) !important;
+  }
+}
+
+.form-section {
+  background: var(--bg-card);
+  padding: var(--space-6);
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 1024px) {
+  /* h1/h2/h3/p bruker nå clamp() — ingen rigid breakpoint-override trengs. */
+  .grid-portal {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Typografi skaleres via clamp() — beholder kun layout-breakpoints her. */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Typografi skaleres via clamp() — breakpoints her gjelder kun touch-targets. */
+  .button {
+    min-height: var(--touch-target);
+    padding: var(--space-3) var(--space-4);
+  }
+}
+
+/**
+ * Thumb-zone utilities — plasserer primær-CTA i nedre del av skjermen på mobil,
+ * slik at tommelen rekker uten å strekke seg. Lower 40% = "Natural Green Zone".
+ *
+ * Bruk:
+ *   <form class="thumb-zone-form">
+ *     <div class="thumb-zone-form-body">…input-felter…</div>
+ *     <div class="thumb-zone-cta">
+ *       <button class="button">Primær handling</button>
+ *     </div>
+ *   </form>
+ *
+ * På desktop: normal flow. På mobil: CTA "synker" til bunnen med safe-area.
+ */
+.thumb-zone-cta {
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+}
+
+@media (max-width: 640px) {
+  .thumb-zone-form {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+  }
+  .thumb-zone-form-body {
+    flex: 1 1 auto;
+  }
+  .thumb-zone-cta {
+    margin-top: auto;
+    padding-top: var(--space-4);
+  }
+}
+
+/**
+ * Primær CTA-rad for skjemaer (register/login/handover/submit-flater).
+ * Desktop: høyre-aligned (ikonisk "next/continue"-posisjon). Mobil: full-bredde
+ * knapp med safe-area-padding, slik at tommelen treffer uten å strekke seg og
+ * iOS Home-indikator-området ikke overlapper knappen.
+ *
+ * Bruk:
+ *   <div class="form-primary-cta-row">
+ *     <button type="submit" class="button">Send inn</button>
+ *   </div>
+ */
+.form-primary-cta-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+}
+
+@media (max-width: 640px) {
+  .form-primary-cta-row {
+    justify-content: stretch;
+    flex-direction: column-reverse;
+  }
+  .form-primary-cta-row > * {
+    width: 100%;
+    min-height: var(--touch-target);
+  }
+}
+
+/** Sticky CTA-footer (f.eks. i lange skjemaer) — klistres til bunnen over tastaturet ikke er åpent. */
+.sticky-cta-footer {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to top, var(--bg-app) 70%, transparent);
+  padding: var(--space-3) var(--space-4)
+    max(var(--space-4), calc(env(safe-area-inset-bottom) + var(--space-2)));
+  z-index: 5;
+}
+
+/* Map: ingen fokusramme (orange) på markører */
+.map-view-container .leaflet-marker-icon,
+.map-view-container .leaflet-marker-icon:focus,
+.map-view-container .leaflet-div-icon,
+.map-view-container .leaflet-div-icon:focus {
+  outline: none !important;
+  border: none !important;
+}
+.map-view-container .leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Map: responsive height on mobile */
+@media (max-width: 768px) {
+  .map-view-container {
+    height: min(500px, 60vh) !important;
+    min-height: 280px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-view-container {
+    height: min(400px, 55vh) !important;
+    min-height: 250px !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* Portal cards: better mobile layout and touch targets */
+@media (max-width: 480px) {
+  .grid-portal.portal-split {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+  .portal-card .portal-cta {
+    min-height: var(--touch-target) !important;
+    font-size: 1rem;
+  }
+  .role-prompt {
+    font-size: 0.85rem !important;
+    margin-bottom: var(--space-6) !important;
+  }
+}
+
+/* Mobile utility classes */
+.tabs-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Fast bunn-navigasjon (kommune/utleier): unngå at innhold skjules bak faner */
+body {
+  --mobile-bottom-nav-total: 0px;
+}
+
+@media (max-width: 768px) {
+  body.mobile-bottom-nav-active {
+    --mobile-bottom-nav-total: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.mobile-bottom-nav-active .site-main {
+    padding-bottom: var(--mobile-bottom-nav-total);
+  }
+}
+
+/* Touch-friendly icon buttons (use on mobile) */
+@media (max-width: 768px) {
+  .db-view-btns button,
+  .db-action-btns button {
+    min-height: var(--touch-target) !important;
+    min-width: var(--touch-target) !important;
+    padding: var(--space-2) !important;
+  }
+}
+
+/* Utleier nav: korte labels på små skjermer */
+.hm-nav-label-short {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .hm-nav-label-long {
+    display: none !important;
+  }
+  .hm-nav-label-short {
+    display: inline !important;
+  }
+}
+
+/* Utleier oversikt: filterpanel — mykere mot hav-bakgrunn, ikke «svart blokk» */
+.hm-filters-row {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.hm-filters-panel {
+  background: color-mix(in srgb, var(--bg-card) 62%, transparent) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.24) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='light'] .hm-filters-panel {
+  background: color-mix(in srgb, #ffffff 88%, rgba(248, 250, 252, 0.55)) !important;
+  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+}
+
+.hm-filters-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Utleier Mine boliger: mobilvennlig layout */
+@media (max-width: 900px) {
+  /* `minmax(0, 1fr)` (ikke bare `1fr`) — uten 0-min vil grid-itemet
+     vokse til min-content av barna sine; lange knapper/kort dytter
+     da sporet bredere enn containeren og forårsaker høyre-kapping. */
+  .hm-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .hm-sidebar {
+    order: -1;
+  }
+  .hm-nav-card {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: var(--space-2) !important;
+    padding: var(--space-2) !important;
+  }
+  .hm-nav-card button,
+  .hm-nav-card a,
+  .hm-nav-card div {
+    flex: 1 1 auto !important;
+    min-width: fit-content !important;
+  }
+}
+
+/**
+ * P2-2: På ≤768px er MobileBottomNav aktiv (Home/Meldinger/Varsler/Mer) og
+ * hamburger-drawer håndterer resten. Sidebar-navigasjonen på manage-siden
+ * dupliserer de samme lenkene og stjeler thumb-zone over folden. Skjules.
+ */
+@media (max-width: 768px) {
+  .hm-sidebar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .hm-header-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--space-4) !important;
+  }
+  .hm-header-row .nav-link {
+    margin-left: 0 !important;
+  }
+  .hm-header-row a.button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .hm-filters-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    position: sticky;
+    top: var(--site-header-estimate, 5.5rem);
+    z-index: 40;
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+    padding-left: var(--space-2) !important;
+    padding-right: var(--space-2) !important;
+    margin-top: calc(-1 * var(--space-2));
+    /* Mobil: lett glass-overflate i stedet for kompakt mørk «boks». */
+    border-radius: 14px !important;
+    background: color-mix(in srgb, var(--bg-card) 30%, transparent) !important;
+    border: 1px solid rgba(148, 163, 184, 0.15) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18) !important;
+  }
+  [data-theme='light'] .hm-filters-row {
+    background: color-mix(in srgb, #ffffff 78%, transparent) !important;
+    border-color: rgba(15, 23, 42, 0.08) !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06) !important;
+  }
+  .hm-filters-buttons {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 2px 6px;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-2);
+    /* `min-width: 0` så div-en kan krympe under min-content av barna;
+       uten dette beholder den «Alle..Formidlet» som en udelelig boks
+       og dytter høyre kant forbi viewport på trange skjermer (320px). */
+    min-width: 0;
+    max-width: 100%;
+    /* Skjul scrollbar — chip-listen scroller fortsatt med touch/wheel,
+       men uten en stygg grå linje under chipsene på mobil. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    /* Glatt avtoning ved kantene så «Utilgjengelig»/«Formidlet» ikke ser
+       kuttet ut når listen scroller — antyder mer innhold til høyre. */
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 12px,
+      #000 calc(100% - 16px),
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 12px,
+      #000 calc(100% - 16px),
+      transparent 100%
+    );
+  }
+  .hm-filters-buttons::-webkit-scrollbar {
+    display: none;
+  }
+  .hm-filters-buttons button {
+    flex-shrink: 0;
+  }
+  @media (max-width: 400px) {
+    .hm-filters-buttons button {
+      padding: 6px 10px !important;
+      font-size: 0.78rem !important;
+    }
+  }
+  /* Utleier oversikt: unngå horisontal avkapping (100vw + padding, lange titler) */
+  main.container.hm-manage-page {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .hm-listing-card .hm-listing-title-row {
+    min-width: 0;
+    flex-wrap: wrap !important;
+    row-gap: 6px;
+  }
+  .hm-listing-card .hm-listing-title-block {
+    min-width: 0;
+    flex: 1 1 12rem;
+  }
+  .hm-listing-card .hm-listing-title-block h3 {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .hm-filters-row > div:last-child {
+    text-align: center;
+    padding-top: var(--space-2);
+    margin-top: var(--space-1);
+    border-top: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+    align-self: stretch;
+  }
+  .hm-listing-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .hm-listing-row > div:first-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  .hm-listing-row > div:first-child > div:first-child {
+    width: 100% !important;
+    height: 120px !important;
+    max-width: 100%;
+  }
+  .hm-listing-row > div:last-child {
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+  }
+  .hm-listing-row .hm-divider {
+    display: none;
+  }
+  .hm-listing-card .button,
+  .hm-listing-card button {
+    min-height: var(--touch-target) !important;
+  }
+  .hm-add-period-row {
+    flex-direction: column !important;
+  }
+  .hm-add-period-row > div {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100%;
+  }
+  .hm-period-item {
+    align-items: flex-start !important;
+  }
+  .hm-period-dates {
+    flex: 1 1 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.4;
+  }
+}
+
+@media (max-width: 480px) {
+  .hm-layout {
+    gap: var(--space-4) !important;
+  }
+  .hm-nav-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+  }
+  .hm-nav-card button,
+  .hm-nav-card a,
+  .hm-nav-card > div {
+    white-space: nowrap !important;
+    padding: var(--space-2) var(--space-3) !important;
+  }
+  .hm-btn-label {
+    display: inline;
+  }
+  .hm-listing-row > div:last-child {
+    gap: var(--space-2) !important;
+  }
+  .hm-listing-card {
+    padding: var(--space-3) var(--space-4) !important;
+  }
+  .hm-history-filters {
+    flex-direction: column !important;
+  }
+  .hm-history-filters input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
+/* Registrer ny bolig: mobilvennlig layout */
+@media (max-width: 1024px) {
+  .register-form-columns {
+    grid-template-columns: 1fr !important;
+  }
+  .register-form-sidebar {
+    position: static !important;
+  }
+  .register-form-footer {
+    position: static !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .register-form .form-section {
+    padding: var(--space-4) !important;
+  }
+  .floor-detail-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .image-previews-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-form h1 {
+    font-size: 1.75rem !important;
+  }
+  .register-form .form-section {
+    padding: var(--space-3) !important;
+  }
+  .floor-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .image-previews-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .register-form-footer {
+    padding: var(--space-4) var(--space-3) !important;
+    margin-top: var(--space-2) !important;
+  }
+  .register-form-footer button[type='submit'] {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* Hero section: less padding on mobile */
+.tabs-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .hm-layout {
+    /* `minmax(0, 1fr)` (ikke bare `1fr`): uten 0-min vil grid-itemet
+       vokse til min-content av barna, så lange kort/knapper dytter
+       sporet bredere enn containeren og høyre-kapper innholdet. */
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .hm-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  /* Nav -> bruker-profil: standard layout er 1.5fr/1fr (innhold + chat-aside),
+     men på mobil dytter to-spalters grid + Chat-asiden hele innholdet utenfor
+     viewporten. Stack til én kolonne så navn, badges, boliglister og
+     endringshistorikk får hele bredden. */
+  .user-profile-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  /* Avatar (80px) + langt navn på 320px-skjerm sprenger raden. La header
+     wrappe så navnet og badges flyter under avataren ved trange skjermer. */
+  .user-profile-header {
+    flex-wrap: wrap;
+  }
+  /* Boligrad: høyre kolonne har fast `width: 176px` for «Se bolig» +
+     «Slett bolig»-knappene. På 320–390px-skjermer spiser den nesten alt
+     og dytter «by • boligtype»-teksten ut. Stack vertikalt på mobil. */
+  .user-profile-listing-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .user-profile-listing-actions {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hm-btn-label {
+    display: none;
+  }
+  .hm-listing-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .hm-listing-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .hm-add-period-row > div {
+    flex: 1 1 100% !important;
+    min-width: 0;
+  }
+}
+
+.login-page .card {
+  margin: var(--space-2);
+}
+
+.login-page .login-card {
+  transform: none;
+}
+.login-page .login-card:hover {
+  transform: none;
+}
+
+.login-page .login-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.login-page .login-input {
+  background: var(--bg-app) !important;
+  border-color: var(--border-medium);
+}
+[data-theme='light'] .login-page .login-input {
+  background: #fff !important;
+  border-color: var(--border-subtle);
+}
+
+/* Listing details: bildegalleri tomtilstand */
+.listing-image-gallery--empty {
+  border: 1px solid var(--border-subtle);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='light'] .listing-image-gallery--empty {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.listing-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  text-align: center;
+  padding: var(--space-8) var(--space-6);
+  box-sizing: border-box;
+  cursor: default;
+  background:
+    radial-gradient(
+      ellipse 115% 75% at 50% -5%,
+      color-mix(in srgb, var(--color-teal) 16%, transparent),
+      transparent 58%
+    ),
+    linear-gradient(
+      168deg,
+      color-mix(in srgb, var(--bg-card) 88%, var(--text-main) 4%) 0%,
+      var(--bg-app) 100%
+    );
+}
+
+.listing-image-placeholder--clickable {
+  cursor: pointer;
+  transition:
+    box-shadow 0.22s ease,
+    transform 0.22s ease,
+    background 0.22s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listing-image-placeholder--clickable {
+    transition: none;
+  }
+}
+
+.listing-image-placeholder--clickable:hover {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-teal) 38%, var(--border-subtle)),
+    0 12px 40px color-mix(in srgb, var(--color-teal) 12%, transparent);
+}
+
+.listing-image-placeholder--clickable:active {
+  transform: scale(0.996);
+}
+
+.listing-image-placeholder-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-app) 72%, var(--color-teal) 28%);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 75%, var(--color-teal) 25%);
+  color: var(--color-teal);
+}
+
+.listing-image-placeholder-icon {
+  flex-shrink: 0;
+  opacity: 0.92;
+}
+
+.listing-image-placeholder-title {
+  font-size: clamp(1.05rem, 2.8vw, 1.35rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  max-width: 28rem;
+  line-height: 1.3;
+}
+
+.listing-image-placeholder-hint {
+  font-size: clamp(0.85rem, 2vw, 0.95rem);
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 24rem;
+}
+
+@media (max-width: 480px) {
+  .listing-image-placeholder {
+    padding: var(--space-6) var(--space-4);
+    gap: var(--space-3);
+  }
+
+  .listing-image-placeholder-icon-wrap {
+    width: 3.75rem;
+    height: 3.75rem;
+    border-radius: 14px;
+  }
+}
+
+/* Listing details: stack columns on mobile */
+.listing-details-grid > div {
+  min-width: 0;
+}
+
+.listing-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.listing-detail-two-col {
+  display: grid;
+  gap: var(--space-8);
+  grid-template-columns: 1fr 1fr;
+}
+
+.listing-detail-two-col > div {
+  min-width: 0;
+}
+
+.listing-availability-item {
+  min-width: 0;
+}
+
+.listing-availability-dates {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.listing-availability-status {
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.listing-availability-cal-inner {
+  max-width: min(340px, 100%);
+  box-sizing: border-box;
+}
+
+.listing-sidebar-formidlet-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+}
+
+.listing-sidebar-formidlet-dates > * {
+  min-width: 0;
+}
+
+/* Formidling / modaler: to datoer side om side — minmax hindrer overflow fra kalenderknapp */
+.formidlet-date-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+}
+
+.formidlet-date-range > * {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .formidlet-date-range {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Nav: dato-rad med knapp — stable kolonner på smal skjerm */
+.listing-mediation-dates-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+}
+
+.listing-mediation-dates-row > .listing-mediation-date-field {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.listing-mediation-date-field > div,
+.hm-add-period-row > div > div {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .listing-mediation-dates-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .listing-mediation-dates-row > .listing-mediation-date-field {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .listing-mediation-dates-row > .listing-mediation-submit {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.listing-details-main {
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: clip;
+}
+
+.listing-details-grid {
+  min-width: 0;
+}
+
+.listing-details-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.listing-image-gallery {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.listing-details-back-link {
+  margin-left: -1rem;
+}
+
+@media (max-width: 600px) {
+  .listing-details-back-link {
+    margin-left: 0;
+  }
+}
+
+.listing-nav-price-card {
+  padding: var(--space-8);
+}
+
+@media (max-width: 768px) {
+  .listing-nav-price-card {
+    padding: var(--space-4) !important;
+  }
+
+  .listing-sidebar-formidlet-dates {
+    grid-template-columns: 1fr !important;
+  }
+
+  .listing-details-grid {
+    grid-template-columns: 1fr !important;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .listing-detail-two-col {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-6) !important;
+  }
+
+  .listing-metrics-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: var(--space-3) !important;
+  }
+
+  .listing-details-sticky-sidebar {
+    position: static !important;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  section.card.listing-detail-card {
+    padding: var(--space-4) !important;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .listing-detail-card p,
+  .listing-detail-card .text-sm {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .listing-details-main.container {
+    padding-left: max(var(--space-3), env(safe-area-inset-left)) !important;
+    padding-right: max(var(--space-3), env(safe-area-inset-right)) !important;
+  }
+
+  .listing-full-width-mobile-cta {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    justify-content: center !important;
+  }
+
+  /**
+   * P2-1: Mobil — løft bildegalleri til toppen av detaljsiden så primær-visuell
+   * info treffer "above-the-fold". Rekkefølgen på desktop beholdes (visuell
+   * hierarki: address → info → bilder til høyre/sist på stack).
+   */
+  .listing-image-gallery {
+    order: -1;
+    border-radius: 18px !important;
+  }
+  .listing-details-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  /* Signering: ikke fast høyde som stikker ut av skjerm på små telefoner */
+  .sign-terms-scroll {
+    height: min(450px, 58vh) !important;
+    max-height: 70dvh;
+  }
+}
+
+@media (max-width: 560px) {
+  .listing-availability-item {
+    flex-wrap: wrap !important;
+    row-gap: var(--space-2) !important;
+  }
+
+  .listing-availability-status {
+    margin-left: 0 !important;
+    flex-basis: auto;
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .listing-availability-delete {
+    margin-left: auto !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .listing-metrics-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Nav users: user cards mobile */
+@media (max-width: 600px) {
+  .user-card .user-card-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+  .user-card .user-card-meta {
+    flex-wrap: wrap;
+  }
+}
+
+@media (min-width: 769px) {
+  .hide-on-desktop {
+    display: none !important;
+  }
+}
+
+/* Header mobile: user menu full width in overlay */
+@media (max-width: 768px) {
+  .header-nav-mobile .user-menu-trigger {
+    width: 100%;
+  }
+  .header-nav-mobile .user-menu {
+    left: 0 !important;
+    right: auto !important;
+    min-width: 100% !important;
+    margin-top: var(--space-2);
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Unngå `animation-fill-mode: both` på hele main-innhold: det kan gi opacity:0 som
+   henger igjen etter klientnavigasjon (blank/hvit side). Valgfri, respekterer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  main > * {
+    animation: fadeInUp 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  main > * {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.animate-delay-1 {
+  animation-delay: 0.06s;
+}
+.animate-delay-2 {
+  animation-delay: 0.14s;
+}
+.animate-delay-3 {
+  animation-delay: 0.24s;
+}
+
+/* Fullskjerm rapport-overlay */
+@keyframes reportOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes reportPanelSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.report-fullscreen-overlay {
+  animation: reportOverlayFadeIn 0.14s ease-out;
+}
+.report-fullscreen-panel {
+  animation: reportPanelSlideIn 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Tidsfilter for overtakelsesrapporter – lesbar dropdown */
+.report-filter-option:not([data-selected='true']):hover {
+  background: rgba(51, 65, 85, 0.35) !important;
+}
+.report-filter-option[data-selected='true']:hover {
+  background: rgba(59, 130, 246, 0.3) !important;
+}
+[data-theme='light'] .report-filter-option:not([data-selected='true']):hover {
+  background: rgba(15, 23, 42, 0.08) !important;
+}
+[data-theme='light'] .report-filter-option[data-selected='true']:hover {
+  background: rgba(59, 130, 246, 0.25) !important;
+}

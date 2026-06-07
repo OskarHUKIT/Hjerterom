@@ -1,0 +1,10 @@
+node_modules
+.next
+out
+dist
+build
+coverage
+package-lock.json
+public
+*.min.js
+capacitor.config.ts
