@@ -57,6 +57,23 @@ INSERT INTO kommune_access_list (email, region) VALUES
 1. Kjør først: `supabase/scripts/fix_user_delete_cascade.sql` (hvis ikke allerede kjørt)
 2. Authentication → Users → Velg bruker → Delete
 
+**Merk:** Sletting i Authentication fjerner også `profiles`-raden (CASCADE). Slett **ikke** bare profilen i Table Editor — da blir brukeren usynlig i appen men kan fortsatt logge inn.
+
+### Bruker finnes i Authentication men ikke i profiles
+
+Kjør migrasjon `20260607170000_ensure_user_profile_backfill.sql` (eller `supabase db push`). Den backfiller manglende profiler og legger til RPC `ensure_own_profile()`. Etter deploy oppretter appen profil automatisk ved innlogging.
+
+Manuell backfill i SQL Editor:
+
+```sql
+select public.sync_profile_for_auth_user(u.id)
+from auth.users u
+left join public.profiles p on p.id = u.id
+where p.id is null;
+```
+
+*(Krever at migrasjonen er kjørt — funksjonen `sync_profile_for_auth_user` finnes da.)*
+
 ### Endre rolle (kommune / utleier)
 
 **Table Editor → profiles**

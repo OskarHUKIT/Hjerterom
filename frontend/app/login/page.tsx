@@ -13,6 +13,7 @@ import { getLandlordPostLoginHref } from '../lib/landlordNavGate'
 import { Button } from '../components/ui/Button'
 import { devWarn } from '@/app/lib/appLogger'
 import { resolveEmailSignUpOutcome } from '../lib/authSignUp'
+import { ensureOwnProfile } from '../lib/ensureProfile'
 
 const AUTH_NETWORK_MS = 25000
 
@@ -195,6 +196,7 @@ function LoginPageContent() {
           setMessage({ type: 'error', text: t('loginAuthNoResponse') })
           return
         }
+        await ensureOwnProfile(supabase)
         const { data: profile } = await withNetworkTimeout(
           supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
           AUTH_NETWORK_MS
@@ -219,6 +221,9 @@ function LoginPageContent() {
             data: { user: u },
           } = await withNetworkTimeout(supabase.auth.getUser(), AUTH_NETWORK_MS)
           user = u
+        }
+        if (user) {
+          await ensureOwnProfile(supabase)
         }
         if (redirectTo === '/' || !redirectTo) {
           const { data: profile } = user

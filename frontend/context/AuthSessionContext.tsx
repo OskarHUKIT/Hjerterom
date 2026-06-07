@@ -10,6 +10,7 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../app/lib/supabase'
+import { ensureOwnProfile } from '../app/lib/ensureProfile'
 import {
   establishRecoverySessionFromUrl,
   hasRecoveryTokenInUrl,
@@ -111,6 +112,10 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
           data: { session: s },
         } = await supabase.auth.getSession()
         if (cancelled) return
+        if (s?.user) {
+          await ensureOwnProfile(supabase)
+          if (cancelled) return
+        }
         setSession(s ?? null)
         setIsReady(true)
       } catch {
