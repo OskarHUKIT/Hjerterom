@@ -311,6 +311,10 @@ export const translations = {
     loginWithEmail: 'Logg inn med e-post',
     createWithEmail: 'Opprett konto med e-post',
     checkEmail: 'Sjekk e-posten din for bekreftelseslenke!',
+    checkEmailResent:
+      'Kontoen finnes allerede, men e-posten er ikke bekreftet. Vi har sendt en ny bekreftelseslenke.',
+    signUpEmailAlreadyRegistered:
+      'Denne e-postadressen er allerede registrert. Logg inn i stedet, eller bruk «Glemt passord» hvis du ikke husker passordet. Ble kontoen nylig slettet i Supabase, må e-posten være fullstendig fjernet før du kan registrere den på nytt.',
     loginEmailNotConfirmed:
       'Bekreft e-postadressen din via lenken vi sendte før du logger inn. Sjekk innboks og søppelpost.',
     backToProperties: '← Mine boliger',
@@ -1464,6 +1468,10 @@ export const translations = {
     loginWithEmail: 'Sisa e-poasttain',
     createWithEmail: 'Ráhkat kontu e-poasttain',
     checkEmail: 'Geahčal e-poasttadusat dovddus liŋkka!',
+    checkEmailResent:
+      'Kontu lea juo, muhto e-poasta ii leat dovddus. Mii sádde ođđa dovddusliŋkka.',
+    signUpEmailAlreadyRegistered:
+      'Dát e-poasta lea juo registrerejuvvon. Logge sisa, dahje geavat «Väldde sálti» jus it muitte sálti. Jus kontu lea aitto sihkkon Supabase:s, ferte e-poasta leat olles sihkkon ovdal go sáhtát registreret ođđasit.',
     loginEmailNotConfirmed:
       'Dovdde e-poastačujuhusa liŋkain maid sáddejin ovdal go sisa logget. Geahčal sisačujuhusa ja suohpánbáikái.',
     backToProperties: '← Mu dávvirat',
@@ -2602,6 +2610,10 @@ export const translations = {
     loginWithEmail: 'Log in with email',
     createWithEmail: 'Create account with email',
     checkEmail: 'Check your email for the confirmation link!',
+    checkEmailResent:
+      'An account already exists but the email is not confirmed. We sent a new confirmation link.',
+    signUpEmailAlreadyRegistered:
+      'This email is already registered. Sign in instead, or use “Forgot password” if you do not remember your password. If the account was recently deleted in Supabase, the email must be fully removed before you can register again.',
     loginEmailNotConfirmed:
       'Confirm your email using the link we sent before signing in. Check your inbox and spam folder.',
     backToProperties: '← My properties',

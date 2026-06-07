@@ -12,6 +12,7 @@ import { bolyLocaleToSignicatUi } from '../lib/signicatLocale'
 import { getLandlordPostLoginHref } from '../lib/landlordNavGate'
 import { Button } from '../components/ui/Button'
 import { devWarn } from '@/app/lib/appLogger'
+import { resolveEmailSignUpOutcome } from '../lib/authSignUp'
 
 const AUTH_NETWORK_MS = 25000
 
@@ -137,12 +138,13 @@ function LoginPageContent() {
 
     try {
       if (isSignUp) {
-        const { error } = await withNetworkTimeout(
+        const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent('/homeowner/register')}`
+        const { data, error } = await withNetworkTimeout(
           supabase.auth.signUp({
             email,
             password,
             options: {
-              emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/homeowner/register')}`,
+              emailRedirectTo,
               data: {
                 full_name: fullName.trim() || undefined,
                 contact_phone: contactPhone.trim() || undefined,
@@ -152,8 +154,56 @@ function LoginPageContent() {
           }),
           AUTH_NETWORK_MS
         )
-        if (error) throw error
-        setMessage({ type: 'success', text: t('checkEmail') })
+
+        const outcome = await resolveEmailSignUpOutcome(
+          supabase,
+          data,
+          error,
+          { email, password },
+          emailRedirectTo
+        )
+
+        if (outcome.kind === 'failed') {
+          throw Object.assign(new Error(outcome.message), { name: 'AuthError' })
+        }
+
+        if (outcome.kind === 'created_needs_confirm') {
+          setMessage({ type: 'success', text: t('checkEmail') })
+          return
+        }
+
+        if (outcome.kind === 'resend_confirmation') {
+          setMessage({ type: 'success', text: t('checkEmailResent') })
+          return
+        }
+
+        if (outcome.kind === 'email_taken') {
+          setIsSignUp(false)
+          setMessage({ type: 'error', text: t('signUpEmailAlreadyRegistered') })
+          return
+        }
+
+        // created_signed_in | signed_in_existing — same redirect as login
+        let user: SupabaseUser | null = data.user ?? null
+        if (outcome.kind === 'signed_in_existing') {
+          const {
+            data: { user: u },
+          } = await withNetworkTimeout(supabase.auth.getUser(), AUTH_NETWORK_MS)
+          user = u
+        }
+        if (!user) {
+          setMessage({ type: 'error', text: t('loginAuthNoResponse') })
+          return
+        }
+        const { data: profile } = await withNetworkTimeout(
+          supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+          AUTH_NETWORK_MS
+        )
+        const r = profile?.role ?? user.user_metadata?.role
+        const home = await getLandlordPostLoginHref(supabase, user.id, user.email, {
+          reuseProfileRole: r,
+        })
+        router.push(home)
       } else {
         const { data: signInData, error } = await withNetworkTimeout(
           supabase.auth.signInWithPassword({
