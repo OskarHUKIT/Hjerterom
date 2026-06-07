@@ -21,12 +21,6 @@ export async function fetchNotificationsList(qc: QueryClient): Promise<Notificat
   const gateProfile =
     gate?.kind === 'ready' && gate.user.id === user.id ? gate.profile : null
 
-  const notificationsQuery = supabase
-    .from('notifications')
-    .select('*')
-    .eq('owner_id', user.id)
-    .order('created_at', { ascending: false })
-
   const profileQuery =
     gateProfile != null
       ? Promise.resolve({
@@ -42,18 +36,21 @@ export async function fetchNotificationsList(qc: QueryClient): Promise<Notificat
           .eq('id', user.id)
           .maybeSingle()
 
-  const [{ data: profile, error: profileError }, { data, error }] = await Promise.all([
-    profileQuery,
-    notificationsQuery,
-  ])
+  const [{ data: profile, error: profileError }, { data: notifJson, error: notifError }] =
+    await Promise.all([
+      profileQuery,
+      supabase.rpc('list_my_notifications'),
+    ])
 
   if (profileError) throw profileError
-  if (error) throw error
+  if (notifError) throw notifError
+
+  const rows = Array.isArray(notifJson) ? notifJson : []
 
   return {
     userId: user.id,
     role: profile?.role || 'homeowner',
     emailNotificationsEnabled: profile?.email_notifications_enabled === true,
-    rows: data || [],
+    rows,
   }
 }

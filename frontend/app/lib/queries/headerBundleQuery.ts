@@ -33,11 +33,7 @@ export async function fetchHeaderBundle(
   const kommuneCanEdit = profileRes.data?.kommune_can_edit ?? null
   const hasSignedTerms = !!agreementRes.data
 
-  const unreadQuery = supabase
-    .from('notifications')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'unread')
-    .eq('owner_id', userId)
+  const unreadQuery = supabase.rpc('count_my_unread_notifications')
 
   const landlordHrefPromise =
     isKommuneStaffRole(userRole) || agreementRes.data
@@ -46,13 +42,18 @@ export async function fetchHeaderBundle(
           reuseProfileRole: userRole,
         })
 
-  const [{ count }, landlordBootstrapHref] = await Promise.all([unreadQuery, landlordHrefPromise])
+  const [{ data: unreadCountRaw, error: unreadError }, landlordBootstrapHref] = await Promise.all([
+    unreadQuery,
+    landlordHrefPromise,
+  ])
+
+  if (unreadError) throw unreadError
 
   return {
     role: userRole,
     kommuneCanEdit,
     hasSignedTerms,
     landlordBootstrapHref,
-    unreadCount: count ?? 0,
+    unreadCount: typeof unreadCountRaw === 'number' ? unreadCountRaw : 0,
   }
 }

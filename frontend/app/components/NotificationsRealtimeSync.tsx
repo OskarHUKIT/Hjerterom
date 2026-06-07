@@ -1,18 +1,39 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuthSession } from '../../context/AuthSessionContext'
 import { QK } from '../lib/queries/queryKeys'
+import { isKommuneStaffRole } from '../lib/kommuneRoles'
 
 /**
- * Når en kollega markerer varsel som lest/ulest, oppdateres alle rader med samme event_id
- * i databasen — denne lytter på UPDATE for innlogget brukers owner_id og refresher UI.
+ * Refresher varsel-liste og badge når:
+ * - nye varsler insertes for brukeren
+ * - delt kommune-hendelse (kommune_notification_events) oppdateres av kollega
  */
 export default function NotificationsRealtimeSync() {
   const queryClient = useQueryClient()
   const { user } = useAuthSession()
+  const [isKommuneStaff, setIsKommuneStaff] = useState(false)
+
+  useEffect(() => {
+    const userId = user?.id
+    if (!userId) {
+      setIsKommuneStaff(false)
+      return
+    }
+
+    let cancelled = false
+    void (async () => {
+      const { data } = await supabase.from('profiles').select('role').eq('id', userId).maybeSingle()
+      if (!cancelled) setIsKommuneStaff(isKommuneStaffRole(data?.role))
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id])
 
   useEffect(() => {
     const userId = user?.id
@@ -28,16 +49,6 @@ export default function NotificationsRealtimeSync() {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `owner_id=eq.${userId}`,
-        },
-        () => invalidate()
-      )
-      .on(
-        'postgres_changes',
-        {
           event: 'INSERT',
           schema: 'public',
           table: 'notifications',
@@ -45,12 +56,25 @@ export default function NotificationsRealtimeSync() {
         },
         () => invalidate()
       )
-      .subscribe()
+
+    if (isKommuneStaff) {
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'kommune_notification_events',
+        },
+        () => invalidate()
+      )
+    }
+
+    channel.subscribe()
 
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [user?.id, queryClient])
+  }, [user?.id, isKommuneStaff, queryClient])
 
   return null
 }

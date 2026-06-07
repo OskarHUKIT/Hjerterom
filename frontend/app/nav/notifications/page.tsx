@@ -116,7 +116,11 @@ export default function NavNotifications() {
     const isKommuneStaff = isKommuneStaffRole(role)
     const siblingIds = new Set(
       target && isKommuneStaff
-        ? kommuneNotificationSiblingIds(previous?.rows ?? [], target)
+        ? target.event_id
+          ? (previous?.rows ?? [])
+              .filter((n) => n.event_id === target.event_id)
+              .map((n) => n.id)
+          : kommuneNotificationSiblingIds(previous?.rows ?? [], target)
         : [id]
     )
     const resolvedAt = newStatus === 'completed' ? new Date().toISOString() : null
