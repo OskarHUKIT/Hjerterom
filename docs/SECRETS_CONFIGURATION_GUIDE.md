@@ -97,8 +97,9 @@ Repeat for any SMTP variables you use (see section 5).
 | `VAPID_PUBLIC_KEY` | `send-push` | Recommended (else default in code) |
 | `MAILJET_API_KEY` | `send-notification-email`, `notify-terms-central-review` | With `MAILJET_SECRET_KEY` for Mailjet REST API |
 | `MAILJET_SECRET_KEY` | `send-notification-email`, `notify-terms-central-review` | Mailjet **secret** (pair with API key in dashboard) |
-| `NOTIFICATION_FROM_EMAIL` or `SMTP_FROM` | `send-notification-email`, `notify-terms-central-review` | Verified sender address in Mailjet |
-| `SMTP_HOSTNAME`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_PORT`, `SMTP_SECURE` | `send-notification-email`, `notify-terms-central-review` | Optional: Mailjet SMTP instead of REST API |
+| `NOTIFICATION_FROM_EMAIL` or `SMTP_FROM` | `send-notification-email`, `notify-terms-central-review` | Verified sender (e.g. `notifikasjon@bolynorge.no`) |
+| `NOTIFICATION_MAILER` | `send-notification-email`, `notify-terms-central-review` | Optional: `smtp` (default when SMTP_* set) or `mailjet` |
+| `SMTP_HOSTNAME`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_PORT`, `SMTP_SECURE` | `send-notification-email`, `notify-terms-central-review` | **Use Google Workspace SMTP** (`smtp.gmail.com`) for Gmail inbox profile photo — same account as Supabase Auth Custom SMTP |
 | `CENTRAL_TERMS_INBOX` | `notify-terms-central-review` | Optional (default `info@bolynorge.no`) |
 | `NOTIFICATION_APP_BASE_URL` | `send-notification-email` | Optional (default production URL in code) |
 | `NOTIFICATION_FROM_NAME` | `send-notification-email` | Optional |
@@ -217,6 +218,8 @@ Deploy:
 `supabase functions deploy notify-terms-central-review --project-ref <PROJECT_REF>`
 
 If `MAILJET_*` is not set, the functions fall back to **SMTP** (section 5), e.g. Mailjet’s SMTP relay with `SMTP_HOSTNAME` = `in-v3.mailjet.com` and credentials from the same Mailjet account.
+
+**Gmail profile photo (Google Workspace):** Confirmation e-mail uses **Supabase Auth → Custom SMTP** (Google). Notification e-mail must use the **same path** or Gmail shows a blank avatar. Set Edge Function secrets `SMTP_HOSTNAME=smtp.gmail.com`, `SMTP_USERNAME=notifikasjon@yourdomain.no`, `SMTP_PASSWORD` = [Google app password](https://support.google.com/accounts/answer/185833), `NOTIFICATION_FROM_EMAIL` = same address. When both SMTP and Mailjet are configured, Boly **prefers SMTP** by default. Force Mailjet with `NOTIFICATION_MAILER=mailjet` if needed.
 
 ---
 

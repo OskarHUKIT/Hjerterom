@@ -1,10 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import nodemailer from "npm:nodemailer@6.9.10"
 import { buildCorsHeaders, handleCorsOptions } from "../_shared/cors.ts"
 import { edgeLog } from "../_shared/edgeLog.ts"
 import { recordPlatformEvent } from "../_shared/recordPlatformEvent.ts"
-import { mailjetApiConfigured, sendMailjetTransactional } from "../_shared/mailjetSend.ts"
+import {
+  resolveNotificationMailer,
+  sendViaNotificationMailer,
+} from "../_shared/notificationMailer.ts"
 import { notificationWebhookPayloadSchema } from "../_shared/webhookSchemas.ts"
 
 type NotificationRecord = {
@@ -465,21 +467,11 @@ serve(async (req) => {
       )
     }
 
-    const host = Deno.env.get("SMTP_HOSTNAME")
-    const smtpUser = Deno.env.get("SMTP_USERNAME")
-    const smtpPass = Deno.env.get("SMTP_PASSWORD")
-    /** Verified sender in Mailjet (domain + address). */
-    const fromAddr =
-      Deno.env.get("NOTIFICATION_FROM_EMAIL")?.trim() ||
-      Deno.env.get("SMTP_FROM")?.trim() ||
-      null
+    const mailer = resolveNotificationMailer()
 
-    const hasMailjet = mailjetApiConfigured() && !!fromAddr
-    const hasSmtp = !!(host && smtpUser && smtpPass && fromAddr)
-
-    if (!hasMailjet && !hasSmtp) {
+    if (!mailer) {
       console.warn(
-        "send-notification-email: set MAILJET_API_KEY + MAILJET_SECRET_KEY + NOTIFICATION_FROM_EMAIL (or SMTP_FROM), or full SMTP_* for Mailjet SMTP"
+        "send-notification-email: set SMTP_* (Google Workspace, same as Auth) or MAILJET_API_KEY + MAILJET_SECRET_KEY + NOTIFICATION_FROM_EMAIL"
       )
       await recordPlatformEvent(supabase, {
         severity: "warn",
@@ -550,46 +542,21 @@ serve(async (req) => {
       notifType: record.type,
     })
 
-    if (hasMailjet) {
-      await sendMailjetTransactional({
-        fromEmail: fromAddr!,
-        fromName,
-        toEmail: to,
-        subject: emailSubject,
-        textPart: textBody,
-        htmlPart: htmlBody,
-      })
-    } else {
-      const transport = nodemailer.createTransport({
-        host: host!,
-        port: Number(Deno.env.get("SMTP_PORT") ?? "587"),
-        secure: (Deno.env.get("SMTP_SECURE") ?? "false").toLowerCase() === "true",
-        requireTLS: (Deno.env.get("SMTP_SECURE") ?? "false").toLowerCase() !== "true" &&
-          Number(Deno.env.get("SMTP_PORT") ?? "587") === 587,
-        auth: { user: smtpUser!, pass: smtpPass! },
-      })
-
-      await new Promise<void>((resolve, reject) => {
-        transport.sendMail(
-          {
-            from: `"${fromName}" <${fromAddr}>`,
-            to,
-            subject: emailSubject,
-            text: textBody,
-            html: htmlBody,
-          },
-          (err: Error | null) => (err ? reject(err) : resolve())
-        )
-      })
-    }
+    const via = await sendViaNotificationMailer({
+      fromName,
+      toEmail: to,
+      subject: emailSubject,
+      textPart: textBody,
+      htmlPart: htmlBody,
+    })
 
     const masked = to.replace(/^(.{2}).+(@.+)$/, "$1***$2")
     console.log(
       "send-notification-email sent:",
-      JSON.stringify({ to: masked, via: hasMailjet ? "mailjet" : "smtp", locale: emailLocale })
+      JSON.stringify({ to: masked, via, locale: emailLocale })
     )
     return new Response(
-      JSON.stringify({ ok: true, sent: true, to: masked, via: hasMailjet ? "mailjet" : "smtp", locale: emailLocale }),
+      JSON.stringify({ ok: true, sent: true, to: masked, via, locale: emailLocale }),
       { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
     )
   } catch (err: unknown) {

@@ -1,11 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { z } from "https://esm.sh/zod@3.23.8"
-import nodemailer from "npm:nodemailer@6.9.10"
 import { assertAllowedBrowserOrigin, buildCorsHeaders, handleCorsOptions } from "../_shared/cors.ts"
 import { edgeLog } from "../_shared/edgeLog.ts"
 import { recordPlatformEvent } from "../_shared/recordPlatformEvent.ts"
-import { mailjetApiConfigured, sendMailjetTransactional } from "../_shared/mailjetSend.ts"
+import {
+  resolveNotificationMailer,
+  sendViaNotificationMailer,
+} from "../_shared/notificationMailer.ts"
 
 const bodySchema = z.object({
   terms_document_id: z.string().uuid(),
@@ -88,20 +90,11 @@ serve(async (req) => {
 
     const to =
       (Deno.env.get("CENTRAL_TERMS_INBOX") ?? "info@bolynorge.no").trim() || "info@bolynorge.no"
-    const host = Deno.env.get("SMTP_HOSTNAME")
-    const smtpUser = Deno.env.get("SMTP_USERNAME")
-    const smtpPass = Deno.env.get("SMTP_PASSWORD")
-    const fromAddr =
-      Deno.env.get("NOTIFICATION_FROM_EMAIL")?.trim() ||
-      Deno.env.get("SMTP_FROM")?.trim() ||
-      null
+    const mailer = resolveNotificationMailer()
 
-    const hasMailjet = mailjetApiConfigured() && !!fromAddr
-    const hasSmtp = !!(host && smtpUser && smtpPass && fromAddr)
-
-    if (!hasMailjet && !hasSmtp) {
+    if (!mailer) {
       console.warn(
-        "notify-terms-central-review: no mailer configured (MAILJET_API_KEY + MAILJET_SECRET_KEY + NOTIFICATION_FROM_EMAIL or SMTP_*)"
+        "notify-terms-central-review: no mailer configured (SMTP_* or MAILJET_* + NOTIFICATION_FROM_EMAIL)"
       )
       await recordPlatformEvent(supabase, {
         severity: "warn",
@@ -156,40 +149,16 @@ serve(async (req) => {
 <p>${escapeHtml(approveHint)}</p>
 <p>— Boly</p>`
 
-    if (hasMailjet) {
-      await sendMailjetTransactional({
-        fromEmail: fromAddr!,
-        fromName,
-        toEmail: to,
-        subject,
-        textPart: textBody,
-        htmlPart: htmlBody,
-      })
-    } else {
-      const transport = nodemailer.createTransport({
-        host: host!,
-        port: Number(Deno.env.get("SMTP_PORT") ?? "587"),
-        secure: (Deno.env.get("SMTP_SECURE") ?? "false").toLowerCase() === "true",
-        requireTLS: (Deno.env.get("SMTP_SECURE") ?? "false").toLowerCase() !== "true" &&
-          Number(Deno.env.get("SMTP_PORT") ?? "587") === 587,
-        auth: { user: smtpUser!, pass: smtpPass! },
-      })
-      await new Promise<void>((resolve, reject) => {
-        transport.sendMail(
-          {
-            from: `"${fromName}" <${fromAddr}>`,
-            to,
-            subject,
-            text: textBody,
-            html: htmlBody,
-          },
-          (err: Error | null) => (err ? reject(err) : resolve())
-        )
-      })
-    }
+    const via = await sendViaNotificationMailer({
+      fromName,
+      toEmail: to,
+      subject,
+      textPart: textBody,
+      htmlPart: htmlBody,
+    })
 
-    edgeLog("info", "notify-terms-central-review sent", { to, terms_document_id })
-    return new Response(JSON.stringify({ ok: true, sent: true }), {
+    edgeLog("info", "notify-terms-central-review sent", { to, terms_document_id, via })
+    return new Response(JSON.stringify({ ok: true, sent: true, via }), {
       headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" },
     })
   } catch (err: unknown) {
