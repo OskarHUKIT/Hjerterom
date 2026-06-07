@@ -224,9 +224,26 @@ a {
   min-height: calc(100svh - var(--site-header-estimate));
 }
 
+/* Operator routes: solid canvas — no scenic body overlay bleeding through */
+body:has(.site-main--ops)::before {
+  display: none;
+}
+
+body:has(.site-main--ops) {
+  background-color: #0f172a;
+}
+
+[data-theme='light'] body:has(.site-main--ops) {
+  background-color: #e2e8f0;
+}
+
 .site-main--ops {
   min-height: 100dvh;
+  padding: 0;
+  max-width: none;
   flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Forside: fyll site-main slik at kort kan sentreres vertikalt mot fold (footer under scroll) */
