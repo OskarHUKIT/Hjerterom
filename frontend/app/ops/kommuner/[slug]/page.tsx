@@ -18,6 +18,7 @@ import {
   type OpsKommuneDetail,
   type OpsRegionMismatch,
 } from '../../../lib/opsApi'
+import { opsHealthKey, opsKommuneStatusKey } from '../../../lib/opsLabels'
 
 type Tab = 'overview' | 'people' | 'access' | 'terms' | 'compliance' | 'regions' | 'activity'
 
@@ -146,9 +147,9 @@ export default function OpsKommuneDetailPage() {
         <div>
           <h1 className="ops-page-title">{k.display_name}</h1>
           <p className="ops-page-lead" style={{ marginBottom: 'var(--space-2)' }}>
-            {t(`opsKommuneStatus_${k.status}`)} · {k.slug}
+            {t(opsKommuneStatusKey(k.status))} · {k.slug}
           </p>
-          <span className={`ops-health-pill ${healthClass(h.health)}`}>{t(`opsHealth_${h.health}`)}</span>
+          <span className={`ops-health-pill ${healthClass(h.health)}`}>{t(opsHealthKey(h.health))}</span>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
           {k.status !== 'active' ? (

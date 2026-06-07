@@ -8,6 +8,7 @@ import OpsGdprBanner from '../components/OpsGdprBanner'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { Button } from '../../components/ui/Button'
 import { opsListKommuner, type OpsKommuneListItem } from '../../lib/opsApi'
+import { opsHealthKey, opsKommuneStatusKey } from '../../lib/opsLabels'
 
 function healthClass(h: string) {
   if (h === 'green') return 'ops-health-pill--green'
@@ -81,10 +82,10 @@ export default function OpsKommunerPage() {
                         {k.display_name}
                       </Link>
                     </td>
-                    <td>{t(`opsKommuneStatus_${k.status}`)}</td>
+                    <td>{t(opsKommuneStatusKey(k.status))}</td>
                     <td>
                       <span className={`ops-health-pill ${healthClass(k.health_metrics?.health ?? 'red')}`}>
-                        {t(`opsHealth_${k.health_metrics?.health ?? 'red'}`)}
+                        {t(opsHealthKey(k.health_metrics?.health ?? 'red'))}
                       </span>
                     </td>
                     <td>{k.health_metrics?.staff_count ?? 0}</td>
@@ -102,11 +103,11 @@ export default function OpsKommunerPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
                   <p className="ops-list-card-title">{k.display_name}</p>
                   <span className={`ops-health-pill ${healthClass(k.health_metrics?.health ?? 'red')}`}>
-                    {t(`opsHealth_${k.health_metrics?.health ?? 'red'}`)}
+                    {t(opsHealthKey(k.health_metrics?.health ?? 'red'))}
                   </span>
                 </div>
                 <p className="ops-meta">
-                  {t(`opsKommuneStatus_${k.status}`)} · {k.health_metrics?.staff_count ?? 0} {t('opsKommuneStaff').toLowerCase()} · {k.health_metrics?.listings_matched ?? 0} {t('opsKommuneListings').toLowerCase()}
+                  {t(opsKommuneStatusKey(k.status))} · {k.health_metrics?.staff_count ?? 0} {t('opsKommuneStaff').toLowerCase()} · {k.health_metrics?.listings_matched ?? 0} {t('opsKommuneListings').toLowerCase()}
                 </p>
               </Link>
             ))}
