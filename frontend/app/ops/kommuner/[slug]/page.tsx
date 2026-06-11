@@ -42,6 +42,7 @@ export default function OpsKommuneDetailPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [whitelistRaw, setWhitelistRaw] = useState('')
+  const [inviteViewOnly, setInviteViewOnly] = useState(false)
   const [dpoEmail, setDpoEmail] = useState('')
   const [dpoName, setDpoName] = useState('')
   const [dpoPhone, setDpoPhone] = useState('')
@@ -93,7 +94,7 @@ export default function OpsKommuneDetailPage() {
     setBusy(true)
     setError(null)
     try {
-      await opsBulkInvite([detail.kommune.id], emails)
+      await opsBulkInvite([detail.kommune.id], emails, 'staff', !inviteViewOnly)
       setWhitelistRaw('')
       await load()
     } catch (e) {
@@ -268,6 +269,23 @@ export default function OpsKommuneDetailPage() {
                 onChange={(e) => setWhitelistRaw(e.target.value)}
                 placeholder="email@kommune.no"
               />
+              <label
+                className="ops-field"
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexDirection: 'row' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={inviteViewOnly}
+                  onChange={(e) => setInviteViewOnly(e.target.checked)}
+                  style={{ marginTop: 2 }}
+                />
+                <span>
+                  <strong>{t('opsViewOnlyAccess')}</strong>
+                  <span className="ops-meta" style={{ display: 'block', marginTop: 4 }}>
+                    {t('opsViewOnlyAccessHint')}
+                  </span>
+                </span>
+              </label>
               <div className="ops-inline-actions">
                 <Button variant="primary" disabled={busy} onClick={() => void addWhitelist()}>
                   {t('opsAddWhitelist')}
@@ -282,6 +300,15 @@ export default function OpsKommuneDetailPage() {
               rows={detail.whitelist}
               columns={[
                 { key: 'email', header: t('opsEmail'), render: (w) => w.email },
+                {
+                  key: 'access',
+                  header: t('opsAccessLevel'),
+                  render: (w) => (
+                    <OpsBadge tone={w.can_edit ? 'info' : 'neutral'}>
+                      {w.can_edit ? t('opsGrantCanEdit') : t('opsViewOnlyAccess')}
+                    </OpsBadge>
+                  ),
+                },
                 {
                   key: 'status',
                   header: t('opsStatus'),

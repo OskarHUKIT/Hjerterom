@@ -69,6 +69,7 @@ export type OpsUserDetail = {
     id: string
     email: string
     region: string
+    can_edit: boolean
     is_active: boolean
     notes: string | null
   }[]
@@ -307,6 +308,7 @@ export type OpsKommuneDetail = {
     id: string
     email: string
     region: string
+    can_edit: boolean
     is_active: boolean
     notes: string | null
     created_at: string

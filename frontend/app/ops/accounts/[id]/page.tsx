@@ -47,6 +47,7 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
   const [grantDraft, setGrantDraft] = useState<Record<string, GrantDraft>>({})
   const [inviteKommuneId, setInviteKommuneId] = useState('')
   const [inviteNotes, setInviteNotes] = useState('')
+  const [inviteViewOnly, setInviteViewOnly] = useState(false)
 
   const activeKommuner = useMemo(
     () => kommuner.filter((k) => k.status !== 'suspended'),
@@ -121,9 +122,16 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
     setSaving(true)
     setMessage(null)
     try {
-      await opsBulkInvite([inviteKommuneId], [user.email_full], 'staff', canEdit, inviteNotes.trim() || null)
+      await opsBulkInvite(
+        [inviteKommuneId],
+        [user.email_full],
+        'staff',
+        !inviteViewOnly,
+        inviteNotes.trim() || null
+      )
       setMessageTone('success')
       setMessage(t('opsWhitelistSaved'))
+      setUser(await opsGetUserDetail(id))
     } catch (e) {
       setMessageTone('error')
       setMessage(e instanceof Error ? e.message : t('pageLoadStuck'))
@@ -377,6 +385,29 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
             {t('opsNoteOptional')}
             <input className="ops-input" value={inviteNotes} onChange={(e) => setInviteNotes(e.target.value)} />
           </label>
+          <label
+            className="ops-field"
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 8,
+              flexDirection: 'row',
+              gridColumn: '1 / -1',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={inviteViewOnly}
+              onChange={(e) => setInviteViewOnly(e.target.checked)}
+              style={{ marginTop: 2 }}
+            />
+            <span>
+              <strong>{t('opsViewOnlyAccess')}</strong>
+              <span className="ops-meta" style={{ display: 'block', marginTop: 4 }}>
+                {t('opsViewOnlyAccessHint')}
+              </span>
+            </span>
+          </label>
           <Button variant="secondary" disabled={saving} onClick={() => void saveInvite()}>
             {t('opsAddInvite')}
           </Button>
@@ -387,6 +418,7 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
               <thead>
                 <tr>
                   <th>{t('opsRegion')}</th>
+                  <th>{t('opsAccessLevel')}</th>
                   <th>{t('opsStatus')}</th>
                 </tr>
               </thead>
@@ -394,6 +426,11 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
                 {user.whitelist_entries.map((w) => (
                   <tr key={w.id}>
                     <td>{w.region}</td>
+                    <td>
+                      <OpsBadge tone={w.can_edit ? 'info' : 'neutral'}>
+                        {w.can_edit ? t('opsGrantCanEdit') : t('opsViewOnlyAccess')}
+                      </OpsBadge>
+                    </td>
                     <td>
                       <OpsBadge tone={w.is_active ? 'success' : 'neutral'}>
                         {w.is_active ? t('opsActive') : t('opsInactive')}

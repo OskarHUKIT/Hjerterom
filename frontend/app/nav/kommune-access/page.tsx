@@ -36,6 +36,7 @@ export default function KommuneAccessPage() {
   const [kommuneCanEdit, setKommuneCanEdit] = useState(false)
   const [newEmail, setNewEmail] = useState('')
   const [newKommuneId, setNewKommuneId] = useState('')
+  const [newViewOnly, setNewViewOnly] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -98,7 +99,7 @@ export default function KommuneAccessPage() {
     const { error: err } = await supabase.rpc('kommune_upsert_invitation', {
       p_email: newEmail.trim(),
       p_kommune_id: newKommuneId,
-      p_can_edit: true,
+      p_can_edit: !newViewOnly,
       p_notes: null,
     })
     if (err) {
@@ -231,6 +232,28 @@ export default function KommuneAccessPage() {
               ))}
             </select>
           </div>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 8,
+              gridColumn: '1 / -1',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={newViewOnly}
+              onChange={(e) => setNewViewOnly(e.target.checked)}
+              style={{ marginTop: 4 }}
+            />
+            <span style={{ fontSize: '0.9rem' }}>
+              {t('opsViewOnlyAccess')}
+              <span style={{ display: 'block', opacity: 0.75, fontSize: '0.85rem' }}>
+                {t('opsViewOnlyAccessHint')}
+              </span>
+            </span>
+          </label>
           <button type="submit" className="button" disabled={saving || kommuner.length === 0}>
             <Plus size={18} /> {t('add')}
           </button>
@@ -249,6 +272,7 @@ export default function KommuneAccessPage() {
                   <MapPin size={16} style={{ display: 'inline', marginRight: '6px' }} /> Kommune
                 </th>
                 <th style={{ padding: 'var(--space-4)' }}>Status</th>
+                <th style={{ padding: 'var(--space-4)' }}>Tilgang</th>
                 <th style={{ padding: 'var(--space-4)' }}></th>
               </tr>
             </thead>
@@ -256,7 +280,7 @@ export default function KommuneAccessPage() {
               {entries.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     style={{
                       padding: 'var(--space-8)',
                       textAlign: 'center',
@@ -288,6 +312,9 @@ export default function KommuneAccessPage() {
                       >
                         {row.is_active ? 'Aktiv' : 'Inaktiv'}
                       </button>
+                    </td>
+                    <td style={{ padding: 'var(--space-4)' }}>
+                      {row.can_edit ? t('opsGrantCanEdit') : t('opsViewOnlyAccess')}
                     </td>
                     <td style={{ padding: 'var(--space-4)' }}>
                       <button

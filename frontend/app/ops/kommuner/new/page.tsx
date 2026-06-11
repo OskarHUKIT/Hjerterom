@@ -36,6 +36,7 @@ export default function OpsKommuneNewPage() {
   const [notes, setNotes] = useState('')
 
   const [whitelistRaw, setWhitelistRaw] = useState('')
+  const [inviteViewOnly, setInviteViewOnly] = useState(false)
   const [dpoEmail, setDpoEmail] = useState('')
   const [dpoName, setDpoName] = useState('')
   const [dpoPhone, setDpoPhone] = useState('')
@@ -102,7 +103,7 @@ export default function OpsKommuneNewPage() {
     try {
       const emails = parseEmails(whitelistRaw)
       if (emails.length > 0) {
-        await opsBulkInvite([kommuneId], emails, 'staff', true, 'Onboarding wizard')
+        await opsBulkInvite([kommuneId], emails, 'staff', !inviteViewOnly, 'Onboarding wizard')
       }
       setStep(3)
     } catch (e) {
@@ -213,6 +214,23 @@ export default function OpsKommuneNewPage() {
             onChange={(e) => setWhitelistRaw(e.target.value)}
             placeholder="ansatt@kommune.no"
           />
+          <label
+            className="ops-field"
+            style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexDirection: 'row', marginTop: 'var(--space-3)' }}
+          >
+            <input
+              type="checkbox"
+              checked={inviteViewOnly}
+              onChange={(e) => setInviteViewOnly(e.target.checked)}
+              style={{ marginTop: 2 }}
+            />
+            <span>
+              <strong>{t('opsViewOnlyAccess')}</strong>
+              <span className="ops-meta" style={{ display: 'block', marginTop: 4 }}>
+                {t('opsViewOnlyAccessHint')}
+              </span>
+            </span>
+          </label>
           <div className="ops-inline-actions ops-panel-footer">
             <Button variant="secondary" onClick={() => setStep(3)}>
               {t('opsWizardSkip')}
