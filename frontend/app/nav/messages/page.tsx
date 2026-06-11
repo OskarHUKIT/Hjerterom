@@ -162,7 +162,9 @@ function MessagesContent() {
           id: p.id,
           name: p.full_name?.trim() || p.email?.split('@')[0] || 'Ukjent',
         }))
-        .sort((a, b) => a.name.localeCompare(b.name, 'nb'))
+        .sort((a: { id: string; name: string }, b: { id: string; name: string }) =>
+          a.name.localeCompare(b.name, 'nb')
+        )
     }
 
     const loadLandlords = async () => {
@@ -177,7 +179,9 @@ function MessagesContent() {
           id: p.id,
           name: p.full_name?.trim() || p.email?.split('@')[0] || 'Ukjent',
         }))
-        .sort((a, b) => a.name.localeCompare(b.name, 'nb'))
+        .sort((a: { id: string; name: string }, b: { id: string; name: string }) =>
+          a.name.localeCompare(b.name, 'nb')
+        )
     }
 
     void (async () => {
