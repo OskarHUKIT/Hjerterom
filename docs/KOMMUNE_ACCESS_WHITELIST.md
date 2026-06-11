@@ -1,39 +1,66 @@
-# Kommune-tilgang via whitelist
+# Kommune-tilgang (grants og invitasjoner)
 
-E-poster som skal få kommune-tilgang automatisk når de registrerer seg, legges i tabellen `kommune_access_list`. Hver rad har en e-post og en region.
+Fra migrasjon `20260608120000_kommune_grants_service_areas.sql` er tilgang modellert med **eksplisitte grants** per legal kommune, ikke fritekst-regioner alene.
 
-## Flyt
+## Modell
 
-1. **Legg til e-poster** i `kommune_access_list` (e-post + region).
-2. **Brukere registrerer seg** med en av disse e-postene (via e-post eller BankID).
-3. De får automatisk `role = kommune_ansatt` og `kommune_region` satt til sin region.
-4. De ser kun boliger i sin region i boligbank.
+| Tabell | Formål |
+|--------|--------|
+| `kommuner` | Én rad per legal kommune; `region_keys` er én normalisert bynøkkel (f.eks. `{narvik}`) |
+| `user_kommune_grants` | Aktiv tilgang for innloggede saksbehandlere: `user_id` + `kommune_id` + `grant_role` + `can_edit` |
+| `kommune_invitations` | Pre-signup invitasjoner (flere rader per e-post tillatt — én per kommune) |
+| `kommune_service_areas` | Ops-definerte chat/admin-grupper (f.eks. Narvik-region med Narvik, Gratangen, Evenes) |
+| `kommune_access_list` | Legacy whitelist (read-only etter backfill; ikke skriv nye rader her) |
 
-## Administrere listen
+**Utleiere** har ikke manuelle grants — omfang avledes fra `listings.kommune_id` (nåværende og historisk).
 
-### Via appen (krever at du allerede har kommune-tilgang)
+## Flyt for nye saksbehandlere
 
-1. Logg inn som kommune-ansatt med redigeringsrettigheter.
-2. Gå til **Kommune-tilgang** i menyen.
-3. Legg til e-post og region, deaktiver eller slett rader.
+1. **Ops** eller **kommune-admin** legger invitasjon i `kommune_invitations` (e-post + `kommune_id`).
+2. Bruker registrerer seg med den e-posten.
+3. `sync_profile_for_auth_user` / `apply_kommune_invitations_for_user` oppretter `user_kommune_grants` og setter `profiles.role`.
+4. Appen henter regioner via `get_my_kommune_access()` (region_keys fra grants).
 
-### Første gangs oppsett (via Supabase)
+## Administrere tilgang
 
-Før noen kommune-brukere finnes, må de første e-postene legges inn manuelt:
+### Ops-konsoll (`/ops`)
 
-1. Gå til **Supabase Dashboard** → **Table Editor** → **kommune_access_list**.
-2. Klikk **Insert row**.
-3. Fyll inn:
-   - `email`: f.eks. `ansatt@narvik.kommune.no`
-   - `region`: f.eks. `Narvik` (må matche `listings.city` for boligene de skal se)
-4. Lagre.
+- **Kontoer** → velg bruker → **Kommunetilgang**: multi-select av kommuner, `can_edit`, per-kommune admin.
+- **Tjenesteområder** (`/ops/service-areas`): grupper kommuner for delt chat.
+- **Kommuner** → bulk-invitasjon erstatter gammel e-post-unik whitelist.
 
-Brukere som registrerer seg med disse e-postene får automatisk kommune-tilgang.
+### Kommune self-service (`/nav/kommune-access`)
 
-## Region
+Kommune-admin med redigering kan invitere per kommune (picker, ikke fritekst region).
 
-- `region` brukes til å filtrere hvilke boliger brukeren ser.
-- Verdien må matche `city` på listingene (f.eks. `Narvik`, `Gratangen`).
-- For flere kommuner: kommaseparert, f.eks. `Narvik,Gratangen,Evenes`, eller med «og»: `Gratangen, Narvik og Evenes`. Stor/liten bokstav spiller ingen rolle.
-- Brukere uten `kommune_region` (null) ser ingen boliger eller brukere før de får eksplisitt tilgang.
-- Under **Brukere** ser kommune-ansatte bare brukere som har (eller har hatt) minst én bolig registrert i deres region.
+### Supabase (nødssituasjon)
+
+```sql
+-- Gi eksisterende bruker tilgang til Narvik
+insert into user_kommune_grants (user_id, kommune_id, grant_role, can_edit)
+select '<user-uuid>', k.id, 'staff', true
+from kommuner k where k.slug = 'narvik'
+on conflict do nothing;
+```
+
+## Chat
+
+Landlord↔kommune-meldinger er scoped på `chat_messages.service_area_id`:
+
+- Utleier med bolig i Narvik og Gratangen (samme tjenesteområde) → **én** chat.
+- Utleier med bolig i Narvik og Tromsø (ulike områder) → **to** chatter.
+
+## Region / by-matching
+
+Matching skjer i SQL via `normalize_region_key` og `listings.kommune_id`. Klienten stoler på RLS/RPC — ikke lokal parsing som eneste sannhet.
+
+## Migrering fra legacy
+
+Migrasjonen:
+
+1. Splitter bogus kombinerte `kommuner`-rader (f.eks. «Gratangen, Evenes, Narvik»).
+2. Oppretter default 1:1 tjenesteområde per kommune + `narvik-region` for Narvik/Gratangen/Evenes.
+3. Backfiller grants fra `profiles.kommune_region` og aktiv whitelist.
+4. Backfiller `listings.kommune_id` og `chat_messages.service_area_id`.
+
+`profiles.kommune_region` oppdateres fortsatt som display-streng fra grants, men er ikke lenger primær kilde.

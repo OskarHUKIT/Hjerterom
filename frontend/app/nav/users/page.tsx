@@ -17,11 +17,10 @@ import {
   Info,
   CheckCircle2,
 } from 'lucide-react'
-import { fetchAuthUserForQueryClient } from '../../lib/queries/authUserQuery'
 import { supabase } from '../../lib/supabase'
 import { logError } from '@/app/lib/appLogger'
 import { formatDateNo } from '../../lib/dateFormat'
-import { formatKommuneRegionsForDisplay, listingCityMatchesRegions } from '../../lib/kommuneRegions'
+import { formatKommuneRegionsForDisplay, parseKommuneRegions } from '../../lib/kommuneRegions'
 import UserProfileClient from './UserProfileClient'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { useLanguage } from '../../../context/LanguageContext'
@@ -86,99 +85,18 @@ function NavUsersContent() {
         setKommuneCanEdit(access.kommuneCanEdit)
         setUseAccountsNavCopy(kommuneNavUsesAccountsLabel(userRole))
       } else {
-        const user = await fetchAuthUserForQueryClient(queryClient)
-        if (!user) {
-          setUseAccountsNavCopy(false)
-          return
-        }
-
-        const metadataRole = user.user_metadata?.role
-        const { data: currentProfile } = await supabase
-          .from('profiles')
-          .select('role, kommune_region')
-          .eq('id', user.id)
-          .maybeSingle()
-        userRole = currentProfile?.role || metadataRole
-        kommuneRegion = currentProfile?.kommune_region ?? null
-        if ((kommuneRegion == null || String(kommuneRegion).trim() === '') && user.email) {
-          const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', {
-            p_email: user.email,
-          })
-          const fromRpc =
-            typeof rpcRegion === 'string'
-              ? rpcRegion
-              : Array.isArray(rpcRegion) && rpcRegion?.length
-                ? rpcRegion[0]
-                : null
-          if (fromRpc && String(fromRpc).trim()) {
-            kommuneRegion = fromRpc
-          } else {
-            const { data: whitelistRows } = await supabase
-              .from('kommune_access_list')
-              .select('region')
-              .ilike('email', user.email)
-              .eq('is_active', true)
-              .limit(1)
-            const fromTable = whitelistRows?.[0]?.region
-            if (fromTable && String(fromTable).trim()) kommuneRegion = fromTable
-          }
-        }
-
-        setViewerRole(userRole ?? null)
-        setIsKommuneAdmin(isKommuneAdminRole(userRole))
-        setKommuneCanEdit(
-          userRole === 'kommune_admin' ||
-            (currentProfile as { kommune_can_edit?: boolean | null } | null)?.kommune_can_edit !==
-              false
-        )
-        setUseAccountsNavCopy(kommuneNavUsesAccountsLabel(userRole))
-      }
-
-      if (!isKommuneStaffRole(userRole)) {
         setUsers([])
         setUseAccountsNavCopy(false)
         setLoading(false)
         return
       }
 
-      // Kun brukere som har eller har hatt bolig i kommunens region(er) (støtter JSON-array ["Narvik","Gratangen"] og streng; fjerner ekstra anførselstegn)
-      let regions: string[] = []
-      if (Array.isArray(kommuneRegion))
-        regions = kommuneRegion.map((r) => String(r).trim()).filter(Boolean)
-      else if (kommuneRegion != null && String(kommuneRegion).trim()) {
-        let s = String(kommuneRegion)
-          .trim()
-          .replace(/^["\\]+|["\\]+$/g, '')
-          .trim()
-        if (s.startsWith('[')) {
-          try {
-            const arr = JSON.parse(s)
-            regions = Array.isArray(arr)
-              ? arr.map((r: any) => String(r).trim()).filter(Boolean)
-              : []
-          } catch {
-            regions = []
-          }
-        } else {
-          const regionStr = s.replace(/\s+og\s+/gi, ',').replace(/[,;\n]+/g, ',')
-          regions = regionStr
-            .split(',')
-            .map((r: string) => r.replace(/^["'\s\\]+|["'\s\\]+$/g, '').trim())
-            .filter(Boolean)
-        }
-      }
+      const regions = parseKommuneRegions(kommuneRegion)
       if (regions.length === 0) {
         setUsers([])
         setLoading(false)
         return
       }
-
-      const regionsNorm = regions.map((r) => r.trim().toLowerCase()).filter(Boolean)
-      const { data: allListings } = await supabase.rpc('get_listings_for_kommune')
-      const listingsInRegion = (allListings || []).filter((l: any) =>
-        listingCityMatchesRegions(l.city, regionsNorm)
-      )
-      const allowedOwnerIds = new Set(listingsInRegion.map((l: any) => l.owner_id).filter(Boolean))
 
       const { data: profiles, error: profileError } = await supabase.rpc(
         'get_all_users_for_kommune'
@@ -215,7 +133,7 @@ function NavUsersContent() {
               terminatedAt: terminatedAgreement?.terminated_at ?? null,
             }
           })
-          .filter((u: any) => allowedOwnerIds.has(u.owner_id))
+          .filter((u: any) => !isKommuneStaffRole(u.role))
         setUsers(mapped)
         setLoading(false)
         return
@@ -243,7 +161,7 @@ function NavUsersContent() {
             terminatedAt: terminatedAgreement?.terminated_at ?? null,
           }
         })
-        .filter((u: { owner_id: string }) => allowedOwnerIds.has(u.owner_id))
+        .filter((u: { role?: string | null }) => !isKommuneStaffRole(u.role))
 
       setUsers(mappedUsers)
     } catch (err: any) {

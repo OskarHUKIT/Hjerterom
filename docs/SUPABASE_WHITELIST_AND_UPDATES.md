@@ -1,69 +1,92 @@
-# Whitelist og Supabase-oppdateringer
+# Grants, invitasjoner og Supabase-oppdateringer
 
-Dokument for å vedlikeholde kommune-whitelist og vanlige Supabase-endringer.
+Dokument for å vedlikeholde kommune-tilgang og vanlige Supabase-endringer etter grants-overhaul (`20260608120000_kommune_grants_service_areas.sql`).
 
 ---
 
-## Hvor setter jeg tilgang for regioner?
-
-Du setter **regiontilgang** på to steder, avhengig av om brukeren er ny eller finnes fra før:
+## Hvor setter jeg tilgang?
 
 | Situasjon | Hvor | Hva du setter |
 |-----------|------|----------------|
-| **Ny kommune-bruker** (skal få tilgang når de registrerer seg) | **kommune_access_list** (via appen eller Supabase) | `email` + `region` (f.eks. `Narvik` eller `Narvik,Gratangen`) |
-| **Eksisterende bruker** (allerede opprettet) | **profiles** i Supabase Table Editor | `kommune_region` (f.eks. `Narvik` eller `Narvik,Gratangen`) |
+| **Ny saksbehandler** (før registrering) | `kommune_invitations` eller Ops **bulk-invitasjon** | `email` + `kommune_id` (flere rader per e-post OK) |
+| **Eksisterende saksbehandler** | Ops **Kontoer** → Kommunetilgang, eller `user_kommune_grants` | `kommune_id`, `grant_role`, `can_edit` |
+| **Chat/admin-gruppering** | Ops **Tjenesteområder** | Medlemmer = legal `kommuner` |
+| **Legacy** | `kommune_access_list` | Kun lesing etter backfill — bruk invitasjoner i stedet |
 
-- **I appen:** Logg inn som kommune-ansatt → **Kommune-tilgang** i menyen → legg til e-post og region. Nyregistrerte med den e-posten får automatisk `kommune_region` satt.
-- **I Supabase:** Table Editor → **kommune_access_list** (nye brukere) eller **profiles** (eksisterende) → feltet `region` / `kommune_region`. Region må matche `listings.city` (kommunenavn, f.eks. Salangen, Narvik).
+- **I appen (kommune):** `/nav/kommune-access` — inviter per kommune (krever admin-grant).
+- **I appen (ops):** `/ops/accounts/[id]` — multi-kommune grants; `/ops/service-areas` — områder.
+- **I Supabase:** `user_kommune_grants` + `kommune_invitations`.
 
-Kommune-brukeren ser da kun boliger i de kommunene som står i deres region, og under **Brukere** kun brukere som har eller har hatt en bolig i samme region.
+Appen resolver tilgang via `get_my_kommune_access()` → `user_kommune_ids`, `region_keys`, `service_area_ids`.
 
-**Fallback:** Hvis `profiles.kommune_region` er tom for en kommune-bruker, henter appen region fra **kommune_access_list** (whitelist) ut fra brukerens e-post. Sørg for at enten profilen har `kommune_region` satt, eller at whitelist har riktig `region` for den e-posten.
+**Utleiere:** Ingen manuell grant — omfang fra `listings` (alle eierens boliger, også avsluttede).
 
 ---
 
-## 1. Whitelist (kommune_access_list)
+## 1. Invitasjoner (kommune_invitations)
 
-E-poster som får kommune-tilgang automatisk ved registrering.
-
-### Legg til ny rad
-
-| E-post | Region | Notater |
-|--------|--------|---------|
-| testkommune@boly.no | Narvik | Evenes | Gratangen |
-| | | |
-
-**Region** må matche `listings.city` (f.eks. Narvik, Gratangen, Evenes). For flere kommuner: `Narvik,Gratangen`.
-
-### Hvordan legge til
-
-**Alternativ A – i appen:** Kommune-tilgang → Legg til e-post  
-**Alternativ B – Supabase:** Table Editor → kommune_access_list → Insert row
-
-### SQL (bulk-insert)
+### Legg til (SQL)
 
 ```sql
-INSERT INTO kommune_access_list (email, region) VALUES
-  ('ansatt1@narvik.kommune.no', 'Narvik'),
-  ('ansatt2@narvik.kommune.no', 'Narvik');
+insert into kommune_invitations (email, kommune_id, grant_role, can_edit, is_active)
+select 'ansatt@narvik.kommune.no', k.id, 'staff', true, true
+from kommuner k where k.slug = 'narvik';
+```
+
+### Bulk (Ops RPC)
+
+`ops_bulk_invite(p_kommune_ids, p_emails, ...)` — én invitasjon per (e-post, kommune).
+
+---
+
+## 2. Grants (user_kommune_grants)
+
+### Eksisterende bruker
+
+```sql
+insert into user_kommune_grants (user_id, kommune_id, grant_role, can_edit, granted_at)
+values (
+  '<user-uuid>',
+  (select id from kommuner where slug = 'gratangen'),
+  'staff',
+  true,
+  now()
+);
+```
+
+Ops: `ops_set_user_grants(p_user_id, p_grants jsonb)`.
+
+---
+
+## 3. Tjenesteområder
+
+Eksempel: Narvik administrerer Gratangen og Evenes i ett chat-område.
+
+```sql
+select ops_upsert_service_area(
+  'narvik-region',
+  'Nav Narvik (Narvik, Gratangen, Evenes)',
+  'active',
+  null,
+  array[
+    (select id from kommuner where slug = 'narvik'),
+    (select id from kommuner where slug = 'gratangen'),
+    (select id from kommuner where slug = 'evenes')
+  ],
+  (select id from kommuner where slug = 'narvik')
+);
 ```
 
 ---
 
-## 2. Vanlige Supabase-oppdateringer
+## 4. Vanlige Supabase-oppdateringer
 
 ### Slette brukere
 
-1. Kjør først: `supabase/scripts/fix_user_delete_cascade.sql` (hvis ikke allerede kjørt)
-2. Authentication → Users → Velg bruker → Delete
+1. Kjør `supabase/scripts/fix_user_delete_cascade.sql` om nødvendig.
+2. Authentication → Users → Delete.
 
-**Merk:** Sletting i Authentication fjerner også `profiles`-raden (CASCADE). Slett **ikke** bare profilen i Table Editor — da blir brukeren usynlig i appen men kan fortsatt logge inn.
-
-### Bruker finnes i Authentication men ikke i profiles
-
-Kjør migrasjon `20260607170000_ensure_user_profile_backfill.sql` (eller `supabase db push`). Den backfiller manglende profiler og legger til RPC `ensure_own_profile()`. Etter deploy oppretter appen profil automatisk ved innlogging.
-
-Manuell backfill i SQL Editor:
+### Manglende profil
 
 ```sql
 select public.sync_profile_for_auth_user(u.id)
@@ -72,53 +95,26 @@ left join public.profiles p on p.id = u.id
 where p.id is null;
 ```
 
-*(Krever at migrasjonen er kjørt — funksjonen `sync_profile_for_auth_user` finnes da.)*
+`sync_profile_for_auth_user` konverterer også aktive invitasjoner til grants.
 
-### Endre rolle (kommune / utleier)
+### Endre rolle
 
-**Table Editor → profiles**
-- `role`: `kommune_ansatt` eller `homeowner`
-- `kommune_region`: f.eks. `Narvik` eller `Narvik,Gratangen`
+**profiles.role:** `homeowner` | `kommune_ansatt` | `kommune_admin` (aldri `platform_operators`).
 
-**Authentication → Users → Edit user**
-- User Metadata: `{"role": "kommune_ansatt"}`
+Per-kommune rettigheter: `user_kommune_grants.can_edit` og `grant_role`.
 
-### Kun visning (kommune uten redigering)
+### Verifikasjon (testmatrise)
 
-**Table Editor → profiles**
-- `kommune_can_edit`: `false`
-
-### Rydde testdata
-
-Kjør: `supabase/scripts/cleanup_for_testing.sql` i SQL Editor  
-Slett deretter brukere manuelt i Authentication → Users.
+- Staff med grant kun til Narvik → ser kun Narvik-listinger/brukere.
+- Staff med Narvik + Gratangen + Evenes grants → ser alle tre.
+- Utleier med bolig i to tjenesteområder → to separate chatter.
+- Utleier med bolig i Narvik + Gratangen (samme område) → én chat.
+- Legacy kombinert kommune-rad suspendert; ikke synlig i ops-liste.
 
 ---
 
-## 3. Migrasjoner
+## 5. Legacy whitelist
 
-Hvis `npx supabase db push` feiler:
+`kommune_access_list` er backfylt til `kommune_invitations` / grants. Ikke legg nye rader i whitelist — bruk invitasjoner eller ops grants.
 
-- Kjør SQL direkte i **Supabase Dashboard → SQL Editor**
-- Migrasjonsfiler: `supabase/migrations/`
-- Scripts: `supabase/scripts/`
-
----
-
-## 4. Edge Functions
-
-Deploy:
-
-```bash
-npx supabase functions deploy sign-callback
-npx supabase functions deploy auth-signicat
-```
-
----
-
-## 5. Sjekkliste ved ny kommune-ansatt
-
-- [ ] Legg e-post inn i whitelist (kommune_access_list) eller oppdater eksisterende bruker
-- [ ] Sett `region` til riktig kommune
-- [ ] Verifiser at bruker har `role = kommune_ansatt` i profiles
-- [ ] Sett `kommune_can_edit` hvis de bare skal ha visning
+RLS og `kommune_listing_region_ok` har legacy fallback inntil prod er verifisert.

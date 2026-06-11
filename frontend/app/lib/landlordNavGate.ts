@@ -59,27 +59,9 @@ async function getLandlordSignCity(
   }
 
   if (email?.trim()) {
-    const em = email.trim()
-    const [{ data: rpcRegion }, { data: whitelistRows }] = await Promise.all([
-      supabase.rpc('get_whitelist_region_for_email', {
-        p_email: em,
-      }),
-      supabase
-        .from('kommune_access_list')
-        .select('region')
-        .ilike('email', em)
-        .eq('is_active', true)
-        .limit(1),
-    ])
-    const fromRpc =
-      typeof rpcRegion === 'string'
-        ? rpcRegion
-        : Array.isArray(rpcRegion) && rpcRegion?.length
-          ? String(rpcRegion[0])
-          : null
-    if (fromRpc?.trim()) return fromRpc.trim()
-    const w = whitelistRows?.[0]?.region?.trim()
-    if (w) return w
+    const { data: accessRaw } = await supabase.rpc('get_my_kommune_access')
+    const keys = (accessRaw as { region_keys?: string[] } | null)?.region_keys
+    if (keys?.[0]?.trim()) return keys[0].trim()
   }
 
   return null

@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useEffect, useState } from 'react'
+import { use, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { useLanguage } from '../../../../context/LanguageContext'
@@ -14,39 +14,71 @@ import { Button } from '../../../components/ui/Button'
 import {
   opsGetUserDetail,
   opsGrantOperator,
-  opsManageWhitelist,
+  opsBulkInvite,
+  opsListKommuner,
   opsRevokeOperator,
+  opsSetUserGrants,
   opsSetUserRole,
+  type OpsGrantInput,
+  type OpsKommuneGrant,
+  type OpsKommuneListItem,
   type OpsUserDetail,
 } from '../../../lib/opsApi'
 import { formatDateTimeNo } from '../../../lib/dateFormat'
+
+type GrantDraft = {
+  selected: boolean
+  can_edit: boolean
+  grant_role: 'staff' | 'admin'
+}
 
 export default function OpsAccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const { t } = useLanguage()
   const [user, setUser] = useState<OpsUserDetail | null>(null)
+  const [kommuner, setKommuner] = useState<OpsKommuneListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [messageTone, setMessageTone] = useState<'success' | 'error'>('success')
 
   const [role, setRole] = useState('homeowner')
-  const [region, setRegion] = useState('')
   const [canEdit, setCanEdit] = useState(true)
-  const [wlRegion, setWlRegion] = useState('')
-  const [wlNotes, setWlNotes] = useState('')
+  const [grantDraft, setGrantDraft] = useState<Record<string, GrantDraft>>({})
+  const [inviteKommuneId, setInviteKommuneId] = useState('')
+  const [inviteNotes, setInviteNotes] = useState('')
+
+  const activeKommuner = useMemo(
+    () => kommuner.filter((k) => k.status !== 'suspended'),
+    [kommuner]
+  )
+
+  const applyGrantsToDraft = (grants: OpsKommuneGrant[]) => {
+    const next: Record<string, GrantDraft> = {}
+    for (const k of activeKommuner) {
+      const g = grants.find((x) => x.kommune_id === k.id)
+      next[k.id] = {
+        selected: !!g,
+        can_edit: g?.can_edit ?? true,
+        grant_role: g?.grant_role === 'admin' ? 'admin' : 'staff',
+      }
+    }
+    setGrantDraft(next)
+  }
 
   useEffect(() => {
     let cancelled = false
     void (async () => {
       setLoading(true)
       try {
-        const detail = await opsGetUserDetail(id)
+        const [detail, kommuneRows] = await Promise.all([opsGetUserDetail(id), opsListKommuner()])
         if (cancelled) return
         setUser(detail)
+        setKommuner(kommuneRows)
         setRole(detail.role || 'homeowner')
-        setRegion(detail.kommune_region || '')
         setCanEdit(detail.kommune_can_edit)
+        applyGrantsToDraft(detail.kommune_grants || [])
+        if (!inviteKommuneId && kommuneRows[0]) setInviteKommuneId(kommuneRows[0].id)
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -56,14 +88,26 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
     }
   }, [id])
 
-  const saveRole = async () => {
+  const saveRoleAndGrants = async () => {
     setSaving(true)
     setMessage(null)
     try {
-      await opsSetUserRole(id, role, region.trim() || null, canEdit)
+      await opsSetUserRole(id, role, null, canEdit)
+      if (role === 'kommune_ansatt' || role === 'kommune_admin') {
+        const grants: OpsGrantInput[] = Object.entries(grantDraft)
+          .filter(([, v]) => v.selected)
+          .map(([kommune_id, v]) => ({
+            kommune_id,
+            grant_role: role === 'kommune_admin' ? v.grant_role : 'staff',
+            can_edit: v.can_edit,
+          }))
+        await opsSetUserGrants(id, grants)
+      }
       setMessageTone('success')
       setMessage(t('opsSaved'))
-      setUser(await opsGetUserDetail(id))
+      const detail = await opsGetUserDetail(id)
+      setUser(detail)
+      applyGrantsToDraft(detail.kommune_grants || [])
     } catch (e) {
       setMessageTone('error')
       setMessage(e instanceof Error ? e.message : t('pageLoadStuck'))
@@ -72,15 +116,14 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
     }
   }
 
-  const saveWhitelist = async () => {
-    if (!user?.email_full || !wlRegion.trim()) return
+  const saveInvite = async () => {
+    if (!user?.email_full || !inviteKommuneId) return
     setSaving(true)
     setMessage(null)
     try {
-      await opsManageWhitelist(user.email_full, wlRegion.trim(), true, wlNotes.trim() || null)
+      await opsBulkInvite([inviteKommuneId], [user.email_full], 'staff', canEdit, inviteNotes.trim() || null)
       setMessageTone('success')
       setMessage(t('opsWhitelistSaved'))
-      setUser(await opsGetUserDetail(id))
     } catch (e) {
       setMessageTone('error')
       setMessage(e instanceof Error ? e.message : t('pageLoadStuck'))
@@ -106,8 +149,36 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
     }
   }
 
+  const selectAllKommuner = () => {
+    setGrantDraft((prev) => {
+      const next = { ...prev }
+      for (const k of activeKommuner) {
+        next[k.id] = {
+          selected: true,
+          can_edit: canEdit,
+          grant_role: next[k.id]?.grant_role ?? 'staff',
+        }
+      }
+      return next
+    })
+  }
+
+  const setViewOnlyAccess = (viewOnly: boolean) => {
+    const nextCanEdit = !viewOnly
+    setCanEdit(nextCanEdit)
+    setGrantDraft((prev) => {
+      const next = { ...prev }
+      for (const kid of Object.keys(next)) {
+        next[kid] = { ...next[kid], can_edit: nextCanEdit }
+      }
+      return next
+    })
+  }
+
   if (loading) return <OpsPageSkeleton />
   if (!user) return <OpsAlert tone="error">{t('opsUserNotFound')}</OpsAlert>
+
+  const isStaffRole = role === 'kommune_ansatt' || role === 'kommune_admin'
 
   return (
     <div className="ops-stack ops-stack--lg">
@@ -157,6 +228,19 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
+      {user.landlord_kommune_scope?.length ? (
+        <OpsPanel title={t('opsLandlordScope')} padding="md">
+          <ul className="ops-meta" style={{ margin: 0, paddingLeft: '1.25rem' }}>
+            {user.landlord_kommune_scope.map((s) => (
+              <li key={s.kommune_id}>
+                {s.display_name}
+                {s.service_areas?.length ? ` — ${s.service_areas.join(', ')}` : ''}
+              </li>
+            ))}
+          </ul>
+        </OpsPanel>
+      ) : null}
+
       <OpsPanel title={t('opsEditRole')} padding="md">
         <div className="ops-form-grid">
           <label className="ops-field">
@@ -167,23 +251,138 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
               <option value="kommune_admin">{t('opsRoleKommuneAdmin')}</option>
             </select>
           </label>
-          <label className="ops-field">
-            {t('opsRegion')}
-            <input className="ops-input" value={region} onChange={(e) => setRegion(e.target.value)} placeholder="narvik" />
-          </label>
-          <label className="ops-field" style={{ display: 'flex', alignItems: 'center', gap: 8, flexDirection: 'row' }}>
-            <input type="checkbox" checked={canEdit} onChange={(e) => setCanEdit(e.target.checked)} />
-            {t('opsKommuneCanEdit')}
-          </label>
-          <Button variant="primary" disabled={saving} onClick={() => void saveRole()}>
-            {t('opsSaveRole')}
-          </Button>
         </div>
       </OpsPanel>
 
-      <OpsPanel title={t('opsWhitelist')} padding="md">
+      {isStaffRole ? (
+        <OpsPanel title={t('opsKommuneGrants')} padding="md">
+          <p className="ops-panel-desc">{t('opsKommuneGrantsHint')}</p>
+          {role === 'kommune_ansatt' ? (
+            <label
+              className="ops-field"
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 8,
+                flexDirection: 'row',
+                marginBottom: 'var(--space-3)',
+                padding: 'var(--space-3)',
+                borderRadius: 8,
+                border: '1px solid var(--ops-border)',
+                background: 'var(--ops-surface-muted, rgba(255,255,255,0.03))',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={!canEdit}
+                onChange={(e) => setViewOnlyAccess(e.target.checked)}
+                style={{ marginTop: 2 }}
+              />
+              <span>
+                <strong>{t('opsViewOnlyAccess')}</strong>
+                <span className="ops-meta" style={{ display: 'block', marginTop: 4 }}>
+                  {t('opsViewOnlyAccessHint')}
+                </span>
+              </span>
+            </label>
+          ) : null}
+          <div className="ops-actions-row" style={{ marginBottom: 'var(--space-3)' }}>
+            <Button variant="secondary" type="button" onClick={selectAllKommuner}>
+              {t('opsSelectAllKommuner')}
+            </Button>
+          </div>
+          <div className="ops-form-grid">
+            {activeKommuner.map((k) => {
+              const draft = grantDraft[k.id] || { selected: false, can_edit: true, grant_role: 'staff' as const }
+              return (
+                <div key={k.id} className="ops-field ops-field--full" style={{ borderBottom: '1px solid var(--ops-border)', paddingBottom: 8 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, flexDirection: 'row' }}>
+                    <input
+                      type="checkbox"
+                      checked={draft.selected}
+                      onChange={(e) =>
+                        setGrantDraft((prev) => ({
+                          ...prev,
+                          [k.id]: { ...draft, selected: e.target.checked, can_edit: canEdit },
+                        }))
+                      }
+                    />
+                    <span>
+                      <strong>{k.display_name}</strong>{' '}
+                      <span className="ops-meta">({(k.region_keys || []).join(', ')})</span>
+                    </span>
+                  </label>
+                  {draft.selected && role !== 'kommune_ansatt' ? (
+                    <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 8, marginLeft: 28 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          type="checkbox"
+                          checked={draft.can_edit}
+                          onChange={(e) =>
+                            setGrantDraft((prev) => ({
+                              ...prev,
+                              [k.id]: { ...draft, can_edit: e.target.checked },
+                            }))
+                          }
+                        />
+                        {t('opsGrantCanEdit')}
+                      </label>
+                      {role === 'kommune_admin' ? (
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            type="checkbox"
+                            checked={draft.grant_role === 'admin'}
+                            onChange={(e) =>
+                              setGrantDraft((prev) => ({
+                                ...prev,
+                                [k.id]: {
+                                  ...draft,
+                                  grant_role: e.target.checked ? 'admin' : 'staff',
+                                },
+                              }))
+                            }
+                          />
+                          {t('opsGrantAdmin')}
+                        </label>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        </OpsPanel>
+      ) : null}
+
+      <div className="ops-actions-row">
+        <Button variant="primary" disabled={saving} onClick={() => void saveRoleAndGrants()}>
+          {t('opsSaveRole')}
+        </Button>
+      </div>
+
+      <OpsPanel title={t('opsInvitePreSignup')} padding="md">
+        <p className="ops-panel-desc">{t('opsInvitePreSignupHint')}</p>
+        <div className="ops-form-grid">
+          <label className="ops-field">
+            {t('opsKommune')}
+            <select className="ops-input" value={inviteKommuneId} onChange={(e) => setInviteKommuneId(e.target.value)}>
+              {activeKommuner.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.display_name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="ops-field">
+            {t('opsNoteOptional')}
+            <input className="ops-input" value={inviteNotes} onChange={(e) => setInviteNotes(e.target.value)} />
+          </label>
+          <Button variant="secondary" disabled={saving} onClick={() => void saveInvite()}>
+            {t('opsAddInvite')}
+          </Button>
+        </div>
         {user.whitelist_entries.length > 0 ? (
-          <div className="ops-table-wrap" style={{ marginBottom: 'var(--space-4)', maxHeight: 240 }}>
+          <div className="ops-table-wrap" style={{ marginTop: 'var(--space-4)', maxHeight: 200 }}>
             <table className="ops-table">
               <thead>
                 <tr>
@@ -205,24 +404,7 @@ export default function OpsAccountDetailPage({ params }: { params: Promise<{ id:
               </tbody>
             </table>
           </div>
-        ) : (
-          <p className="ops-meta" style={{ marginBottom: 'var(--space-4)' }}>
-            {t('opsNoWhitelist')}
-          </p>
-        )}
-        <div className="ops-form-grid">
-          <label className="ops-field">
-            {t('opsRegion')}
-            <input className="ops-input" value={wlRegion} onChange={(e) => setWlRegion(e.target.value)} />
-          </label>
-          <label className="ops-field">
-            {t('opsNoteOptional')}
-            <input className="ops-input" value={wlNotes} onChange={(e) => setWlNotes(e.target.value)} />
-          </label>
-          <Button variant="secondary" disabled={saving} onClick={() => void saveWhitelist()}>
-            {t('opsAddWhitelist')}
-          </Button>
-        </div>
+        ) : null}
       </OpsPanel>
 
       <OpsPanel title={t('opsOperatorAccess')} padding="md">

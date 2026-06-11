@@ -13,7 +13,15 @@ export type KommuneNavAccess =
       userRole: string
       kommuneCanEdit: boolean
       kommuneRegion: string | string[] | null
+      kommuneIds: string[]
+      serviceAreaIds: string[]
     }
+
+type MyKommuneAccess = {
+  kommune_ids?: string[]
+  region_keys?: string[]
+  service_area_ids?: string[]
+}
 
 /**
  * Single gate + region resolution for kommune /nav/* pages. Cached via TanStack Query
@@ -41,32 +49,14 @@ export async function fetchKommuneNavAccess(qc: QueryClient): Promise<KommuneNav
   const userRole = profile?.role || role || 'kommune_ansatt'
   const kommuneCanEdit = profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false
 
-  let region: string | string[] | null = profile?.kommune_region ?? null
-  if ((region == null || String(region).trim() === '') && user.email) {
-    const [rpcRes, tableRes] = await Promise.all([
-      supabase.rpc('get_whitelist_region_for_email', {
-        p_email: user.email,
-      }),
-      supabase
-        .from('kommune_access_list')
-        .select('region')
-        .ilike('email', user.email)
-        .eq('is_active', true)
-        .limit(1),
-    ])
-    const fromRpc =
-      typeof rpcRes.data === 'string'
-        ? rpcRes.data
-        : Array.isArray(rpcRes.data) && rpcRes.data?.length
-          ? rpcRes.data[0]
-          : null
-    const fromTable = tableRes.data?.[0]?.region
-    if (fromRpc && String(fromRpc).trim()) {
-      region = fromRpc
-    } else if (fromTable && String(fromTable).trim()) {
-      region = fromTable
-    }
-  }
+  const { data: accessRaw } = await supabase.rpc('get_my_kommune_access')
+  const access = (accessRaw ?? {}) as MyKommuneAccess
+  const regionKeys = (access.region_keys ?? []).filter(Boolean)
+  const kommuneIds = (access.kommune_ids ?? []).filter(Boolean)
+  const serviceAreaIds = (access.service_area_ids ?? []).filter(Boolean)
+
+  let region: string | string[] | null =
+    regionKeys.length > 0 ? regionKeys : profile?.kommune_region ?? null
 
   return {
     kind: 'ok',
@@ -74,5 +64,7 @@ export async function fetchKommuneNavAccess(qc: QueryClient): Promise<KommuneNav
     userRole,
     kommuneCanEdit,
     kommuneRegion: region || null,
+    kommuneIds,
+    serviceAreaIds,
   }
 }

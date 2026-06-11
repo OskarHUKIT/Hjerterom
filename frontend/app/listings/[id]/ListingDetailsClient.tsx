@@ -653,49 +653,18 @@ export default function ListingDetailsClient() {
         const user = await getAuthUserDeduped()
         setCurrentUser(user)
 
-        let profileKommuneRegion: string | null = null
-
         if (user) {
           if (isNavView) {
             const { data: profile } = await supabase
               .from('profiles')
-              .select('role, kommune_region, kommune_can_edit')
+              .select('role, kommune_can_edit')
               .eq('id', user.id)
               .maybeSingle()
             const role = user.user_metadata?.role || profile?.role
             setViewerIsKommuneStaff(isKommuneStaffRole(role))
-            profileKommuneRegion = profile?.kommune_region ?? null
             setKommuneCanEdit(
               profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false
             )
-            if (
-              (profileKommuneRegion == null || String(profileKommuneRegion).trim() === '') &&
-              user.email
-            ) {
-              const [rpcRes, tableRes] = await Promise.all([
-                supabase.rpc('get_whitelist_region_for_email', {
-                  p_email: user.email,
-                }),
-                supabase
-                  .from('kommune_access_list')
-                  .select('region')
-                  .ilike('email', user.email)
-                  .eq('is_active', true)
-                  .limit(1),
-              ])
-              const fromRpc =
-                typeof rpcRes.data === 'string'
-                  ? rpcRes.data
-                  : Array.isArray(rpcRes.data) && rpcRes.data?.length
-                    ? rpcRes.data[0]
-                    : null
-              const fromTable = tableRes.data?.[0]?.region
-              if (fromRpc && String(fromRpc).trim()) {
-                profileKommuneRegion = fromRpc
-              } else if (fromTable && String(fromTable).trim()) {
-                profileKommuneRegion = fromTable
-              }
-            }
             if (!isKommuneStaffRole(role)) {
               router.push(`/listings/${id}?view=owner`)
               return
@@ -743,6 +712,10 @@ export default function ListingDetailsClient() {
         setHasActiveAgreement(!!agreementRes.data)
         setListing(data)
 
+        if (isNavView && user && !data) {
+          setRegionAccessDenied(true)
+        }
+
         const ownerId = data?.owner_id
         const ownerTermPromise = ownerId
           ? supabase
@@ -786,45 +759,6 @@ export default function ListingDetailsClient() {
         const availData = availRes.data || []
         setAvailability(availData)
         setHandoverReports(reportsRes.data || [])
-
-        // Kommune: kun tilgang til boliger i tillatte kommuner (støtter JSON-array ["Narvik","Gratangen"] og streng)
-        if (isNavView && data) {
-          const raw = profileKommuneRegion
-          let regions: string[] = []
-          if (Array.isArray(raw))
-            regions = raw.map((r: any) => String(r).trim().toLowerCase()).filter(Boolean)
-          else if (raw != null && String(raw).trim()) {
-            let s = String(raw)
-              .trim()
-              .replace(/^["\\]+|["\\]+$/g, '')
-              .trim()
-            if (s.startsWith('[')) {
-              try {
-                const arr = JSON.parse(s)
-                regions = Array.isArray(arr)
-                  ? arr.map((r: any) => String(r).trim().toLowerCase()).filter(Boolean)
-                  : []
-              } catch {
-                regions = []
-              }
-            } else {
-              const regionStr = s.replace(/\s+og\s+/gi, ',').replace(/[,;\n]+/g, ',')
-              regions = regionStr
-                .split(',')
-                .map((r: string) =>
-                  r
-                    .replace(/^["'\s\\]+|["'\s\\]+$/g, '')
-                    .trim()
-                    .toLowerCase()
-                )
-                .filter(Boolean)
-            }
-          }
-          const listingCity = (data.city || '').trim().toLowerCase()
-          if (regions.length === 0 || !listingCity || !regions.includes(listingCity)) {
-            setRegionAccessDenied(true)
-          }
-        }
 
         if (user && isNavView) {
           setNavNotes(notesRes.data || [])

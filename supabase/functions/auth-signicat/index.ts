@@ -118,23 +118,21 @@ serve(async (req) => {
       userId = newUser.user.id
     }
 
-    // 2. Oppdater profil med navn (rolle settes av handle_new_user/whitelist for nye, behold eksisterende for andre)
+    // 2. Profil + kommune-grants (invitasjoner via sync_profile_for_auth_user)
     if (userId) {
-      const { data: whitelistRegion } = await supabaseAdmin.rpc('get_whitelist_region_for_email', { p_email: email })
+      const { error: syncError } = await supabaseAdmin.rpc('sync_profile_for_auth_user', {
+        p_user_id: userId,
+      })
+      if (syncError) console.error("Profil-sync feilet:", syncError.message)
 
-      const profileUpdate: Record<string, unknown> = {
-        id: userId,
-        full_name: bankIdName,
-        email: email,
-        updated_at: new Date().toISOString()
-      }
-      if (whitelistRegion) {
-        profileUpdate.role = 'kommune_ansatt'
-        profileUpdate.kommune_region = whitelistRegion
-      }
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .upsert(profileUpdate)
+        .update({
+          full_name: bankIdName,
+          email: email,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId)
       if (profileError) console.error("Profil-oppdatering feilet:", profileError.message)
     }
 

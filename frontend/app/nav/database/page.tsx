@@ -654,19 +654,7 @@ export default function NavDatabase() {
               .includes(q)
         )
       }
-      // Tillatelsesområder: kommune ser bare boliger i kommuner de har eksplisitt tilgang til
-      const regions =
-        isAuthorized && isKommuneStaffRole(userRole) ? parseKommuneRegions(kommuneRegion) : []
-      if (isAuthorized && isKommuneStaffRole(userRole)) {
-        if (regions.length > 0) {
-          filtered = filtered.filter((item) => {
-            const city = (item.city || '').trim().toLowerCase()
-            return city && regions.some((r: string) => r === city)
-          })
-        } else {
-          filtered = [] // Ingen tillatelsesområder satt = ingen boliger (kun eksplisitt tilgang)
-        }
-      }
+      // Tillatelsesområder håndteres av get_listings_for_kommune_paged (kommune_listing_region_ok i DB)
       if (filters.city !== 'Alle') {
         filtered = filtered.filter((item) => item.city === filters.city)
       }

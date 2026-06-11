@@ -20,7 +20,7 @@ import { formatDateTimeNo } from '../../../lib/dateFormat'
 import {
   opsGetKommuneDetail,
   opsSetKommuneStatus,
-  opsBulkWhitelist,
+  opsBulkInvite,
   opsDeactivateWhitelist,
   opsUpsertDpo,
   opsRegionMismatchReport,
@@ -93,7 +93,7 @@ export default function OpsKommuneDetailPage() {
     setBusy(true)
     setError(null)
     try {
-      await opsBulkWhitelist(detail.kommune.id, emails)
+      await opsBulkInvite([detail.kommune.id], emails)
       setWhitelistRaw('')
       await load()
     } catch (e) {

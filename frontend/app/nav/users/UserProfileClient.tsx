@@ -30,7 +30,6 @@ import {
   parseKommuneRegions,
   listingCityMatchesRegions,
   regionsOverlap,
-  mergeKommuneRegionSources,
 } from '../../lib/kommuneRegions'
 import { isKommuneAdminRole, isKommuneStaffRole } from '../../lib/kommuneRoles'
 import type { TranslationKey } from '../../../lib/translations'
@@ -182,33 +181,10 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
         const logsData = Array.isArray(logsRes?.data) ? logsRes.data : []
 
         let viewerRegionRaw: string | string[] | null = currentProfile?.kommune_region ?? null
-        if (
-          (viewerRegionRaw == null || String(viewerRegionRaw).trim() === '') &&
-          currentUser?.email
-        ) {
-          const { data: rpcRegion } = await supabase.rpc('get_whitelist_region_for_email', {
-            p_email: currentUser.email,
-          })
-          const fromRpc =
-            typeof rpcRegion === 'string'
-              ? rpcRegion
-              : Array.isArray(rpcRegion) && rpcRegion?.length
-                ? rpcRegion[0]
-                : null
-          if (fromRpc && String(fromRpc).trim()) {
-            viewerRegionRaw = fromRpc
-          } else {
-            const { data: whitelistRows } = await supabase
-              .from('kommune_access_list')
-              .select('region')
-              .ilike('email', currentUser.email)
-              .eq('is_active', true)
-              .limit(1)
-            const fromTable = whitelistRows?.[0]?.region
-            if (fromTable && String(fromTable).trim()) viewerRegionRaw = fromTable
-          }
-        }
-        const regions = mergeKommuneRegionSources(currentProfile?.kommune_region, viewerRegionRaw)
+        const { data: accessRaw } = await supabase.rpc('get_my_kommune_access')
+        const viewerKeys = (accessRaw as { region_keys?: string[] } | null)?.region_keys
+        if (viewerKeys?.length) viewerRegionRaw = viewerKeys
+        const regions = parseKommuneRegions(viewerRegionRaw)
 
         if (regions.length > 0) {
           const targetRole = profileRow.role ?? 'homeowner'
@@ -218,33 +194,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
               .select('kommune_region')
               .eq('id', id)
               .maybeSingle()
-            let targetRegionRaw: string | string[] | null = targetProf?.kommune_region ?? null
-            if (
-              (targetRegionRaw == null || String(targetRegionRaw).trim() === '') &&
-              profileRow.email
-            ) {
-              const { data: tr } = await supabase.rpc('get_whitelist_region_for_email', {
-                p_email: profileRow.email,
-              })
-              const fromRpc =
-                typeof tr === 'string' ? tr : Array.isArray(tr) && tr?.length ? tr[0] : null
-              if (fromRpc && String(fromRpc).trim()) {
-                targetRegionRaw = fromRpc
-              } else {
-                const { data: wlRows } = await supabase
-                  .from('kommune_access_list')
-                  .select('region')
-                  .ilike('email', profileRow.email)
-                  .eq('is_active', true)
-                  .limit(1)
-                const fromTable = wlRows?.[0]?.region
-                if (fromTable && String(fromTable).trim()) targetRegionRaw = fromTable
-              }
-            }
-            const targetRegions = mergeKommuneRegionSources(
-              targetProf?.kommune_region,
-              targetRegionRaw
-            )
+            const targetRegions = parseKommuneRegions(targetProf?.kommune_region)
             if (!regionsOverlap(regions, targetRegions)) {
               setRegionAccessDenied(true)
               setRegionDenyKind('staff')

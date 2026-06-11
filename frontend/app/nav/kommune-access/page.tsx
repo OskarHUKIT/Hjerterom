@@ -7,19 +7,35 @@ import { ShieldCheck, Plus, Trash2, Mail, MapPin } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
+import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+
+type InvitationRow = {
+  id: string
+  email: string
+  kommune_id: string
+  kommune_name: string
+  can_edit: boolean
+  is_active: boolean
+}
+
+type GrantableKommune = {
+  id: string
+  display_name: string
+  slug: string
+  region_keys: string[]
+}
 
 export default function KommuneAccessPage() {
   const { t } = useLanguage()
   const router = useRouter()
   const pathname = usePathname()
-  const [entries, setEntries] = useState<
-    { id: string; email: string; region: string; is_active: boolean }[]
-  >([])
+  const [entries, setEntries] = useState<InvitationRow[]>([])
+  const [kommuner, setKommuner] = useState<GrantableKommune[]>([])
   const [loading, setLoading] = useState(true)
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const [kommuneCanEdit, setKommuneCanEdit] = useState(false)
   const [newEmail, setNewEmail] = useState('')
-  const [newRegion, setNewRegion] = useState('')
+  const [newKommuneId, setNewKommuneId] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,45 +52,54 @@ export default function KommuneAccessPage() {
         .eq('id', user.id)
         .maybeSingle()
       const role = user.user_metadata?.role || profile?.role
-      if (role !== 'kommune_ansatt') {
+      if (!isKommuneStaffRole(role)) {
         setIsAuthorized(false)
         setLoading(false)
         return
       }
       setIsAuthorized(true)
-      setKommuneCanEdit(profile?.kommune_can_edit !== false)
+      const isAdmin = role === 'kommune_admin'
+      setKommuneCanEdit(isAdmin || profile?.kommune_can_edit !== false)
     }
     checkAccess()
   }, [router])
 
   const fetchEntries = async () => {
-    const { data, error: err } = await supabase
-      .from('kommune_access_list')
-      .select('id, email, region, is_active')
-      .order('email')
-    if (err) {
-      setError(err.message)
+    const [{ data: invites, error: invErr }, { data: kommuneRows, error: kErr }] = await Promise.all([
+      supabase.rpc('kommune_list_my_invitations'),
+      supabase.rpc('kommune_list_grantable_kommuner'),
+    ])
+    if (invErr) {
+      setError(invErr.message)
       return
     }
-    setEntries(data || [])
+    if (kErr) {
+      setError(kErr.message)
+      return
+    }
+    setEntries((invites as InvitationRow[]) || [])
+    const ks = (kommuneRows as GrantableKommune[]) || []
+    setKommuner(ks)
+    if (!newKommuneId && ks[0]) setNewKommuneId(ks[0].id)
   }
 
   useEffect(() => {
     if (isAuthorized && kommuneCanEdit) {
-      fetchEntries()
+      void fetchEntries()
     }
     setLoading(false)
   }, [isAuthorized, kommuneCanEdit])
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newEmail.trim() || !newRegion.trim()) return
+    if (!newEmail.trim() || !newKommuneId) return
     setSaving(true)
     setError(null)
-    const { error: err } = await supabase.from('kommune_access_list').insert({
-      email: newEmail.trim().toLowerCase(),
-      region: newRegion.trim(),
-      is_active: true,
+    const { error: err } = await supabase.rpc('kommune_upsert_invitation', {
+      p_email: newEmail.trim(),
+      p_kommune_id: newKommuneId,
+      p_can_edit: true,
+      p_notes: null,
     })
     if (err) {
       setError(err.message)
@@ -82,31 +107,20 @@ export default function KommuneAccessPage() {
       return
     }
     setNewEmail('')
-    setNewRegion('')
-    fetchEntries()
+    void fetchEntries()
     setSaving(false)
   }
 
   const handleToggle = async (id: string, is_active: boolean) => {
-    const { error: err } = await supabase
-      .from('kommune_access_list')
-      .update({ is_active, updated_at: new Date().toISOString() })
-      .eq('id', id)
+    const { error: err } = await supabase.rpc('kommune_set_invitation_active', {
+      p_invitation_id: id,
+      p_is_active: is_active,
+    })
     if (err) {
       setError(err.message)
       return
     }
-    fetchEntries()
-  }
-
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('kommuneAccessRemoveConfirm'))) return
-    const { error: err } = await supabase.from('kommune_access_list').delete().eq('id', id)
-    if (err) {
-      setError(err.message)
-      return
-    }
-    fetchEntries()
+    void fetchEntries()
   }
 
   if (loading || isAuthorized === null) {
@@ -199,23 +213,25 @@ export default function KommuneAccessPage() {
             />
           </div>
           <div>
-            <label className="label" htmlFor="kommune-access-new-region">
-              Region
+            <label className="label" htmlFor="kommune-access-kommune">
+              {t('kommune')}
             </label>
-            <input
-              id="kommune-access-new-region"
-              name="kommune_access_region"
-              type="text"
+            <select
+              id="kommune-access-kommune"
               className="input"
-              placeholder={t('regionPlaceholder')}
-              value={newRegion}
-              onChange={(e) => setNewRegion(e.target.value)}
-              autoComplete="off"
+              value={newKommuneId}
+              onChange={(e) => setNewKommuneId(e.target.value)}
               required
               style={{ marginBottom: 0 }}
-            />
+            >
+              {kommuner.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.display_name}
+                </option>
+              ))}
+            </select>
           </div>
-          <button type="submit" className="button" disabled={saving}>
+          <button type="submit" className="button" disabled={saving || kommuner.length === 0}>
             <Plus size={18} /> {t('add')}
           </button>
         </form>
@@ -230,7 +246,7 @@ export default function KommuneAccessPage() {
                   <Mail size={16} style={{ display: 'inline', marginRight: '6px' }} /> E-post
                 </th>
                 <th style={{ padding: 'var(--space-4)' }}>
-                  <MapPin size={16} style={{ display: 'inline', marginRight: '6px' }} /> Region
+                  <MapPin size={16} style={{ display: 'inline', marginRight: '6px' }} /> Kommune
                 </th>
                 <th style={{ padding: 'var(--space-4)' }}>Status</th>
                 <th style={{ padding: 'var(--space-4)' }}></th>
@@ -247,17 +263,17 @@ export default function KommuneAccessPage() {
                       color: 'var(--text-muted)',
                     }}
                   >
-                    Ingen adresser i listen. Legg til e-poster som automatisk får kommune-tilgang.
+                    Ingen invitasjoner ennå. Legg til e-poster per kommune.
                   </td>
                 </tr>
               ) : (
                 entries.map((row) => (
                   <tr key={row.id} style={{ borderTop: '1px solid var(--border-subtle)' }}>
                     <td style={{ padding: 'var(--space-4)' }}>{row.email}</td>
-                    <td style={{ padding: 'var(--space-4)' }}>{row.region}</td>
+                    <td style={{ padding: 'var(--space-4)' }}>{row.kommune_name}</td>
                     <td style={{ padding: 'var(--space-4)' }}>
                       <button
-                        onClick={() => handleToggle(row.id, !row.is_active)}
+                        onClick={() => void handleToggle(row.id, !row.is_active)}
                         style={{
                           padding: '4px 12px',
                           borderRadius: '8px',
@@ -275,7 +291,7 @@ export default function KommuneAccessPage() {
                     </td>
                     <td style={{ padding: 'var(--space-4)' }}>
                       <button
-                        onClick={() => handleDelete(row.id)}
+                        onClick={() => void handleToggle(row.id, false)}
                         style={{
                           background: 'none',
                           border: 'none',

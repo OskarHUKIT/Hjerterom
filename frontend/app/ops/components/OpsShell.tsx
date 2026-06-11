@@ -23,6 +23,7 @@ import { OpsPageSkeleton } from './OpsSkeleton'
 const NAV_ITEMS = [
   { href: '/ops', icon: LayoutDashboard, labelKey: 'opsNavDashboard' as const, exact: true },
   { href: '/ops/kommuner', icon: Building2, labelKey: 'opsNavKommuner' as const },
+  { href: '/ops/service-areas', icon: Building2, labelKey: 'opsNavServiceAreas' as const },
   { href: '/ops/accounts', icon: Users, labelKey: 'opsNavAccounts' as const },
   { href: '/ops/terms', icon: FileText, labelKey: 'opsNavTerms' as const },
   { href: '/ops/health', icon: HeartPulse, labelKey: 'opsNavHealth' as const },

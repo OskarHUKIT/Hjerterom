@@ -19,7 +19,7 @@ import { supabase } from '../../lib/supabase'
 import { devWarn } from '@/app/lib/appLogger'
 import { formatDateTimeNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
-import { listingCityMatchesRegions, parseKommuneRegions } from '../../lib/kommuneRegions'
+import { parseKommuneRegions } from '../../lib/kommuneRegions'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
@@ -34,32 +34,20 @@ const CHAT_IMAGES_BUCKET = 'chat-images'
 const MAX_IMAGES_PER_MESSAGE = 4
 const MAX_FILE_SIZE_MB = 5
 
-function regionsOverlap(a: string[], b: string[]): boolean {
-  if (!a.length || !b.length) return false
-  const setA = new Set(a)
-  return b.some((x) => setA.has(x))
+type ConversationRow = {
+  userId: string
+  serviceAreaId: string
+  name: string
+  areaName: string
+  lastMessage: string
+  lastAt: string
 }
 
-/** Saksbehandlere i kommuner der utleier har bolig — brukes til én felles meldingstråd. */
-async function fetchKommuneStaffIdsForLandlord(ownerId: string): Promise<string[]> {
-  const { data: listings } = await supabase.from('listings').select('city').eq('owner_id', ownerId)
-  const cities = [
-    ...new Set(
-      (listings || [])
-        .map((l) => (l.city || '').trim().toLowerCase())
-        .filter(Boolean)
-    ),
-  ]
-  if (cities.length === 0) return []
-  const { data: staff } = await supabase
-    .from('profiles')
-    .select('id, kommune_region')
-    .in('role', ['kommune_ansatt', 'kommune_admin'])
-  return (staff || [])
-    .filter((p) =>
-      parseKommuneRegions(p.kommune_region).some((r) => cities.includes(r))
-    )
-    .map((p) => p.id)
+type LandlordAreaThread = {
+  serviceAreaId: string
+  name: string
+  lastMessage: string
+  lastAt: string
 }
 
 function MessagesContent() {
@@ -67,6 +55,7 @@ function MessagesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const withUserId = searchParams.get('with')
+  const withAreaId = searchParams.get('area')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const chatBoot = useChatUserBootstrap()
@@ -84,9 +73,8 @@ function MessagesContent() {
   const [loading, setLoading] = useState(true)
   /** Kommune: unngå «ingen meldinger»-tekst mens første henting av samtaler pågår. */
   const [conversationsLoading, setConversationsLoading] = useState(false)
-  const [conversations, setConversations] = useState<
-    { userId: string; name: string; lastMessage: string; lastAt: string }[]
-  >([])
+  const [conversations, setConversations] = useState<ConversationRow[]>([])
+  const [landlordAreaThreads, setLandlordAreaThreads] = useState<LandlordAreaThread[]>([])
   const [otherUser, setOtherUser] = useState<any>(null)
   const [peerRole, setPeerRole] = useState<string | null>(null)
   const [colleagues, setColleagues] = useState<{ id: string; name: string }[]>([])
@@ -97,8 +85,6 @@ function MessagesContent() {
   const [messagesPickerTab, setMessagesPickerTab] = useState<'landlords' | 'staff'>('landlords')
   const [messagesContactSearch, setMessagesContactSearch] = useState('')
   const messagesScrollRef = useRef<HTMLDivElement>(null)
-  /** Utleier: alle saksbehandlere/admin som overlapper boligenes kommuner (én delt kanal). */
-  const [landlordKommuneStaffIds, setLandlordKommuneStaffIds] = useState<string[]>([])
   /** Visningsnavn for avsender (kollega i delt tråd / saksbehandler fra utleiers perspektiv). */
   const [threadSenderLabelById, setThreadSenderLabelById] = useState<Record<string, string>>({})
   const isKommune = role === 'kommune_ansatt' || role === 'kommune_admin'
@@ -117,27 +103,27 @@ function MessagesContent() {
     return () => mq.removeEventListener('change', sync)
   }, [])
 
+  /** Kommune: resolve service area when opening landlord without ?area= */
   useEffect(() => {
-    if (!profileResolved || !currentUser?.id || isKommune) {
-      setLandlordKommuneStaffIds([])
-      return
-    }
+    if (!profileResolved || !isKommune || !withUserId || withAreaId) return
     let cancelled = false
     void (async () => {
-      const ids = await fetchKommuneStaffIdsForLandlord(currentUser.id)
-      if (cancelled) return
-      setLandlordKommuneStaffIds(ids)
+      const { data, error } = await supabase.rpc('resolve_staff_landlord_thread_area', {
+        p_landlord_id: withUserId,
+      })
+      if (cancelled || error || !data) return
+      router.replace(`/nav/messages?with=${withUserId}&area=${data}`)
     })()
     return () => {
       cancelled = true
     }
-  }, [profileResolved, currentUser?.id, isKommune])
+  }, [profileResolved, isKommune, withUserId, withAreaId, router])
 
-  /** Utleier: all dialog går i én delt kanal — fjern ?with= (gamle bokmerker). */
+  /** Utleier: auto-select sole service area thread */
   useEffect(() => {
-    if (!profileResolved || !currentUser || isKommune || !withUserId) return
-    router.replace('/nav/messages')
-  }, [profileResolved, currentUser, isKommune, withUserId, router])
+    if (!profileResolved || isKommune || withAreaId || landlordAreaThreads.length !== 1) return
+    router.replace(`/nav/messages?area=${landlordAreaThreads[0].serviceAreaId}`)
+  }, [profileResolved, isKommune, withAreaId, landlordAreaThreads, router])
 
   useEffect(() => {
     if (!profileResolved) return
@@ -169,19 +155,9 @@ function MessagesContent() {
     }
 
     const loadColleagues = async () => {
-      const { data: rows } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, kommune_region, kommune_can_edit, role')
-        .in('role', ['kommune_ansatt', 'kommune_admin'])
-        .neq('id', currentUser.id)
+      const { data: rows } = await supabase.rpc('get_kommune_staff_for_admin')
       if (cancelled) return []
       return (rows || [])
-        .filter(
-          (p: { role?: string | null }) => p.role === 'kommune_admin' || p.role === 'kommune_ansatt'
-        )
-        .filter((p: { kommune_region?: string | string[] | null }) =>
-          regionsOverlap(myRegions, parseKommuneRegions(p.kommune_region))
-        )
         .map((p: { id: string; full_name?: string | null; email?: string | null }) => ({
           id: p.id,
           name: p.full_name?.trim() || p.email?.split('@')[0] || 'Ukjent',
@@ -190,34 +166,14 @@ function MessagesContent() {
     }
 
     const loadLandlords = async () => {
-      const { data: allListings } = await supabase.rpc('get_listings_for_kommune')
-      if (cancelled) return []
-      const listingsInRegion = (allListings || []).filter((l: { city?: string | null }) =>
-        listingCityMatchesRegions(l.city, myRegions)
-      )
-      const allowedOwnerIds = new Set(
-        listingsInRegion.map((l: { owner_id?: string }) => l.owner_id).filter(Boolean)
-      )
-
       const { data: profiles, error: profileError } = await supabase.rpc(
         'get_all_users_for_kommune'
       )
       if (cancelled) return []
-      let rows: {
-        id: string
-        full_name?: string | null
-        email?: string | null
-        role?: string | null
-      }[] = []
-      if (profileError) {
-        const { data: fb } = await supabase.from('profiles').select('id, full_name, email, role')
-        rows = (fb || []) as typeof rows
-      } else {
-        rows = (profiles || []) as typeof rows
-      }
-      return rows
-        .filter((p) => allowedOwnerIds.has(p.id) && !isKommuneStaffRole(p.role))
-        .map((p) => ({
+      if (profileError) return []
+      return (profiles || [])
+        .filter((p: { role?: string | null }) => !isKommuneStaffRole(p.role))
+        .map((p: { id: string; full_name?: string | null; email?: string | null }) => ({
           id: p.id,
           name: p.full_name?.trim() || p.email?.split('@')[0] || 'Ukjent',
         }))
@@ -295,18 +251,53 @@ function MessagesContent() {
         }
       }
 
-      const peers = (rows as { landlord_id: string; last_at: string; last_preview: string | null }[]).map(
-        (r) => {
-          const raw = (r.last_preview ?? '').trim()
-          return {
-            userId: r.landlord_id,
-            name: nameById.get(r.landlord_id) ?? 'Ukjent bruker',
-            lastMessage: raw.length > 40 ? `${raw.slice(0, 40)}…` : raw,
-            lastAt: r.last_at || '',
-          }
+      const peers = (
+        rows as {
+          landlord_id: string
+          service_area_id: string
+          service_area_name: string
+          last_at: string
+          last_preview: string | null
+        }[]
+      ).map((r) => {
+        const raw = (r.last_preview ?? '').trim()
+        return {
+          userId: r.landlord_id,
+          serviceAreaId: r.service_area_id,
+          name: nameById.get(r.landlord_id) ?? 'Ukjent bruker',
+          areaName: r.service_area_name || '',
+          lastMessage: raw.length > 40 ? `${raw.slice(0, 40)}…` : raw,
+          lastAt: r.last_at || '',
         }
-      )
+      })
       setConversations(peers.sort((a, b) => (b.lastAt > a.lastAt ? 1 : -1)))
+    }
+
+    const fetchConversationsLandlord = async () => {
+      const { data: rows, error: sumErr } = await supabase.rpc('get_landlord_service_area_threads')
+      if (sumErr) {
+        devWarn('[Boly/chat] get_landlord_service_area_threads', sumErr)
+        setLandlordAreaThreads([])
+        return
+      }
+      setLandlordAreaThreads(
+        (rows || []).map(
+          (r: {
+            service_area_id: string
+            display_name: string
+            last_at: string | null
+            last_preview: string | null
+          }) => {
+            const raw = (r.last_preview ?? '').trim()
+            return {
+              serviceAreaId: r.service_area_id,
+              name: r.display_name || '',
+              lastMessage: raw.length > 40 ? `${raw.slice(0, 40)}…` : raw,
+              lastAt: r.last_at || '',
+            }
+          }
+        )
+      )
     }
 
     void (async () => {
@@ -315,10 +306,13 @@ function MessagesContent() {
           setConversationsLoading(true)
           await fetchConversationsKommune()
         } else {
+          setConversationsLoading(true)
+          await fetchConversationsLandlord()
           setConversations([])
         }
       } catch {
         if (!cancelled && isKommune) setConversations([])
+        if (!cancelled && !isKommune) setLandlordAreaThreads([])
       } finally {
         if (!cancelled) {
           setConversationsLoading(false)
@@ -331,12 +325,14 @@ function MessagesContent() {
       cancelled = true
       setConversationsLoading(false)
     }
-  }, [profileResolved, currentUser, isKommune, withUserId, kommuneCanEdit, t])
+  }, [profileResolved, currentUser, isKommune, withUserId, withAreaId, kommuneCanEdit, t])
+
+  const activeServiceAreaId = withAreaId
 
   useEffect(() => {
     if (!profileResolved || !currentUser) return
-    const isHomeownerChat = !isKommune
-    const isKommuneChat = isKommune && withUserId
+    const isHomeownerChat = !isKommune && !!withAreaId
+    const isKommuneChat = isKommune && withUserId && withAreaId
     if (!isHomeownerChat && !isKommuneChat) {
       setMessages([])
       setOtherUser(null)
@@ -344,50 +340,51 @@ function MessagesContent() {
     }
 
     const fetchMessages = async () => {
-      let query = supabase.from('chat_messages').select('*')
-      if (isHomeownerChat) {
-        const staffIds =
-          landlordKommuneStaffIds.length > 0
-            ? landlordKommuneStaffIds
-            : await fetchKommuneStaffIdsForLandlord(currentUser.id)
-        if (staffIds.length === 0) {
-          query = query.or(
-            `and(sender_id.eq.${currentUser.id},receiver_id.is.null),receiver_id.eq.${currentUser.id}`
-          )
-        } else {
-          const inList = staffIds.join(',')
-          query = query.or(
-            `and(sender_id.eq.${currentUser.id},receiver_id.is.null),and(sender_id.eq.${currentUser.id},receiver_id.in.(${inList})),and(sender_id.in.(${inList}),receiver_id.eq.${currentUser.id})`
-          )
+      if (isHomeownerChat && withAreaId) {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc(
+          'get_landlord_kommune_thread_messages',
+          { p_service_area_id: withAreaId }
+        )
+        if (!rpcErr && rpcData != null) {
+          setMessages((rpcData as any[]) || [])
+          return
         }
-      } else {
+        if (rpcErr) devWarn('[Boly/chat] get_landlord_kommune_thread_messages', rpcErr)
+        setMessages([])
+        return
+      }
+
+      if (isKommuneChat && withUserId && withAreaId) {
         const { data: rpcData, error: rpcErr } = await supabase.rpc(
           'get_kommune_landlord_thread_messages',
-          { p_landlord_id: withUserId }
+          { p_landlord_id: withUserId, p_service_area_id: withAreaId }
         )
         if (!rpcErr && rpcData != null) {
           setMessages((rpcData as any[]) || [])
           return
         }
         if (rpcErr) devWarn('[Boly/chat] get_kommune_landlord_thread_messages', rpcErr)
-        query = query.or(
-          `and(sender_id.eq.${currentUser.id},receiver_id.eq.${withUserId}),and(sender_id.eq.${withUserId},receiver_id.eq.${currentUser.id}),and(sender_id.eq.${withUserId},receiver_id.is.null)`
-        )
-        const { data } = await query.order('created_at', { ascending: true })
-        setMessages(data || [])
-        return
+        setMessages([])
       }
-      const { data } = await query.order('created_at', { ascending: true })
-      setMessages(data || [])
     }
 
-    if (isHomeownerChat) {
-      setOtherUser({ id: null, name: t('messagesLandlordSharedChannelTitle') })
+    if (isHomeownerChat && withAreaId) {
+      const areaLabel =
+        landlordAreaThreads.find((a) => a.serviceAreaId === withAreaId)?.name ||
+        t('messagesLandlordSharedChannelTitle')
+      setOtherUser({ id: null, name: areaLabel })
       void fetchMessages()
-    } else if (withUserId) {
+    } else if (withUserId && withAreaId) {
       void Promise.all([
         supabase.rpc('get_user_display_name', { p_user_id: withUserId }).then(({ data: name }) => {
-          setOtherUser({ id: withUserId, name: name ?? 'Ukjent bruker' })
+          const areaLabel =
+            conversations.find(
+              (c) => c.userId === withUserId && c.serviceAreaId === withAreaId
+            )?.areaName || ''
+          setOtherUser({
+            id: withUserId,
+            name: areaLabel ? `${name ?? 'Ukjent bruker'} · ${areaLabel}` : (name ?? 'Ukjent bruker'),
+          })
         }),
         fetchMessages(),
       ])
@@ -399,16 +396,21 @@ function MessagesContent() {
     document.addEventListener('visibilitychange', onVisibleRefetch)
 
     const channelId = isHomeownerChat
-      ? `chat:${currentUser.id}:kommune:shared`
-      : `chat:${currentUser.id}:${withUserId}`
+      ? `chat:${currentUser.id}:area:${withAreaId}`
+      : `chat:${currentUser.id}:${withUserId}:area:${withAreaId}`
     const sub = supabase
       .channel(channelId)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         (payload) => {
-          const row = payload.new as { sender_id?: string; receiver_id?: string | null }
+          const row = payload.new as {
+            sender_id?: string
+            receiver_id?: string | null
+            service_area_id?: string | null
+          }
           if (!row?.sender_id) return
+          if (withAreaId && row.service_area_id && row.service_area_id !== withAreaId) return
           if (isKommuneChat && withUserId) {
             if (row.sender_id !== withUserId && row.receiver_id !== withUserId) return
           } else if (isHomeownerChat) {
@@ -435,9 +437,11 @@ function MessagesContent() {
     profileResolved,
     currentUser,
     withUserId,
+    withAreaId,
     isKommune,
     t,
-    landlordKommuneStaffIds,
+    landlordAreaThreads,
+    conversations,
   ])
 
   useEffect(() => {
@@ -531,6 +535,7 @@ function MessagesContent() {
     const hasImages = pendingImages.length > 0
     if ((!content && !hasImages) || !currentUser) return
     if (readonlyBlocksReply) return
+    if (!activeServiceAreaId) return
     setSending(true)
     let effectiveReceiver: string | null = withUserId ?? null
     /** DB-trigger varsler kommune når receiver_id er null (delt kanal). */
@@ -568,6 +573,7 @@ function MessagesContent() {
           receiver_id: effectiveReceiver ?? null,
           content: content || '',
           image_urls: imageUrls,
+          service_area_id: activeServiceAreaId,
         })
         .select('id, created_at')
         .maybeSingle()
@@ -615,13 +621,9 @@ function MessagesContent() {
     }
   }
 
-  const conversationPeerIds = useMemo(
-    () => new Set(conversations.map((c) => c.userId)),
-    [conversations]
-  )
   const landlordsWithoutThread = useMemo(
-    () => landlordAccounts.filter((l) => !conversationPeerIds.has(l.id)),
-    [landlordAccounts, conversationPeerIds]
+    () => landlordAccounts.filter((l) => !conversations.some((c) => c.userId === l.id)),
+    [landlordAccounts, conversations]
   )
 
   if (chatBoot.isPending) {
@@ -655,9 +657,12 @@ function MessagesContent() {
 
   /** Kun-les trenger sidestolpe også når en samtale er åpen (kollegaer + bytte tråd). Full redigering beholder én kolonne i aktiv chat. */
   const showKommuneSidebar = isKommune && (!withUserId || kommuneCanEdit === false)
+  const showLandlordAreaSidebar = !isKommune && landlordAreaThreads.length > 1 && !withAreaId
   const kommuneMobileListOnly = isKommune && isMobile && !withUserId
   const kommuneMobileChatOnly = isKommune && isMobile && !!withUserId
-  const showChat = isKommune ? withUserId : true
+  const landlordMobileListOnly = !isKommune && isMobile && !withAreaId && landlordAreaThreads.length > 1
+  const landlordMobileChatOnly = !isKommune && isMobile && !!withAreaId
+  const showChat = isKommune ? withUserId && !!withAreaId : !!withAreaId || landlordAreaThreads.length <= 1
 
   const showReadonlyBanner =
     isKommune &&
@@ -694,7 +699,7 @@ function MessagesContent() {
   const showMessagesPickerSearch =
     (messagesPickerTab === 'landlords' && landlordsWithoutThread.length > 0) ||
     (messagesPickerTab === 'staff' && colleagues.length > 0)
-  const compactMobileChat = kommuneMobileChatOnly || (!isKommune && isMobile)
+  const compactMobileChat = kommuneMobileChatOnly || landlordMobileChatOnly || (!isKommune && isMobile && !!withAreaId)
   const formatMessageTimestamp = (value: string | Date | null | undefined) => {
     if (!isMobile) return formatDateTimeNo(value)
     const d = new Date(String(value ?? ''))
@@ -824,11 +829,11 @@ function MessagesContent() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: kommuneMobileListOnly
+          gridTemplateColumns: kommuneMobileListOnly || landlordMobileListOnly
             ? '1fr'
-            : kommuneMobileChatOnly
+            : kommuneMobileChatOnly || landlordMobileChatOnly
               ? '1fr'
-              : showKommuneSidebar
+              : showKommuneSidebar || showLandlordAreaSidebar
                 ? 'minmax(280px, 340px) 1fr'
                 : '1fr',
           gap: 'var(--space-6)',
@@ -882,8 +887,8 @@ function MessagesContent() {
                 >
                   {conversations.map((c) => (
                     <Link
-                      key={c.userId}
-                      href={`/nav/messages?with=${c.userId}`}
+                      key={`${c.userId}:${c.serviceAreaId}`}
+                      href={`/nav/messages?with=${c.userId}&area=${c.serviceAreaId}`}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -891,9 +896,9 @@ function MessagesContent() {
                         padding: 'var(--space-3)',
                         borderRadius: '10px',
                         background:
-                          withUserId === c.userId
+                          withUserId === c.userId && withAreaId === c.serviceAreaId
                             ? 'rgba(59, 130, 246, 0.15)'
-                            : 'rgba(255,255,255,0.03)',
+                            : 'rgba(255,255,255, 0.03)',
                         textDecoration: 'none',
                         color: 'inherit',
                         minWidth: 0,
@@ -924,6 +929,11 @@ function MessagesContent() {
                         >
                           {c.name}
                         </div>
+                        {c.areaName ? (
+                          <div className="text-sm" style={{ opacity: 0.55, fontSize: '0.78rem' }}>
+                            {c.areaName}
+                          </div>
+                        ) : null}
                         <div
                           className="text-sm"
                           style={{
@@ -1048,9 +1058,17 @@ function MessagesContent() {
                     </p>
                   ) : (
                     filteredLandlordsForPicker.map((l) => (
-                      <Link
+                      <button
                         key={l.id}
-                        href={`/nav/messages?with=${l.id}`}
+                        type="button"
+                        onClick={() => {
+                          void supabase
+                            .rpc('resolve_staff_landlord_thread_area', { p_landlord_id: l.id })
+                            .then(({ data, error }) => {
+                              if (error || !data) return
+                              router.push(`/nav/messages?with=${l.id}&area=${data}`)
+                            })
+                        }}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -1064,6 +1082,10 @@ function MessagesContent() {
                           textDecoration: 'none',
                           color: 'inherit',
                           minWidth: 0,
+                          border: 'none',
+                          width: '100%',
+                          textAlign: 'left',
+                          cursor: 'pointer',
                         }}
                       >
                         <div
@@ -1092,7 +1114,7 @@ function MessagesContent() {
                           {l.name}
                         </div>
                         <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
-                      </Link>
+                      </button>
                     ))
                   )
                 ) : colleagues.length === 0 ? (
@@ -1180,10 +1202,75 @@ function MessagesContent() {
           </aside>
         )}
 
+        {showLandlordAreaSidebar && !landlordMobileChatOnly && (
+          <aside
+            className="card"
+            style={{
+              padding: 'var(--space-4)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0,
+              gap: 'var(--space-4)',
+            }}
+          >
+            <h3
+              style={{
+                marginBottom: 0,
+                fontSize: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <MessageSquare size={18} style={{ opacity: 0.85 }} /> {t('conversations')}
+            </h3>
+            {conversationsLoading ? (
+              <LoadingPlaceholder minHeight={120} />
+            ) : landlordAreaThreads.length === 0 ? (
+              <p className="text-sm" style={{ opacity: 0.6, margin: 0 }}>
+                {t('noMessagesYet')}
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                {landlordAreaThreads.map((a) => (
+                  <Link
+                    key={a.serviceAreaId}
+                    href={`/nav/messages?area=${a.serviceAreaId}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-3)',
+                      padding: 'var(--space-3)',
+                      borderRadius: '10px',
+                      background:
+                        withAreaId === a.serviceAreaId
+                          ? 'rgba(59, 130, 246, 0.15)'
+                          : 'rgba(255,255,255,0.03)',
+                      textDecoration: 'none',
+                      color: 'inherit',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600 }}>{a.name}</div>
+                      {a.lastMessage ? (
+                        <div className="text-sm" style={{ opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {a.lastMessage}
+                        </div>
+                      ) : null}
+                    </div>
+                    <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </aside>
+        )}
+
         <div
           className="card"
           style={{
-            display: kommuneMobileListOnly ? 'none' : 'flex',
+            display: kommuneMobileListOnly || landlordMobileListOnly ? 'none' : 'flex',
             flexDirection: 'column',
             padding: 0,
             minHeight: compactMobileChat ? 0 : 400,
@@ -1192,7 +1279,7 @@ function MessagesContent() {
             maxHeight: compactMobileChat ? 'calc(100dvh - 200px)' : undefined,
           }}
         >
-          {showChat && (withUserId || !isKommune) ? (
+          {showChat ? (
             <>
               <div
                 style={{

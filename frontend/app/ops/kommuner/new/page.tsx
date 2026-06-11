@@ -13,7 +13,7 @@ import { OpsWizardProgress } from '../../components/OpsChecklist'
 import { Button } from '../../../components/ui/Button'
 import {
   opsUpsertKommune,
-  opsBulkWhitelist,
+  opsBulkInvite,
   opsUpsertDpo,
   opsSetKommuneStatus,
 } from '../../../lib/opsApi'
@@ -102,7 +102,7 @@ export default function OpsKommuneNewPage() {
     try {
       const emails = parseEmails(whitelistRaw)
       if (emails.length > 0) {
-        await opsBulkWhitelist(kommuneId, emails, 'Onboarding wizard')
+        await opsBulkInvite([kommuneId], emails, 'staff', true, 'Onboarding wizard')
       }
       setStep(3)
     } catch (e) {

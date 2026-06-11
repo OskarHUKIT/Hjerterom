@@ -34,6 +34,22 @@ export type OpsUserListItem = {
   created_at: string
 }
 
+export type OpsKommuneGrant = {
+  kommune_id: string
+  slug: string
+  display_name: string
+  region_keys: string[]
+  grant_role: 'staff' | 'admin'
+  can_edit: boolean
+  granted_at: string
+}
+
+export type OpsLandlordKommuneScope = {
+  kommune_id: string
+  display_name: string
+  service_areas: string[]
+}
+
 export type OpsUserDetail = {
   id: string
   email: string
@@ -57,6 +73,22 @@ export type OpsUserDetail = {
     notes: string | null
   }[]
   listings_count: number
+  kommune_grants: OpsKommuneGrant[]
+  landlord_kommune_scope: OpsLandlordKommuneScope[]
+}
+
+export type OpsServiceArea = {
+  id: string
+  slug: string
+  display_name: string
+  status: string
+  notes: string | null
+  members: {
+    kommune_id: string
+    slug: string
+    display_name: string
+    is_primary: boolean
+  }[]
 }
 
 export type OpsTermsItem = {
@@ -120,7 +152,15 @@ export async function opsSearchUsers(
 export async function opsGetUserDetail(userId: string): Promise<OpsUserDetail> {
   const { data, error } = await supabase.rpc('ops_get_user_detail', { p_user_id: userId })
   if (error) throw error
-  return data as OpsUserDetail
+  const raw = data as Record<string, unknown>
+  return {
+    ...(raw as unknown as OpsUserDetail),
+    email: String(raw.email_full ?? raw.email ?? ''),
+    listings_count: Number(raw.listings_count ?? raw.listing_count ?? 0),
+    is_operator: Boolean(raw.is_operator ?? raw.is_platform_operator),
+    kommune_grants: (raw.kommune_grants as OpsKommuneGrant[]) ?? [],
+    landlord_kommune_scope: (raw.landlord_kommune_scope as OpsLandlordKommuneScope[]) ?? [],
+  }
 }
 
 export async function opsListPendingTerms(region: string | null, limit = 25, offset = 0) {
@@ -396,6 +436,71 @@ export async function opsBulkWhitelist(kommuneId: string, emails: string[], note
   const { data, error } = await supabase.rpc('ops_bulk_whitelist', {
     p_kommune_id: kommuneId,
     p_emails: emails,
+    p_notes: notes ?? null,
+  })
+  if (error) throw error
+  return data as { ok: boolean; count: number }
+}
+
+export async function opsGetUserGrants(userId: string): Promise<OpsKommuneGrant[]> {
+  const { data, error } = await supabase.rpc('ops_get_user_grants', { p_user_id: userId })
+  if (error) throw error
+  return (data ?? []) as OpsKommuneGrant[]
+}
+
+export type OpsGrantInput = {
+  kommune_id: string
+  grant_role?: 'staff' | 'admin'
+  can_edit?: boolean
+}
+
+export async function opsSetUserGrants(userId: string, grants: OpsGrantInput[]) {
+  const { data, error } = await supabase.rpc('ops_set_user_grants', {
+    p_user_id: userId,
+    p_grants: grants,
+  })
+  if (error) throw error
+  return data as { ok: boolean }
+}
+
+export async function opsListServiceAreas(): Promise<OpsServiceArea[]> {
+  const { data, error } = await supabase.rpc('ops_list_service_areas')
+  if (error) throw error
+  return (data ?? []) as OpsServiceArea[]
+}
+
+export async function opsUpsertServiceArea(args: {
+  slug: string
+  displayName: string
+  status?: string
+  notes?: string | null
+  memberKommuneIds?: string[]
+  primaryKommuneId?: string | null
+}) {
+  const { data, error } = await supabase.rpc('ops_upsert_service_area', {
+    p_slug: args.slug,
+    p_display_name: args.displayName,
+    p_status: args.status ?? 'active',
+    p_notes: args.notes ?? null,
+    p_member_kommune_ids: args.memberKommuneIds ?? null,
+    p_primary_kommune_id: args.primaryKommuneId ?? null,
+  })
+  if (error) throw error
+  return data as { id: string; slug: string }
+}
+
+export async function opsBulkInvite(
+  kommuneIds: string[],
+  emails: string[],
+  grantRole: 'staff' | 'admin' = 'staff',
+  canEdit = true,
+  notes?: string | null
+) {
+  const { data, error } = await supabase.rpc('ops_bulk_invite', {
+    p_kommune_ids: kommuneIds,
+    p_emails: emails,
+    p_grant_role: grantRole,
+    p_can_edit: canEdit,
     p_notes: notes ?? null,
   })
   if (error) throw error

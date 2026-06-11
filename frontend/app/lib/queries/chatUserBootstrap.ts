@@ -1,7 +1,6 @@
 import type { User } from '@supabase/supabase-js'
 import type { QueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabase'
-import { mergeKommuneRegionSources } from '../kommuneRegions'
 import { fetchLandlordNavGate } from './landlordNavGateQuery'
 
 export const chatUserBootstrapQueryKey = ['chat', 'userBootstrap'] as const
@@ -14,12 +13,20 @@ export type ChatUserBootstrap =
       user: User
       role: string
       kommuneCanEdit: boolean
-      /** Display string for kommune region(s), same as previous Messages useEffect. */
+      /** Region keys from grants (display / colleague overlap). */
       myKommuneRegion: string | null
+      myKommuneIds: string[]
+      myServiceAreaIds: string[]
     }
 
+type MyKommuneAccess = {
+  kommune_ids?: string[]
+  region_keys?: string[]
+  service_area_ids?: string[]
+}
+
 /**
- * Single fetch for /nav/messages: gate + profile + whitelist merge (replaces two useEffects).
+ * Single fetch for /nav/messages: gate + profile + grant-based region resolution.
  */
 export async function fetchChatUserBootstrap(qc: QueryClient): Promise<ChatUserBootstrap> {
   const gate = await fetchLandlordNavGate(qc)
@@ -29,31 +36,10 @@ export async function fetchChatUserBootstrap(qc: QueryClient): Promise<ChatUserB
   const user = gate.user
   const prof = gate.profile
 
-  let wlRpc: string | null = null
-  let wlTable: string | null = null
-  if (user.email) {
-    const [{ data: rpcRegion }, { data: whitelistRows }] = await Promise.all([
-      supabase.rpc('get_whitelist_region_for_email', {
-        p_email: user.email,
-      }),
-      supabase
-        .from('kommune_access_list')
-        .select('region')
-        .ilike('email', user.email)
-        .eq('is_active', true)
-        .limit(1),
-    ])
-    wlRpc =
-      typeof rpcRegion === 'string'
-        ? rpcRegion
-        : Array.isArray(rpcRegion) && rpcRegion?.length
-          ? String(rpcRegion[0])
-          : null
-    wlTable = whitelistRows?.[0]?.region ?? null
-  }
-
-  const merged = mergeKommuneRegionSources(prof?.kommune_region, wlRpc, wlTable)
-  const myKommuneRegion = merged.length > 0 ? merged.join(', ') : null
+  const { data: accessRaw } = await supabase.rpc('get_my_kommune_access')
+  const access = (accessRaw ?? {}) as MyKommuneAccess
+  const regionKeys = (access.region_keys ?? []).filter(Boolean)
+  const myKommuneRegion = regionKeys.length > 0 ? regionKeys.join(', ') : null
   const role = prof?.role || user.user_metadata?.role || 'homeowner'
   const kommuneCanEdit = prof?.role === 'kommune_admin' || prof?.kommune_can_edit !== false
 
@@ -63,5 +49,7 @@ export async function fetchChatUserBootstrap(qc: QueryClient): Promise<ChatUserB
     role,
     kommuneCanEdit,
     myKommuneRegion,
+    myKommuneIds: (access.kommune_ids ?? []).filter(Boolean),
+    myServiceAreaIds: (access.service_area_ids ?? []).filter(Boolean),
   }
 }

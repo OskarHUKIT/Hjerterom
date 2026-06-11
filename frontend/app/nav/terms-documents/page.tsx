@@ -107,26 +107,9 @@ export default function TermsDocumentsPage() {
       setKommuneCanEdit(role === 'kommune_admin' || profile?.kommune_can_edit !== false)
 
       let regionRaw: string | string[] | null = profile?.kommune_region ?? null
-      if ((regionRaw == null || String(regionRaw).trim() === '') && user.email) {
-        const rpcRes = await supabase.rpc('get_whitelist_region_for_email', { p_email: user.email })
-        const fromRpc =
-          typeof rpcRes.data === 'string'
-            ? rpcRes.data
-            : Array.isArray(rpcRes.data) && rpcRes.data?.length
-              ? rpcRes.data[0]
-              : null
-        if (fromRpc && String(fromRpc).trim()) regionRaw = fromRpc
-        else {
-          const tableRes = await supabase
-            .from('kommune_access_list')
-            .select('region')
-            .ilike('email', user.email)
-            .eq('is_active', true)
-            .limit(1)
-          const fromTable = tableRes.data?.[0]?.region
-          if (fromTable && String(fromTable).trim()) regionRaw = fromTable
-        }
-      }
+      const { data: accessRaw } = await supabase.rpc('get_my_kommune_access')
+      const regionKeys = (accessRaw as { region_keys?: string[] } | null)?.region_keys
+      if (regionKeys?.length) regionRaw = regionKeys
       const parsed = parseKommuneRegions(regionRaw)
       setMyRegions(parsed)
       setLoading(false)
