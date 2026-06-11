@@ -222,18 +222,7 @@ serve(async (req) => {
     }
 
     currentStep = "Logging"
-    await supabaseAdmin.from("audit_logs").insert([
-      {
-        user_id: userId,
-        action_type: "SIGN_INITIATED",
-        details: {
-          note: "rate_limit_burst_15m_daily_3",
-          terms_document_id: docId,
-          burst_count_before: burstCount ?? 0,
-          daily_count_before: dailyCount ?? 0,
-        },
-      },
-    ])
+    // signing_session_id settes etter Signicat-økt er opprettet (under).
 
     let pdfUrl = fallbackPdfUrl()
     let signTitle = "Vilkårsavtale Boligbank"
@@ -366,9 +355,53 @@ serve(async (req) => {
 
     const sessionObj = Array.isArray(sessionData) ? sessionData[0] : sessionData
     const signatureUrl = sessionObj?.signatureUrl || sessionObj?.url
-    
+    const signingSessionId =
+      typeof sessionObj?.id === "string" && sessionObj.id.trim() ? sessionObj.id.trim() : ""
+
     if (!signatureUrl) {
       throw new Error(`Fant ingen URL i svaret fra Signicat. Svar: ${JSON.stringify(sessionData)}`)
+    }
+    if (!signingSessionId) {
+      throw new Error(`Fant ingen signing session id i svaret fra Signicat.`)
+    }
+
+    await supabaseAdmin.from("audit_logs").insert([
+      {
+        user_id: userId,
+        action_type: "SIGN_INITIATED",
+        details: {
+          note: "rate_limit_burst_15m_daily_3",
+          terms_document_id: docId,
+          signing_session_id: signingSessionId,
+          burst_count_before: burstCount ?? 0,
+          daily_count_before: dailyCount ?? 0,
+        },
+      },
+    ])
+
+    const sessionParam = `&signingSessionId=${encodeURIComponent(signingSessionId)}`
+    const redirectSettings = {
+      success: `${functionsHost}/sign-callback?userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(safeOrigin)}${cityParam}${sessionParam}`,
+      cancel: `${functionsHost}/sign-callback?status=cancel&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(safeOrigin)}${cityParam}${sessionParam}`,
+      error: `${functionsHost}/sign-callback?status=error&userId=${encodeURIComponent(userId)}&origin=${encodeURIComponent(safeOrigin)}${cityParam}${sessionParam}`,
+    }
+    const patchRes = await fetch(
+      `https://api.signicat.com/sign/signing-sessions/${signingSessionId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ redirectSettings }),
+      },
+    )
+    if (!patchRes.ok) {
+      edgeLog("warn", "sign-agreement redirect patch failed", {
+        status: patchRes.status,
+        signingSessionId,
+      })
     }
 
     return new Response(JSON.stringify({ url: signatureUrl }), {
