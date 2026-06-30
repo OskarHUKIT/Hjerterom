@@ -20,12 +20,40 @@ jobs:
         env:
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: |
-          if [ -z "$MIRROR_TOKEN" ]; then
+          set -euo pipefail
+          TOKEN="$(printf '%s' "$MIRROR_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+          if [ -z "$TOKEN" ]; then
             echo "MIRROR_TOKEN is missing on OskarHUKIT/Boly."
-            echo "Add it under: Settings -> Secrets and variables -> Actions -> Repository secrets"
-            echo "Name must be exactly: MIRROR_TOKEN"
+            echo "Add it under Settings -> Secrets and variables -> Actions -> Repository secrets"
             exit 1
           fi
-          git remote add hjerterom "https://x-access-token:${MIRROR_TOKEN}@github.com/OskarHUKIT/Hjerterom.git"
+
+          HTTP_CODE="$(curl -sS -o /tmp/repo-check.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/OskarHUKIT/Hjerterom)"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Token cannot read OskarHUKIT/Hjerterom (HTTP ${HTTP_CODE})."
+            echo "Create a classic PAT with the 'repo' scope, or a fine-grained PAT with Contents read/write on both Boly and Hjerterom."
+            cat /tmp/repo-check.json || true
+            exit 1
+          fi
+
+          PERM="$(python3 - <<'PY'
+          import json
+          data = json.load(open("/tmp/repo-check.json"))
+          print(data.get("permissions", {}).get("push", False))
+          PY
+          )"
+
+          if [ "$PERM" != "True" ]; then
+            echo "Token can read Hjerterom but does not have push permission."
+            echo "Use a classic PAT with the full 'repo' scope."
+            exit 1
+          fi
+
+          git remote add hjerterom "https://x-access-token:${TOKEN}@github.com/OskarHUKIT/Hjerterom.git"
           git push hjerterom --all
           git push hjerterom --tags
