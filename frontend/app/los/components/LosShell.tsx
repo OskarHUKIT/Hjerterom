@@ -24,6 +24,9 @@ export default function LosShell({ children }: { children: React.ReactNode }) {
         </Link>
       </header>
       <main className="los-main">{children}</main>
+      <footer className="los-footer">
+        <Link href="/los/personvern">{t('losPrivacyLink')}</Link>
+      </footer>
     </div>
   )
 }

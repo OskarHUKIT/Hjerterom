@@ -6,10 +6,11 @@ import { createPortal } from 'react-dom'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { User as AuthUser } from '@supabase/supabase-js'
-import { supabase, getAuthUserDeduped } from '../../lib/supabase'
+import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { devWarn, logError } from '@/app/lib/appLogger'
-import PageSkeleton from '../../components/design-system/PageSkeleton'
-import { useLanguage } from '../../../context/LanguageContext'
+import { useToast } from '@/app/components/design-system'
+import PageSkeleton from '@/app/components/design-system/PageSkeleton'
+import { useLanguage } from '@/context/LanguageContext'
 import {
   MapPin,
   Bed,
@@ -49,29 +50,29 @@ import {
   Lock,
 } from 'lucide-react'
 
-import { Button } from '../../components/ui/Button'
-import { OptimizedPublicStorageImage } from '../../components/OptimizedPublicStorageImage'
-import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
-import { geocodeAddressBestEffort } from '../../lib/geocoding'
-import { supabaseErrorMessage } from '../../lib/supabaseErrorMessage'
-import { dayAvailabilityToneForIso } from '../../lib/listingDayAvailabilityTone'
+import { Button } from '@/app/components/ui/Button'
+import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
+import { formatDateNo, formatDateTimeNo } from '@/app/lib/dateFormat'
+import { geocodeAddressBestEffort } from '@/app/lib/geocoding'
+import { supabaseErrorMessage } from '@/app/lib/supabaseErrorMessage'
+import { dayAvailabilityToneForIso } from '@/app/lib/listingDayAvailabilityTone'
 import {
   listingRowFieldsForAvailabilityToday,
   formidlaPeriodIdsOverlappingToday,
-} from '../../lib/listingAvailabilityStatusToday'
-import { DateInput } from '../../components/DateInput'
+} from '@/app/lib/listingAvailabilityStatusToday'
+import { DateInput } from '@/app/components/DateInput'
 import {
   appendMediationNoteToOwnerMessage,
   MAX_MEDIATION_NOTE_IN_NOTIFICATION,
-} from '../../lib/formidletNotification'
-import { notifyLandlordInvoiceBasisIfKonto } from '../../lib/invoiceBasisNotify'
-import { isKommuneStaffRole } from '../../lib/kommuneRoles'
-import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
+} from '@/app/lib/formidletNotification'
+import { notifyLandlordInvoiceBasisIfKonto } from '@/app/lib/invoiceBasisNotify'
+import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
+import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '@/app/lib/storagePublicUrl'
 import {
   getHouseRulesPublicUrl,
   removeHouseRulesPdfObject,
   uploadHouseRulesPdf,
-} from '../../lib/houseRulesPdf'
+} from '@/app/lib/houseRulesPdf'
 
 /** Synlig plassholder mens tyngre chunk lastes (unngår «tom side» / opplevd feil). */
 function DeferredChunkPlaceholder({ minHeight }: { minHeight: number }) {
@@ -89,55 +90,22 @@ function DeferredChunkPlaceholder({ minHeight }: { minHeight: number }) {
   )
 }
 
-const HandoverReport = dynamic(() => import('../../components/HandoverReport'), {
+const HandoverReport = dynamic(() => import('@/app/components/HandoverReport'), {
   ssr: false,
   loading: () => <DeferredChunkPlaceholder minHeight={140} />,
 })
-const InvoiceBasisSection = dynamic(() => import('./InvoiceBasisSection'), {
+const InvoiceBasisSection = dynamic(() => import('@/app/listings/[id]/InvoiceBasisSection'), {
   ssr: false,
   loading: () => <DeferredChunkPlaceholder minHeight={96} />,
 })
 
-/** Verdier i `listings.deposit_guarantee` – må samsvare med registreringsskjema. */
-const DEPOSIT_GUARANTEE_VALUES = {
-  nav: 'Godtar depositumsgaranti fra Nav',
-  other: 'Godtar depositumsgaranti fra andre tilbydere',
-  ordinary: 'Godtar ordinært depositum',
-} as const
-
-function hasDepositGuarantee(arr: unknown, key: keyof typeof DEPOSIT_GUARANTEE_VALUES): boolean {
-  return Array.isArray(arr) && arr.includes(DEPOSIT_GUARANTEE_VALUES[key])
-}
-
-/** image_urls kan komme som jsonb-array eller (sjeldent) serialisert JSON-streng fra API. */
-function normalizeListingImageUrls(raw: unknown): string[] {
-  if (Array.isArray(raw)) {
-    return raw.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
-  }
-  if (typeof raw === 'string' && raw.trim()) {
-    const t = raw.trim()
-    if (t.startsWith('[')) {
-      try {
-        const p = JSON.parse(t)
-        if (Array.isArray(p))
-          return p.filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
-      } catch {
-        /* enkelt URL-streng */
-      }
-    }
-    return [t]
-  }
-  return []
-}
-
-/** True om boligen er markert formidlet (rad i listing_availability eller status på listing). */
-function listingHasFormidlaPeriod(avail: { status?: string }[] | null | undefined): boolean {
-  return !!avail?.some((p) => p.status === 'Formidla')
-}
-
-function errMessage(err: unknown): string {
-  return supabaseErrorMessage(err)
-}
+import {
+  DEPOSIT_GUARANTEE_VALUES,
+  hasDepositGuarantee,
+  normalizeListingImageUrls,
+  listingHasFormidlaPeriod,
+  listingDetailsErrMessage as errMessage,
+} from '@/features/listings/lib/listingDetailsUtils'
 
 export default function ListingDetailsClient() {
   const { id: idParam } = useParams()
@@ -145,6 +113,7 @@ export default function ListingDetailsClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useLanguage()
+  const toast = useToast()
   const viewMode = searchParams.get('view') // 'nav' eller 'owner'
   const isNavView = viewMode === 'nav'
 
@@ -258,12 +227,12 @@ export default function ListingDetailsClient() {
     if (!listing || !currentUser || !isOwner || isNavView) return
 
     if (showGalleryFormidlet) {
-      alert(t('ownerCannotEditListingWhenFormidlet'))
+      toast(t('ownerCannotEditListingWhenFormidlet'), 'error')
       return
     }
 
     if (!hasActiveAgreement) {
-      alert(t('signAgreementToEdit'))
+      toast(t('signAgreementToEdit'), 'error')
       router.push(
         `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
       )
@@ -310,7 +279,7 @@ export default function ListingDetailsClient() {
         },
       ])
     } catch (err: unknown) {
-      alert(t('errorSaving') + errMessage(err))
+      toast(t('errorSaving') + errMessage(err))
     } finally {
       setIsSaving(null)
     }
@@ -320,11 +289,11 @@ export default function ListingDetailsClient() {
   const handlePetPolicyChange = async (v: string) => {
     if (!listing || !isOwner || isNavView) return
     if (showGalleryFormidlet) {
-      alert(t('ownerCannotEditListingWhenFormidlet'))
+      toast(t('ownerCannotEditListingWhenFormidlet'), 'error')
       return
     }
     if (!hasActiveAgreement) {
-      alert(t('signAgreementToEdit'))
+      toast(t('signAgreementToEdit'), 'error')
       router.push(
         `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
       )
@@ -351,7 +320,7 @@ export default function ListingDetailsClient() {
         },
       ])
     } catch (err: unknown) {
-      alert(t('errorSaving') + errMessage(err))
+      toast(t('errorSaving') + errMessage(err))
       setListing(previous)
     } finally {
       setIsSaving(null)
@@ -380,7 +349,7 @@ export default function ListingDetailsClient() {
   const handleReserveMediation = async () => {
     if (!listing || !isNavView || !kommuneCanEdit) return
     if (ownerAgreementTerminated) {
-      alert(t('expiredOwnerNoMediationNav'))
+      toast(t('expiredOwnerNoMediationNav'), 'error')
       return
     }
     setReservationLoading(true)
@@ -394,7 +363,7 @@ export default function ListingDetailsClient() {
       setReservationNote('')
     } catch (e: unknown) {
       const m = errMessage(e)
-      alert(t('mediationReserveError') + (m ? `: ${m}` : ''))
+      toast(t('mediationReserveError') + (m ? `: ${m}` : ''), 'error')
     } finally {
       setReservationLoading(false)
     }
@@ -403,7 +372,7 @@ export default function ListingDetailsClient() {
   const handleReleaseMediation = async () => {
     if (!listing || !isNavView) return
     if (ownerAgreementTerminated) {
-      alert(t('expiredOwnerNoMediationNav'))
+      toast(t('expiredOwnerNoMediationNav'), 'error')
       return
     }
     setReservationLoading(true)
@@ -413,7 +382,7 @@ export default function ListingDetailsClient() {
       await loadMediationReservation()
     } catch (e: unknown) {
       const m = errMessage(e)
-      alert(t('mediationReserveError') + (m ? `: ${m}` : ''))
+      toast(t('mediationReserveError') + (m ? `: ${m}` : ''), 'error')
     } finally {
       setReservationLoading(false)
     }
@@ -422,19 +391,19 @@ export default function ListingDetailsClient() {
   const handleAddFormidletPeriod = async () => {
     if (!listing || !isNavView) return
     if (ownerAgreementTerminated) {
-      alert(t('expiredOwnerNoMediationNav'))
+      toast(t('expiredOwnerNoMediationNav'), 'error')
       return
     }
     if (!formidletStart || !formidletEnd) {
-      alert(t('selectStartEndFormidling'))
+      toast(t('selectStartEndFormidling'), 'error')
       return
     }
     if (mediationReservation && mediationReservation.reserved_by !== currentUser?.id) {
-      alert(t('mediationBlockedFormidlet'))
+      toast(t('mediationBlockedFormidlet'), 'error')
       return
     }
     if (new Date(formidletEnd) < new Date(formidletStart)) {
-      alert(t('endDateAfterStart'))
+      toast(t('endDateAfterStart'), 'error')
       return
     }
     const start = formidletStart
@@ -535,7 +504,7 @@ export default function ListingDetailsClient() {
       setFormidletEnd(end)
       setFormidletMediationNote(savedNote)
       setFormidletIncludeNoteInNotification(savedInclude)
-      alert(t('errorPrefix') + errMessage(rollbackErr))
+      toast(t('errorPrefix') + errMessage(rollbackErr), 'error')
     } finally {
       setFormidletSending(false)
     }
@@ -558,7 +527,7 @@ export default function ListingDetailsClient() {
 
   const handleRemovePeriod = async (period: { id: string; status: string }) => {
     if (isNavView && ownerAgreementTerminated) {
-      alert(t('expiredOwnerNoMediationNav'))
+      toast(t('expiredOwnerNoMediationNav'), 'error')
       return
     }
     const prevAvailability = [...availability]
@@ -577,14 +546,14 @@ export default function ListingDetailsClient() {
       }
     } catch (err: unknown) {
       setAvailability(prevAvailability)
-      alert(t('errorPrefix') + errMessage(err))
+      toast(t('errorPrefix') + errMessage(err), 'error')
     }
   }
 
   const handleRemoveFormidlet = async () => {
     if (!listing || !isNavView) return
     if (ownerAgreementTerminated) {
-      alert(t('expiredOwnerNoMediationNav'))
+      toast(t('expiredOwnerNoMediationNav'), 'error')
       return
     }
     if (!confirm(`Vil du fjerne formidlingen for "${listing.address}"?`)) return
@@ -620,14 +589,14 @@ export default function ListingDetailsClient() {
     } catch (err: unknown) {
       setListing(prevListing)
       setAvailability(prevAvailability)
-      alert(t('errorPrefix') + errMessage(err))
+      toast(t('errorPrefix') + errMessage(err), 'error')
     }
   }
 
   const handleRegenerateTenantLink = async () => {
     if (!id || tenantLinkRegenerating) return
     if (ownerAgreementTerminated) {
-      alert(t('expiredOwnerNoMediationNav'))
+      toast(t('expiredOwnerNoMediationNav'), 'error')
       return
     }
     if (!confirm(t('generateNewLinkConfirm'))) return
@@ -640,7 +609,7 @@ export default function ListingDetailsClient() {
       if (error) throw error
       setTenantReportToken(newToken)
     } catch (err: unknown) {
-      alert(t('couldNotGenerateLink') + errMessage(err))
+      toast(t('couldNotGenerateLink') + errMessage(err))
     } finally {
       setTenantLinkRegenerating(false)
     }
@@ -837,7 +806,7 @@ export default function ListingDetailsClient() {
     if (!e.target.files || e.target.files.length === 0) return
 
     if (!hasActiveAgreement) {
-      alert(t('signAgreementToUpload'))
+      toast(t('signAgreementToUpload'), 'error')
       router.push(
         `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
       )
@@ -845,7 +814,7 @@ export default function ListingDetailsClient() {
     }
 
     if (showGalleryFormidlet) {
-      alert(t('ownerCannotEditListingWhenFormidlet'))
+      toast(t('ownerCannotEditListingWhenFormidlet'), 'error')
       return
     }
 
@@ -886,9 +855,9 @@ export default function ListingDetailsClient() {
 
       setListing({ ...listing, image_urls: updatedImageUrls, image_url: updatedImageUrls[0] })
       setCurrentImageIndex(updatedImageUrls.length - 1)
-      alert(t('imagesAdded'))
+      toast(t('imagesAdded'), 'success')
     } catch (err: unknown) {
-      alert(t('errorUploading') + errMessage(err))
+      toast(t('errorUploading') + errMessage(err))
     } finally {
       setUploading(false)
     }
@@ -898,11 +867,11 @@ export default function ListingDetailsClient() {
     const toIndex = fromIndex + direction
     if (!listing || !isOwner || isNavView || toIndex < 0 || toIndex >= allImages.length) return
     if (showGalleryFormidlet) {
-      alert(t('ownerCannotEditListingWhenFormidlet'))
+      toast(t('ownerCannotEditListingWhenFormidlet'), 'error')
       return
     }
     if (!hasActiveAgreement) {
-      alert(t('signAgreementToEdit'))
+      toast(t('signAgreementToEdit'), 'error')
       router.push(
         `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
       )
@@ -928,7 +897,7 @@ export default function ListingDetailsClient() {
         return ni >= 0 ? ni : 0
       })
     } catch (err: unknown) {
-      alert(t('errorSaving') + errMessage(err))
+      toast(t('errorSaving') + errMessage(err))
     } finally {
       setIsSaving(null)
     }
@@ -939,14 +908,14 @@ export default function ListingDetailsClient() {
     e.target.value = ''
     if (!file || !listing || !isOwner || isNavView) return
     if (!hasActiveAgreement) {
-      alert(t('signAgreementToEdit'))
+      toast(t('signAgreementToEdit'), 'error')
       router.push(
         `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
       )
       return
     }
     if (!canOwnerEditListingDetail) {
-      alert(t('ownerCannotEditListingWhenFormidlet'))
+      toast(t('ownerCannotEditListingWhenFormidlet'), 'error')
       return
     }
     setHouseRulesBusy(true)
@@ -959,7 +928,7 @@ export default function ListingDetailsClient() {
             : up.error === 'size'
               ? t('houseRulesValidationSize')
               : t('houseRulesUploadError') + (typeof up.error === 'string' ? up.error : '')
-        alert(msg)
+        toast(msg, 'error')
         return
       }
       const prevPath = listing.house_rules_pdf_path
@@ -971,7 +940,7 @@ export default function ListingDetailsClient() {
       if (error) throw error
       setListing({ ...listing, house_rules_pdf_path: up.path })
     } catch (err: unknown) {
-      alert(t('houseRulesUploadError') + errMessage(err))
+      toast(t('houseRulesUploadError') + errMessage(err))
     } finally {
       setHouseRulesBusy(false)
     }
@@ -980,7 +949,7 @@ export default function ListingDetailsClient() {
   const handleHouseRulesRemove = async () => {
     if (!listing?.house_rules_pdf_path || !canOwnerEditListingDetail) return
     if (!hasActiveAgreement) {
-      alert(t('signAgreementToEdit'))
+      toast(t('signAgreementToEdit'), 'error')
       router.push(
         `/homeowner/sign-terms?city=${encodeURIComponent((listing?.city || '').trim())}&returnTo=${encodeURIComponent(`/listings/${id}`)}`
       )
@@ -996,7 +965,7 @@ export default function ListingDetailsClient() {
       if (error) throw error
       setListing({ ...listing, house_rules_pdf_path: null })
     } catch (err: unknown) {
-      alert(t('errorSaving') + errMessage(err))
+      toast(t('errorSaving') + errMessage(err))
     } finally {
       setHouseRulesBusy(false)
     }
@@ -1027,7 +996,7 @@ export default function ListingDetailsClient() {
       setNavNotes([data, ...navNotes])
       setNewNote('')
     } catch (err: unknown) {
-      alert(t('errorSavingNote') + errMessage(err))
+      toast(t('errorSavingNote') + errMessage(err))
     }
   }
 
@@ -1064,7 +1033,7 @@ export default function ListingDetailsClient() {
       if (error) throw error
       refetchHandoverReports()
     } catch (err: unknown) {
-      alert(t('errApprove') + errMessage(err))
+      toast(t('errApprove') + errMessage(err))
     }
   }
 
@@ -1105,7 +1074,7 @@ export default function ListingDetailsClient() {
       setRequestChangeReport(null)
       setRequestChangeComment('')
     } catch (err: unknown) {
-      alert(t('errSend') + errMessage(err))
+      toast(t('errSend') + errMessage(err))
     } finally {
       setRequestChangeSending(false)
     }

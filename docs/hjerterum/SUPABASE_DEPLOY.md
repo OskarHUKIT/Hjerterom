@@ -85,3 +85,16 @@ Eksisterende: `sign-agreement`, `send-notification-email`, osv.
 cd frontend && npm ci && npm run dev
 # /finn /los /ops tilgjengelig på localhost:3000/finn osv.
 ```
+
+## 10. Fase 6–7 (launch)
+
+| Dokument | Innhold |
+|----------|---------|
+| `docs/hjerterum/OPS_EVENT_RUNBOOK.md` | Ops event publish/close |
+| `docs/hjerterum/LOAD_TEST.md` | Load test + rate limit verify |
+| `/finn/vilkar` | Turisme bookingvilkår |
+| `/los/personvern` | Digital Los personvern |
+
+- **Rate limit:** `/api/stripe/checkout` (20/min/IP)
+- **Sentry (valgfritt):** `NEXT_PUBLIC_SENTRY_DSN` + `npm i @sentry/nextjs`
+- **Finn locale:** default engelsk for turister (`finn.hjerterum.no`)

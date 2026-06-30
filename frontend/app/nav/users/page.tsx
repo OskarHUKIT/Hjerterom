@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/app/components/design-system'
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -34,6 +35,7 @@ import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
 
 function NavUsersContent() {
   const { t } = useLanguage()
+  const toast = useToast()
   const router = useRouter()
   const queryClient = useQueryClient()
   const pathname = usePathname()
@@ -207,7 +209,7 @@ function NavUsersContent() {
       p_can_edit: !currentCanEdit,
     })
     if (error) {
-      alert(error.message)
+      toast(error.message, 'error')
       return
     }
     setStaffRows((prev) =>

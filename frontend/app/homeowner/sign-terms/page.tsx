@@ -11,6 +11,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '../../lib/supabase'
+import { useToast } from '@/app/components/design-system'
 import { useLanguage } from '../../../context/LanguageContext'
 import {
   readPendingFirstListingDraft,
@@ -69,6 +70,7 @@ function SignedAgreementPdfButton({
 
 function SignTermsContent() {
   const { t, locale: appLocale } = useLanguage()
+  const toast = useToast()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -305,7 +307,7 @@ function SignTermsContent() {
       } catch (e: unknown) {
         logError(e)
         const msg = e instanceof Error ? e.message : String(e)
-        alert(t('signTermsListingAfterSignError') + msg)
+        toast(t('signTermsListingAfterSignError') + msg, 'error')
       } finally {
         sessionStorage.removeItem(lockKey)
       }
@@ -329,7 +331,7 @@ function SignTermsContent() {
     } catch {
       /* ignore */
     }
-    alert(t('signTermsPendingDraftLost'))
+    toast(t('signTermsPendingDraftLost'), 'error')
     router.replace('/homeowner/register')
   }, [searchParams, router, t])
 
@@ -337,7 +339,7 @@ function SignTermsContent() {
 
   const handleSign = async () => {
     if (!termsDoc) {
-      alert(t('signTermsNoApprovedDocument'))
+      toast(t('signTermsNoApprovedDocument'), 'error')
       return
     }
 
@@ -406,10 +408,11 @@ function SignTermsContent() {
         /failed to fetch|load failed|networkerror|network error when attempting to fetch/i.test(
           String(raw)
         )
-      alert(
+      toast(
         t('signTermsStartError') +
           raw +
-          (fetchLikely ? t('signTermsStartErrorFailedFetchHint') : '')
+          (fetchLikely ? t('signTermsStartErrorFailedFetchHint') : ''),
+        'error'
       )
       setLoading(false)
     }
@@ -444,11 +447,11 @@ function SignTermsContent() {
         },
       ])
 
-      alert(t('signTermsTerminatedSuccess'))
+      toast(t('signTermsTerminatedSuccess'), 'success')
       await supabase.auth.signOut()
       router.push('/')
     } catch (err: any) {
-      alert(t('signTermsTerminateError') + err.message)
+      toast(t('signTermsTerminateError') + err.message, 'error')
     } finally {
       setLoading(false)
     }

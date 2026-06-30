@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/app/components/design-system'
 import { useState, useEffect, useMemo, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -68,6 +69,7 @@ interface UserProfileClientProps {
 
 export default function UserProfileClient({ overrideId }: UserProfileClientProps = {}) {
   const { t } = useLanguage()
+  const toast = useToast()
   const params = useParams()
   const id = overrideId ?? params.id
 
@@ -316,7 +318,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
 
   const submitKommuneDeleteListing = async () => {
     if (!adminTargetListing || !adminReasonCode.trim()) {
-      alert(kommuneAdminRpcMessage(t, 'reason_required'))
+      toast(kommuneAdminRpcMessage(t, 'reason_required'), 'error')
       return
     }
     setAdminBusy(true)
@@ -329,14 +331,14 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
       if (error) throw error
       const r = data as { ok?: boolean; error?: string }
       if (!r?.ok) {
-        alert(kommuneAdminRpcMessage(t, r?.error))
+        toast(kommuneAdminRpcMessage(t, r?.error), 'error')
         return
       }
       setListings((prev) => prev.filter((x) => x.id !== adminTargetListing.id))
       closeAdminModal()
       await refreshAuditLogs()
     } catch (e: unknown) {
-      alert(t('kommuneRpcError_generic') + ' ' + (e instanceof Error ? e.message : String(e)))
+      toast(t('kommuneRpcError_generic') + ' ' + (e instanceof Error ? e.message : String(e)))
     } finally {
       setAdminBusy(false)
     }
@@ -354,7 +356,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
       if (error) throw error
       const r = data as { ok?: boolean; error?: string }
       if (!r?.ok) {
-        alert(kommuneAdminRpcMessage(t, r?.error))
+        toast(kommuneAdminRpcMessage(t, r?.error), 'error')
         return
       }
       setPendingResignRequest(null)
@@ -371,7 +373,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
       )
       await refreshAuditLogs()
     } catch (e: unknown) {
-      alert(t('kommuneRpcError_generic') + ' ' + (e instanceof Error ? e.message : String(e)))
+      toast(t('kommuneRpcError_generic') + ' ' + (e instanceof Error ? e.message : String(e)))
     } finally {
       setResignBusy(false)
     }
@@ -379,7 +381,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
 
   const submitKommuneTerminate = async () => {
     if (!id || !adminReasonCode.trim()) {
-      alert(kommuneAdminRpcMessage(t, 'reason_required'))
+      toast(kommuneAdminRpcMessage(t, 'reason_required'), 'error')
       return
     }
     setAdminBusy(true)
@@ -392,7 +394,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
       if (error) throw error
       const r = data as { ok?: boolean; error?: string }
       if (!r?.ok) {
-        alert(kommuneAdminRpcMessage(t, r?.error))
+        toast(kommuneAdminRpcMessage(t, r?.error), 'error')
         return
       }
       setUser((u: any) =>
@@ -408,7 +410,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
       closeAdminModal()
       await refreshAuditLogs()
     } catch (e: unknown) {
-      alert(t('kommuneRpcError_generic') + ' ' + (e instanceof Error ? e.message : String(e)))
+      toast(t('kommuneRpcError_generic') + ' ' + (e instanceof Error ? e.message : String(e)))
     } finally {
       setAdminBusy(false)
     }

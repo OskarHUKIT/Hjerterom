@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/app/components/design-system'
 import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -25,6 +26,7 @@ function rpcResignMessage(t: (k: TranslationKey) => string, code?: string): stri
 
 function KommuneTerminatedContent() {
   const { t } = useLanguage()
+  const toast = useToast()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -82,7 +84,7 @@ function KommuneTerminatedContent() {
       if (error) throw error
       const r = data as { ok?: boolean; error?: string }
       if (!r?.ok) {
-        alert(rpcResignMessage(t, r?.error))
+        toast(rpcResignMessage(t, r?.error), 'error')
         return
       }
       setMessage('')
@@ -96,7 +98,7 @@ function KommuneTerminatedContent() {
         .limit(10)
       setRequests((rows as ResignRow[]) || [])
     } catch (e: unknown) {
-      alert((e as Error)?.message || t('landlordResignRpcGeneric'))
+      toast((e as Error)?.message || t('landlordResignRpcGeneric'), 'error')
     } finally {
       setBusy(false)
     }
