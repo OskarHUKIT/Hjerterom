@@ -533,12 +533,16 @@ begin
     (v_tina, 'NEW_MESSAGE', 'Melding fra utleier', 'Tommy Håkonsen har sendt en melding.', 'unread');
 
   insert into public.notifications (owner_id, type, title, message, status, listing_id)
-  select v_ingrid, 'BOOKING_REQUEST', 'Ny booking-forespørsel', 'Emma Becker — 15.–20. mars', 'unread', l.listing_id
-  from _l l where l.key = 'ingrid_hytte';
+  select p.user_id, 'BOOKING_REQUEST', 'Ny booking-forespørsel', 'Emma Becker — 15.–20. mars', 'unread', l.listing_id
+  from _l l
+  join _p p on p.key = l.owner_key
+  where l.key = 'ingrid_hytte';
 
   insert into public.notifications (owner_id, type, title, message, status, listing_id)
-  select v_tor, 'BOOKING_REQUEST', 'Booking godkjent', 'Lars Pettersson — betaling venter', 'unread', l.listing_id
-  from _l l where l.key = 'tor_sentrum';
+  select p.user_id, 'BOOKING_REQUEST', 'Booking godkjent', 'Lars Pettersson — betaling venter', 'unread', l.listing_id
+  from _l l
+  join _p p on p.key = l.owner_key
+  where l.key = 'tor_sentrum';
 
   -- Hurtigsvar
   insert into public.message_quick_replies (owner_id, title, body, sort_order) values
