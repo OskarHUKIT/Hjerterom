@@ -41,6 +41,7 @@ jobs:
           supabase functions deploy auth-signicat
           supabase functions deploy los-chat
           supabase functions deploy notify-terms-central-review
+          supabase functions deploy process-guest-email-outbox
           supabase functions deploy remind-handover-report
           supabase functions deploy send-notification-email
           supabase functions deploy send-push
