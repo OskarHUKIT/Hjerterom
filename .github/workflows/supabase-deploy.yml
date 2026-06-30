@@ -54,7 +54,7 @@ jobs:
           )
           for f in "${HJERTERUM[@]}"; do
             echo "Applying $f ..."
-            supabase db execute --linked -f "$f"
+            supabase db query --linked -f "$f"
             version="$(basename "$f" .sql)"
             version="${version%%_*}"
             supabase migration repair "$version" --status applied
