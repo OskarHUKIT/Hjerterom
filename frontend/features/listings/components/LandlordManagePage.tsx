@@ -39,8 +39,15 @@ import EventTaskCards from '@/features/listings/components/EventTaskCards'
 import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
 import LandlordStripeConnect from '@/features/bookings/components/LandlordStripeConnect'
 import AvailabilityLaneSelect from '@/features/listings/components/AvailabilityLaneSelect'
+import ListingLaneCalendar from '@/features/listings/components/ListingLaneCalendar'
+import LanePeriodBadge from '@/features/listings/components/LanePeriodBadge'
 import { checkAvailabilityConflict } from '@/features/listings/lib/availabilityConflict'
-import type { ListingLane } from '@/features/listings/types/lanes'
+import type { ListingLane, ListingPaintLane } from '@/features/listings/types/lanes'
+import {
+  eventsOverlappingRange,
+  normalizeSelection,
+} from '@/features/listings/lib/laneCalendarModel'
+import { useListingEventCalendarData } from '@/features/listings/hooks/useListingEventCalendarData'
 import { buttonClassName } from '@/app/components/ui/Button'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '@/app/lib/storagePublicUrl'
 import { getLandlordPostLoginHref } from '@/app/lib/landlordNavGate'
@@ -67,6 +74,16 @@ export default function HomeownerManage() {
     status: 'Tilgjengelig',
     lane: 'sosial' as ListingLane,
   })
+  const [paintLane, setPaintLane] = useState<ListingPaintLane>('sosial')
+  const [paintStatus, setPaintStatus] = useState<'Tilgjengelig' | 'Utilgjengelig'>('Tilgjengelig')
+  const [calendarSelStart, setCalendarSelStart] = useState<string | null>(null)
+  const [calendarSelEnd, setCalendarSelEnd] = useState<string | null>(null)
+  const [calendarApplying, setCalendarApplying] = useState(false)
+  const {
+    activeOptIns: eventCalendarOptIns,
+    allPublished: allPublishedEvents,
+    refresh: refreshEventCalendar,
+  } = useListingEventCalendarData(editingAvailability)
   const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{
     id: string
     listingId: string
@@ -107,9 +124,80 @@ export default function HomeownerManage() {
 
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
-    const t = todayStr()
+    const today = todayStr()
     setEditingAvailability(listingId)
-    setNewPeriod({ start: t, end: t, status, lane: 'sosial' })
+    setNewPeriod({ start: today, end: today, status, lane: 'sosial' })
+    setPaintLane('sosial')
+    setPaintStatus(status)
+    setCalendarSelStart(today)
+    setCalendarSelEnd(today)
+  }
+
+  const resetCalendarSelection = () => {
+    setCalendarSelStart(null)
+    setCalendarSelEnd(null)
+  }
+
+  const applyCalendarSelection = async (listing: {
+    id: string
+    tourism_enabled?: boolean | null
+  }) => {
+    if (!calendarSelStart || !calendarSelEnd) return
+    const { start, end } = normalizeSelection(calendarSelStart, calendarSelEnd)
+    setCalendarApplying(true)
+    try {
+      if (paintLane === 'event') {
+        const overlapping = eventsOverlappingRange(allPublishedEvents, start, end)
+        if (overlapping.length === 0) {
+          toast(t('laneCalendarNoEventInRange'), 'error')
+          return
+        }
+        if (overlapping.length > 1) {
+          toast(t('laneCalendarMultipleEvents'), 'error')
+          return
+        }
+        const event = overlapping[0]
+        const user = await getAuthUserDeduped()
+        if (user?.id) {
+          const { data: termsOk } = await supabase.rpc('landlord_has_event_terms_signed', {
+            p_user_id: user.id,
+            p_event_id: event.event_id,
+          })
+          if (termsOk === false) {
+            toast(t('eventOptInTermsRequired'), 'error')
+            return
+          }
+        }
+        const { error } = await supabase.from('listing_event_availability').upsert(
+          [
+            {
+              listing_id: listing.id,
+              event_id: event.event_id,
+              available_from: event.start_date,
+              available_to: event.end_date,
+              status: 'active',
+            },
+          ],
+          { onConflict: 'listing_id,event_id' }
+        )
+        if (error) throw error
+        await refreshEventCalendar()
+        toast(t('eventOptInSuccess'), 'success')
+      } else {
+        if (paintLane === 'turisme' && !listing.tourism_enabled) {
+          toast(t('tourismEnabledRequired'), 'error')
+          return
+        }
+        await addAvailability(listing.id, start, end, paintStatus, paintLane)
+        toast(t('laneCalendarApplied'), 'success')
+      }
+      resetCalendarSelection()
+      setNewPeriod((prev) => ({ ...prev, start, end, status: paintStatus, lane: paintLane === 'event' ? 'sosial' : paintLane }))
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : t('errSaveListing'), 'error')
+    } finally {
+      setCalendarApplying(false)
+    }
   }
 
   const fetchData = useCallback(async () => {
@@ -1306,6 +1394,9 @@ export default function HomeownerManage() {
                                   editingAvailability === listing.id ? null : listing.id
                                 )
                                 setNewPeriod({ start: '', end: '', status: 'Tilgjengelig', lane: 'sosial' })
+                                resetCalendarSelection()
+                                setPaintLane('sosial')
+                                setPaintStatus('Tilgjengelig')
                               }}
                               style={{
                                 padding: '8px',
@@ -1492,6 +1583,32 @@ export default function HomeownerManage() {
                       <ListingEventOptIn listingId={listing.id} />
                       ) : null}
 
+                      <ListingLaneCalendar
+                        periods={(availability[listing.id] ?? []).map((p) => ({
+                          id: p.id,
+                          start_date: p.start_date,
+                          end_date: p.end_date,
+                          status: p.status,
+                          lane: p.lane,
+                        }))}
+                        eventOptIns={eventCalendarOptIns}
+                        tourismEnabled={Boolean(listing.tourism_enabled)}
+                        showTourism={platformFlags.tourism}
+                        showEvents={platformFlags.centralEvents}
+                        paintLane={paintLane}
+                        onPaintLaneChange={setPaintLane}
+                        paintStatus={paintStatus}
+                        onPaintStatusChange={setPaintStatus}
+                        selectionStart={calendarSelStart}
+                        selectionEnd={calendarSelEnd}
+                        onSelectionChange={(start, end) => {
+                          setCalendarSelStart(start)
+                          setCalendarSelEnd(end)
+                        }}
+                        onApply={() => void applyCalendarSelection(listing)}
+                        applying={calendarApplying}
+                      />
+
                       <div
                         style={{
                           display: 'grid',
@@ -1501,30 +1618,6 @@ export default function HomeownerManage() {
                       >
                         {(availability[listing.id] || []).length > 0 ? (
                           availability[listing.id].map((p) => {
-                            const statusLabel =
-                              p.status === 'Formidla'
-                                ? t('formidlet')
-                                : p.status === 'Utilgjengelig'
-                                  ? t('unavailable')
-                                  : t('available')
-                            const statusStyle =
-                              p.status === 'Formidla'
-                                ? {
-                                    background: 'rgba(59, 130, 246, 0.2)',
-                                    color: 'var(--color-royal-blue)',
-                                    border: '1px solid rgba(59, 130, 246, 0.4)',
-                                  }
-                                : p.status === 'Utilgjengelig'
-                                  ? {
-                                      background: 'rgba(239, 68, 68, 0.15)',
-                                      color: '#ef4444',
-                                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    }
-                                  : {
-                                      background: 'rgba(45, 212, 191, 0.15)',
-                                      color: 'var(--color-teal)',
-                                      border: '1px solid rgba(45, 212, 191, 0.3)',
-                                    }
                             return (
                               <div
                                 key={p.id}
@@ -1544,17 +1637,7 @@ export default function HomeownerManage() {
                                 <span className="hm-period-dates" style={{ color: 'var(--text-main)' }}>
                                   {formatDateNo(p.start_date)} – {formatDateNo(p.end_date)}
                                 </span>
-                                <span
-                                  style={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: 600,
-                                    padding: '2px 8px',
-                                    borderRadius: '6px',
-                                    ...statusStyle,
-                                  }}
-                                >
-                                  {statusLabel}
-                                </span>
+                                <LanePeriodBadge lane={p.lane} status={p.status} />
                                 {p.status !== 'Formidla' ? (
                                   <button
                                     type="button"
@@ -1616,7 +1699,14 @@ export default function HomeownerManage() {
                               onChange={(lane) => setNewPeriod({ ...newPeriod, lane })}
                             />
                           </div>
-                        ) : null}
+                        ) : (
+                          <div style={{ flex: '1 1 100%', minWidth: 160 }}>
+                            <span className="lane-segmented-label">{t('lanePaintLabel')}</span>
+                            <p className="finn-card-meta" style={{ margin: 0, fontSize: '0.82rem' }}>
+                              {t('laneSosial')}
+                            </p>
+                          </div>
+                        )}
                         <div style={{ flex: 1 }}>
                           <label className="label" style={{ fontSize: '0.7rem' }}>
                             {t('status')}
