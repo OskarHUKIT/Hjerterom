@@ -75,8 +75,9 @@
 | 3 | Koble Los-sak til `chat_messages`-tråd | P1 | Planlagt |
 | 4 | RLS: session kun lesbar med token (sikkerhet) | P0 | Migrasjon planlagt |
 | 5 | Filtrer handoffs på saksbehandlers kommune-grants | P0 | Delvis (kommune_id på handoff) |
-| 6 | DPIA / personvern Los | P1 | Doc placeholder |
-| 7 | Azure OpenAI Norge / data residency | P2 | Beslutning åpen |
+| 6 | **Navn + valgfri telefon** ved handoff (besluttet) | P0 | Schema/UI mangler |
+| 7 | DPIA / personvern Los | P1 | Doc placeholder |
+| 8 | Azure OpenAI Norge / data residency | P2 | Beslutning åpen |
 
 ### Intuitivt for begge sider
 
@@ -129,7 +130,7 @@
 | # | Oppgave | Prioritet |
 |---|---------|-----------|
 | E1 | Ops: rediger `geography_scope` | P0 |
-| E2 | Ops: `central_event_staff` UI | P1 |
+| E2 | Ops: `central_event_staff` UI + **`event_ansatt` rolle** | **P0** |
 | E3 | Skill routing: `saksbehandler` vs `turisme` på Finn | P0 |
 | E4 | Push ved event publish til utleiere | P1 |
 | E5 | Custom opt-in periode (sub-range av event) | P2 |
@@ -141,7 +142,7 @@
 | Metode | Status |
 |--------|--------|
 | Stripe Connect | Implementert (happy path) |
-| Vipps | **Placeholder** — P0 for norsk turisme |
+| Vipps | **P0** — parallelt med Stripe (besluttet juni 2026) |
 | Escrow / utbetaling ved check-in | Beslutning åpen |
 | Kvittering e-post | Mangler |
 | Avbestilling UI | Mangler (`cancellation_policy` ubrukt) |

@@ -14,7 +14,8 @@ Gjelder **nytt Hjerterum Supabase-prosjekt** — ikke eksisterende Boly-produksj
 | **Utleier** | Automatisk ved registrering | `homeowner` | Ingen grant — omfang fra egne `listings` | `/homeowner/manage`, `/nav/messages`, `/nav/notifications` |
 | **Kommune saksbehandler** | Invitasjon eller grant | `kommune_ansatt` | `user_kommune_grants` (minst én kommune) | `/nav/database`, `/nav/users`, `/nav/messages`, … |
 | **Kommune admin** | Grant med admin-rolle | `kommune_admin` | `user_kommune_grants` med `grant_role = 'admin'` | Som saksbehandler + `/nav/terms-documents`, `/nav/kommune-access` |
-| **Gjest (Finn)** | Ingen forhåndsoppsett | — | Opprettes ved booking / magic link | `/finn`, `/finn/mine` |
+| **Event saksbehandler** | Ops tildeler per event | **`event_ansatt`** (planlagt) | Rad i **`central_event_staff`** | `/nav/event/*`, henvendelser, boliger read-only |
+| **Leietaker (Finn)** | Registrering på Finn | — (eller `guest` i auth) | `guest_profiles` + click-wrap | `/finn`, `/finn/mine`, meldinger |
 | **Offentlig (Finn/Los)** | Ingen innlogging | — | — | `/finn`, `/los` (når modul er på i `/ops/platform`) |
 
 ### Viktig om Ops
@@ -45,15 +46,16 @@ Per **kommune** (Ops → `/ops/kommuner/[slug]`): aktiver **Digital Los** og **T
 
 ---
 
-## 2. Anbefalt testoppsett (5 kontoer)
+## 2. Anbefalt testoppsett (6 kontoer)
 
 | # | E-post (eksempel) | Type | Formål |
 |---|-------------------|------|--------|
 | 1 | `ops@test.hjerterum.no` | Ops | Plattform, arrangement, kommune-toggles |
-| 2 | `utleier@test.hjerterum.no` | Utleier | Boliger, turisme, booking, Stripe |
-| 3 | `kommune@test.hjerterum.no` | Kommune saksbehandler | Boligbank, formidling, meldinger |
-| 4 | `kommune-admin@test.hjerterum.no` | Kommune admin | Vilkår, invitere saksbehandlere |
-| 5 | (valgfritt) | Gjest | Book på `/finn` → magic link på e-post |
+| 2 | `utleier@test.hjerterum.no` | Utleier | Boliger, turisme, booking, Stripe, **BankID-avtaler** |
+| 3 | `kommune@test.hjerterum.no` | Kommune saksbehandler | Boligbank, formidling, meldinger, Los |
+| 4 | `kommune-admin@test.hjerterum.no` | Kommune admin | Vilkår, invitere saksbehandlere, Los-tilgang |
+| 5 | `event@test.hjerterum.no` | Event saksbehandler | Henvendelser, boliger read-only (når `event_ansatt` er implementert) |
+| 6 | `leietaker@test.hjerterum.no` | Leietaker | Finn-konto, booking, **click-wrap**, meldinger |
 
 ---
 
@@ -162,18 +164,34 @@ on conflict do nothing;
 
 ---
 
-### E) Gjest (Finn / turisme)
+### E) Leietaker (Finn / turisme)
 
-**Ingen forhåndskonto nødvendig.**
+**Besluttet:** Leietaker har **egen konto** — ikke bare magic link uten profil.
 
 1. Aktiver **Finn** i `/ops/platform`
 2. Utleier har turisme på + ledig periode
-3. Gå til **`/finn`** (ikke innlogget) → send booking-forespørsel med e-post
-4. Magic link → **`/finn/mine`**
+3. Gå til **`/finn`** → **registrer konto** (e-post) eller logg inn
+4. Godta vilkår via **click-wrap** (ikke BankID)
+5. Send booking-forespørsel → administrer på **`/finn/mine`**
+6. Betaling: **Stripe eller Vipps** (når implementert)
+
+*MVP i dag:* booking med e-post + magic link fungerer; full konto + click-wrap er P0.
 
 ---
 
-### F) Offentlig Digital Los
+### F) Event saksbehandler
+
+**Planlagt rolle:** `event_ansatt` — tildelt av Ops per arrangement.
+
+1. Ops oppretter/publiserer event i **`/ops/events`**
+2. Ops legger bruker til i **`central_event_staff`** (UI kommer i P0)
+3. Bruker logger inn → **`/nav/event`** (henvendelser, boliger read-only)
+
+*Inntil rolle er implementert:* test event-henvendelser via kommune-konto med modul på.
+
+---
+
+### G) Offentlig Digital Los
 
 **Ingen konto.**
 
@@ -186,14 +204,14 @@ on conflict do nothing;
 
 ## 4. Matrise: modul → minimum tilgang
 
-| Funksjon | Ops | Utleier | Kommune | Gjest | Merknad |
-|----------|-----|---------|---------|-------|---------|
-| Formidling / boligbank | — | ✓ egne boliger | ✓ med grant | — | Standard Boly |
-| `/ops/platform` | ✓ | — | — | — | `platform_operators` |
-| Sentrale arrangement | ✓ opprett/publiser | ✓ opt-in | ✓ filter + henvendelser | — | Modul på i plattform |
-| Finn / booking | — | ✓ turisme på | — | ✓ forespørsel | Modul + turisme-lane |
-| Stripe | — | ✓ Connect | — | ✓ betaling | Modul + Stripe env |
-| Digital Los | — | — | ✓ innboks | ✓ chat | Modul + kommune-toggle |
+| Funksjon | Ops | Utleier | Kommune | Event SB | Leietaker | Merknad |
+|----------|-----|---------|---------|----------|-----------|---------|
+| Formidling / boligbank | — | ✓ egne boliger | ✓ med grant | read-only | — | Standard Boly |
+| `/ops/platform` | ✓ | — | — | — | — | `platform_operators` |
+| Sentrale arrangement | ✓ opprett/publiser | ✓ opt-in | ✓ filter + henvendelser | ✓ henvendelser | — | Modul på i plattform |
+| Finn / booking | — | ✓ turisme på | — | — | ✓ konto + book | Modul + turisme-lane |
+| Stripe / Vipps | — | ✓ Connect | — | — | ✓ betaling | Begge parallelt (P0) |
+| Digital Los | — | — | ✓ innboks | — | ✓ chat | Navn + valgfri tlf ved handoff |
 
 ---
 

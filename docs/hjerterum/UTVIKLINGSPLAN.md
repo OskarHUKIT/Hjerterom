@@ -38,9 +38,13 @@ Disse er avklart i planlegging — **ikke re-besluttes under implementering** ut
 5. **Sosial:** Alltid saksbehandler; aldri på public portal.
 6. **Kalender:** Enhver kombinasjon sosial/turisme/event-perioder; konflikt forhindres automatisk.
 7. **Betaling:** In-app for turisme-path og event i turisme-modus.
-8. **Leietaker-auth:** Ingen BankID; e-post/SMS/magic link.
-9. **Los:** Alle kommuner med `digital_los_enabled`; kun sosial kobling.
+8. **Leietaker-auth:** Ingen BankID; **egen konto** (e-post/magic link) + **click-wrap** på vilkår.
+9. **Los:** Alle kommuner med `digital_los_enabled`; kun sosial kobling. Ved handoff: **navn** (påkrevd) + **telefon** (valgfritt).
 10. **Arrangementstype:** Generisk (tag/label), ikke hardkodede engangs-events i datamodellen.
+11. **Avtaler utleier:** **BankID** for alle utleier-avtaler (sosial, turisme, event).
+12. **Avtaler leietaker:** **Click-wrap** ved konto + booking — ikke BankID.
+13. **Event saksbehandler:** Egen rolle **`event_ansatt`**, tildelt av ops via `central_event_staff` — parallell med kommune SB.
+14. **Betaling turisme:** **Stripe og Vipps parallelt** (begge tilgjengelig på checkout).
 
 ---
 
@@ -49,7 +53,7 @@ Disse er avklart i planlegging — **ikke re-besluttes under implementering** ut
 | Lag | Teknologi | Merknad |
 |-----|-----------|---------|
 | Frontend | Next.js (App Router), React, `globals.css` + minimal Tailwind | Monolittiske sider: `nav/database`, `ListingDetailsClient` |
-| Auth | Supabase Auth, middleware, RLS | Roller: `homeowner`, `kommune_ansatt`, `kommune_admin` |
+| Auth | Supabase Auth, middleware, RLS | Roller: `homeowner`, `kommune_ansatt`, `kommune_admin`, **`event_ansatt`** (planlagt) |
 | DB | Supabase Postgres + migrasjoner | 89 migrasjoner; listings, availability, grants |
 | Edge | Supabase Edge Functions | Signicat, push, e-post |
 | Ops | `/ops/*` + `ops.css` | Beste komponentstruktur i repoet |
