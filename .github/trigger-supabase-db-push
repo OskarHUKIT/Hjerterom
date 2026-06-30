@@ -1,0 +1,7 @@
+# Trigger Supabase DB Push (iPad-vennlig)
+#
+# GitHub-appen på iPad viser ofte ikke «Run workflow».
+# Rediger denne filen i Safari (bytt datoen under) og commit til main —
+# da kjører migrasjonspush automatisk.
+#
+# Siste trigger: 2026-06-30T00:00:00Z

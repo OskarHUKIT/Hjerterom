@@ -7,10 +7,14 @@ on:
         description: 'Skriv deploy for å bekrefte edge functions'
         required: true
         type: string
+  push:
+    branches: [main]
+    paths:
+      - '.github/trigger-supabase-functions-deploy'
 
 jobs:
   functions-deploy:
-    if: github.event.inputs.confirm == 'deploy'
+    if: github.event_name == 'push' || github.event.inputs.confirm == 'deploy'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

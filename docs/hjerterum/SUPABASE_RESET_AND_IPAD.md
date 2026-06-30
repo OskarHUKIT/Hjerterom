@@ -88,9 +88,25 @@ Repoet har workflow **Supabase DB Push** (`.github/workflows/supabase-deploy.yml
 
 **Fra iPad hver gang du vil pushe:**
 
-1. Åpne **GitHub-appen** eller Safari → repo → **Actions**
-2. Velg **Supabase DB Push**
-3. **Run workflow** → skriv `push` i bekreftelsesfeltet → **Run**
+#### Metode A — Rediger trigger-fil (enklest på iPad)
+
+GitHub-appen viser ofte **ikke** «Run workflow». Bruk dette i stedet:
+
+1. Åpne **Safari** (ikke GitHub-appen):  
+   `https://github.com/OskarHUKIT/Hjerterom/blob/main/.github/trigger-supabase-db-push`
+2. Trykk **blyant** (Edit)
+3. Endre datoen på linjen `Siste trigger:` (f.eks. til dagens tid)
+4. **Commit changes** → **Commit directly to main**
+5. Gå til **Actions** — **Supabase DB Push** skal starte automatisk
+
+#### Metode B — Run workflow (Safari / PC, krever skriverettighet)
+
+1. **Safari** → [Actions → Supabase DB Push](https://github.com/OskarHUKIT/Hjerterom/actions/workflows/supabase-deploy.yml)
+2. **Run workflow** (øverst til høyre — kun synlig med Write/Admin på repo)
+3. Skriv `push` → **Run workflow**
+
+Ser du ikke knappen: bruk Metode A, eller sjekk at du er innlogget som eier av repoet (ikke read-only).
+
 4. Vent til grønn hake (~1–2 min)
 5. Sjekk Supabase **Database → Migrations** at nye filer er applied
 

@@ -7,10 +7,14 @@ on:
         description: 'Skriv push for å bekrefte migrasjon til produksjon'
         required: true
         type: string
+  push:
+    branches: [main]
+    paths:
+      - '.github/trigger-supabase-db-push'
 
 jobs:
   db-push:
-    if: github.event.inputs.confirm == 'push'
+    if: github.event_name == 'push' || github.event.inputs.confirm == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
