@@ -1,20 +1,15 @@
 name: Supabase DB Push
 
+# Kjører KUN mot det Supabase-prosjektet som ligger i GitHub Secrets.
+# Sett SUPABASE_PROJECT_REF til det NYE Hjerterum-prosjektet — aldri prod-Boly.
+
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Skriv push for å bekrefte migrasjon til produksjon'
+        description: 'Skriv push for å bekrefte migrasjon til Hjerterum Supabase'
         required: true
         type: string
-      database_mode:
-        description: 'existing_boly = schema finnes (typisk); fresh = helt ny database'
-        required: true
-        type: choice
-        default: existing_boly
-        options:
-          - existing_boly
-          - fresh
   push:
     branches: [main]
     paths:
@@ -24,7 +19,7 @@ jobs:
   db-push:
     if: github.event_name == 'push' || github.event.inputs.confirm == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -37,29 +32,10 @@ jobs:
         with:
           version: latest
 
-      - name: Link project
+      - name: Link Hjerterum project
         working-directory: supabase
         run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
 
-      - name: Apply Hjerterum migrations only (existing Boly)
-        if: github.event_name == 'push' || github.event.inputs.database_mode == 'existing_boly'
-        run: |
-          set -euo pipefail
-          HJERTERUM=(
-            supabase/migrations/20260630120000_hjerterum_lanes_and_central_events.sql
-            supabase/migrations/20260630180000_hjerterum_complete_phase3_5.sql
-            supabase/migrations/20260630200000_hjerterum_production_ready.sql
-            supabase/migrations/20260630210000_platform_control_panel.sql
-          )
-          for f in "${HJERTERUM[@]}"; do
-            echo "Applying $f ..."
-            supabase db query --linked -f "$f"
-            version="$(basename "$f" .sql)"
-            version="${version%%_*}"
-            supabase migration repair "$version" --status applied
-          done
-
-      - name: Push all migrations (fresh database)
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.database_mode == 'fresh'
+      - name: Push all migrations (fresh Hjerterum database)
         working-directory: supabase
         run: supabase db push --yes

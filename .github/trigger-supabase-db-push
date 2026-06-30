@@ -1,7 +1,6 @@
-# Trigger Supabase DB Push (iPad-vennlig)
+# Trigger Supabase DB Push — KUN nytt Hjerterum-prosjekt (SUPABASE_PROJECT_REF)
 #
-# GitHub-appen på iPad viser ofte ikke «Run workflow».
-# Rediger denne filen i Safari (bytt datoen under) og commit til main —
-# da kjører migrasjonspush automatisk.
+# Rediger datoen under og commit til main.
+# IKKE pek secrets mot eksisterende Boly-produksjon.
 #
-# Siste trigger: 2026-06-30T15:10:00Z
+# Siste trigger: 2026-06-30T16:00:00Z
