@@ -348,7 +348,7 @@ begin
 
   insert into public.central_events (
     slug, name, description_public, start_date, end_date,
-    routing_mode, status, created_by, geography_scope
+    routing_mode, status, published_at, created_by, geography_scope
   ) values (
     'nav-sommerleir-gratangen-2026', 'Nav sommerleir — Gratangen 2026',
     'Aktivitetsleir for ungdom 14–18 år. Behov for sovesaler og hytter.',
