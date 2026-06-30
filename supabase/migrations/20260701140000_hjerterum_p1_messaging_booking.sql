@@ -82,14 +82,17 @@ begin
     return jsonb_build_object('ok', false, 'error', 'invalid');
   end if;
 
-  select b.*, l.owner_id into v_booking, v_owner_id
+  select b.* into v_booking
   from public.bookings b
-  join public.listings l on l.id = b.listing_id
   where b.id = p_booking_id;
 
   if not found then
     return jsonb_build_object('ok', false, 'error', 'not_found');
   end if;
+
+  select l.owner_id into v_owner_id
+  from public.listings l
+  where l.id = v_booking.listing_id;
 
   if v_uid = v_owner_id then
     v_receiver := v_booking.guest_user_id;
