@@ -318,6 +318,33 @@
   border: 1px solid var(--finn-border);
 }
 
+.finn-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--finn-space-4, 1rem);
+  justify-content: center;
+}
+
+.finn-legal {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--finn-space-6, 1.5rem);
+}
+
+.finn-legal-lead {
+  color: var(--finn-text-muted);
+  line-height: 1.6;
+}
+
+.finn-legal section {
+  margin-top: 1.25rem;
+}
+
+.finn-legal h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
 .finn-badge {
   display: inline-flex;
   align-items: center;

@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { CalendarDays, Compass, User } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
+import type { Locale } from '@/lib/translations'
 import Logo from '@/app/components/Logo'
+
+const FINN_LOCALE_KEY = 'hjerterum-finn-locale'
 
 const FINN_NAV = [
   { href: '/finn', labelKey: 'finnNavSearch', icon: Compass },
@@ -21,7 +24,22 @@ function isFinnActive(pathname: string | null, href: string): boolean {
 
 export default function FinnShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { t } = useLanguage()
+  const { t, locale, setLocale } = useLanguage()
+
+  /** Tourist portal defaults to English when no preference is stored. */
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(FINN_LOCALE_KEY)
+      if (stored === 'no' || stored === 'en' || stored === 'se') {
+        if (stored !== locale) setLocale(stored as Locale)
+        return
+      }
+      if (locale !== 'en') setLocale('en')
+      localStorage.setItem(FINN_LOCALE_KEY, 'en')
+    } catch {
+      /* ignore */
+    }
+  }, [locale, setLocale])
 
   /** Consumer portal is always light — avoids dark-theme token bleed from app shell. */
   useEffect(() => {
@@ -63,9 +81,14 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
       <main className="finn-main">{children}</main>
       <footer className="finn-footer">
         <p>{t('finnFooterTagline')}</p>
-        <Link href="/" className="finn-footer-link">
-          {t('finnFooterAppLink')}
-        </Link>
+        <div className="finn-footer-links">
+          <Link href="/finn/vilkar" className="finn-footer-link">
+            {t('finnTermsLink')}
+          </Link>
+          <Link href="/" className="finn-footer-link">
+            {t('finnFooterAppLink')}
+          </Link>
+        </div>
       </footer>
     </div>
   )

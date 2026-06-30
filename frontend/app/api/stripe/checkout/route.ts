@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { appOrigin, getStripe } from '@/app/lib/stripeServer'
+import { checkRateLimit, clientIpFromRequest } from '@/app/lib/rateLimit'
+import { logPlatformEvent } from '@/app/lib/platformEvents'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -26,6 +28,22 @@ async function supabaseAuthed() {
 
 /** Create Stripe Checkout Session for an accepted booking. */
 export async function POST(request: Request) {
+  const ip = clientIpFromRequest(request)
+  const limited = checkRateLimit(`stripe-checkout:${ip}`, 20, 60_000)
+  if (!limited.ok) {
+    void logPlatformEvent({
+      severity: 'warn',
+      source: 'stripe',
+      code: 'rate_limited',
+      message: 'Checkout rate limit exceeded',
+      metadata: { ip_mask: ip.slice(0, 8) },
+    })
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(limited.retryAfterSec) } }
+    )
+  }
+
   const stripe = getStripe()
   if (!stripe) {
     return NextResponse.json({ error: 'STRIPE_SECRET_KEY not configured' }, { status: 503 })

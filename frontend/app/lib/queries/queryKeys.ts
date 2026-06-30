@@ -8,5 +8,7 @@ export const QK = {
   chatUserBootstrap: ['chat'] as const,
   headerBundle: ['header'] as const,
   notificationsList: ['notifications'] as const,
+  navDatabaseListings: ['navDatabase', 'listings'] as const,
+  navDatabasePublishedEvents: ['navDatabase', 'publishedEvents'] as const,
   appUserProfile: ['app'] as const,
 }

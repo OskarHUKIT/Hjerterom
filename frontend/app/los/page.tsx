@@ -5,6 +5,7 @@ import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { Button } from '@/app/components/ui/Button'
 import { useToast } from '@/app/components/design-system'
+import { logPlatformEvent } from '@/app/lib/platformEvents'
 
 type ChatMessage = { role: string; content: string; at?: string }
 
@@ -16,6 +17,30 @@ function botReply(userText: string, t: (key: import('@/lib/translations').Transl
   if (/hjelp|krise|redd/.test(lower)) return t('losReplyCrisis')
   if (/hei|hallo|hello/.test(lower)) return t('losReplyHello')
   return t('losReplyDefault')
+}
+
+async function fetchLosReply(userText: string, t: (key: import('@/lib/translations').TranslationKey) => string): Promise<string> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (url && anon) {
+    try {
+      const res = await fetch(`${url}/functions/v1/los-chat`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${anon}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: userText }),
+      })
+      if (res.ok) {
+        const data = (await res.json()) as { reply?: string }
+        if (data.reply?.trim()) return data.reply.trim()
+      }
+    } catch {
+      /* fallback below */
+    }
+  }
+  return botReply(userText, t)
 }
 
 export default function LosChatPage() {
@@ -73,10 +98,16 @@ export default function LosChatPage() {
     const next = [...messages, userMsg]
     setMessages(next)
     await supabase.rpc('los_append_message', { p_session_id: sessionId, p_role: 'user', p_content: text })
-    const reply = botReply(text, t)
+    const reply = await fetchLosReply(text, t)
     const botMsg: ChatMessage = { role: 'assistant', content: reply, at: new Date().toISOString() }
     setMessages([...next, botMsg])
     await supabase.rpc('los_append_message', { p_session_id: sessionId, p_role: 'assistant', p_content: reply })
+    void logPlatformEvent({
+      source: 'los',
+      code: 'chat_turn',
+      message: 'Los chat turn completed',
+      metadata: { session_id: sessionId },
+    })
     setBusy(false)
   }
 
@@ -98,6 +129,12 @@ export default function LosChatPage() {
     }
     setHandedOff(true)
     toast(t('losHandoffSent'), 'success')
+    void logPlatformEvent({
+      source: 'los',
+      code: 'handoff_created',
+      message: 'Los handoff to saksbehandler',
+      metadata: { session_id: sessionId },
+    })
   }
 
   return (

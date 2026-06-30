@@ -134,3 +134,14 @@
   font-size: 0.9rem;
   margin-bottom: var(--space-3);
 }
+
+.los-footer {
+  padding: var(--space-4);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.los-footer a {
+  color: var(--los-accent);
+  text-decoration: none;
+}

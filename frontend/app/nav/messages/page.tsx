@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/app/components/design-system'
 import { useState, useEffect, useRef, Suspense, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
@@ -52,6 +53,7 @@ type LandlordAreaThread = {
 
 function MessagesContent() {
   const { t, locale } = useLanguage()
+  const toast = useToast()
   const router = useRouter()
   const searchParams = useSearchParams()
   const withUserId = searchParams.get('with')
@@ -504,7 +506,7 @@ function MessagesContent() {
     const valid = files.filter((f) => {
       if (!f.type.startsWith('image/')) return false
       if (f.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-        alert(`«${f.name}» er for stor. Maks ${MAX_FILE_SIZE_MB} MB.`)
+        toast(`«${f.name}» er for stor. Maks ${MAX_FILE_SIZE_MB} MB.`, 'error')
         return false
       }
       return true
@@ -619,7 +621,7 @@ function MessagesContent() {
         })
       }
     } catch (err: any) {
-      alert(t('errSend') + (err?.message || String(err)))
+      toast(t('errSend') + (err?.message || String(err)))
     } finally {
       setSending(false)
     }

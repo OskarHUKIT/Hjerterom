@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/app/components/design-system'
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -48,6 +49,7 @@ const LandlordOnboardingModal = dynamic(() => import('../../components/LandlordO
 
 export default function NavNotifications() {
   const { t } = useLanguage()
+  const toast = useToast()
   const pathname = usePathname()
   const queryClient = useQueryClient()
   const gateQ = useLandlordNavGateQuery()
@@ -156,7 +158,7 @@ export default function NavNotifications() {
       void queryClient.invalidateQueries({ queryKey: QK.notificationsList })
     } catch (err: any) {
       queryClient.setQueryData(notificationsListQueryKey, previous)
-      alert(t('errNotificationUpdate') + err.message)
+      toast(t('errNotificationUpdate') + err.message, 'error')
     }
   }
 
@@ -346,7 +348,7 @@ export default function NavNotifications() {
                 if (error) throw error
               } catch (err: any) {
                 setEmailNotificationsEnabled(!v)
-                alert(err?.message || t('notificationsSaveSettingError'))
+                toast(err?.message || t('notificationsSaveSettingError'), 'error')
               } finally {
                 setEmailPrefSaving(false)
               }

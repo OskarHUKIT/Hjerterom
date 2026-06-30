@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import ListingDetailsClient from './ListingDetailsClient'
+import ListingDetailsClient from '@/features/listings/components/ListingDetailsClient'
 
 export async function generateStaticParams() {
   try {

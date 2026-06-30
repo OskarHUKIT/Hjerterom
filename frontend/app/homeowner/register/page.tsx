@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/app/components/design-system'
 import { use, useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -40,6 +41,7 @@ import PageSkeleton from '../../components/design-system/PageSkeleton'
 
 export default function HomeownerRegister() {
   const { t } = useLanguage()
+  const toast = useToast()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [imageFiles, setImageFiles] = useState<File[]>([])
@@ -307,17 +309,17 @@ export default function HomeownerRegister() {
         !req(fd.city) ||
         !req(fd.postal_code)
       ) {
-        alert(t('regValidationRequiredFields'))
+        toast(t('regValidationRequiredFields'), 'error')
         setLoading(false)
         return
       }
       if (fd.latitude == null || fd.longitude == null || Number.isNaN(Number(fd.latitude))) {
-        alert(t('regValidationGeocode'))
+        toast(t('regValidationGeocode'), 'error')
         setLoading(false)
         return
       }
       if (!fd.has_insurance) {
-        alert(t('regValidationInsurance'))
+        toast(t('regValidationInsurance'), 'error')
         setLoading(false)
         return
       }
@@ -327,7 +329,7 @@ export default function HomeownerRegister() {
         (parseFloat(String(fd.price_monthly_short)) || 0) +
         (parseFloat(String(fd.price_monthly_long)) || 0)
       if (priceMinSum <= 0) {
-        alert(t('regValidationPrice'))
+        toast(t('regValidationPrice'), 'error')
         setLoading(false)
         return
       }
@@ -335,7 +337,7 @@ export default function HomeownerRegister() {
       const bedroomsCheck = parseInt(String(fd.bedrooms), 10)
       const maxOccCheck = parseInt(String(fd.max_occupants), 10)
       if (sizeSqmCheck <= 0 || Number.isNaN(bedroomsCheck) || bedroomsCheck < 0 || maxOccCheck < 1) {
-        alert(t('regValidationSizeOccupants'))
+        toast(t('regValidationSizeOccupants'), 'error')
         setLoading(false)
         return
       }
@@ -359,7 +361,7 @@ export default function HomeownerRegister() {
         })
         if (termsErr) throw termsErr
         if (!termsOk) {
-          alert(t('termsMissingForRegion'))
+          toast(t('termsMissingForRegion'), 'error')
           router.push(
             `/homeowner/sign-terms?city=${encodeURIComponent(formData.city?.trim() || '')}&returnTo=${encodeURIComponent('/homeowner/register')}`
           )
@@ -457,7 +459,7 @@ export default function HomeownerRegister() {
               : hr.error === 'size'
                 ? t('houseRulesValidationSize')
                 : t('houseRulesUploadError') + (typeof hr.error === 'string' ? hr.error : '')
-          alert(msg)
+          toast(msg, 'error')
         } else {
           const { error: hrDbErr } = await supabase
             .from('listings')
@@ -465,7 +467,7 @@ export default function HomeownerRegister() {
             .eq('id', listingId)
           if (hrDbErr) {
             logError('house_rules_pdf_path update', hrDbErr)
-            alert(t('houseRulesUploadError'))
+            toast(t('houseRulesUploadError'), 'error')
           }
         }
       }
@@ -506,7 +508,7 @@ export default function HomeownerRegister() {
         await supabase.from('notifications').insert(rows)
       }
 
-      alert(t('registerSuccess'))
+      toast(t('registerSuccess'), 'success')
 
       const { data: agreementAfter } = await supabase
         .from('user_agreements')
@@ -529,7 +531,7 @@ export default function HomeownerRegister() {
         err?.error_description ??
         (typeof err === 'string' ? err : JSON.stringify(err))
       logError('Error saving listing:', message, err)
-      alert(t('errSaveListing') + (message || t('errUnknown')))
+      toast(t('errSaveListing') + (message || t('errUnknown')), 'error')
     } finally {
       setLoading(false)
     }
