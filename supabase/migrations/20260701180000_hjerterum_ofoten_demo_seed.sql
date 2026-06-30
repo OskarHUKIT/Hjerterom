@@ -476,10 +476,10 @@ begin
 
   -- Gjesteliste på betalt booking
   insert into public.booking_guests (booking_id, guest_email, guest_name, invited_by)
-  select b.id, 'medgjest@demo.ofoten.no', 'Kari Medgjest', l.owner_id
+  select b.id, 'medgjest@demo.ofoten.no', 'Kari Medgjest', p.user_id
   from public.bookings b
   join _l on _l.listing_id = b.listing_id
-  join _p l on l.key = _l.owner_key
+  join _p p on p.key = _l.owner_key
   where b.guest_email = 'norsk.fjell@demo.ofoten.no'
   on conflict do nothing;
 
