@@ -54,6 +54,10 @@ jobs:
             exit 1
           fi
 
-          git remote add hjerterom "https://x-access-token:${TOKEN}@github.com/OskarHUKIT/Hjerterom.git"
+          git config --global --unset-all http.https://github.com/.extraheader || true
+          git config --global credential.helper ""
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
+
+          git remote add hjerterom "https://github.com/OskarHUKIT/Hjerterom.git"
           git push hjerterom --all
           git push hjerterom --tags
