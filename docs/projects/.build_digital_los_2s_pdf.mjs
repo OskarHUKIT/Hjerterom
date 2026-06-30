@@ -151,7 +151,7 @@ const html = `<!doctype html>
     <h3>Kontakt</h3>
     <p><strong>Oskar Høgmo-Utstøl</strong> · Gamechanging AS<br>
     oskar@gamechanging.no · +46 70 149 09 81<br>
-    Vi tar gjerne et kort møte for å presentere idéen og høre deres innspill.</p>
+    Vi tar gjerne et møte for å drøfte prosjektforslaget.</p>
   </div>
 
   <div class="footer-note">
