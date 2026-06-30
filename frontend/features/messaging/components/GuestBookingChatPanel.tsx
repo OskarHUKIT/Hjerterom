@@ -7,6 +7,7 @@ import { useToast } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
 import { channelBadgeEmoji } from '@/app/lib/messageChannelLabels'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
+import MessageQuickRepliesPanel from '@/features/messaging/components/MessageQuickRepliesPanel'
 
 type Msg = {
   id: string
@@ -125,6 +126,13 @@ export default function GuestBookingChatPanel({ bookingId, compact }: Props) {
           <div ref={bottomRef} />
         </div>
       )}
+      {userId ? (
+        <MessageQuickRepliesPanel
+          userId={userId}
+          channelType="guest_booking"
+          onInsert={(text) => setInput((prev) => (prev.trim() ? `${prev}\n${text}` : text))}
+        />
+      ) : null}
       <div style={{ display: 'flex', gap: 8 }}>
         <input
           value={input}

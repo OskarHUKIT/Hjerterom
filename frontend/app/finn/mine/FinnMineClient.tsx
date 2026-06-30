@@ -10,6 +10,7 @@ import { PageSkeleton, useToast } from '@/app/components/design-system'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
 import { formatDateNo } from '@/app/lib/dateFormat'
 import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
+import BookingGuestListPanel from '@/features/tourism/components/BookingGuestListPanel'
 
 type BookingRow = {
   id: string
@@ -39,6 +40,7 @@ export default function FinnMineClient() {
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [checkInGuides, setCheckInGuides] = useState<Record<string, string>>({})
 
   const loadBookings = async (uid: string, em: string) => {
     const { data } = await supabase
@@ -146,6 +148,13 @@ export default function FinnMineClient() {
       return
     }
     toast(t('finnMagicLinkSent'), 'success')
+  }
+
+  const loadCheckInGuide = async (bookingId: string) => {
+    const { data } = await supabase.rpc('get_booking_check_in_guide', { p_booking_id: bookingId })
+    if (typeof data === 'string' && data.trim()) {
+      setCheckInGuides((prev) => ({ ...prev, [bookingId]: data }))
+    }
   }
 
   const cancelBooking = async (bookingId: string) => {
@@ -278,15 +287,38 @@ export default function FinnMineClient() {
                     <Button
                       type="button"
                       variant="secondary"
-                      onClick={() =>
-                        setExpandedBookingId((prev) => (prev === b.id ? null : b.id))
-                      }
+                      onClick={() => {
+                        const next = expandedBookingId === b.id ? null : b.id
+                        setExpandedBookingId(next)
+                        if (next && !checkInGuides[b.id]) void loadCheckInGuide(b.id)
+                      }}
                     >
                       {expandedBookingId === b.id ? t('finnHideChat') : t('finnOpenChat')}
                     </Button>
                   </div>
                   {expandedBookingId === b.id ? (
-                    <GuestBookingChatPanel bookingId={b.id} compact />
+                    <>
+                      {checkInGuides[b.id] &&
+                      (b.status === 'accepted' || b.status === 'paid' || b.status === 'completed') ? (
+                        <div
+                          className="finn-card"
+                          style={{
+                            marginTop: 12,
+                            padding: 'var(--space-3)',
+                            background: 'rgba(59, 130, 246, 0.08)',
+                          }}
+                        >
+                          <p style={{ fontWeight: 600, margin: '0 0 6px' }}>{t('checkInGuideTitle')}</p>
+                          <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                            {checkInGuides[b.id]}
+                          </p>
+                        </div>
+                      ) : null}
+                      {(b.status === 'accepted' || b.status === 'paid' || b.status === 'completed') && (
+                        <BookingGuestListPanel bookingId={b.id} />
+                      )}
+                      <GuestBookingChatPanel bookingId={b.id} compact />
+                    </>
                   ) : null}
                   {(b.status === 'paid' || b.status === 'completed') && !reviewedIds.has(b.id) ? (
                     <div style={{ marginTop: 12 }}>
