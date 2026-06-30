@@ -140,16 +140,21 @@ Middleware router automatisk.
 
 ---
 
-## 5. Kontoer du trenger for full test
+## 5. Kontoer og tilgang for full test
 
-| Rolle | Hvordan |
-|-------|---------|
-| **Ops** | `seed_platform_operator.sql` |
-| **Utleier** | Registrer på `/login` |
-| **Kommune** | Registrer + sett `role = kommune_ansatt` i Supabase Auth metadata og `profiles` |
-| **Gjest (Finn)** | Booking-forespørsel → magic link på e-post |
+| Del av Hjerterum | Kontotype | Hva du må gi tilgang |
+|------------------|-----------|----------------------|
+| **Plattformkontroll** (`/ops/platform`) | Ops | Rad i `platform_operators` — **ikke** `profiles.role = platform_operators` |
+| **Sentrale arrangement** | Ops | Ops-konto + modul på i plattform |
+| **Kommune-toggles** (Los/turisme) | Ops | Ops-konto |
+| **Formidling / boligbank** | Utleier + kommune | Utleier: registrering. Kommune: `kommune_ansatt` + `user_kommune_grants` |
+| **Finn / booking** | Utleier + gjest | Modul på. Utleier: turisme + lane. Gjest: ingen konto — magic link ved booking |
+| **Stripe** | Utleier + gjest | Modul på + Stripe env. Utleier: Stripe Connect |
+| **Digital Los** | Kommune + offentlig | Modul på + Los for kommune. Kommune: `nav/los-inbox`. Offentlig: ingen konto |
 
-Se `docs/TEST_ACCOUNTS_SETUP.md`.
+**Anbefalt:** 4–5 testkontoer (`ops@`, `utleier@`, `kommune@`, `kommune-admin@` + valgfri gjest).
+
+Full steg-for-steg: **`docs/TEST_ACCOUNTS_SETUP.md`**
 
 ---
 

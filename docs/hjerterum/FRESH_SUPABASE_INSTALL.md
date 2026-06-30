@@ -62,6 +62,8 @@ supabase db push --yes
 4. Storage buckets (listings m.m. opprettes av migrasjoner)
 5. `/ops/platform` → **Kun Boly** som default
 
+6. Opprett testkontoer — se **`docs/TEST_ACCOUNTS_SETUP.md`**
+
 ---
 
 ## 6. Hva ble kjørt mot Boly?
