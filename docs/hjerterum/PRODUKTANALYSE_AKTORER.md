@@ -307,10 +307,10 @@ finn.hjerterum.no
 
 **Besluttet — anmeldelser v1:** Ja — anmeldelser etter opphold (Airbnb-konvensjon) inkluderes i produktplanen.
 
-**Fortsatt åpent:**
+**Fortsatt åpent (nice-to-have):**
 
-1. **Gjesteliste** (Airbnb: inviter medreisende til tråd)?
-2. Språk: **EN default** — skal NB være like prominent?
+1. **Gjesteliste** — se §10 (besluttet: ja)
+2. Språk — se §10 (besluttet: EN default + språkvelger)
 
 ### 5.4 Gjest-meldinger (teknisk forslag)
 
@@ -447,17 +447,25 @@ Event har **ikke** kommune admin — ops styrer event staff. Kommune admin kan e
 | 16 | **Sosial ↔ event** | Separate baner; delt kun når bolig er event opt-in |
 | 17 | **Gruppebooking** | **Ja** — flere boliger per event |
 | 18 | **Anmeldelser** | **Ja i v1** |
+| 19 | **Gjesteliste** | **Ja** — inviter medreisende til booking-tråd |
+| 20 | **Språk Finn** | **EN default**; språkvelger som resten av appen (NO/SE/EN) |
 
 ---
 
-## 11. Fortsatt åpne spørsmål
+## 11. Avklaringer og organisatoriske valg
 
-### Los
-1. Skal Los **erstatte** telefon for ungdom i pilotkommune?
+### «Skal Los erstatte telefon?» — hva spørsmålet betyr
 
-### Leietaker
-2. **Gjesteliste** — inviter medreisende til booking-tråd?
-3. Språk: EN default — skal NB være like prominent på Finn?
+Dette er **ikke** en teknisk beslutning i appen, men et **pilot-/kommunevalg**:
+
+| Alternativ | Betydning |
+|------------|-----------|
+| **Los som hovedkanal** | Kommunen markedsfører `/los` som primær inngang for ungdom 16–25; telefon brukes kun som backup |
+| **Los som tilleggskanal** | Ungdom kan fortsatt ringe NAV/kommune som i dag; Los er et **digitalt alternativ** døgnet rundt |
+
+**Produktet støtter begge:** Los endrer ikke om kommune har telefon — det er opp til hver kommune i pilot. Hjerterum trenger **ikke** fjerne eller blokkere telefon.
+
+*Ingen produktbeslutning kreves her med mindre du vil at plattformen skal vise «Ring oss» vs «Start Los» som standard-CTA i pilotkommuner (kan styres i ops senere).*
 
 ---
 

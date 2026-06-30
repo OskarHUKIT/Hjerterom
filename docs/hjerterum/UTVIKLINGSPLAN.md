@@ -56,6 +56,9 @@ Disse er avklart i planlegging — **ikke re-besluttes under implementering** ut
 23. **Event SB isolasjon:** **Ingen** sosial boligbank eller sosiale meldinger; kun event opt-in boliger og event-henvendelser.
 24. **Gruppebooking:** **Ja** — flere boliger per event.
 25. **Anmeldelser:** **Ja i v1** (etter opphold).
+26. **Gjesteliste:** **Ja** — medreisende kan inviteres til booking-tråd.
+27. **Språk Finn:** **EN default**; språkvelger **NO / SE / EN** (som resten av appen).
+28. **Los vs telefon:** Organisatorisk kommunevalg — Los er **tilleggskanal**; produktet fjerner ikke telefon.
 
 ---
 

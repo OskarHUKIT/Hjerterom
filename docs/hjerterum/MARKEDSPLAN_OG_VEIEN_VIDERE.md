@@ -114,10 +114,11 @@
 | T3.4 | Booking ↔ kalender konflikt (RPC) |
 | T3.5 | **Vipps eCommerce** parallelt med Stripe |
 | T3.6 | Booking-bekreftelse e-post |
-| T3.7 | EN/NB språkvelger prominent på Finn |
+| T3.7 | **EN default** på Finn + språkvelger NO/SE/EN (som appen) |
 | T3.8 | Rate limiting på public inserts |
 | T3.9 | **Gruppebooking** (flere boliger per event) |
 | T3.10 | **Anmeldelser v1** (etter opphold) |
+| T3.11 | **Gjesteliste** — medreisende i booking-tråd |
 
 ---
 
