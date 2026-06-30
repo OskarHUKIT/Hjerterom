@@ -256,8 +256,9 @@ create policy "Kommune read los handoffs"
         kommune_id is null
         or exists (
           select 1 from public.user_kommune_grants ukg
-          where ukg.profile_id = auth.uid()
+          where ukg.user_id = auth.uid()
             and ukg.kommune_id = los_handoffs.kommune_id
+            and ukg.revoked_at is null
         )
       )
     )
