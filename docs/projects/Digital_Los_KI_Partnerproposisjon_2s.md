@@ -1,6 +1,6 @@
-# Digital Los — KI i boligformidling
+# Kunstig intelligens i sosial boligformidling
 
-*Partnerproposisjon · 2 sider · Juli 2026 · Klar til avsending*
+*Partnerproposisjon · 2 sider · Juli 2026*
 
 > **Mottakere:** UiT Narvik · Nav Narvik  
 > **Prosjektansvarlig:** Gamechanging AS (org.nr. 932 496 321)  
@@ -10,46 +10,36 @@
 
 ## Essensen
 
-Mange unge (16–25) i utenforskap når ikke Nav og kommunen fordi byråkratiet oppleves som uoverkommelig. **Digital Los** er en planlagt KI-støttet førstekontaktflate — naturlig språk, lav terskel, kobling til riktig saksbehandler — med **bolig som inngangsport**. Løsningen skal bygges som modul på **Boly** (bolynorge.no), utviklet i samarbeid med Nav Narvik.
-
-**Forskningsspørsmål:** (1) Hvilke KI-løsninger kan senke terskelen for første kontakt? (2) Hvordan utvikle dem ansvarlig (GDPR, AI Act)? (3) Hvilken effekt har dette på boligformidling og oppfølging?
-
-| Partner | Rolle | Vi ber om |
-|---------|-------|-----------|
-| **UiT Narvik** | Forskningspartner | Interesse for FoU-samarbeid · kontaktperson · eventuelt støttebrev |
-| **Nav Narvik** | Domenepartner | Faglig innspill · pilotmiljø · brukerkontakt ved behovskartlegging |
-| **Gamechanging AS** | Prosjektansvarlig | Plattform (Boly), teknisk utvikling, koordinering |
-
-**Planlagt varighet:** ca. 24–36 måneder · **Målgruppe:** unge 16–25 i utenforskap
+Mange unge (16–25) i utenforskap tar ikke kontakt med Nav fordi det av ulike grunner oppleves som vanskelig for dem. **Digital Los** er en planlagt førstekontaktflate med støtte fra kunstig intelligens, med bolig som inngangsport. Løsningen skal bygges som modul på **Boly** (bolynorge.no), utviklet i samarbeid med Nav Narvik.
 
 ---
 
-## Dette ber vi partnerne om
+## Bakgrunn
 
-### Til UiT Narvik
+En stor andel unge står utenfor arbeid og utdanning. Uten trygg bolig blir det vanskeligere å stabilisere livssituasjonen, være i arbeid og utvikle sosiale nettverk.
 
-Vi ønsker dialog om **forskningspartnerrolle**: AI/ML, ansvarlig KI, evaluering og eventuell publisering. UiT kan bidra med metode, veiledning og faglig kvalitet i et prosjekt med tydelig samfunnsnytte.
+Nav og kommune bruker mye ressurser på oppsøkende arbeid. Likevel når ikke alle som trenger hjelp til bolig.
 
-### Til Nav Narvik
-
-Vi ønsker **domenepartner** som kan bidra med sosialfaglig kompetanse, realistisk forståelse av saksbehandlingsflyt, og — dersom det er hensiktsmessig — pilotmiljø for utprøving. Målet er et verktøy som **støtter**, ikke erstatter, saksbehandler.
+Utfordringen er kjent også i Narvik: Mange unge med boligbehov tar ikke kontakt, ofte fordi de ikke vet hvor de skal henvende seg eller opplever systemet som krevende.
 
 ---
 
-## Personvern og etikk
+## Forskningsspørsmål
 
-- Dataminimering og tydelig samtykke før sensitive opplysninger
-- DPIA og risikovurdering før pilot
-- Forklarbar matching — saksbehandler skal forstå hvorfor en kobling foreslås
-- Ingen personsensitive data i KI-trening uten eksplisitt grunnlag
+1. Hvilke KI-løsninger kan senke terskelen for første kontakt og dialog mellom unge og lokale Nav-veiledere?
+2. Hvordan utvikle løsningen ansvarlig (GDPR, AI Act)?
+3. Hvilken effekt har løsningen på boligformidling og oppfølging?
 
 ---
 
-## Neste steg
+## Foreslått videre løp
 
-1. **Oppstartsmøte** (UiT, Nav, Gamechanging) — avklare mandat, roller og realistisk omfang  
-2. **Behovskartlegging** — korte intervjuer med saksbehandlere og, der det er mulig, unge i målgruppen  
-3. **Felles vurdering** — om og hvordan prosjektet bør videreføres, inkl. eventuelt forskningssamarbeid
+| Milepæl | Periode |
+|---------|---------|
+| Oppstartsmøte | August–september 2026 |
+| Behovskartlegging | Oktober–november 2026 |
+| Felles prosjektplan | Desember 2026 |
+| **Innsendt søknad** | **Januar–mars 2027** |
 
 ---
 

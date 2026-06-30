@@ -31,7 +31,7 @@ export default function GjerterumRapportPage() {
 
         <div className="card" style={{ ...card, marginBottom: 'var(--space-4)' }}>
           <h2 style={{ marginTop: 0, marginBottom: 'var(--space-3)', color: 'var(--text-main)' }}>
-            Digital Los — KI i boligformidling
+            Kunstig intelligens i sosial boligformidling
           </h2>
           <p style={{ marginBottom: 'var(--space-4)' }}>
             2-siders partnerproposisjon — klar til avsending til UiT Narvik og Nav Narvik.
