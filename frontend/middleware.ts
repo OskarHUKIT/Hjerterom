@@ -48,12 +48,20 @@ export async function middleware(request: NextRequest) {
   const shell = resolveHjerterumShell(host)
   const pathname = request.nextUrl.pathname
 
-  /** Subdomain → /finn/* rewrite (finn.hjerterum.no locally via /etc/hosts). */
+  /** Subdomain → /finn/* or /los/* rewrite */
   if (shell === 'finn' && !pathname.startsWith('/finn')) {
     const url = request.nextUrl.clone()
     url.pathname = pathname === '/' ? '/finn' : `/finn${pathname}`
     const rewrite = NextResponse.rewrite(url)
     rewrite.headers.set('x-hjerterum-shell', 'finn')
+    return rewrite
+  }
+
+  if (shell === 'los' && !pathname.startsWith('/los')) {
+    const url = request.nextUrl.clone()
+    url.pathname = pathname === '/' ? '/los' : `/los${pathname}`
+    const rewrite = NextResponse.rewrite(url)
+    rewrite.headers.set('x-hjerterum-shell', 'los')
     return rewrite
   }
 

@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { PageSkeleton, useToast } from '@/app/components/design-system'
+import { PageSkeleton } from '@/app/components/design-system'
 import { buttonClassName } from '@/app/components/ui/Button'
+import EventInquiryForm from '@/features/tourism/components/EventInquiryForm'
 import type { FinnListingCard, FinnPublishedEvent } from '@/features/tourism/types/finn'
 import { formatFinnNightlyPrice } from '@/features/tourism/types/finn'
 
@@ -14,19 +15,9 @@ export default function FinnEventDetailPage() {
   const params = useParams<{ slug: string }>()
   const slug = params?.slug
   const { t } = useLanguage()
-  const toast = useToast()
   const [event, setEvent] = useState<FinnPublishedEvent | null>(null)
   const [listings, setListings] = useState<FinnListingCard[]>([])
   const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: '',
-    dateFrom: '',
-    dateTo: '',
-  })
 
   useEffect(() => {
     if (!slug) return
@@ -73,23 +64,6 @@ export default function FinnEventDetailPage() {
     }
   }, [slug])
 
-  const submitInquiry = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!event) return
-    if (!form.name.trim() || !form.email.trim()) {
-      toast(t('finnInquiryRequired'), 'error')
-      return
-    }
-    setSubmitting(true)
-    try {
-      // event_inquiries table arrives in a later phase; for now acknowledge locally
-      toast(t('finnInquirySent'), 'success')
-      setForm({ name: '', email: '', phone: '', message: '', dateFrom: '', dateTo: '' })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   if (loading) return <PageSkeleton minHeight={280} />
 
   if (!event) {
@@ -108,7 +82,8 @@ export default function FinnEventDetailPage() {
   return (
     <>
       <section className="finn-hero">
-        <p className="finn-card-meta" style={{ marginBottom: 8 }}>
+        <span className="finn-badge">{isTourismRouting ? t('opsEventRoutingTourism') : t('opsEventRoutingSaksbehandler')}</span>
+        <p className="finn-card-meta" style={{ marginTop: 12, marginBottom: 8 }}>
           {event.start_date} – {event.end_date}
           {event.arrangement_tag ? ` · ${event.arrangement_tag}` : ''}
         </p>
@@ -118,7 +93,7 @@ export default function FinnEventDetailPage() {
 
       {listings.length > 0 ? (
         <>
-          <h2 style={{ fontSize: '1.15rem', marginBottom: 'var(--space-4)' }}>
+          <h2 className="finn-section-title">
             {t('finnEventListingsTitle').replace('{count}', String(listings.length))}
           </h2>
           <div className="finn-grid" style={{ marginBottom: 'var(--space-8)' }}>
@@ -144,69 +119,12 @@ export default function FinnEventDetailPage() {
         </p>
       )}
 
-      <section>
-        <h2 style={{ fontSize: '1.15rem' }}>
-          {isTourismRouting ? t('finnInquiryTourismTitle') : t('finnInquirySaksTitle')}
-        </h2>
-        <p className="finn-card-meta">{t('finnInquiryLead')}</p>
-        <form className="finn-inquiry-form" onSubmit={(e) => void submitInquiry(e)}>
-          <label>
-            {t('finnInquiryName')}
-            <input
-              required
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            />
-          </label>
-          <label>
-            {t('finnInquiryEmail')}
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            />
-          </label>
-          <label>
-            {t('finnInquiryPhone')}
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-            />
-          </label>
-          <label>
-            {t('finnFilterCheckIn')}
-            <input
-              type="date"
-              value={form.dateFrom}
-              min={event.start_date}
-              max={event.end_date}
-              onChange={(e) => setForm((f) => ({ ...f, dateFrom: e.target.value }))}
-            />
-          </label>
-          <label>
-            {t('finnFilterCheckOut')}
-            <input
-              type="date"
-              value={form.dateTo}
-              min={event.start_date}
-              max={event.end_date}
-              onChange={(e) => setForm((f) => ({ ...f, dateTo: e.target.value }))}
-            />
-          </label>
-          <label>
-            {t('finnInquiryMessage')}
-            <textarea
-              value={form.message}
-              onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-            />
-          </label>
-          <button type="submit" className={buttonClassName('accent')} disabled={submitting}>
-            {isTourismRouting ? t('finnInquirySendRequest') : t('finnInquiryAskHousing')}
-          </button>
-        </form>
-      </section>
+      <EventInquiryForm
+        eventId={event.id}
+        isTourismRouting={isTourismRouting}
+        eventStart={event.start_date}
+        eventEnd={event.end_date}
+      />
     </>
   )
 }

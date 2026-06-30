@@ -1,8 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarDays, Compass, Home, User } from 'lucide-react'
+import { CalendarDays, Compass, User } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import Logo from '@/app/components/Logo'
 
@@ -21,6 +22,19 @@ function isFinnActive(pathname: string | null, href: string): boolean {
 export default function FinnShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t } = useLanguage()
+
+  /** Consumer portal is always light — avoids dark-theme token bleed from app shell. */
+  useEffect(() => {
+    const root = document.documentElement
+    const prevTheme = root.getAttribute('data-theme')
+    root.setAttribute('data-finn-shell', 'true')
+    root.setAttribute('data-theme', 'light')
+    return () => {
+      root.removeAttribute('data-finn-shell')
+      if (prevTheme) root.setAttribute('data-theme', prevTheme)
+      else root.setAttribute('data-theme', 'dark')
+    }
+  }, [])
 
   return (
     <div className="finn-shell">
@@ -50,7 +64,7 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
       <footer className="finn-footer">
         <p>{t('finnFooterTagline')}</p>
         <Link href="/" className="finn-footer-link">
-          <Home size={14} aria-hidden /> {t('finnFooterAppLink')}
+          {t('finnFooterAppLink')}
         </Link>
       </footer>
     </div>

@@ -7,7 +7,7 @@ import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { PageSkeleton } from '@/app/components/design-system'
 import { buttonClassName } from '@/app/components/ui/Button'
-import { formatFinnNightlyPrice } from '@/features/tourism/types/finn'
+import BookingRequestForm from '@/features/tourism/components/BookingRequestForm'
 
 type ListingDetail = {
   id: string
@@ -64,14 +64,17 @@ export default function FinnListingDetailPage() {
     )
   }
 
-  const price = formatFinnNightlyPrice(listing.tourism_nightly_price_cents)
+  const price =
+    listing.tourism_nightly_price_cents != null
+      ? `${Math.round(listing.tourism_nightly_price_cents / 100).toLocaleString('nb-NO')} kr`
+      : null
 
   return (
     <article>
-      <Link href="/finn" className="finn-footer-link" style={{ marginBottom: 'var(--space-4)' }}>
+      <Link href="/finn" className="finn-footer-link" style={{ marginBottom: 'var(--space-4)', display: 'inline-flex' }}>
         ← {t('finnBackToSearch')}
       </Link>
-      <div className="finn-card" style={{ maxWidth: 720 }}>
+      <div className="finn-card" style={{ maxWidth: 720, marginBottom: 'var(--space-8)' }}>
         {listing.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -95,13 +98,18 @@ export default function FinnListingDetailPage() {
             </p>
           ) : null}
           {listing.description ? (
-            <p style={{ lineHeight: 1.6, margin: 'var(--space-4) 0 0' }}>{listing.description}</p>
+            <p style={{ lineHeight: 1.6, margin: 'var(--space-4) 0 0', color: 'var(--finn-text-secondary)' }}>
+              {listing.description}
+            </p>
           ) : null}
-          <p className="finn-card-meta" style={{ marginTop: 'var(--space-6)' }}>
-            {t('finnBookingComingSoon')}
-          </p>
         </div>
       </div>
+
+      <BookingRequestForm
+        listingId={listing.id}
+        nightlyPriceCents={listing.tourism_nightly_price_cents}
+        listingAddress={`${listing.address}, ${listing.city}`}
+      />
     </article>
   )
 }

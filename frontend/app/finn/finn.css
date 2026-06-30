@@ -1,14 +1,22 @@
+/* Finn consumer portal — always light, high contrast (independent of app dark theme) */
+
 .finn-shell {
+  --finn-bg: #f8fafc;
+  --finn-bg-elevated: #ffffff;
+  --finn-bg-muted: #f1f5f9;
+  --finn-text: #0f172a;
+  --finn-text-secondary: #475569;
+  --finn-text-muted: #64748b;
+  --finn-border: rgba(148, 163, 184, 0.35);
+  --finn-accent: #2563eb;
+  --finn-accent-soft: rgba(37, 99, 235, 0.1);
+  --finn-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #f0f9ff 0%, #f8fafc 40%, #ffffff 100%);
-  color: #0f172a;
-}
-
-[data-theme='dark'] .finn-shell {
-  background: linear-gradient(180deg, #0c1929 0%, #0f172a 40%, #020617 100%);
-  color: #f1f5f9;
+  background: linear-gradient(180deg, #eff6ff 0%, var(--finn-bg) 45%, #ffffff 100%);
+  color: var(--finn-text);
 }
 
 .finn-header {
@@ -19,16 +27,12 @@
   gap: var(--space-4);
   padding: var(--space-4) max(var(--space-4), env(safe-area-inset-left))
     var(--space-4) max(var(--space-4), env(safe-area-inset-right));
-  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid var(--finn-border);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 50;
-}
-
-[data-theme='dark'] .finn-header {
-  background: rgba(15, 23, 42, 0.9);
 }
 
 .finn-brand {
@@ -36,7 +40,7 @@
   align-items: center;
   gap: var(--space-3);
   text-decoration: none;
-  color: inherit;
+  color: var(--finn-text);
   font-weight: 700;
   font-size: 1.1rem;
 }
@@ -60,24 +64,20 @@
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--finn-text-secondary);
   border: 1px solid transparent;
   transition: background 0.15s, color 0.15s;
 }
 
-[data-theme='dark'] .finn-nav-link {
-  color: #94a3b8;
-}
-
 .finn-nav-link:hover {
-  background: rgba(59, 130, 246, 0.08);
-  color: #2563eb;
+  background: var(--finn-accent-soft);
+  color: var(--finn-accent);
 }
 
 .finn-nav-link--active {
-  background: rgba(59, 130, 246, 0.12);
-  color: #2563eb;
-  border-color: rgba(59, 130, 246, 0.25);
+  background: var(--finn-accent-soft);
+  color: var(--finn-accent);
+  border-color: rgba(37, 99, 235, 0.25);
 }
 
 .finn-main {
@@ -94,8 +94,9 @@
   padding: var(--space-6) var(--space-4);
   text-align: center;
   font-size: 0.85rem;
-  color: #64748b;
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  color: var(--finn-text-muted);
+  border-top: 1px solid var(--finn-border);
+  background: var(--finn-bg-elevated);
 }
 
 .finn-footer-link {
@@ -103,7 +104,7 @@
   align-items: center;
   gap: 6px;
   margin-top: var(--space-2);
-  color: #2563eb;
+  color: var(--finn-accent);
   text-decoration: none;
   font-weight: 600;
 }
@@ -117,18 +118,15 @@
   font-size: clamp(1.75rem, 5vw, 2.5rem);
   margin: 0 0 var(--space-3);
   letter-spacing: -0.03em;
+  color: var(--finn-text);
 }
 
 .finn-hero p {
   margin: 0;
   font-size: 1.05rem;
   line-height: 1.6;
-  color: #475569;
+  color: var(--finn-text-secondary);
   max-width: 52ch;
-}
-
-[data-theme='dark'] .finn-hero p {
-  color: #94a3b8;
 }
 
 .finn-search-bar {
@@ -138,14 +136,9 @@
   margin-bottom: var(--space-8);
   padding: var(--space-4);
   border-radius: 16px;
-  background: #fff;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
-}
-
-[data-theme='dark'] .finn-search-bar {
-  background: rgba(30, 41, 59, 0.6);
-  border-color: rgba(148, 163, 184, 0.2);
+  background: var(--finn-bg-elevated);
+  border: 1px solid var(--finn-border);
+  box-shadow: var(--finn-shadow);
 }
 
 .finn-search-bar label {
@@ -155,21 +148,23 @@
   flex: 1 1 140px;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--finn-text-muted);
 }
 
 .finn-search-bar input {
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  border: 1px solid var(--finn-border);
   font-size: 0.95rem;
   min-height: var(--touch-target, 44px);
-  background: #f8fafc;
-  color: inherit;
+  background: var(--finn-bg-muted);
+  color: var(--finn-text);
 }
 
-[data-theme='dark'] .finn-search-bar input {
-  background: #0f172a;
+.finn-search-bar input:focus {
+  outline: 2px solid var(--finn-accent);
+  outline-offset: 1px;
+  border-color: var(--finn-accent);
 }
 
 .finn-grid {
@@ -181,18 +176,14 @@
 .finn-card {
   border-radius: 16px;
   overflow: hidden;
-  background: #fff;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: var(--finn-bg-elevated);
+  border: 1px solid var(--finn-border);
   box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
   transition: transform 0.15s, box-shadow 0.15s;
   text-decoration: none;
-  color: inherit;
+  color: var(--finn-text);
   display: flex;
   flex-direction: column;
-}
-
-[data-theme='dark'] .finn-card {
-  background: rgba(30, 41, 59, 0.7);
 }
 
 .finn-card:hover {
@@ -206,7 +197,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--finn-text-muted);
   font-size: 0.85rem;
 }
 
@@ -222,23 +213,24 @@
   margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
+  color: var(--finn-text);
 }
 
 .finn-card-meta {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--finn-text-muted);
 }
 
 .finn-price {
   font-weight: 700;
-  color: #2563eb;
+  color: var(--finn-accent);
   margin-top: auto;
 }
 
 .finn-empty {
   text-align: center;
   padding: var(--space-10);
-  color: #64748b;
+  color: var(--finn-text-muted);
 }
 
 .finn-event-list {
@@ -253,26 +245,32 @@
   display: block;
   padding: var(--space-5);
   border-radius: 16px;
-  background: #fff;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: var(--finn-bg-elevated);
+  border: 1px solid var(--finn-border);
   text-decoration: none;
-  color: inherit;
-  transition: border-color 0.15s;
-}
-
-[data-theme='dark'] .finn-event-item {
-  background: rgba(30, 41, 59, 0.7);
+  color: var(--finn-text);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .finn-event-item:hover {
-  border-color: #2563eb;
+  border-color: var(--finn-accent);
+  box-shadow: var(--finn-shadow);
 }
 
 .finn-inquiry-form {
   display: grid;
   gap: var(--space-4);
-  max-width: 480px;
+  max-width: 520px;
   margin-top: var(--space-6);
+}
+
+.finn-inquiry-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--finn-text-secondary);
 }
 
 .finn-inquiry-form textarea,
@@ -280,13 +278,60 @@
   width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  border: 1px solid var(--finn-border);
   font: inherit;
   box-sizing: border-box;
   min-height: var(--touch-target, 44px);
+  background: var(--finn-bg-muted);
+  color: var(--finn-text);
 }
 
 .finn-inquiry-form textarea {
   min-height: 120px;
   resize: vertical;
+}
+
+.finn-inquiry-form textarea:focus,
+.finn-inquiry-form input:focus {
+  outline: 2px solid var(--finn-accent);
+  outline-offset: 1px;
+}
+
+/* Design-system components inside Finn — force readable light theme */
+.finn-shell .ds-empty.card {
+  background: var(--finn-bg-elevated);
+  border: 1px solid var(--finn-border);
+  color: var(--finn-text);
+}
+
+.finn-shell .ds-empty-title {
+  color: var(--finn-text);
+}
+
+.finn-shell .ds-empty-desc {
+  color: var(--finn-text-muted);
+}
+
+.finn-shell .button-secondary {
+  background: var(--finn-bg-muted);
+  color: var(--finn-text);
+  border: 1px solid var(--finn-border);
+}
+
+.finn-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--finn-accent-soft);
+  color: var(--finn-accent);
+}
+
+.finn-section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 var(--space-4);
+  color: var(--finn-text);
 }

@@ -10,7 +10,11 @@
 | `los.hjerterum.no` | `(los)` | Digital Los |
 | `ops.hjerterum.no` | `(ops)` | Central ops |
 
-Middleware will map `Host` → shell. Routes under `/finn/*` use `FinnShell` (no app header). Subdomain `finn.*` rewrites to `/finn/*` via `middleware.ts`.
+Middleware maps `finn.*` → `/finn/*` and `los.*` → `/los/*`. Finn uses forced light theme; Los uses dedicated dark chat shell.
+
+## Deploy
+
+See `SUPABASE_DEPLOY.md` for migration order, env vars, and smoke tests.
 
 ## Code layout
 

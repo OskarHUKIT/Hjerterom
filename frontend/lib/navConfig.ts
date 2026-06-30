@@ -15,6 +15,8 @@ export type NavItemId =
   | 'users'
   | 'expired'
   | 'termsDocuments'
+  | 'eventInquiries'
+  | 'losInbox'
 
 export type NavItemDef = {
   id: NavItemId
@@ -73,6 +75,22 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     audiences: ['kommune'],
     surfaces: ['headerDesktop', 'mobileMore'],
     adminOnly: true,
+  },
+  {
+    id: 'eventInquiries',
+    href: '/nav/event-inquiries',
+    labelKey: 'navEventInquiriesTitle',
+    icon: Building2,
+    audiences: ['kommune'],
+    surfaces: ['mobileMore'],
+  },
+  {
+    id: 'losInbox',
+    href: '/nav/los-inbox',
+    labelKey: 'navLosInboxTitle',
+    icon: Building2,
+    audiences: ['kommune'],
+    surfaces: ['mobileMore'],
   },
   {
     id: 'notifications',

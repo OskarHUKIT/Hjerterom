@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { LogIn, Presentation, ArrowRight, X } from 'lucide-react'
+import { LogIn, Presentation, ArrowRight, X, Compass, MessageCircle } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import { Button, buttonClassName } from './components/ui/Button'
 
@@ -95,6 +95,90 @@ export default function Home() {
               >
                 {t('homeDemoCardCta')} <ArrowRight size={18} />
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Finn bolig */}
+        <div
+          className="card portal-card portal-card-align-buttons"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-4)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <div
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(37, 99, 235, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 'var(--space-2)',
+              color: '#2563eb',
+            }}
+          >
+            <Compass size={28} aria-hidden />
+          </div>
+          <div className="portal-card-body">
+            <h2>{t('homeFinnCardTitle')}</h2>
+            <p style={{ margin: 0, opacity: 0.85, lineHeight: 1.5, fontSize: '0.95rem' }}>
+              {t('homeFinnCardDesc')}
+            </p>
+            <div className="portal-card-cta">
+              <Link
+                href="/finn"
+                className={buttonClassName('accent')}
+                style={{ width: '100%', padding: 'var(--space-4)' }}
+              >
+                {t('homeFinnCardCta')} <ArrowRight size={18} aria-hidden />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Digital Los */}
+        <div
+          className="card portal-card portal-card-align-buttons"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-4)',
+            backdropFilter: 'blur(8px)',
+          }}
+        >
+          <div
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(45, 212, 191, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 'var(--space-2)',
+              color: 'var(--color-teal)',
+            }}
+          >
+            <MessageCircle size={28} aria-hidden />
+          </div>
+          <div className="portal-card-body">
+            <h2>{t('homeLosCardTitle')}</h2>
+            <p style={{ margin: 0, opacity: 0.85, lineHeight: 1.5, fontSize: '0.95rem' }}>
+              {t('homeLosCardDesc')}
+            </p>
+            <div className="portal-card-cta">
+              <Link
+                href="/los"
+                className={buttonClassName('primary')}
+                style={{ width: '100%', padding: 'var(--space-4)' }}
+              >
+                {t('homeLosCardCta')} <ArrowRight size={18} aria-hidden />
+              </Link>
             </div>
           </div>
         </div>

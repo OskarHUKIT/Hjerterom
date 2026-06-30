@@ -34,6 +34,8 @@ import BottomSheet from '../../components/BottomSheet'
 import { EmptyState, useToast } from '../../components/design-system'
 import ListingTourismSettings from '@/features/listings/components/ListingTourismSettings'
 import ListingEventOptIn from '@/features/listings/components/ListingEventOptIn'
+import EventTaskCards from '@/features/listings/components/EventTaskCards'
+import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
 import AvailabilityLaneSelect from '@/features/listings/components/AvailabilityLaneSelect'
 import { checkAvailabilityConflict } from '@/features/listings/lib/availabilityConflict'
 import type { ListingLane } from '@/features/listings/types/lanes'
@@ -324,7 +326,7 @@ export default function HomeownerManage() {
     const listing = myListings.find((l) => l.id === id)
     const todayStatus = getEffectiveStatus(listing)
     if (todayStatus === 'Formidla') {
-      alert(t('formidletByKommune'))
+      toast(t('formidletByKommune'), 'error')
       return
     }
     setMyListings((prev) =>
@@ -362,7 +364,7 @@ export default function HomeownerManage() {
             : item
         )
       )
-      alert(t('errUpdateGeneric') + err.message)
+      toast(t('errUpdateGeneric') + err.message, 'error')
     }
   }
 
@@ -371,7 +373,7 @@ export default function HomeownerManage() {
     const { id, address } = pendingDeleteListing
     const listingRow = myListings.find((l) => l.id === id)
     if (listingRow && getEffectiveStatus(listingRow) === 'Formidla') {
-      alert(t('ownerCannotEditListingWhenFormidlet'))
+      toast(t('ownerCannotEditListingWhenFormidlet'), 'error')
       setPendingDeleteListing(null)
       return
     }
@@ -402,7 +404,7 @@ export default function HomeownerManage() {
       setPendingDeleteListing(null)
     } catch (err: any) {
       setMyListings(prevListings)
-      alert(t('errDeleteGeneric') + err.message)
+      toast(t('errDeleteGeneric') + err.message, 'error')
     }
   }
 
@@ -456,7 +458,7 @@ export default function HomeownerManage() {
       }
       // Formidla-perioder kan kun legges inn av kommuneansatte (i Boligbank), ikke av utleier her.
     } catch (err: any) {
-      alert('Feil ved lagring av periode: ' + err.message)
+      toast('Feil ved lagring av periode: ' + err.message, 'error')
     }
   }
 
@@ -472,7 +474,7 @@ export default function HomeownerManage() {
       }))
       setPendingDeletePeriod(null)
     } catch (err: any) {
-      alert(t('errDeletePeriod') + err.message)
+      toast(t('errDeletePeriod') + err.message, 'error')
     }
   }
 
@@ -833,7 +835,7 @@ export default function HomeownerManage() {
         }}
       >
         <div>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)', margin: 0 }}>Min Boly-oversikt</h1>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)', margin: 0 }}>{t('myProperties')}</h1>
         </div>
         <Link
           href="/homeowner/register"
@@ -848,6 +850,9 @@ export default function HomeownerManage() {
           <Plus size={22} /> <span className="hm-btn-label">{t('registerNewProperty')}</span>
         </Link>
       </div>
+
+      <EventTaskCards listingIds={myListings.map((l) => l.id)} />
+      <LandlordBookingRequests listingIds={myListings.map((l) => l.id)} />
 
       <div
         className="hm-layout"

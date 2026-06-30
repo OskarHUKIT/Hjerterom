@@ -79,7 +79,15 @@ export default function ListingEventOptIn({ listingId }: Props) {
         )
         if (error) throw error
         setOptIns((prev) => ({ ...prev, [event.id]: { event_id: event.id, status: 'active' } }))
-        toast(t('tourismSaved'), 'success')
+        const user = await supabase.auth.getUser()
+        await supabase.from('audit_logs').insert([
+          {
+            user_id: user.data.user?.id ?? null,
+            action_type: 'EVENT_OPT_IN',
+            details: { event_id: event.id, listing_id: listingId, event_name: event.name },
+          },
+        ])
+        toast(t('eventOptInSuccess'), 'success')
       } else {
         const { error } = await supabase
           .from('listing_event_availability')

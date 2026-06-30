@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/app/lib/supabase'
+import { getAuthUserDeduped, supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import OpsShell from '../../components/OpsShell'
 import OpsPageHeader from '../../components/OpsPageHeader'
@@ -43,7 +43,7 @@ export default function OpsEventNewPage() {
     setSaving(true)
     try {
       const slug = form.slug.trim() || slugify(form.name)
-      const { data: user } = await supabase.auth.getUser()
+      const authUser = await getAuthUserDeduped()
       const { data, error } = await supabase
         .from('central_events')
         .insert([
@@ -57,13 +57,22 @@ export default function OpsEventNewPage() {
             arrangement_tag: form.arrangement_tag.trim() || null,
             status: publish ? 'published' : 'draft',
             published_at: publish ? new Date().toISOString() : null,
-            created_by: user.user?.id ?? null,
+            created_by: authUser?.id ?? null,
           },
         ])
         .select('slug')
         .single()
 
       if (error) throw error
+      if (publish && authUser?.id) {
+        await supabase.from('audit_logs').insert([
+          {
+            user_id: authUser.id,
+            action_type: 'OPS_EVENT_PUBLISHED',
+            details: { slug, name: form.name.trim() },
+          },
+        ])
+      }
       toast(t('opsSaved'), 'success')
       router.push(data?.slug ? `/ops/events/${data.slug}` : '/ops/events')
     } catch {
