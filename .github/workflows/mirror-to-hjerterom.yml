@@ -60,6 +60,8 @@ jobs:
           DEST="https://x-access-token:${TOKEN}@github.com/OskarHUKIT/Hjerterom.git"
 
           if git cat-file -e "main:.github/workflows/mirror-to-hjerterom.yml" 2>/dev/null; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git branch hjerterom-main main
             git checkout hjerterom-main
             git rm -f .github/workflows/mirror-to-hjerterom.yml
