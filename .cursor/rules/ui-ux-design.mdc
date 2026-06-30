@@ -1,0 +1,140 @@
+---
+description: UI and UX design principles — visual hierarchy, accessibility (WCAG 2.1 AA), responsive/mobile-first layouts, interaction patterns, performance, and user feedback
+globs: frontend/**/*
+alwaysApply: false
+---
+
+# UI & UX Design Principles
+
+Specialize in UI and UX design for software development. Create experiences that are intuitive, accessible, and performant.
+
+## Visual Design
+
+- Establish a clear **visual hierarchy** to guide attention.
+- Use a **cohesive color palette** aligned with the brand; involve users when choosing colors.
+- Use **typography** for readability and emphasis.
+- Meet **WCAG 2.1 AA** contrast requirements for legibility.
+- Maintain **visual consistency** across the application.
+
+## Interaction Design
+
+- Design **intuitive navigation** with familiar UI components to reduce cognitive load.
+- Provide **clear calls-to-action** that guide user behavior.
+- Ensure **responsive design** across devices and screen sizes.
+- Use **animations sparingly** — enhance the experience without overwhelming users.
+
+## Accessibility
+
+- Follow **WCAG** guidelines so content works for everyone.
+- Use **semantic HTML** for screen reader compatibility.
+- Provide **alternative text** for images and non-text content.
+- Ensure all interactive elements are **keyboard-navigable**.
+- Test with **assistive technologies** to catch issues early.
+
+## Performance Optimization
+
+- Optimize images and assets for faster load times.
+- Implement **lazy loading** for non-critical resources.
+- Use **code splitting** to improve initial load performance.
+- Monitor **Core Web Vitals** (LCP, FID, CLS) to gauge real-world UX.
+
+## User Feedback
+
+- Provide clear feedback for user actions.
+- Show **loading indicators** during ongoing processes.
+- Write **clear error messages** with recovery options.
+- Use **analytics** to track behavior and identify pain points.
+
+## Information Architecture
+
+- Organize content logically so users find what they need quickly.
+- Use clear **labeling and categorization** in navigation.
+- Provide effective **search** where appropriate.
+- Use **sitemaps** or flow diagrams to clarify structure for complex apps.
+
+## Mobile-First Design
+
+- Design for **mobile first**, then scale up for larger screens.
+- Make touch targets **touch-friendly** with gestures (swipe, pinch-to-zoom) where appropriate.
+- Place important interactive elements in **thumb-friendly zones**.
+
+## Consistency
+
+- Follow a **design system** with consistent terminology, placement, and visual harmony.
+- Keep recurring elements in **predictable positions** across sections.
+
+## Testing and Iteration
+
+- Run **A/B tests** for critical design decisions.
+- Use **heatmaps and session recordings** to analyze behavior.
+- Gather user feedback and **iterate continuously**.
+
+## Documentation
+
+- Maintain a **style guide** and document design patterns and component usage.
+- Create **user flow diagrams** for complex interactions.
+- Keep design assets organized and accessible to the team.
+
+## Fluid Layouts
+
+- Prefer **relative units** (%, em, rem) over fixed pixels.
+- Use **CSS Grid and Flexbox** for flexible layouts.
+- Design with a **mobile-first** approach.
+
+## Media Queries
+
+- Use **breakpoints** to adapt layouts for different screen sizes.
+- Design for **content needs**, not specific devices.
+- Test across devices and orientations.
+
+## Images and Media
+
+- Use **responsive images** (`srcset`, `sizes`).
+- **Lazy-load** images and videos.
+- Make embedded media responsive with CSS.
+
+## Typography (Responsive)
+
+- Use **em/rem** for font sizes.
+- Adjust **line height and letter spacing** for readability on small screens.
+- Use a **modular scale** for consistent typography across breakpoints.
+
+## Touch Targets
+
+- Minimum interactive size: **44×44 px**.
+- Provide ample **spacing between touch targets**.
+- Define **hover states** (desktop) and **focus states** (keyboard/touch).
+
+## Performance (Mobile)
+
+- Optimize assets for **mobile networks**.
+- Prefer **CSS animations** over JavaScript when possible.
+- Use **critical CSS** for above-the-fold content.
+
+## Content Prioritization
+
+- Prioritize content for **mobile views**.
+- Use **progressive disclosure** for secondary content.
+- Consider **off-canvas patterns** on smaller screens.
+
+## Navigation (Mobile)
+
+- Use mobile-friendly patterns (e.g. hamburger menu where appropriate).
+- Ensure navigation works with **keyboard and screen readers**.
+- Consider a **sticky header** for quick access.
+
+## Forms
+
+- Make form layouts **adapt to screen size**.
+- Use appropriate **input types** for mobile (email, tel, number, etc.).
+- Implement **inline validation** with clear error messaging.
+
+## Testing (Responsive)
+
+- Use browser dev tools for responsiveness checks.
+- Test on **real devices** and run usability tests across device types.
+
+## Stay Current
+
+- Follow latest responsive design techniques and browser capabilities.
+- Keep up with industry guidelines and current UI/UX trends.
