@@ -38,4 +38,4 @@ jobs:
 
       - name: Push all migrations (fresh Hjerterum database)
         working-directory: supabase
-        run: supabase db push --yes
+        run: supabase db push --yes --include-all
