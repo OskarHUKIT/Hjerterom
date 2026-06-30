@@ -137,10 +137,10 @@ stable
 security definer
 set search_path = public
 as $$
-  select k.slug, k.name
+  select k.slug, k.display_name as name
   from public.kommuner k
   where k.digital_los_enabled = true
-  order by k.name;
+  order by k.display_name;
 $$;
 
 revoke all on function public.list_los_enabled_kommuner() from public;
