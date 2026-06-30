@@ -7,6 +7,14 @@ on:
         description: 'Skriv push for å bekrefte migrasjon til produksjon'
         required: true
         type: string
+      database_mode:
+        description: 'existing_boly = schema finnes (typisk); fresh = helt ny database'
+        required: true
+        type: choice
+        default: existing_boly
+        options:
+          - existing_boly
+          - fresh
   push:
     branches: [main]
     paths:
@@ -16,7 +24,7 @@ jobs:
   db-push:
     if: github.event_name == 'push' || github.event.inputs.confirm == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,9 +41,26 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
 
+      - name: Mark pre-Hjerterum migrations applied (existing Boly)
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.database_mode == 'existing_boly'
+        working-directory: supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for f in migrations/*.sql; do
+            base="$(basename "$f" .sql)"
+            ts="${base%%_*}"
+            if [[ "$ts" -lt "20260630120000" ]]; then
+              echo "Repair (applied): $base"
+              supabase migration repair "$base" --status applied || true
+            fi
+          done
+
       - name: Push migrations
         working-directory: supabase
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: supabase db push
+        run: supabase db push --yes
