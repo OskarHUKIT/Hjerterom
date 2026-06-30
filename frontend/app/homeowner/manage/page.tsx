@@ -36,6 +36,7 @@ import ListingTourismSettings from '@/features/listings/components/ListingTouris
 import ListingEventOptIn from '@/features/listings/components/ListingEventOptIn'
 import EventTaskCards from '@/features/listings/components/EventTaskCards'
 import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
+import LandlordStripeConnect from '@/features/bookings/components/LandlordStripeConnect'
 import AvailabilityLaneSelect from '@/features/listings/components/AvailabilityLaneSelect'
 import { checkAvailabilityConflict } from '@/features/listings/lib/availabilityConflict'
 import type { ListingLane } from '@/features/listings/types/lanes'
@@ -852,6 +853,7 @@ export default function HomeownerManage() {
       </div>
 
       <EventTaskCards listingIds={myListings.map((l) => l.id)} />
+      <LandlordStripeConnect />
       <LandlordBookingRequests listingIds={myListings.map((l) => l.id)} />
 
       <div

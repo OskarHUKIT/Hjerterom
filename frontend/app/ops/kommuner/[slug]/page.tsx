@@ -20,6 +20,7 @@ import { formatDateTimeNo } from '../../../lib/dateFormat'
 import {
   opsGetKommuneDetail,
   opsSetKommuneStatus,
+  opsSetKommuneFeatures,
   opsBulkInvite,
   opsDeactivateWhitelist,
   opsUpsertDpo,
@@ -131,6 +132,20 @@ export default function OpsKommuneDetailPage() {
     }
   }
 
+  const setFeature = async (patch: { digitalLosEnabled?: boolean; tourismEnabled?: boolean }) => {
+    if (!slug) return
+    setBusy(true)
+    setError(null)
+    try {
+      await opsSetKommuneFeatures(slug, patch)
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const tabs = useMemo(() => {
     if (!detail) return []
     const h = detail.health_metrics
@@ -203,6 +218,28 @@ export default function OpsKommuneDetailPage() {
 
       {tab === 'overview' ? (
         <div className="ops-tab-panel">
+          <OpsPanel title={t('opsKommuneFeaturesTitle')}>
+            <div className="ops-form-grid" style={{ maxWidth: 520 }}>
+              <label className="ops-label" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(k.digital_los_enabled)}
+                  disabled={busy}
+                  onChange={(e) => void setFeature({ digitalLosEnabled: e.target.checked })}
+                />
+                {t('opsKommuneDigitalLos')}
+              </label>
+              <label className="ops-label" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(k.tourism_enabled)}
+                  disabled={busy}
+                  onChange={(e) => void setFeature({ tourismEnabled: e.target.checked })}
+                />
+                {t('opsKommuneTourism')}
+              </label>
+            </div>
+          </OpsPanel>
           <OpsKpiGrid
             items={[
               {

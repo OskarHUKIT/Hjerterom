@@ -82,7 +82,7 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     labelKey: 'navEventInquiriesTitle',
     icon: Building2,
     audiences: ['kommune'],
-    surfaces: ['mobileMore'],
+    surfaces: ['headerDesktop', 'mobileMore'],
   },
   {
     id: 'losInbox',
@@ -90,7 +90,7 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     labelKey: 'navLosInboxTitle',
     icon: Building2,
     audiences: ['kommune'],
-    surfaces: ['mobileMore'],
+    surfaces: ['headerDesktop', 'mobileMore'],
   },
   {
     id: 'notifications',

@@ -1,89 +1,87 @@
-# Hjerterum — Supabase & produksjon
+# Hjerterum — Supabase & produksjon (komplett sjekkliste)
 
-Siste steg for utvikler: kjør migrasjoner, sett miljøvariabler, deploy.
-
-## 1. Supabase migrasjoner
-
-Kjør i rekkefølge (Supabase CLI eller SQL Editor):
+## 1. Migrasjoner (kjør i rekkefølge)
 
 ```bash
-cd supabase
-supabase db push
+cd supabase && supabase db push
 ```
 
-Eller manuelt i SQL Editor, **etter** eksisterende migrasjoner:
+| # | Fil |
+|---|-----|
+| 1 | `20260630120000_hjerterum_lanes_and_central_events.sql` |
+| 2 | `20260630180000_hjerterum_complete_phase3_5.sql` |
+| 3 | `20260630200000_hjerterum_production_ready.sql` |
 
-1. `20260630120000_hjerterum_lanes_and_central_events.sql`
-2. `20260630180000_hjerterum_complete_phase3_5.sql`
+## 2. Miljøvariabler
 
-## 2. Frontend miljøvariabler (`frontend/.env.local`)
+Kopier `frontend/.env.example` → `frontend/.env.local` og fyll inn:
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+| Variabel | Påkrevd | Formål |
+|----------|---------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Ja | Supabase prosjekt |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Ja | Klient |
+| `SUPABASE_SERVICE_ROLE_KEY` | Ja* | Stripe webhook, Connect |
+| `NEXT_PUBLIC_APP_URL` | Ja | Stripe redirect URLs |
+| `STRIPE_SECRET_KEY` | Betaling | Stripe API |
+| `STRIPE_WEBHOOK_SECRET` | Betaling | Webhook signatur |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Valgfritt | Fremtidig Elements |
 
-# Valgfritt — Stripe (Fase 4)
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+\* Kreves for Stripe Connect og webhook i produksjon.
 
-# Webhook oppdaterer booking — kun server-side
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-```
-
-## 3. Supabase Auth — magic link (finn.*)
-
-I Supabase Dashboard → Authentication → URL Configuration:
-
-- **Site URL:** `https://app.hjerterum.no` (eller din Vercel-URL)
-- **Redirect URLs:**  
-  `https://finn.hjerterum.no/auth/callback`  
-  `https://YOUR_VERCEL_URL/auth/callback`  
-  `http://localhost:3000/auth/callback`
-
-## 4. Platform operator (ops)
+## 3. Platform operator
 
 ```sql
--- Kjør én gang for din bruker
 insert into public.platform_operators (user_id, is_active, notes)
 values ('YOUR_AUTH_USER_UUID', true, 'Initial ops')
 on conflict do nothing;
 ```
 
-Seed-script: `supabase/scripts/seed_platform_operator.sql`
+## 4. Supabase Auth
 
-## 5. Vercel domener
+**URL Configuration:**
+- Site URL: `https://app.hjerterum.no`
+- Redirect URLs: `https://*/auth/callback`, `http://localhost:3000/auth/callback`
 
-| Subdomain | Route |
-|-----------|--------|
-| `app.hjerterum.no` | Standard app |
+## 5. Stripe
+
+1. Opprett Stripe Connect (Express) i Dashboard
+2. Webhook: `https://app.hjerterum.no/api/webhooks/stripe`
+   - Events: `checkout.session.completed`, `payment_intent.succeeded`
+3. Utleier: `/homeowner/manage` → «Koble til Stripe»
+
+## 6. Edge Functions
+
+```bash
+supabase functions deploy los-chat
+# Sett OPENAI_API_KEY i Supabase secrets for ekte LLM (valgfritt)
+supabase secrets set OPENAI_API_KEY=sk-...
+```
+
+Eksisterende: `sign-agreement`, `send-notification-email`, osv.
+
+## 7. Vercel domener
+
+| Host | App-rute |
+|------|----------|
+| `app.hjerterum.no` | Standard |
 | `finn.hjerterum.no` | Middleware → `/finn/*` |
 | `los.hjerterum.no` | Middleware → `/los/*` |
 | `ops.hjerterum.no` | `/ops/*` |
 
-Lokal test: `/etc/hosts` → `127.0.0.1 finn.localhost`
+## 8. Smoke test (E2E)
 
-## 6. Stripe webhook (når klar)
+1. **Ops:** `/ops/events` → opprett + publiser arrangement
+2. **Ops:** `/ops/kommuner/[slug]` → aktiver Digital Los + Turisme
+3. **Utleier:** `/homeowner/manage` → turisme på + event opt-in + Stripe Connect
+4. **Kommune:** `/nav/database` → filter «Arrangement»
+5. **Public:** `/finn` → booking-forespørsel
+6. **Utleier:** godta booking → gjest `/finn/book/[id]` → betal
+7. **Los:** `/los` → chat → overlevering → `/nav/los-inbox`
+8. **Kommune:** `/nav/event-inquiries`
 
-1. Stripe Dashboard → Webhooks → `https://app.hjerterum.no/api/webhooks/stripe`
-2. Events: `payment_intent.succeeded`
-3. Metadata på PaymentIntent: `booking_id`
-
-## 7. Smoke test etter deploy
-
-1. Ops: opprett og publiser arrangement på `/ops/events`
-2. Utleier: aktiver turisme + opt-in event på `/homeowner/manage`
-3. Public: `/finn` og `/finn/arrangement/[slug]`
-4. Send booking-forespørsel → utleier godkjenner på manage
-5. Los: `/los` → samtykke → overlevering → `/nav/los-inbox` (kommune)
-6. Kommune: `/nav/event-inquiries` for arrangement-henvendelser
-
-## 8. Edge functions (eksisterende)
-
-Deploy som før:
+## 9. Lokal utvikling
 
 ```bash
-supabase functions deploy
+cd frontend && npm ci && npm run dev
+# /finn /los /ops tilgjengelig på localhost:3000/finn osv.
 ```
-
-Signicat, e-post og push er uendret fra Boly-baseline.

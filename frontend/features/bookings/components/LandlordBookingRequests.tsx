@@ -55,14 +55,26 @@ export default function LandlordBookingRequests({ listingIds }: Props) {
 
   const updateStatus = async (id: string, status: 'accepted' | 'rejected') => {
     setBusyId(id)
-    const { error } = await supabase.from('bookings').update({ status }).eq('id', id)
-    setBusyId(null)
-    if (error) {
-      toast(error.message, 'error')
-      return
+    if (status === 'accepted') {
+      const { data, error } = await supabase.rpc('prepare_booking_payment', {
+        p_booking_id: id,
+      })
+      if (error || !data?.ok) {
+        toast(error?.message ?? t('errSaveListing'), 'error')
+        setBusyId(null)
+        return
+      }
+    } else {
+      const { error } = await supabase.from('bookings').update({ status }).eq('id', id)
+      if (error) {
+        toast(error.message, 'error')
+        setBusyId(null)
+        return
+      }
     }
+    setBusyId(null)
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
-    toast(t('finnBookingUpdated'), 'success')
+    toast(status === 'accepted' ? t('landlordBookingAcceptedToast') : t('finnBookingUpdated'), 'success')
   }
 
   if (loading || rows.length === 0) return null

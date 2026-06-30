@@ -142,6 +142,15 @@ export default function FinnMineClient() {
                     {listing?.city} · {formatDateNo(b.check_in)} – {formatDateNo(b.check_out)}
                   </p>
                   <span className="finn-badge">{statusLabel(b.status)}</span>
+                  {(b.status === 'accepted' || b.status === 'pending') && (
+                    <Link
+                      href={`/finn/book/${b.id}`}
+                      className={buttonClassName('accent')}
+                      style={{ marginTop: 12, display: 'inline-flex' }}
+                    >
+                      {t('finnCheckoutPay')}
+                    </Link>
+                  )}
                 </li>
               )})}
             </ul>
