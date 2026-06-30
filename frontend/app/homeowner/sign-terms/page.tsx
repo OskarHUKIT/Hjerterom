@@ -22,6 +22,7 @@ import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import type { TranslationKey } from '../../../lib/translations'
 import { logError } from '@/app/lib/appLogger'
 import { publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
+import { isBankIdAutoAcceptEnabled } from '../../lib/bankidAutoAccept'
 
 type SignedTermsCard = {
   id: string
@@ -336,6 +337,33 @@ function SignTermsContent() {
   }, [searchParams, router, t])
 
   const canProceedToSign = !!termsDoc
+
+  const handleAutoAccept = async () => {
+    if (!termsDoc) {
+      toast(t('signTermsNoApprovedDocument'), 'error')
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/dev/auto-accept-terms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          city: signCity.trim() || cityParam || undefined,
+          termsDocumentId: termsDoc.id,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.error ?? 'Auto-accept failed')
+      }
+      toast(t('signTermsAutoAcceptSuccess'), 'success')
+      router.replace(safeReturnHref)
+    } catch (err: unknown) {
+      toast(t('signTermsStartError') + String((err as Error)?.message ?? err), 'error')
+      setLoading(false)
+    }
+  }
 
   const handleSign = async () => {
     if (!termsDoc) {
@@ -716,6 +744,35 @@ function SignTermsContent() {
             {loading ? <Lock size={20} style={{ opacity: 0.7 }} /> : <ShieldCheck size={20} />}
             {loading ? 'Signerer med BankID...' : 'Signer med BankID'}
           </button>
+
+          {isBankIdAutoAcceptEnabled() ? (
+            <button
+              type="button"
+              onClick={() => void handleAutoAccept()}
+              disabled={!canProceedToSign || loading}
+              className="button button-secondary"
+              style={{
+                width: '100%',
+                marginTop: 'var(--space-3)',
+                padding: 'var(--space-4)',
+                fontSize: '0.95rem',
+              }}
+            >
+              {t('signTermsAutoAccept')}
+            </button>
+          ) : null}
+          {isBankIdAutoAcceptEnabled() ? (
+            <p
+              style={{
+                marginTop: 'var(--space-2)',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                textAlign: 'center',
+              }}
+            >
+              {t('signTermsAutoAcceptHint')}
+            </p>
+          ) : null}
         </div>
 
         <div

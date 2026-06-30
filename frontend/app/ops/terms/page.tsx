@@ -87,6 +87,7 @@ export default function OpsTermsPage() {
                   <h2 className="ops-list-card-title">{row.title || t('opsUntitledDoc')}</h2>
                   <p className="ops-meta">
                     v{row.version} · {row.kommune_region || t('opsGlobalRegion')} ·{' '}
+                    {row.scope ? `${t('opsTermsScope')}: ${row.scope}` : t('agreementScopeKommune')} ·{' '}
                     {row.created_at ? formatDateTimeNo(row.created_at) : '—'}
                   </p>
                   {row.created_by_name ? (

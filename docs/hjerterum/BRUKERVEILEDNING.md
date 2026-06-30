@@ -172,6 +172,8 @@ Full steg-for-steg: **`docs/TEST_ACCOUNTS_SETUP.md`**
 
 ## 7. Relaterte dokumenter
 
+- `docs/hjerterum/PRODUKTANALYSE_AKTORER.md` — aktør-analyse, bransjekonvensjoner, **låste beslutninger §10**
+- `docs/hjerterum/MARKEDSPLAN_OG_VEIEN_VIDERE.md` — markedsplan og gap
 - `docs/hjerterum/PLATFORM_CONTROL_PANEL.md` — teknisk kontrollpanel
 - `docs/hjerterum/SUPABASE_DEPLOY.md` — deploy-sjekkliste
 - `docs/hjerterum/OPS_EVENT_RUNBOOK.md` — arrangement i drift

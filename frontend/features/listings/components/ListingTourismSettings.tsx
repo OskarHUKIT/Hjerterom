@@ -11,13 +11,22 @@ type Props = {
   listingId: string
   initialEnabled: boolean
   initialNightlyPriceCents: number | null
-  onUpdated?: (patch: { tourism_enabled: boolean; tourism_nightly_price_cents: number | null }) => void
+  initialInstantBook?: boolean
+  initialCancellationPolicy?: string
+  onUpdated?: (patch: {
+    tourism_enabled: boolean
+    tourism_nightly_price_cents: number | null
+    tourism_instant_book?: boolean
+    cancellation_policy?: string
+  }) => void
 }
 
 export default function ListingTourismSettings({
   listingId,
   initialEnabled,
   initialNightlyPriceCents,
+  initialInstantBook = false,
+  initialCancellationPolicy = 'moderate',
   onUpdated,
 }: Props) {
   const { t } = useLanguage()
@@ -26,6 +35,8 @@ export default function ListingTourismSettings({
   const [priceKr, setPriceKr] = useState(
     initialNightlyPriceCents != null ? String(Math.round(initialNightlyPriceCents / 100)) : ''
   )
+  const [instantBook, setInstantBook] = useState(initialInstantBook)
+  const [cancellationPolicy, setCancellationPolicy] = useState(initialCancellationPolicy)
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
@@ -46,12 +57,19 @@ export default function ListingTourismSettings({
         .update({
           tourism_enabled: enabled,
           tourism_nightly_price_cents: enabled ? cents : null,
+          tourism_instant_book: enabled ? instantBook : false,
+          cancellation_policy: enabled ? cancellationPolicy : 'moderate',
         })
         .eq('id', listingId)
 
       if (error) throw error
 
-      onUpdated?.({ tourism_enabled: enabled, tourism_nightly_price_cents: enabled ? cents : null })
+      onUpdated?.({
+        tourism_enabled: enabled,
+        tourism_nightly_price_cents: enabled ? cents : null,
+        tourism_instant_book: enabled ? instantBook : false,
+        cancellation_policy: enabled ? cancellationPolicy : 'moderate',
+      })
       toast(t('tourismSaved'), 'success')
     } catch {
       toast(t('errSaveListing'), 'error')
@@ -78,21 +96,49 @@ export default function ListingTourismSettings({
         <span>{t('tourismEnabled')}</span>
       </label>
       {enabled ? (
-        <div style={{ marginTop: 'var(--space-4)' }}>
-          <label className="label" htmlFor={`tourism-price-${listingId}`}>
-            {t('tourismNightlyPrice')}
+        <>
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <label className="label" htmlFor={`tourism-price-${listingId}`}>
+              {t('tourismNightlyPrice')}
+            </label>
+            <input
+              id={`tourism-price-${listingId}`}
+              type="number"
+              min={0}
+              step={1}
+              className="input"
+              value={priceKr}
+              onChange={(e) => setPriceKr(e.target.value)}
+              placeholder="850"
+            />
+          </div>
+          <label className="ds-check-row" style={{ marginTop: 'var(--space-3)' }}>
+            <input
+              type="checkbox"
+              checked={instantBook}
+              onChange={(e) => setInstantBook(e.target.checked)}
+            />
+            <span>{t('tourismInstantBook')}</span>
           </label>
-          <input
-            id={`tourism-price-${listingId}`}
-            type="number"
-            min={0}
-            step={1}
-            className="input"
-            value={priceKr}
-            onChange={(e) => setPriceKr(e.target.value)}
-            placeholder="850"
-          />
-        </div>
+          <p className="text-sm" style={{ color: 'var(--text-muted)', margin: '4px 0 0' }}>
+            {t('tourismInstantBookDesc')}
+          </p>
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <label className="label" htmlFor={`tourism-cancel-${listingId}`}>
+              {t('tourismCancellationPolicy')}
+            </label>
+            <select
+              id={`tourism-cancel-${listingId}`}
+              className="input"
+              value={cancellationPolicy}
+              onChange={(e) => setCancellationPolicy(e.target.value)}
+            >
+              <option value="flexible">{t('finnCancellation_flexible')}</option>
+              <option value="moderate">{t('finnCancellation_moderate')}</option>
+              <option value="strict">{t('finnCancellation_strict')}</option>
+            </select>
+          </div>
+        </>
       ) : null}
       <div style={{ marginTop: 'var(--space-4)' }}>
         <Button type="button" variant="accent" disabled={saving} onClick={() => void save()}>

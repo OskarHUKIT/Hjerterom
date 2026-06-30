@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Mail, CalendarCheck } from 'lucide-react'
+import { Mail, CalendarCheck, Star } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { PageSkeleton, useToast } from '@/app/components/design-system'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
 import { formatDateNo } from '@/app/lib/dateFormat'
+import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
 
 type BookingRow = {
   id: string
@@ -26,9 +27,33 @@ export default function FinnMineClient() {
   const highlightId = searchParams.get('booking')
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [bookings, setBookings] = useState<BookingRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [termsOpen, setTermsOpen] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [reviewBookingId, setReviewBookingId] = useState<string | null>(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewBody, setReviewBody] = useState('')
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
+  const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+
+  const loadBookings = async (uid: string, em: string) => {
+    const { data } = await supabase
+      .from('bookings')
+      .select('id, check_in, check_out, status, listing_id, listings(address, city)')
+      .or(`guest_user_id.eq.${uid},guest_email.eq.${em}`)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    setBookings((data ?? []) as BookingRow[])
+    const ids = (data ?? []).map((b) => b.id)
+    if (ids.length > 0) {
+      const { data: revs } = await supabase.from('booking_reviews').select('booking_id').in('booking_id', ids)
+      setReviewedIds(new Set((revs ?? []).map((r) => r.booking_id)))
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -36,14 +61,18 @@ export default function FinnMineClient() {
       const user = await getAuthUserDeduped()
       if (cancelled) return
       if (user?.email) {
+        setUserId(user.id)
         setUserEmail(user.email)
-        const { data } = await supabase
-          .from('bookings')
-          .select('id, check_in, check_out, status, listing_id, listings(address, city)')
-          .or(`guest_user_id.eq.${user.id},guest_email.eq.${user.email}`)
-          .order('created_at', { ascending: false })
-          .limit(20)
-        setBookings((data ?? []) as BookingRow[])
+        await supabase.from('guest_profiles').upsert(
+          { id: user.id, email: user.email, updated_at: new Date().toISOString() },
+          { onConflict: 'id' }
+        )
+        const { data: termsOk } = await supabase.rpc('guest_has_tourism_terms_accepted', {
+          p_user_id: user.id,
+        })
+        if (termsOk === false) setTermsOpen(true)
+        await loadBookings(user.id, user.email)
+        if (highlightId) setExpandedBookingId(highlightId)
       }
       setLoading(false)
     })()
@@ -51,6 +80,52 @@ export default function FinnMineClient() {
       cancelled = true
     }
   }, [])
+
+  const acceptGuestTerms = async () => {
+    if (!termsAccepted || !userId) return
+    const { data: doc } = await supabase
+      .from('terms_documents')
+      .select('id')
+      .eq('scope', 'turisme')
+      .eq('signing_method', 'click_wrap')
+      .eq('approved_for_utleier_signing', true)
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (!doc?.id) {
+      setTermsOpen(false)
+      return
+    }
+    const { error } = await supabase.from('guest_terms_acceptances').insert([
+      { user_id: userId, terms_document_id: doc.id },
+    ])
+    if (error) {
+      toast(error.message, 'error')
+      return
+    }
+    setTermsOpen(false)
+    toast(t('finnGuestTermsCta'), 'success')
+  }
+
+  const submitReview = async (bookingId: string) => {
+    if (!userId) return
+    const { error } = await supabase.from('booking_reviews').insert([
+      {
+        booking_id: bookingId,
+        reviewer_user_id: userId,
+        rating: reviewRating,
+        body: reviewBody.trim() || null,
+      },
+    ])
+    if (error) {
+      toast(error.message, 'error')
+      return
+    }
+    toast(t('finnReviewThanks'), 'success')
+    setReviewedIds((prev) => new Set(prev).add(bookingId))
+    setReviewBookingId(null)
+    setReviewBody('')
+  }
 
   const sendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,6 +148,19 @@ export default function FinnMineClient() {
     toast(t('finnMagicLinkSent'), 'success')
   }
 
+  const cancelBooking = async (bookingId: string) => {
+    if (!window.confirm(t('finnCancelBookingConfirm'))) return
+    setCancellingId(bookingId)
+    const { data, error } = await supabase.rpc('guest_cancel_booking', { p_booking_id: bookingId })
+    setCancellingId(null)
+    if (error || data?.ok === false) {
+      toast(error?.message ?? t('finnCancelBookingError'), 'error')
+      return
+    }
+    toast(t('finnCancelBookingDone'), 'success')
+    if (userId && userEmail) void loadBookings(userId, userEmail)
+  }
+
   const statusLabel = (status: string) => {
     const key = `finnBookingStatus_${status}` as Parameters<typeof t>[0]
     const translated = t(key)
@@ -83,6 +171,31 @@ export default function FinnMineClient() {
 
   return (
     <section>
+      {termsOpen ? (
+        <div
+          className="finn-card"
+          style={{
+            maxWidth: 480,
+            padding: 'var(--space-6)',
+            marginBottom: 'var(--space-4)',
+            border: '2px solid var(--finn-accent)',
+          }}
+          role="dialog"
+          aria-labelledby="guest-terms-title"
+        >
+          <h2 id="guest-terms-title" style={{ margin: '0 0 8px' }}>
+            {t('finnGuestTermsTitle')}
+          </h2>
+          <p style={{ margin: '0 0 12px', lineHeight: 1.5 }}>{t('finnGuestTermsLead')}</p>
+          <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 16 }}>
+            <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
+            <span>{t('finnGuestTermsAccept')}</span>
+          </label>
+          <Button type="button" variant="accent" disabled={!termsAccepted} onClick={() => void acceptGuestTerms()}>
+            {t('finnGuestTermsCta')}
+          </Button>
+        </div>
+      ) : null}
       <div className="finn-hero">
         <h1>{t('finnMineTitle')}</h1>
         <p>{t('finnMineLead')}</p>
@@ -142,15 +255,68 @@ export default function FinnMineClient() {
                     {listing?.city} · {formatDateNo(b.check_in)} – {formatDateNo(b.check_out)}
                   </p>
                   <span className="finn-badge">{statusLabel(b.status)}</span>
-                  {(b.status === 'accepted' || b.status === 'pending') && (
-                    <Link
-                      href={`/finn/book/${b.id}`}
-                      className={buttonClassName('accent')}
-                      style={{ marginTop: 12, display: 'inline-flex' }}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                    {(b.status === 'accepted' || b.status === 'pending') && (
+                      <Link
+                        href={`/finn/book/${b.id}`}
+                        className={buttonClassName('accent')}
+                        style={{ display: 'inline-flex' }}
+                      >
+                        {t('finnCheckoutPay')}
+                      </Link>
+                    )}
+                    {(b.status === 'accepted' || b.status === 'pending') && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={cancellingId === b.id}
+                        onClick={() => void cancelBooking(b.id)}
+                      >
+                        {t('finnCancelBooking')}
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() =>
+                        setExpandedBookingId((prev) => (prev === b.id ? null : b.id))
+                      }
                     >
-                      {t('finnCheckoutPay')}
-                    </Link>
-                  )}
+                      {expandedBookingId === b.id ? t('finnHideChat') : t('finnOpenChat')}
+                    </Button>
+                  </div>
+                  {expandedBookingId === b.id ? (
+                    <GuestBookingChatPanel bookingId={b.id} compact />
+                  ) : null}
+                  {(b.status === 'paid' || b.status === 'completed') && !reviewedIds.has(b.id) ? (
+                    <div style={{ marginTop: 12 }}>
+                      {reviewBookingId === b.id ? (
+                        <div className="finn-inquiry-form" style={{ marginTop: 8 }}>
+                          <p style={{ fontWeight: 600, margin: '0 0 8px' }}>{t('finnReviewTitle')}</p>
+                          <label>
+                            {t('finnReviewRating')}
+                            <select value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))}>
+                              {[5, 4, 3, 2, 1].map((n) => (
+                                <option key={n} value={n}>
+                                  {n} ★
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            <textarea value={reviewBody} onChange={(e) => setReviewBody(e.target.value)} rows={3} />
+                          </label>
+                          <Button type="button" variant="accent" onClick={() => void submitReview(b.id)}>
+                            {t('finnReviewSubmit')}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button type="button" variant="secondary" onClick={() => setReviewBookingId(b.id)}>
+                          <Star size={16} aria-hidden /> {t('finnReviewTitle')}
+                        </Button>
+                      )}
+                    </div>
+                  ) : null}
                 </li>
               )})}
             </ul>

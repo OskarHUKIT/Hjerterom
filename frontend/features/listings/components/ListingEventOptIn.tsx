@@ -65,6 +65,19 @@ export default function ListingEventOptIn({ listingId }: Props) {
     setBusyId(event.id)
     try {
       if (active) {
+        const user = await supabase.auth.getUser()
+        const uid = user.data.user?.id
+        if (uid) {
+          const { data: ok } = await supabase.rpc('landlord_has_event_terms_signed', {
+            p_user_id: uid,
+            p_event_id: event.id,
+          })
+          if (ok === false) {
+            toast(t('eventOptInTermsRequired'), 'error')
+            setBusyId(null)
+            return
+          }
+        }
         const { error } = await supabase.from('listing_event_availability').upsert(
           [
             {
@@ -79,10 +92,10 @@ export default function ListingEventOptIn({ listingId }: Props) {
         )
         if (error) throw error
         setOptIns((prev) => ({ ...prev, [event.id]: { event_id: event.id, status: 'active' } }))
-        const user = await supabase.auth.getUser()
+        const authUser = await supabase.auth.getUser()
         await supabase.from('audit_logs').insert([
           {
-            user_id: user.data.user?.id ?? null,
+            user_id: authUser.data.user?.id ?? null,
             action_type: 'EVENT_OPT_IN',
             details: { event_id: event.id, listing_id: listingId, event_name: event.name },
           },

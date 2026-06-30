@@ -8,6 +8,11 @@ const PROTECTED_PREFIXES = ['/homeowner', '/nav', '/documents', '/settings', '/o
 
 type KommuneRole = 'kommune_ansatt' | 'kommune_admin'
 const KOMMUNE_ROLES: ReadonlySet<string> = new Set<KommuneRole>(['kommune_ansatt', 'kommune_admin'])
+const EVENT_STAFF_ROLE = 'event_ansatt'
+
+function isEventStaffPath(pathname: string): boolean {
+  return pathname === '/nav/event' || pathname.startsWith('/nav/event/')
+}
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
@@ -70,6 +75,9 @@ export async function middleware(request: NextRequest) {
   }
   if (pathname.startsWith('/nav/los-inbox') && !platform.los) {
     return NextResponse.redirect(new URL('/nav/database', request.url))
+  }
+  if (isEventStaffPath(pathname) && !platform.centralEvents) {
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   /** Subdomain → /finn/* or /los/* rewrite (only when enabled) */
@@ -172,9 +180,16 @@ export async function middleware(request: NextRequest) {
 
     const role = profile?.role ?? null
     const isKommune = role != null && KOMMUNE_ROLES.has(role)
+    const isEventStaff = role === EVENT_STAFF_ROLE
     const isHomeowner = role === 'homeowner'
 
-    if (isNavPath(pathname) && !isKommune) {
+    if (isEventStaff) {
+      if (isHomeownerPath(pathname) || (isNavPath(pathname) && !isEventStaffPath(pathname))) {
+        return NextResponse.redirect(new URL('/nav/event', request.url))
+      }
+    }
+
+    if (isNavPath(pathname) && !isKommune && !isEventStaff) {
       const landlordMayUseNavInbox =
         isHomeowner && isLandlordNavMessagesOrNotifications(pathname)
       if (!landlordMayUseNavInbox) {

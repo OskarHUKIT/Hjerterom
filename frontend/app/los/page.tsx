@@ -51,12 +51,24 @@ export default function LosChatPage() {
   const [input, setInput] = useState('')
   const [consent, setConsent] = useState(false)
   const [handedOff, setHandedOff] = useState(false)
+  const [caseReference, setCaseReference] = useState<string | null>(null)
+  const [kommuner, setKommuner] = useState<{ slug: string; name: string }[]>([])
+  const [kommuneSlug, setKommuneSlug] = useState('')
+  const [contactName, setContactName] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
   const [busy, setBusy] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.rpc('list_los_enabled_kommuner')
+      if (Array.isArray(data)) setKommuner(data as { slug: string; name: string }[])
+    })()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -116,16 +128,35 @@ export default function LosChatPage() {
       toast(t('losConsentRequired'), 'error')
       return
     }
+    if (kommuner.length > 0 && !kommuneSlug) {
+      toast(t('losKommuneRequired'), 'error')
+      return
+    }
+    if (!contactName.trim()) {
+      toast(t('losContactNameRequired'), 'error')
+      return
+    }
     setBusy(true)
     const summary = messages.map((m) => `${m.role}: ${m.content}`).join('\n').slice(0, 4000)
-    const { error } = await supabase.rpc('los_create_handoff', {
+    const { data: handoffId, error } = await supabase.rpc('los_create_handoff', {
       p_session_id: sessionId,
       p_summary: summary,
+      p_kommune_slug: kommuneSlug || null,
+      p_contact_name: contactName.trim(),
+      p_contact_phone: contactPhone.trim() || null,
     })
     setBusy(false)
     if (error) {
       toast(error.message, 'error')
       return
+    }
+    if (handoffId) {
+      const { data: row } = await supabase
+        .from('los_handoffs')
+        .select('case_reference')
+        .eq('id', handoffId)
+        .maybeSingle()
+      setCaseReference(row?.case_reference ?? null)
     }
     setHandedOff(true)
     toast(t('losHandoffSent'), 'success')
@@ -141,14 +172,85 @@ export default function LosChatPage() {
     <>
       {handedOff ? (
         <div className="los-handoff-banner" role="status">
+          {caseReference ? (
+            <p style={{ margin: '0 0 8px', fontWeight: 700 }}>
+              {t('losCaseReference')}: {caseReference}
+            </p>
+          ) : null}
           {t('losHandoffBanner')}
         </div>
       ) : (
         <div className="los-consent">
+          {kommuner.length > 0 ? (
+            <label style={{ display: 'block', marginBottom: 'var(--space-3)' }}>
+              <span style={{ display: 'block', marginBottom: 6, fontWeight: 600, fontSize: '0.85rem' }}>
+                {t('losKommuneLabel')}
+              </span>
+              <select
+                value={kommuneSlug}
+                onChange={(e) => setKommuneSlug(e.target.value)}
+                style={{
+                  width: '100%',
+                  minHeight: 'var(--touch-target, 44px)',
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid rgba(148, 163, 184, 0.35)',
+                  background: 'var(--los-bg-panel, #fff)',
+                  color: 'var(--los-text, inherit)',
+                  font: 'inherit',
+                }}
+              >
+                <option value="">{t('losKommunePlaceholder')}</option>
+                {kommuner.map((k) => (
+                  <option key={k.slug} value={k.slug}>
+                    {k.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label>
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
             <span>{t('losConsentLabel')}</span>
           </label>
+          {messages.length > 2 ? (
+            <div style={{ marginTop: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <label style={{ display: 'block' }}>
+                <span style={{ display: 'block', marginBottom: 4, fontWeight: 600, fontSize: '0.85rem' }}>
+                  {t('losContactNameLabel')} *
+                </span>
+                <input
+                  type="text"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  autoComplete="name"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: '1px solid rgba(148, 163, 184, 0.35)',
+                  }}
+                />
+              </label>
+              <label style={{ display: 'block' }}>
+                <span style={{ display: 'block', marginBottom: 4, fontWeight: 600, fontSize: '0.85rem' }}>
+                  {t('losContactPhoneLabel')}
+                </span>
+                <input
+                  type="tel"
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  autoComplete="tel"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: '1px solid rgba(148, 163, 184, 0.35)',
+                  }}
+                />
+              </label>
+            </div>
+          ) : null}
         </div>
       )}
 

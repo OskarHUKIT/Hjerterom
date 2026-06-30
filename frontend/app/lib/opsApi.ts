@@ -97,6 +97,7 @@ export type OpsTermsItem = {
   title: string
   version: number
   kommune_region: string | null
+  scope: string | null
   effective_from: string | null
   created_at: string | null
   pdf_bucket: string | null

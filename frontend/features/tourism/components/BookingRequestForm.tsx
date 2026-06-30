@@ -12,6 +12,8 @@ type Props = {
   eventId?: string | null
   nightlyPriceCents: number | null
   listingAddress: string
+  instantBook?: boolean
+  cancellationPolicy?: string | null
 }
 
 export default function BookingRequestForm({
@@ -19,6 +21,8 @@ export default function BookingRequestForm({
   eventId,
   nightlyPriceCents,
   listingAddress,
+  instantBook,
+  cancellationPolicy,
 }: Props) {
   const { t } = useLanguage()
   const toast = useToast()
@@ -31,6 +35,8 @@ export default function BookingRequestForm({
     checkIn: '',
     checkOut: '',
     message: '',
+    acceptTerms: false,
+    guestInviteEmail: '',
   })
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -41,6 +47,10 @@ export default function BookingRequestForm({
     }
     if (form.checkOut < form.checkIn) {
       toast(t('finnBookingInvalidDates'), 'error')
+      return
+    }
+    if (!form.acceptTerms) {
+      toast(t('finnGuestTermsAccept'), 'error')
       return
     }
     setSubmitting(true)
@@ -60,6 +70,11 @@ export default function BookingRequestForm({
       toast(result.error, 'error')
       return
     }
+    if (result.instantBook && result.status === 'accepted') {
+      toast(t('finnInstantBookConfirmed'), 'success')
+      router.push(`/finn/book/${result.id}`)
+      return
+    }
     toast(t('finnBookingSent'), 'success')
     router.push(`/finn/mine?booking=${result.id}`)
   }
@@ -76,9 +91,20 @@ export default function BookingRequestForm({
       </h2>
       <p className="finn-card-meta">{listingAddress}</p>
       {priceLabel ? <p className="finn-price">{priceLabel} / {t('finnPerNight')}</p> : null}
-      <p className="finn-card-meta" style={{ marginBottom: 'var(--space-4)' }}>
-        {t('finnBookingLead')}
-      </p>
+      {instantBook ? (
+        <p className="finn-badge" style={{ display: 'inline-block', marginBottom: 8 }}>
+          {t('finnInstantBookBadge')}
+        </p>
+      ) : null}
+      {cancellationPolicy ? (
+        <p className="finn-card-meta" style={{ marginBottom: 'var(--space-4)' }}>
+          {t('finnCancellationPolicy')}: {t(`finnCancellation_${cancellationPolicy}` as Parameters<typeof t>[0])}
+        </p>
+      ) : (
+        <p className="finn-card-meta" style={{ marginBottom: 'var(--space-4)' }}>
+          {t('finnBookingLead')}
+        </p>
+      )}
       <form className="finn-inquiry-form" onSubmit={(e) => void onSubmit(e)}>
         <label>
           {t('finnInquiryName')}
@@ -131,6 +157,14 @@ export default function BookingRequestForm({
             value={form.message}
             onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
           />
+        </label>
+        <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <input
+            type="checkbox"
+            checked={form.acceptTerms}
+            onChange={(e) => setForm((f) => ({ ...f, acceptTerms: e.target.checked }))}
+          />
+          <span>{t('finnGuestTermsAccept')}</span>
         </label>
         <Button type="submit" variant="accent" disabled={submitting}>
           {t('finnBookingSubmit')}

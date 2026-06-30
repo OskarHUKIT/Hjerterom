@@ -15,6 +15,8 @@ type ListingDetail = {
   city: string
   description: string | null
   tourism_nightly_price_cents: number | null
+  tourism_instant_book: boolean
+  cancellation_policy: string | null
   image_url: string | null
   type: string | null
   beds: number | null
@@ -35,7 +37,7 @@ export default function FinnListingDetailPage() {
       const { data } = await supabase
         .from('listings')
         .select(
-          'id, address, city, description, tourism_nightly_price_cents, image_url, type, beds, tourism_enabled'
+          'id, address, city, description, tourism_nightly_price_cents, tourism_instant_book, cancellation_policy, image_url, type, beds, tourism_enabled'
         )
         .eq('id', id)
         .eq('tourism_enabled', true)
@@ -97,6 +99,17 @@ export default function FinnListingDetailPage() {
               {t('finnFromPrice').replace('{price}', price)} / {t('finnPerNight')}
             </p>
           ) : null}
+          {listing.tourism_instant_book ? (
+            <span className="finn-badge" style={{ marginBottom: 8, display: 'inline-block' }}>
+              {t('finnInstantBookBadge')}
+            </span>
+          ) : null}
+          {listing.cancellation_policy ? (
+            <p className="finn-card-meta" style={{ margin: '0 0 var(--space-4)' }}>
+              {t('finnCancellationPolicy')}:{' '}
+              {t(`finnCancellation_${listing.cancellation_policy}` as Parameters<typeof t>[0])}
+            </p>
+          ) : null}
           {listing.description ? (
             <p style={{ lineHeight: 1.6, margin: 'var(--space-4) 0 0', color: 'var(--finn-text-secondary)' }}>
               {listing.description}
@@ -109,6 +122,8 @@ export default function FinnListingDetailPage() {
         listingId={listing.id}
         nightlyPriceCents={listing.tourism_nightly_price_cents}
         listingAddress={`${listing.address}, ${listing.city}`}
+        instantBook={listing.tourism_instant_book}
+        cancellationPolicy={listing.cancellation_policy}
       />
     </article>
   )

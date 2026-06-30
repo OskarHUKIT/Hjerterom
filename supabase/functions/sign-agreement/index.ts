@@ -159,6 +159,39 @@ serve(async (req) => {
       )
     }
 
+    /** Test/staging: skip Signicat when BANKID_AUTO_ACCEPT=true */
+    if (Deno.env.get("BANKID_AUTO_ACCEPT") === "true") {
+      await supabaseAdmin.from("user_agreements").upsert(
+        {
+          user_id: userId,
+          agreement_version: "1.0",
+          signed_at: new Date().toISOString(),
+          is_terminated: false,
+          terminated_at: null,
+          terminated_by_kommune: false,
+        },
+        { onConflict: "user_id, agreement_version" },
+      )
+      await supabaseAdmin.rpc("sync_terms_acceptance_after_sign", {
+        p_user_id: userId,
+        p_terms_document_id: docId,
+      })
+      await supabaseAdmin.from("audit_logs").insert({
+        user_id: userId,
+        action_type: "SIGN_TERMS_BANKID",
+        details: { mode: "auto_accept_test", signingSessionId: "edge-bypass" },
+      })
+      const base = safeOrigin || SUPABASE_URL?.replace(/\/$/, "") || ""
+      const cityQ = city?.trim() ? `&city=${encodeURIComponent(city.trim())}` : ""
+      return new Response(
+        JSON.stringify({
+          url: `${base}/homeowner/sign-terms?signed=true${cityQ}`,
+          autoAccept: true,
+        }),
+        { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
+      )
+    }
+
     /**
      * To lag rate-limit på SIGN_INITIATED:
      *   1) Burst-vindu: max 8 starter per 15 min (beskytter mot spam-klikk og Signicat-kvote).

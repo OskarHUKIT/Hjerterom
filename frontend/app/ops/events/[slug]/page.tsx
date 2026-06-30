@@ -22,6 +22,8 @@ export default function OpsEventDetailPage() {
   const [optInCount, setOptInCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [staffEmail, setStaffEmail] = useState('')
+  const [staffRows, setStaffRows] = useState<{ profile_id: string; profiles: { email: string; full_name: string } | null }[]>([])
 
   const load = async () => {
     if (!slug) return
@@ -29,12 +31,24 @@ export default function OpsEventDetailPage() {
     const { data } = await supabase.from('central_events').select('*').eq('slug', slug).maybeSingle()
     setEvent(data)
     if (data?.id) {
-      const { count } = await supabase
-        .from('listing_event_availability')
-        .select('*', { count: 'exact', head: true })
-        .eq('event_id', data.id)
-        .eq('status', 'active')
+      const [{ count }, { data: staff }] = await Promise.all([
+        supabase
+          .from('listing_event_availability')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_id', data.id)
+          .eq('status', 'active'),
+        supabase
+          .from('central_event_staff')
+          .select('profile_id, profiles(email, full_name)')
+          .eq('event_id', data.id),
+      ])
       setOptInCount(count ?? 0)
+      setStaffRows(
+        (staff ?? []).map((s) => ({
+          profile_id: s.profile_id as string,
+          profiles: Array.isArray(s.profiles) ? s.profiles[0] ?? null : s.profiles,
+        }))
+      )
     }
     setLoading(false)
   }
@@ -42,6 +56,34 @@ export default function OpsEventDetailPage() {
   useEffect(() => {
     void load()
   }, [slug])
+
+  const assignEventStaff = async () => {
+    if (!event?.id || !staffEmail.trim()) return
+    setBusy(true)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, email, role')
+      .ilike('email', staffEmail.trim())
+      .maybeSingle()
+    if (!profile?.id) {
+      toast(t('opsUserNotFound'), 'error')
+      setBusy(false)
+      return
+    }
+    await supabase.from('profiles').update({ role: 'event_ansatt' }).eq('id', profile.id)
+    const { error } = await supabase.from('central_event_staff').upsert(
+      [{ event_id: event.id, profile_id: profile.id, role: 'staff' }],
+      { onConflict: 'event_id,profile_id' }
+    )
+    setBusy(false)
+    if (error) {
+      toast(error.message, 'error')
+      return
+    }
+    toast(t('opsEventStaffAdded'), 'success')
+    setStaffEmail('')
+    void load()
+  }
 
   const setStatus = async (status: 'published' | 'closed' | 'draft') => {
     if (!event?.id) return
@@ -127,6 +169,34 @@ export default function OpsEventDetailPage() {
           <Link href={`/finn/arrangement/${String(event.slug)}`} className={buttonClassName('secondary')} target="_blank" rel="noopener noreferrer">
             {t('opsEventViewPublic')}
           </Link>
+        </div>
+      </OpsPanel>
+      <OpsPanel title={t('opsEventStaffTitle')} className="ops-stack">
+        <ul style={{ margin: '0 0 16px', paddingLeft: 20 }}>
+          {staffRows.length === 0 ? (
+            <li style={{ opacity: 0.7 }}>—</li>
+          ) : (
+            staffRows.map((s) => (
+              <li key={s.profile_id}>
+                {s.profiles?.full_name ?? s.profiles?.email ?? s.profile_id}
+              </li>
+            ))
+          )}
+        </ul>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <label className="ops-field" style={{ flex: 1, minWidth: 200 }}>
+            {t('opsEventStaffEmail')}
+            <input
+              className="ops-input"
+              type="email"
+              value={staffEmail}
+              onChange={(e) => setStaffEmail(e.target.value)}
+              placeholder="event@example.com"
+            />
+          </label>
+          <button type="button" className={buttonClassName('accent')} disabled={busy} onClick={() => void assignEventStaff()}>
+            {t('opsEventStaffAdd')}
+          </button>
         </div>
       </OpsPanel>
     </OpsShell>

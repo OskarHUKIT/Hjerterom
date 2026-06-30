@@ -38,9 +38,27 @@ Disse er avklart i planlegging — **ikke re-besluttes under implementering** ut
 5. **Sosial:** Alltid saksbehandler; aldri på public portal.
 6. **Kalender:** Enhver kombinasjon sosial/turisme/event-perioder; konflikt forhindres automatisk.
 7. **Betaling:** In-app for turisme-path og event i turisme-modus.
-8. **Leietaker-auth:** Ingen BankID; e-post/SMS/magic link.
-9. **Los:** Alle kommuner med `digital_los_enabled`; kun sosial kobling.
+8. **Leietaker-auth:** Ingen BankID; **egen konto** (e-post/magic link) + **click-wrap** på vilkår.
+9. **Los:** Alle kommuner med `digital_los_enabled`; kun sosial kobling. Ved handoff: **navn** (påkrevd) + **telefon** (valgfritt).
 10. **Arrangementstype:** Generisk (tag/label), ikke hardkodede engangs-events i datamodellen.
+11. **Avtaler utleier:** **BankID** for alle utleier-avtaler (sosial, turisme, event).
+12. **Avtaler leietaker:** **Click-wrap** ved konto + booking — ikke BankID.
+13. **Event saksbehandler:** Egen rolle **`event_ansatt`**, tildelt av ops via `central_event_staff` — parallell med kommune SB.
+14. **Betaling turisme:** **Stripe og Vipps parallelt** (begge tilgjengelig på checkout).
+15. **Event-avtale:** **Egen avtale per event** — utleier som opt-in må signere den event-spesifikke avtalen (BankID).
+16. **Turisme-avtale:** Juridisk eier **Gamechanging**; ops publiserer nasjonal mal.
+17. **Los:** Kobler ungdom til saksbehandler **via KI**; ungdom velger frivillig kobling; KI-routing kan være placeholder (manuell assign).
+18. **Utleier meldinger:** Tydelig merking av motpart — sosial SB (inkl. **NAV**) / event SB / leietaker.
+19. **Event turisme-routing:** Leietaker booker **Airbnb-lignende** (full turisme-flyt + event-kontekst).
+20. **Avtale-scope:** Signer **når relevant**; **én avtale per scope** (kommune/event/turisme) dekker alle matchende boliger; ny signering ved nytt valg.
+21. **Los synlighet:** **Alle** kommune-SB ser **alle** Los-saker i sine kommuner.
+22. **Los kobling:** **Kun via KI-chat** (placeholder routing OK) — ikke egen Los-meldingsapp.
+23. **Event SB isolasjon:** **Ingen** sosial boligbank eller sosiale meldinger; kun event opt-in boliger og event-henvendelser.
+24. **Gruppebooking:** **Ja** — flere boliger per event.
+25. **Anmeldelser:** **Ja i v1** (etter opphold).
+26. **Gjesteliste:** **Ja** — medreisende kan inviteres til booking-tråd.
+27. **Språk Finn:** **EN default**; språkvelger **NO / SE / EN** (som resten av appen).
+28. **Los vs telefon:** Organisatorisk kommunevalg — Los er **tilleggskanal**; produktet fjerner ikke telefon.
 
 ---
 
@@ -49,7 +67,7 @@ Disse er avklart i planlegging — **ikke re-besluttes under implementering** ut
 | Lag | Teknologi | Merknad |
 |-----|-----------|---------|
 | Frontend | Next.js (App Router), React, `globals.css` + minimal Tailwind | Monolittiske sider: `nav/database`, `ListingDetailsClient` |
-| Auth | Supabase Auth, middleware, RLS | Roller: `homeowner`, `kommune_ansatt`, `kommune_admin` |
+| Auth | Supabase Auth, middleware, RLS | Roller: `homeowner`, `kommune_ansatt`, `kommune_admin`, **`event_ansatt`** (planlagt) |
 | DB | Supabase Postgres + migrasjoner | 89 migrasjoner; listings, availability, grants |
 | Edge | Supabase Edge Functions | Signicat, push, e-post |
 | Ops | `/ops/*` + `ops.css` | Beste komponentstruktur i repoet |

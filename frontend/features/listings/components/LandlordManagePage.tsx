@@ -892,6 +892,25 @@ export default function HomeownerManage() {
               <span className="hm-nav-label-short">{t('myPropertiesTabShort')}</span>
             </div>
             <Link
+              href="/homeowner/agreements"
+              style={{
+                width: '100%',
+                padding: 'var(--space-3) var(--space-4)',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-3)',
+                color: 'var(--text-main)',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+              }}
+            >
+              <FileText size={18} />
+              <span className="hm-nav-label-long">{t('landlordAgreementsTitle')}</span>
+              <span className="hm-nav-label-short">{t('agreementSigned')}</span>
+            </Link>
+            <Link
               href="/homeowner/sign-terms"
               style={{
                 width: '100%',
@@ -1449,6 +1468,8 @@ export default function HomeownerManage() {
                             ? listing.tourism_nightly_price_cents
                             : null
                         }
+                        initialInstantBook={Boolean(listing.tourism_instant_book)}
+                        initialCancellationPolicy={listing.cancellation_policy ?? 'moderate'}
                         onUpdated={(patch) => {
                           setMyListings((prev) =>
                             prev.map((l) => (l.id === listing.id ? { ...l, ...patch } : l))

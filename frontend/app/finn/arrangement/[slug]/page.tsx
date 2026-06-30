@@ -8,6 +8,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import { PageSkeleton } from '@/app/components/design-system'
 import { buttonClassName } from '@/app/components/ui/Button'
 import EventInquiryForm from '@/features/tourism/components/EventInquiryForm'
+import GroupBookingForm from '@/features/tourism/components/GroupBookingForm'
 import type { FinnListingCard, FinnPublishedEvent } from '@/features/tourism/types/finn'
 import { formatFinnNightlyPrice } from '@/features/tourism/types/finn'
 
@@ -118,6 +119,14 @@ export default function FinnEventDetailPage() {
           {t('finnEventNoListings')}
         </p>
       )}
+
+      {isTourismRouting && listings.length > 0 ? (
+        <GroupBookingForm
+          eventId={event.id}
+          primaryListingId={listings[0].id}
+          nightlyPriceCents={listings[0].tourism_nightly_price_cents}
+        />
+      ) : null}
 
       <EventInquiryForm
         eventId={event.id}
