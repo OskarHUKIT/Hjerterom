@@ -13,24 +13,35 @@ import {
   HeartPulse,
   ArrowLeft,
   CalendarDays,
+  SlidersHorizontal,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLanguage } from '../../../context/LanguageContext'
+import { usePlatformMode } from '../../../context/PlatformModeContext'
 import { useOpsAccess } from '../../hooks/useOpsAccess'
 import BottomSheet from '../../components/BottomSheet'
 import OpsMobileNav from './OpsMobileNav'
 import { OpsPageSkeleton } from './OpsSkeleton'
 
-const NAV_ITEMS = [
-  { href: '/ops', icon: LayoutDashboard, labelKey: 'opsNavDashboard' as const, exact: true },
-  { href: '/ops/events', icon: CalendarDays, labelKey: 'opsNavEvents' as const },
-  { href: '/ops/kommuner', icon: Building2, labelKey: 'opsNavKommuner' as const },
-  { href: '/ops/service-areas', icon: Building2, labelKey: 'opsNavServiceAreas' as const },
-  { href: '/ops/accounts', icon: Users, labelKey: 'opsNavAccounts' as const },
-  { href: '/ops/terms', icon: FileText, labelKey: 'opsNavTerms' as const },
-  { href: '/ops/health', icon: HeartPulse, labelKey: 'opsNavHealth' as const },
-  { href: '/ops/security', icon: Shield, labelKey: 'opsNavSecurity' as const },
-  { href: '/ops/stats', icon: BarChart3, labelKey: 'opsNavStats' as const },
+type NavItem = {
+  href: string
+  icon: typeof LayoutDashboard
+  labelKey: 'opsNavDashboard' | 'opsNavPlatform' | 'opsNavEvents' | 'opsNavKommuner' | 'opsNavServiceAreas' | 'opsNavAccounts' | 'opsNavTerms' | 'opsNavHealth' | 'opsNavSecurity' | 'opsNavStats'
+  exact?: boolean
+  requiresCentralEvents?: boolean
+}
+
+const ALL_NAV_ITEMS: NavItem[] = [
+  { href: '/ops', icon: LayoutDashboard, labelKey: 'opsNavDashboard', exact: true },
+  { href: '/ops/platform', icon: SlidersHorizontal, labelKey: 'opsNavPlatform' },
+  { href: '/ops/events', icon: CalendarDays, labelKey: 'opsNavEvents', requiresCentralEvents: true },
+  { href: '/ops/kommuner', icon: Building2, labelKey: 'opsNavKommuner' },
+  { href: '/ops/service-areas', icon: Building2, labelKey: 'opsNavServiceAreas' },
+  { href: '/ops/accounts', icon: Users, labelKey: 'opsNavAccounts' },
+  { href: '/ops/terms', icon: FileText, labelKey: 'opsNavTerms' },
+  { href: '/ops/health', icon: HeartPulse, labelKey: 'opsNavHealth' },
+  { href: '/ops/security', icon: Shield, labelKey: 'opsNavSecurity' },
+  { href: '/ops/stats', icon: BarChart3, labelKey: 'opsNavStats' },
 ]
 
 function isActive(pathname: string, href: string, exact?: boolean) {
@@ -38,8 +49,8 @@ function isActive(pathname: string, href: string, exact?: boolean) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-function currentPageLabel(pathname: string, t: ReturnType<typeof useLanguage>['t']) {
-  const match = NAV_ITEMS.find((item) => isActive(pathname, item.href, 'exact' in item ? item.exact : undefined))
+function currentPageLabel(pathname: string, items: NavItem[], t: ReturnType<typeof useLanguage>['t']) {
+  const match = items.find((item) => isActive(pathname, item.href, item.exact))
   return match ? t(match.labelKey) : t('opsConsoleTitle')
 }
 
@@ -47,7 +58,16 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t } = useLanguage()
   const access = useOpsAccess()
+  const { flags } = usePlatformMode()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const navItems = useMemo(
+    () =>
+      ALL_NAV_ITEMS.filter(
+        (item) => !item.requiresCentralEvents || flags.centralEvents
+      ),
+    [flags.centralEvents]
+  )
 
   if (access.isLoading || access.data?.kind === 'unauthenticated') {
     return (
@@ -67,7 +87,7 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
     )
   }
 
-  const pageTitle = currentPageLabel(pathname ?? '', t)
+  const pageTitle = currentPageLabel(pathname ?? '', navItems, t)
 
   return (
     <div className="ops-root">
@@ -79,7 +99,7 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
             <p className="ops-sidebar-sub">{t('opsConsoleSubtitle')}</p>
           </div>
           <nav className="ops-sidebar-nav">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon
               const active = isActive(pathname ?? '', item.href, item.exact)
               return (
@@ -115,8 +135,10 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
               </button>
               <h2 className="ops-topbar-title">{pageTitle}</h2>
             </div>
-            <div className="ops-topbar-org-slot" title={t('opsOrgFilterFutureHint')}>
-              {t('opsOrgFilterFuture')}
+            <div className="ops-topbar-org-slot">
+              <Link href="/ops/platform" className="ops-topbar-mode-link">
+                {flags.isHjerterumMode ? t('opsPlatformModeHjerterum') : t('opsPlatformModeBoly')}
+              </Link>
             </div>
           </header>
 
@@ -132,7 +154,7 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
         closeLabel={t('close')}
       >
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon
             const active = isActive(pathname ?? '', item.href, item.exact)
             return (

@@ -582,3 +582,49 @@ export async function opsGetFunnelStats(): Promise<OpsFunnelStats> {
   if (error) throw error
   return data as OpsFunnelStats
 }
+
+export type OpsPlatformSettingsPayload = {
+  product_mode: 'boly' | 'hjerterum'
+  finn_portal_enabled: boolean
+  los_portal_enabled: boolean
+  central_events_enabled: boolean
+  tourism_lane_enabled: boolean
+  stripe_bookings_enabled: boolean
+  updated_at?: string | null
+}
+
+export async function opsGetPlatformSettings(): Promise<OpsPlatformSettingsPayload> {
+  const { data, error } = await supabase.rpc('ops_get_platform_settings')
+  if (error) throw error
+  return data as OpsPlatformSettingsPayload
+}
+
+export async function opsSetPlatformSettings(input: {
+  productMode?: 'boly' | 'hjerterum'
+  finnPortalEnabled?: boolean
+  losPortalEnabled?: boolean
+  centralEventsEnabled?: boolean
+  tourismLaneEnabled?: boolean
+  stripeBookingsEnabled?: boolean
+}) {
+  const { data, error } = await supabase.rpc('ops_set_platform_settings', {
+    p_product_mode: input.productMode ?? null,
+    p_finn_portal_enabled: input.finnPortalEnabled ?? null,
+    p_los_portal_enabled: input.losPortalEnabled ?? null,
+    p_central_events_enabled: input.centralEventsEnabled ?? null,
+    p_tourism_lane_enabled: input.tourismLaneEnabled ?? null,
+    p_stripe_bookings_enabled: input.stripeBookingsEnabled ?? null,
+  })
+  if (error) throw error
+  return data as { ok: boolean; settings: OpsPlatformSettingsPayload }
+}
+
+export async function opsApplyPlatformPreset(
+  preset: 'boly_only' | 'hjerterum_full' | 'hjerterum_pilot'
+) {
+  const { data, error } = await supabase.rpc('ops_apply_platform_preset', {
+    p_preset: preset,
+  })
+  if (error) throw error
+  return data as { ok: boolean; settings: OpsPlatformSettingsPayload }
+}

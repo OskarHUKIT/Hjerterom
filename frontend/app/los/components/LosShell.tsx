@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
+import FeaturePortalGate from '@/app/components/FeaturePortalGate'
 
 export default function LosShell({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage()
@@ -23,7 +24,9 @@ export default function LosShell({ children }: { children: React.ReactNode }) {
           {t('losExit')}
         </Link>
       </header>
-      <main className="los-main">{children}</main>
+      <main className="los-main">
+        <FeaturePortalGate feature="los">{children}</FeaturePortalGate>
+      </main>
       <footer className="los-footer">
         <Link href="/los/personvern">{t('losPrivacyLink')}</Link>
       </footer>

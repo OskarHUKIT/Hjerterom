@@ -104,6 +104,9 @@ export default function OpsDashboardPage() {
 
       <OpsPanel title={t('opsQuickActions')} padding="md">
         <div className="ops-actions-row">
+          <Link href="/ops/platform">
+            <Button variant="accent">{t('opsNavPlatform')}</Button>
+          </Link>
           <Link href="/ops/terms">
             <Button variant="primary">{t('opsGoTermsQueue')}</Button>
           </Link>

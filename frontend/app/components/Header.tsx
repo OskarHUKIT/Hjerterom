@@ -27,6 +27,7 @@ import {
 import { useAuthSession } from '../../context/AuthSessionContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
+import { usePlatformMode } from '../../context/PlatformModeContext'
 import {
   isKommuneAdminRole,
   isKommuneStaffRole,
@@ -42,6 +43,11 @@ export default function Header() {
   const { user, isReady: authReady } = useAuthSession()
   const { t, locale, setLocale } = useLanguage()
   const { theme, toggleTheme } = useTheme()
+  const { flags: platformFlags } = usePlatformMode()
+  const platformNav = {
+    centralEvents: platformFlags.centralEvents,
+    los: platformFlags.los,
+  }
   const [loading, setLoading] = useState(true)
   const [hasSignedTerms, setHasSignedTerms] = useState(false)
   /** Når utleier mangler aktiv avtale: logo/pekere til register eller signering (fra getLandlordPostLoginHref). */
@@ -208,6 +214,7 @@ export default function Header() {
             <>
               {navItemsFor('kommune', 'headerDesktop', {
                 isAdmin: isKommuneAdminRole(navRoleForLinks),
+                platform: platformNav,
               }).map((item) => (
                 <Link
                   key={item.id}

@@ -1209,3 +1209,106 @@
     grid-template-columns: 300px minmax(0, 1fr);
   }
 }
+
+.ops-platform-hero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(45, 212, 191, 0.08));
+  border: 1px solid var(--ops-border);
+}
+
+.ops-platform-hero-title {
+  margin: 0;
+  font-size: clamp(1.35rem, 2vw, 1.75rem);
+}
+
+.ops-platform-hero-desc {
+  margin: var(--space-2) 0 0;
+  color: var(--ops-text-muted);
+  max-width: 52ch;
+  line-height: 1.5;
+}
+
+.ops-platform-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ops-platform-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.ops-platform-preset {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--ops-border);
+  background: var(--ops-surface);
+  color: inherit;
+}
+
+.ops-platform-preset:hover:not(:disabled) {
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.ops-segmented {
+  display: inline-flex;
+  border: 1px solid var(--ops-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ops-segment {
+  padding: var(--space-3) var(--space-5);
+  border: none;
+  background: transparent;
+  color: var(--ops-text-muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ops-segment--active {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--ops-text);
+}
+
+.ops-platform-modules {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.ops-platform-module {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  cursor: pointer;
+}
+
+.ops-platform-module-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.ops-topbar-mode-link {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ops-text-muted);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ops-border);
+}

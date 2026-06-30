@@ -11,6 +11,7 @@ cd supabase && supabase db push
 | 1 | `20260630120000_hjerterum_lanes_and_central_events.sql` |
 | 2 | `20260630180000_hjerterum_complete_phase3_5.sql` |
 | 3 | `20260630200000_hjerterum_production_ready.sql` |
+| 4 | `20260630210000_platform_control_panel.sql` |
 
 ## 2. Miljøvariabler
 
@@ -98,3 +99,7 @@ cd frontend && npm ci && npm run dev
 - **Rate limit:** `/api/stripe/checkout` (20/min/IP)
 - **Sentry (valgfritt):** `NEXT_PUBLIC_SENTRY_DSN` + `npm i @sentry/nextjs`
 - **Finn locale:** default engelsk for turister (`finn.hjerterum.no`)
+
+## 11. Rydde prosjekt og iPad-deploy
+
+Se **`docs/hjerterum/SUPABASE_RESET_AND_IPAD.md`** — reset av gammelt prosjekt, testdata-cleanup, og GitHub Actions for `db push` fra iPad.

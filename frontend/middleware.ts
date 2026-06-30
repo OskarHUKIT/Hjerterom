@@ -1,5 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { fetchPlatformSettingsServer } from '@/lib/platformSettingsServer'
+import { effectivePlatformFlags } from '@/lib/platformSettings'
 
 /** Ruter som krever innlogget bruker (JWT i cookie, synk med createBrowserClient). */
 const PROTECTED_PREFIXES = ['/homeowner', '/nav', '/documents', '/settings', '/ops'] as const
@@ -48,8 +50,33 @@ export async function middleware(request: NextRequest) {
   const shell = resolveHjerterumShell(host)
   const pathname = request.nextUrl.pathname
 
-  /** Subdomain → /finn/* or /los/* rewrite */
+  const platformSettings = await fetchPlatformSettingsServer()
+  const platform = effectivePlatformFlags(platformSettings)
+
+  /** ops.hjerterum.no/ → /ops for operators */
+  if (shell === 'ops' && (pathname === '/' || pathname === '')) {
+    return NextResponse.redirect(new URL('/ops', request.url))
+  }
+
+  /** Block Hjerterum portals when disabled (Boly-only mode). */
+  if (pathname.startsWith('/finn') && !platform.finn) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+  if (pathname.startsWith('/los') && !platform.los) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+  if (pathname.startsWith('/nav/event-inquiries') && !platform.centralEvents) {
+    return NextResponse.redirect(new URL('/nav/database', request.url))
+  }
+  if (pathname.startsWith('/nav/los-inbox') && !platform.los) {
+    return NextResponse.redirect(new URL('/nav/database', request.url))
+  }
+
+  /** Subdomain → /finn/* or /los/* rewrite (only when enabled) */
   if (shell === 'finn' && !pathname.startsWith('/finn')) {
+    if (!platform.finn) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
     const url = request.nextUrl.clone()
     url.pathname = pathname === '/' ? '/finn' : `/finn${pathname}`
     const rewrite = NextResponse.rewrite(url)
@@ -58,6 +85,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (shell === 'los' && !pathname.startsWith('/los')) {
+    if (!platform.los) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
     const url = request.nextUrl.clone()
     url.pathname = pathname === '/' ? '/los' : `/los${pathname}`
     const rewrite = NextResponse.rewrite(url)

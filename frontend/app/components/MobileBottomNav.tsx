@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import type { User as AuthUser } from '@supabase/supabase-js'
 import { Bell, Globe, Menu, Moon, Sun } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
+import { usePlatformMode } from '../../context/PlatformModeContext'
 import { useTheme } from '../../context/ThemeContext'
 import {
   isKommuneAdminRole,
@@ -102,6 +103,11 @@ export default function MobileBottomNav({
 }: MobileBottomNavProps) {
   const pathname = usePathname()
   const { t } = useLanguage()
+  const { flags: platformFlags } = usePlatformMode()
+  const platformNav = {
+    centralEvents: platformFlags.centralEvents,
+    los: platformFlags.los,
+  }
   const [isMobile, setIsMobile] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
 
@@ -134,9 +140,13 @@ export default function MobileBottomNav({
   const audience: NavAudience = kommune ? 'kommune' : 'landlord'
   const mobileTabs = navItemsFor(audience, 'mobileTab', {
     isAdmin: isKommuneAdminRole(navRole),
+    platform: platformNav,
   })
   const mobileMoreItems = kommune
-    ? navItemsFor('kommune', 'mobileMore', { isAdmin: isKommuneAdminRole(navRole) })
+    ? navItemsFor('kommune', 'mobileMore', {
+        isAdmin: isKommuneAdminRole(navRole),
+        platform: platformNav,
+      })
     : []
 
   const tabStyle = (active: boolean) => ({
