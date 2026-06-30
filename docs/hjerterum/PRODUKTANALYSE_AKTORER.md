@@ -307,10 +307,9 @@ finn.hjerterum.no
 
 **Besluttet — anmeldelser v1:** Ja — anmeldelser etter opphold (Airbnb-konvensjon) inkluderes i produktplanen.
 
-**Fortsatt åpent (nice-to-have):**
+**Besluttet — gjesteliste:** Ja — hovedbooker kan **invitere medreisende** til booking-tråd (Airbnb-konvensjon).
 
-1. **Gjesteliste** — se §10 (besluttet: ja)
-2. Språk — se §10 (besluttet: EN default + språkvelger)
+**Besluttet — språk:** **EN default** på Finn; språkvelger **NO / SE / EN** som i resten av appen.
 
 ### 5.4 Gjest-meldinger (teknisk forslag)
 
@@ -421,7 +420,7 @@ Event har **ikke** kommune admin — ops styrer event staff. Kommune admin kan e
 | 12 | Check-in guide |
 | 13 | Co-host |
 | 14 | Quick replies / maler |
-| 15 | Gjesteliste / medreisende i tråd |
+| 15 | Gjesteliste / medreisende i booking-tråd |
 
 ---
 
@@ -474,7 +473,7 @@ Dette er **ikke** en teknisk beslutning i appen, men et **pilot-/kommunevalg**:
 Hjerterum har **riktig konseptuell arkitektur** (én pool, flere baner), men **produktet behandler fortsatt avtaler, meldinger og roller som Boly 1.0**. For verdensklasse UX må hvert ledd få:
 
 - **Utleier:** avtale-matrix + meldinger mot kommune **og** leietaker  
-- **Kommune SB:** Boly + Los **inni meldinger** + granulær Los-tilgang  
+- **Kommune SB:** Boly + Los-innboks (alle SB ser saker i kommunen)  
 - **Event SB:** isolert `event_ansatt`-dashboard — kun event opt-in, ingen sosial data  
 - **Leietaker:** Finn-konto + click-wrap + Airbnb-nivå + **gruppebooking** + **anmeldelser v1**  
 - **Admin/Ops:** intuitive tilgangspaneler for kommune, event, avtaler  
