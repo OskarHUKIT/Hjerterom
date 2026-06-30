@@ -51,6 +51,7 @@ import { logError } from '@/app/lib/appLogger'
 import { dayAvailabilityToneForIso } from '@/app/lib/listingDayAvailabilityTone'
 import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import { usePlatformMode } from '@/context/PlatformModeContext'
+import { shouldShowManageFullScreenSpinner } from '@/features/listings/lib/landlordManagePageGate'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
@@ -304,7 +305,10 @@ export default function HomeownerManage() {
         return
       }
       if (!user) {
-        if (!cancelled) router.push('/login')
+        if (!cancelled) {
+          setLoading(false)
+          router.push('/login')
+        }
         return
       }
       const { data: profile } = await supabase
@@ -313,21 +317,30 @@ export default function HomeownerManage() {
         .eq('id', user.id)
         .maybeSingle()
       if (isKommuneStaffRole(profile?.role)) {
-        if (!cancelled) router.replace('/nav/database')
+        if (!cancelled) {
+          setLoading(false)
+          router.replace('/nav/database')
+        }
         return
       }
       const gateHref = await getLandlordPostLoginHref(supabase, user.id, user.email, {
         reuseProfileRole: profile?.role ?? null,
       })
       if (gateHref !== '/homeowner/manage') {
-        if (!cancelled) router.replace(gateHref)
+        if (!cancelled) {
+          setLoading(false)
+          router.replace(gateHref)
+        }
         return
       }
       const dismissed =
         typeof window !== 'undefined' &&
         localStorage.getItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.welcome, user.id))
       if (!dismissed) {
-        if (!cancelled) setPageGate('welcome')
+        if (!cancelled) {
+          setPageGate('welcome')
+          setLoading(false)
+        }
         return
       }
       if (!cancelled) setPageGate('ready')
@@ -552,7 +565,7 @@ export default function HomeownerManage() {
     return mapping[type] || type
   }
 
-  if (pageGate === 'init' || loading) {
+  if (shouldShowManageFullScreenSpinner(pageGate, loading, fetchError)) {
     return (
       <main className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center' }}>
         <LoadingPlaceholder minHeight={160} />
