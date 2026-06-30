@@ -1,0 +1,260 @@
+@page {
+  size: A4;
+  margin: 14mm 14mm 16mm 14mm;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 9.2pt;
+  line-height: 1.38;
+  color: #0f172a;
+  background: #fff;
+}
+
+.page {
+  page-break-after: always;
+  min-height: 267mm;
+  position: relative;
+}
+
+.page:last-child { page-break-after: auto; }
+
+/* Header */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12pt;
+  margin-bottom: 10pt;
+  padding-bottom: 8pt;
+  border-bottom: 2.5px solid #0a2540;
+}
+
+.logo img {
+  height: 34px;
+  width: auto;
+  display: block;
+}
+
+.meta {
+  text-align: right;
+  font-size: 7.8pt;
+  color: #475569;
+  line-height: 1.35;
+}
+
+.kicker {
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0 0 4pt;
+}
+
+h1 {
+  font-size: 19pt;
+  font-weight: 800;
+  color: #0a2540;
+  margin: 0 0 3pt;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.subtitle {
+  font-size: 10pt;
+  color: #334155;
+  margin: 0 0 8pt;
+  font-weight: 500;
+}
+
+.lead {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #0a2540;
+  padding: 8pt 10pt;
+  border-radius: 4px;
+  margin-bottom: 9pt;
+  font-size: 9pt;
+}
+
+h2 {
+  font-size: 10.5pt;
+  font-weight: 800;
+  color: #0a2540;
+  margin: 9pt 0 5pt;
+  padding-bottom: 2pt;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8pt;
+  margin-bottom: 8pt;
+}
+
+.card {
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 7pt 8pt;
+  background: #fff;
+}
+
+.card h3 {
+  font-size: 8.5pt;
+  font-weight: 800;
+  color: #0a2540;
+  margin: 0 0 4pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card p, .card li {
+  margin: 0 0 3pt;
+  font-size: 8.5pt;
+  color: #334155;
+}
+
+.card ul {
+  margin: 0;
+  padding-left: 12pt;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6pt;
+  margin: 8pt 0;
+}
+
+.stat {
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 6pt 4pt;
+  background: #f8fafc;
+}
+
+.stat strong {
+  display: block;
+  font-size: 11pt;
+  color: #0a2540;
+  font-weight: 800;
+}
+
+.stat span {
+  font-size: 7.2pt;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 7.6pt;
+  margin: 5pt 0 7pt;
+}
+
+th {
+  background: #0a2540;
+  color: #fff;
+  font-weight: 700;
+  text-align: left;
+  padding: 4pt 5pt;
+}
+
+td {
+  border: 1px solid #e2e8f0;
+  padding: 4pt 5pt;
+  vertical-align: top;
+}
+
+tr:nth-child(even) td { background: #f8fafc; }
+
+.ask-box {
+  border: 1px solid #0a2540;
+  border-radius: 4px;
+  padding: 7pt 8pt;
+  margin-bottom: 7pt;
+  background: #fff;
+}
+
+.ask-box h3 {
+  margin: 0 0 4pt;
+  font-size: 9pt;
+  color: #0a2540;
+}
+
+.ask-box p {
+  margin: 0 0 3pt;
+  font-size: 8.5pt;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6pt;
+  margin-top: 6pt;
+}
+
+.step {
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 6pt;
+  background: #f8fafc;
+}
+
+.step strong {
+  display: block;
+  font-size: 8pt;
+  color: #0a2540;
+  margin-bottom: 2pt;
+}
+
+.step span {
+  font-size: 7.8pt;
+  color: #475569;
+}
+
+.footer-note {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  font-size: 6.8pt;
+  color: #94a3b8;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 5pt;
+}
+
+.partners {
+  display: flex;
+  gap: 8pt;
+  flex-wrap: wrap;
+  margin-top: 6pt;
+}
+
+.pill {
+  font-size: 7.5pt;
+  font-weight: 700;
+  color: #0a2540;
+  background: #e2e8f0;
+  padding: 3pt 7pt;
+  border-radius: 99px;
+}
+
+.warn {
+  font-size: 7.5pt;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  padding: 4pt 6pt;
+  border-radius: 3px;
+  margin: 5pt 0;
+}

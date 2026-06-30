@@ -14,7 +14,8 @@ const card: CSSProperties = {
 }
 
 export default function GjerterumRapportPage() {
-  const pdfUrl = '/Gjerterum_Digital_Lukket_Del_Rapport_Soknad.pdf'
+  const digitalLosPdf = '/Digital_Los_KI_Partnerproposisjon_2s.pdf'
+  const gjerterumPdf = '/Gjerterum_Digital_Lukket_Del_Rapport_Soknad.pdf'
 
   return (
     <main className="container" style={{ paddingBottom: 'var(--space-12)' }}>
@@ -23,40 +24,63 @@ export default function GjerterumRapportPage() {
           ← Tilbake
         </Link>
 
-        <h1 style={h1}>Gjerterum — digital lukket del</h1>
+        <h1 style={h1}>Prosjektdokumenter</h1>
         <p style={{ color: 'var(--text-body)', marginBottom: 'var(--space-6)', fontSize: '1.05rem' }}>
-          Rapport og prosjektsøknad for deling med UiT Narvik og Nav Narvik.
+          Nedlasting av rapporter og partnerproposisjoner for deling med UiT Narvik og Nav Narvik.
         </p>
 
-        <div className="card" style={card}>
+        <div className="card" style={{ ...card, marginBottom: 'var(--space-4)' }}>
+          <h2 style={{ marginTop: 0, marginBottom: 'var(--space-3)', color: 'var(--text-main)' }}>
+            Digital Los — KI i boligformidling
+          </h2>
           <p style={{ marginBottom: 'var(--space-4)' }}>
-            Dokumentet beskriver idéen om den digitale lukkede delen av Gjerterum, kobling til
-            forskningsressurser ved UiT Narvik, samt muligheter gjennom Boly og Husbanken.
+            2-siders partnerproposisjon med essensen, korrigert finansieringskart og forespørsel til
+            UiT Narvik og Nav Narvik.
           </p>
-
           <a
-            href={pdfUrl}
+            href={digitalLosPdf}
+            download="Digital_Los_KI_Partnerproposisjon_2s.pdf"
+            className="button"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: 'var(--space-3)',
+              textDecoration: 'none',
+            }}
+          >
+            Last ned PDF (2 sider)
+          </a>
+        </div>
+
+        <div className="card" style={card}>
+          <h2 style={{ marginTop: 0, marginBottom: 'var(--space-3)', color: 'var(--text-main)' }}>
+            Gjerterum — digital lukket del
+          </h2>
+          <p style={{ marginBottom: 'var(--space-4)' }}>
+            Full rapport og prosjektsøknad.
+          </p>
+          <a
+            href={gjerterumPdf}
             download="Gjerterum_Digital_Lukket_Del_Rapport_Soknad.pdf"
             className="button"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.5rem',
-              marginBottom: 'var(--space-4)',
+              marginBottom: 'var(--space-3)',
               textDecoration: 'none',
             }}
           >
             Last ned PDF
           </a>
-
           <p style={{ fontSize: '0.95rem', color: 'var(--text-body)', margin: 0 }}>
-            På iPad: trykk «Last ned PDF» og velg «Last ned» eller «Åpne i Files». Du kan også
-            holde inne lenken og velge «Last ned koblet fil».
+            På iPad: trykk «Last ned PDF» og velg «Last ned» eller «Åpne i Files».
           </p>
         </div>
 
         <p style={{ marginTop: 'var(--space-4)', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-          Versjon 1.0 · 30. juni 2026 · Gamechanging AS
+          Gamechanging AS · Juni 2026
         </p>
       </div>
     </main>
