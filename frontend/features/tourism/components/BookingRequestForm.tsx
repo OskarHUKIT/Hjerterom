@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
+import { supabase } from '@/app/lib/supabase'
 import { submitBookingRequest, bookingErrorTranslationKey } from '@/features/tourism/lib/submitBookingRequest'
+import TourismAvailabilityCalendar from '@/features/tourism/components/TourismAvailabilityCalendar'
 
 type Props = {
   listingId: string
@@ -14,6 +16,13 @@ type Props = {
   listingAddress: string
   instantBook?: boolean
   cancellationPolicy?: string | null
+}
+
+function nightsBetween(checkIn: string, checkOut: string) {
+  const a = new Date(checkIn)
+  const b = new Date(checkOut)
+  const diff = Math.round((b.getTime() - a.getTime()) / 86400000)
+  return Math.max(1, diff)
 }
 
 export default function BookingRequestForm({
@@ -28,6 +37,7 @@ export default function BookingRequestForm({
   const toast = useToast()
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
+  const [datesBlocked, setDatesBlocked] = useState(false)
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -39,6 +49,11 @@ export default function BookingRequestForm({
     guestInviteEmail: '',
   })
 
+  const totalCents = useMemo(() => {
+    if (!nightlyPriceCents || !form.checkIn || !form.checkOut || form.checkOut < form.checkIn) return null
+    return nightlyPriceCents * nightsBetween(form.checkIn, form.checkOut)
+  }, [nightlyPriceCents, form.checkIn, form.checkOut])
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name.trim() || !form.email.trim() || !form.checkIn || !form.checkOut) {
@@ -47,6 +62,10 @@ export default function BookingRequestForm({
     }
     if (form.checkOut < form.checkIn) {
       toast(t('finnBookingInvalidDates'), 'error')
+      return
+    }
+    if (datesBlocked) {
+      toast(t('finnDatesNotAvailable'), 'error')
       return
     }
     if (!form.acceptTerms) {
@@ -65,12 +84,20 @@ export default function BookingRequestForm({
       message: form.message,
       amountCents: nightlyPriceCents,
     })
-    setSubmitting(false)
     if (!result.ok) {
+      setSubmitting(false)
       const key = bookingErrorTranslationKey(result.errorCode)
       toast(key ? t(key) : result.error, 'error')
       return
     }
+    if (form.guestInviteEmail.trim()) {
+      await supabase.rpc('invite_booking_guest', {
+        p_booking_id: result.id,
+        p_guest_email: form.guestInviteEmail.trim(),
+        p_guest_name: null,
+      })
+    }
+    setSubmitting(false)
     if (result.instantBook && result.status === 'accepted') {
       toast(t('finnInstantBookConfirmed'), 'success')
       router.push(`/finn/book/${result.id}`)
@@ -91,7 +118,17 @@ export default function BookingRequestForm({
         {t('finnBookingTitle')}
       </h2>
       <p className="finn-card-meta">{listingAddress}</p>
-      {priceLabel ? <p className="finn-price">{priceLabel} / {t('finnPerNight')}</p> : null}
+      {priceLabel ? (
+        <p className="finn-price">
+          {priceLabel} / {t('finnPerNight')}
+        </p>
+      ) : null}
+      {totalCents != null ? (
+        <p className="finn-price" style={{ fontSize: '1.1rem' }}>
+          {t('finnTotalPrice')}: {(totalCents / 100).toLocaleString('nb-NO')} kr ({nightsBetween(form.checkIn, form.checkOut)}{' '}
+          {t('finnNights')})
+        </p>
+      ) : null}
       {instantBook ? (
         <p className="finn-badge" style={{ display: 'inline-block', marginBottom: 8 }}>
           {t('finnInstantBookBadge')}
@@ -106,6 +143,12 @@ export default function BookingRequestForm({
           {t('finnBookingLead')}
         </p>
       )}
+      <TourismAvailabilityCalendar
+        listingId={listingId}
+        checkIn={form.checkIn}
+        checkOut={form.checkOut}
+        onDatesBlocked={setDatesBlocked}
+      />
       <form className="finn-inquiry-form" onSubmit={(e) => void onSubmit(e)}>
         <label>
           {t('finnInquiryName')}
@@ -159,6 +202,15 @@ export default function BookingRequestForm({
             onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
           />
         </label>
+        <label>
+          {t('finnCoGuestInvite')}
+          <input
+            type="email"
+            placeholder={t('finnCoGuestInvitePlaceholder')}
+            value={form.guestInviteEmail}
+            onChange={(e) => setForm((f) => ({ ...f, guestInviteEmail: e.target.value }))}
+          />
+        </label>
         <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
           <input
             type="checkbox"
@@ -167,7 +219,7 @@ export default function BookingRequestForm({
           />
           <span>{t('finnGuestTermsAccept')}</span>
         </label>
-        <Button type="submit" variant="accent" disabled={submitting}>
+        <Button type="submit" variant="accent" disabled={submitting || datesBlocked}>
           {t('finnBookingSubmit')}
         </Button>
       </form>

@@ -73,8 +73,13 @@ export default function FinnMineClient() {
           p_user_id: user.id,
         })
         if (termsOk === false) setTermsOpen(true)
+        await supabase.rpc('link_guest_bookings_on_login')
         await loadBookings(user.id, user.email)
         if (highlightId) setExpandedBookingId(highlightId)
+        if (searchParams.get('paid') === '1') {
+          toast(t('finnPaymentConfirmed'), 'success')
+          if (highlightId) await loadBookings(user.id, user.email)
+        }
       }
       setLoading(false)
     })()

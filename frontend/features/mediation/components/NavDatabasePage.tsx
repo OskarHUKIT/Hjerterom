@@ -172,7 +172,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
       ? access.userRole
       : null
   const kommuneCanEdit = isEventPortal
-    ? false
+    ? true
     : access?.kind === 'ok'
       ? access.kommuneCanEdit
       : true
@@ -1002,6 +1002,26 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
     }
   }
 
+  const resolveEventIdForListing = async (listingId: string): Promise<string | null> => {
+    if (!isEventPortal) return null
+    if (eventFilterId !== 'Alle') return eventFilterId
+    const { data: staffRows } = await supabase
+      .from('central_event_staff')
+      .select('event_id')
+      .eq('profile_id', (await getAuthUserDeduped())?.id ?? '')
+    const eventIds = (staffRows ?? []).map((r) => r.event_id)
+    if (eventIds.length === 0) return null
+    const { data: optIn } = await supabase
+      .from('listing_event_availability')
+      .select('event_id')
+      .eq('listing_id', listingId)
+      .eq('status', 'active')
+      .in('event_id', eventIds)
+      .limit(1)
+      .maybeSingle()
+    return optIn?.event_id ?? eventIds[0] ?? null
+  }
+
   const handleMarkAsFormidlet = async () => {
     if (!formidletModalListing || !formidletStart || !formidletEnd) {
       toast(t('dbSelectStartEnd'), 'error')
@@ -1039,7 +1059,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
 
     setFormidletSending(true)
     try {
-      // 1. Legg til formidlet-periode i listing_availability (flere perioder per bolig er tillatt)
+      const eventIdForPeriod = isEventPortal ? await resolveEventIdForListing(id) : null
       const { data: insertedPeriod, error: availError } = await supabase
         .from('listing_availability')
         .insert([
@@ -1050,6 +1070,8 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
             status: 'Formidla',
             mediation_note: noteTrimmed || null,
             include_note_in_owner_notification: includeNote,
+            lane: isEventPortal ? 'turisme' : 'sosial',
+            event_id: eventIdForPeriod,
           },
         ])
         .select()
@@ -1071,11 +1093,12 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
           {
             user_id: listing.owner_id,
             listing_id: id,
-            action_type: 'KOMMUNE_MARK_FORMIDLA',
+            action_type: isEventPortal ? 'EVENT_MARK_FORMIDLA' : 'KOMMUNE_MARK_FORMIDLA',
             listing_address: address,
             details: {
               performed_by_user_id: user?.id,
-              by: 'Kommune-ansatt',
+              by: isEventPortal ? 'Event-saksbehandler' : 'Kommune-ansatt',
+              event_id: eventIdForPeriod,
               attached_schema: attachSchema,
               start_date: formidletStart,
               end_date: formidletEnd,
@@ -1090,13 +1113,15 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
         await supabase
           .from('listing_tenant_tokens')
           .upsert([{ listing_id: id }], { onConflict: 'listing_id' })
-        const baseMsg = `Kommunen har markert boligen din i ${address} som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`
+        const baseMsg = isEventPortal
+          ? `Event-saksbehandler har markert boligen din i ${address} som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`
+          : `Kommunen har markert boligen din i ${address} som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`
         const message = appendMediationNoteToOwnerMessage(baseMsg, noteTrimmed, includeNote)
         await supabase.from('notifications').insert([
           {
             owner_id: listing.owner_id,
             type: 'HOUSE_FORMIDLET',
-            title: 'Bolig formidlet',
+            title: isEventPortal ? 'Bolig formidlet (arrangement)' : 'Bolig formidlet',
             message,
             listing_id: id,
           },

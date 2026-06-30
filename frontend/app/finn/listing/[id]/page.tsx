@@ -8,6 +8,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import { PageSkeleton } from '@/app/components/design-system'
 import { buttonClassName } from '@/app/components/ui/Button'
 import BookingRequestForm from '@/features/tourism/components/BookingRequestForm'
+import { normalizeListingImageUrls } from '@/features/listings/lib/listingDetailsUtils'
 
 type ListingDetail = {
   id: string
@@ -18,8 +19,11 @@ type ListingDetail = {
   tourism_instant_book: boolean
   cancellation_policy: string | null
   image_url: string | null
+  image_urls: unknown
   type: string | null
   beds: number | null
+  map_lat: number | null
+  map_lng: number | null
 }
 
 type EventContext = {
@@ -39,6 +43,7 @@ export default function FinnListingDetailPage() {
   const [eventContext, setEventContext] = useState<EventContext | null>(null)
   const [eventOptInOk, setEventOptInOk] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [reviewSummary, setReviewSummary] = useState<{ count: number; avg_rating: number } | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -48,7 +53,7 @@ export default function FinnListingDetailPage() {
       const { data } = await supabase
         .from('listings')
         .select(
-          'id, address, city, description, tourism_nightly_price_cents, tourism_instant_book, cancellation_policy, image_url, type, beds, tourism_enabled'
+          'id, address, city, description, tourism_nightly_price_cents, tourism_instant_book, cancellation_policy, image_url, image_urls, type, beds, tourism_enabled, map_lat, map_lng'
         )
         .eq('id', id)
         .eq('tourism_enabled', true)
@@ -61,6 +66,11 @@ export default function FinnListingDetailPage() {
         return
       }
       setListing(data as ListingDetail)
+      const { data: rev } = await supabase.rpc('get_listing_review_summary', { p_listing_id: id })
+      if (!cancelled && rev && typeof rev === 'object') {
+        const r = rev as { count?: number; avg_rating?: number }
+        if ((r.count ?? 0) > 0) setReviewSummary({ count: r.count ?? 0, avg_rating: Number(r.avg_rating ?? 0) })
+      }
 
       if (eventId) {
         const { data: eventRow } = await supabase
@@ -121,6 +131,9 @@ export default function FinnListingDetailPage() {
   const bookableEventId =
     eventContext?.routing_mode === 'turisme' && eventOptInOk ? eventContext.id : null
 
+  const images = normalizeListingImageUrls(listing.image_urls)
+  const heroImages = images.length > 0 ? images : listing.image_url ? [listing.image_url] : []
+
   return (
     <article>
       <Link href="/finn" className="finn-footer-link" style={{ marginBottom: 'var(--space-4)', display: 'inline-flex' }}>
@@ -132,13 +145,18 @@ export default function FinnListingDetailPage() {
         </p>
       ) : null}
       <div className="finn-card" style={{ maxWidth: 720, marginBottom: 'var(--space-8)' }}>
-        {listing.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={listing.image_url}
-            alt=""
-            style={{ width: '100%', maxHeight: 360, objectFit: 'cover' }}
-          />
+        {heroImages.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: heroImages.length > 1 ? '1fr 1fr' : '1fr', gap: 4 }}>
+            {heroImages.slice(0, 4).map((url) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={url}
+                src={url}
+                alt=""
+                style={{ width: '100%', maxHeight: 280, objectFit: 'cover' }}
+              />
+            ))}
+          </div>
         ) : (
           <div className="finn-card-image">{t('finnNoPhoto')}</div>
         )}
@@ -149,6 +167,11 @@ export default function FinnListingDetailPage() {
             {listing.type ? ` · ${listing.type}` : ''}
             {listing.beds ? ` · ${listing.beds} ${t('finnBeds')}` : ''}
           </p>
+          {reviewSummary ? (
+            <p className="finn-card-meta" style={{ marginBottom: 8 }}>
+              ★ {reviewSummary.avg_rating} · {reviewSummary.count} {t('finnReviews')}
+            </p>
+          ) : null}
           {price ? (
             <p className="finn-price" style={{ fontSize: '1.25rem', margin: 'var(--space-4) 0' }}>
               {t('finnFromPrice').replace('{price}', price)} / {t('finnPerNight')}

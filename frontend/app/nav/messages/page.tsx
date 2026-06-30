@@ -56,6 +56,13 @@ type LandlordAreaThread = {
   lastAt: string
 }
 
+type LandlordEventThread = {
+  eventId: string
+  eventName: string
+  lastMessage: string
+  lastAt: string
+}
+
 type GuestBookingThread = {
   bookingId: string
   guestLabel: string
@@ -73,6 +80,7 @@ function MessagesContent() {
   const withUserId = searchParams.get('with')
   const withAreaId = searchParams.get('area')
   const withBookingId = searchParams.get('booking')
+  const withEventId = searchParams.get('event')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const chatBoot = useChatUserBootstrap()
@@ -92,8 +100,9 @@ function MessagesContent() {
   const [conversationsLoading, setConversationsLoading] = useState(false)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
   const [landlordAreaThreads, setLandlordAreaThreads] = useState<LandlordAreaThread[]>([])
+  const [landlordEventThreads, setLandlordEventThreads] = useState<LandlordEventThread[]>([])
   const [guestBookingThreads, setGuestBookingThreads] = useState<GuestBookingThread[]>([])
-  const [landlordMessagesTab, setLandlordMessagesTab] = useState<'social' | 'guest'>('social')
+  const [landlordMessagesTab, setLandlordMessagesTab] = useState<'social' | 'event' | 'guest'>('social')
   const [otherUser, setOtherUser] = useState<any>(null)
   const [peerRole, setPeerRole] = useState<string | null>(null)
   const [colleagues, setColleagues] = useState<{ id: string; name: string }[]>([])
@@ -151,7 +160,8 @@ function MessagesContent() {
 
   useEffect(() => {
     if (withBookingId) setLandlordMessagesTab('guest')
-  }, [withBookingId])
+    if (withEventId) setLandlordMessagesTab('event')
+  }, [withBookingId, withEventId])
 
   useEffect(() => {
     if (!profileResolved) return
@@ -360,6 +370,28 @@ function MessagesContent() {
       )
     }
 
+    const fetchLandlordEventThreads = async () => {
+      const { data: rows, error: evErr } = await supabase.rpc('get_landlord_event_threads')
+      if (evErr) {
+        devWarn('[Boly/chat] get_landlord_event_threads', evErr)
+        setLandlordEventThreads([])
+        return
+      }
+      setLandlordEventThreads(
+        (rows || []).map(
+          (r: { event_id: string; event_name: string; last_at: string | null; last_preview: string | null }) => {
+            const raw = (r.last_preview ?? '').trim()
+            return {
+              eventId: r.event_id,
+              eventName: r.event_name || '',
+              lastMessage: raw.length > 40 ? `${raw.slice(0, 40)}…` : raw,
+              lastAt: r.last_at || '',
+            }
+          }
+        )
+      )
+    }
+
     void (async () => {
       try {
         if (isKommune) {
@@ -367,7 +399,11 @@ function MessagesContent() {
           await fetchConversationsKommune()
         } else {
           setConversationsLoading(true)
-          await Promise.all([fetchConversationsLandlord(), fetchGuestBookingThreads()])
+          await Promise.all([
+            fetchConversationsLandlord(),
+            fetchLandlordEventThreads(),
+            fetchGuestBookingThreads(),
+          ])
           setConversations([])
         }
       } catch {
@@ -391,15 +427,30 @@ function MessagesContent() {
 
   useEffect(() => {
     if (!profileResolved || !currentUser) return
+    const isHomeownerEventChat = !isKommune && !!withEventId
     const isHomeownerChat = !isKommune && !!withAreaId
     const isKommuneChat = isKommune && withUserId && withAreaId
-    if (!isHomeownerChat && !isKommuneChat) {
+    if (!isHomeownerChat && !isKommuneChat && !isHomeownerEventChat) {
       setMessages([])
       setOtherUser(null)
       return
     }
 
     const fetchMessages = async () => {
+      if (isHomeownerEventChat && withEventId) {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc(
+          'get_landlord_event_thread_messages',
+          { p_event_id: withEventId }
+        )
+        if (!rpcErr && rpcData != null) {
+          setMessages((rpcData as any[]) || [])
+          return
+        }
+        if (rpcErr) devWarn('[Boly/chat] get_landlord_event_thread_messages', rpcErr)
+        setMessages([])
+        return
+      }
+
       if (isHomeownerChat && withAreaId) {
         const { data: rpcData, error: rpcErr } = await supabase.rpc(
           'get_landlord_kommune_thread_messages',
@@ -428,7 +479,16 @@ function MessagesContent() {
       }
     }
 
-    if (isHomeownerChat && withAreaId) {
+    if (isHomeownerEventChat && withEventId) {
+      const eventLabel =
+        landlordEventThreads.find((e) => e.eventId === withEventId)?.eventName ||
+        t('msgChannelEvent')
+      setOtherUser({
+        id: null,
+        name: `${channelBadgeEmoji('event_caseworker')} ${t('msgChannelEvent')} · ${eventLabel}`,
+      })
+      void fetchMessages()
+    } else if (isHomeownerChat && withAreaId) {
       const areaLabel =
         landlordAreaThreads.find((a) => a.serviceAreaId === withAreaId)?.name ||
         t('messagesLandlordSharedChannelTitle')
@@ -455,9 +515,11 @@ function MessagesContent() {
     }
     document.addEventListener('visibilitychange', onVisibleRefetch)
 
-    const channelId = isHomeownerChat
-      ? `chat:${currentUser.id}:area:${withAreaId}`
-      : `chat:${currentUser.id}:${withUserId}:area:${withAreaId}`
+    const channelId = isHomeownerEventChat
+      ? `chat:${currentUser.id}:event:${withEventId}`
+      : isHomeownerChat
+        ? `chat:${currentUser.id}:area:${withAreaId}`
+        : `chat:${currentUser.id}:${withUserId}:area:${withAreaId}`
     const sub = supabase
       .channel(channelId)
       .on(
@@ -468,8 +530,10 @@ function MessagesContent() {
             sender_id?: string
             receiver_id?: string | null
             service_area_id?: string | null
+            event_id?: string | null
           }
           if (!row?.sender_id) return
+          if (withEventId && row.event_id && row.event_id !== withEventId) return
           if (withAreaId && row.service_area_id && row.service_area_id !== withAreaId) return
           if (isKommuneChat && withUserId) {
             if (row.sender_id !== withUserId && row.receiver_id !== withUserId) return
@@ -498,9 +562,11 @@ function MessagesContent() {
     currentUser,
     withUserId,
     withAreaId,
+    withEventId,
     isKommune,
     t,
     landlordAreaThreads,
+    landlordEventThreads,
     conversations,
   ])
 
@@ -595,6 +661,37 @@ function MessagesContent() {
     const hasImages = pendingImages.length > 0
     if ((!content && !hasImages) || !currentUser) return
     if (readonlyBlocksReply) return
+    if (!isKommune && withEventId) {
+      setSending(true)
+      try {
+        const { error } = await supabase.from('chat_messages').insert({
+          sender_id: currentUser.id,
+          receiver_id: null,
+          content: content || '',
+          event_id: withEventId,
+          channel_type: 'event_caseworker',
+        })
+        if (error) throw error
+        setNewMessage('')
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            sender_id: currentUser.id,
+            receiver_id: null,
+            content: content || '',
+            image_urls: [],
+            created_at: new Date().toISOString(),
+            is_read: false,
+          },
+        ])
+      } catch (err: unknown) {
+        toast(t('errSend') + (err instanceof Error ? err.message : String(err)))
+      } finally {
+        setSending(false)
+      }
+      return
+    }
     if (!activeServiceAreaId) return
     setSending(true)
     let effectiveReceiver: string | null = withUserId ?? null
@@ -634,6 +731,7 @@ function MessagesContent() {
           content: content || '',
           image_urls: imageUrls,
           service_area_id: activeServiceAreaId,
+          channel_type: 'social_caseworker',
         })
         .select('id, created_at')
         .maybeSingle()
@@ -718,20 +816,31 @@ function MessagesContent() {
   /** Kun-les trenger sidestolpe også når en samtale er åpen (kollegaer + bytte tråd). Full redigering beholder én kolonne i aktiv chat. */
   const showKommuneSidebar = isKommune && (!withUserId || kommuneCanEdit === false)
   const showGuestBookingChat = !isKommune && !!withBookingId
+  const showLandlordEventChat = !isKommune && !!withEventId
   const showLandlordMessagesSidebar =
     !isKommune &&
     !withAreaId &&
     !withBookingId &&
-    (landlordAreaThreads.length > 1 || guestBookingThreads.length > 0)
+    !withEventId &&
+    (landlordAreaThreads.length > 0 ||
+      landlordEventThreads.length > 0 ||
+      guestBookingThreads.length > 0)
   const showLandlordAreaSidebar = showLandlordMessagesSidebar
   const kommuneMobileListOnly = isKommune && isMobile && !withUserId
   const kommuneMobileChatOnly = isKommune && isMobile && !!withUserId
   const landlordMobileListOnly =
-    !isKommune && isMobile && !withAreaId && !withBookingId && showLandlordMessagesSidebar
-  const landlordMobileChatOnly = !isKommune && isMobile && (!!withAreaId || !!withBookingId)
+    !isKommune && isMobile && !withAreaId && !withBookingId && !withEventId && showLandlordMessagesSidebar
+  const landlordMobileChatOnly = !isKommune && isMobile && (!!withAreaId || !!withBookingId || !!withEventId)
   const showChat =
     showGuestBookingChat ||
-    (isKommune ? withUserId && !!withAreaId : !!withAreaId || (landlordAreaThreads.length <= 1 && guestBookingThreads.length === 0))
+    showLandlordEventChat ||
+    (isKommune
+      ? withUserId && !!withAreaId
+      : !!withAreaId ||
+        !!withEventId ||
+        (landlordAreaThreads.length <= 1 &&
+          landlordEventThreads.length === 0 &&
+          guestBookingThreads.length === 0))
 
   const showReadonlyBanner =
     isKommune &&
@@ -1359,8 +1468,8 @@ function MessagesContent() {
             >
               <MessageSquare size={18} style={{ opacity: 0.85 }} /> {t('conversations')}
             </h3>
-            {guestBookingThreads.length > 0 ? (
-              <div role="tablist" style={{ display: 'flex', gap: 8 }}>
+            {(guestBookingThreads.length > 0 || landlordEventThreads.length > 0) ? (
+              <div role="tablist" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   role="tab"
@@ -1369,28 +1478,50 @@ function MessagesContent() {
                   className="button"
                   style={{
                     flex: 1,
-                    fontSize: '0.82rem',
-                    padding: '6px 10px',
+                    minWidth: 72,
+                    fontSize: '0.78rem',
+                    padding: '6px 8px',
                     opacity: landlordMessagesTab === 'social' ? 1 : 0.65,
                   }}
                 >
                   {t('landlordMsgTabSocial')}
                 </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={landlordMessagesTab === 'guest'}
-                  onClick={() => setLandlordMessagesTab('guest')}
-                  className="button"
-                  style={{
-                    flex: 1,
-                    fontSize: '0.82rem',
-                    padding: '6px 10px',
-                    opacity: landlordMessagesTab === 'guest' ? 1 : 0.65,
-                  }}
-                >
-                  {t('landlordMsgTabGuest')}
-                </button>
+                {landlordEventThreads.length > 0 ? (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={landlordMessagesTab === 'event'}
+                    onClick={() => setLandlordMessagesTab('event')}
+                    className="button"
+                    style={{
+                      flex: 1,
+                      minWidth: 72,
+                      fontSize: '0.78rem',
+                      padding: '6px 8px',
+                      opacity: landlordMessagesTab === 'event' ? 1 : 0.65,
+                    }}
+                  >
+                    {t('landlordMsgTabEvent')}
+                  </button>
+                ) : null}
+                {guestBookingThreads.length > 0 ? (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={landlordMessagesTab === 'guest'}
+                    onClick={() => setLandlordMessagesTab('guest')}
+                    className="button"
+                    style={{
+                      flex: 1,
+                      minWidth: 72,
+                      fontSize: '0.78rem',
+                      padding: '6px 8px',
+                      opacity: landlordMessagesTab === 'guest' ? 1 : 0.65,
+                    }}
+                  >
+                    {t('landlordMsgTabGuest')}
+                  </button>
+                ) : null}
               </div>
             ) : null}
             {conversationsLoading ? (
@@ -1438,6 +1569,49 @@ function MessagesContent() {
                             }}
                           >
                             {g.lastPreview}
+                          </div>
+                        ) : null}
+                      </div>
+                      <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
+                    </Link>
+                  ))}
+                </div>
+              )
+            ) : landlordMessagesTab === 'event' ? (
+              landlordEventThreads.length === 0 ? (
+                <p className="text-sm" style={{ opacity: 0.6, margin: 0 }}>
+                  {t('landlordEventThreadsEmpty')}
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {landlordEventThreads.map((ev) => (
+                    <Link
+                      key={ev.eventId}
+                      href={`/nav/messages?event=${ev.eventId}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-3)',
+                        padding: 'var(--space-3)',
+                        borderRadius: '10px',
+                        background:
+                          withEventId === ev.eventId
+                            ? 'rgba(168, 85, 247, 0.15)'
+                            : 'rgba(255,255,255,0.03)',
+                        textDecoration: 'none',
+                        color: 'inherit',
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600 }}>
+                          {channelBadgeEmoji('event_caseworker')} {t('msgChannelEvent')}
+                        </div>
+                        <div className="text-sm" style={{ opacity: 0.6 }}>
+                          {ev.eventName}
+                        </div>
+                        {ev.lastMessage ? (
+                          <div className="text-sm" style={{ opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {ev.lastMessage}
                           </div>
                         ) : null}
                       </div>
