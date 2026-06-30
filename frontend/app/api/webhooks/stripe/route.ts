@@ -1,9 +1,67 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { getStripe } from '@/app/lib/stripeServer'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+async function queueBookingReceipt(admin: SupabaseClient, bookingId: string) {
+  const { data } = await admin
+    .from('bookings')
+    .select(
+      'id, guest_email, guest_name, check_in, check_out, amount_cents, listing_id, listings(address, city)'
+    )
+    .eq('id', bookingId)
+    .maybeSingle()
+
+  const booking = data as {
+    id: string
+    guest_email: string | null
+    guest_name: string | null
+    check_in: string
+    check_out: string
+    amount_cents: number | null
+    listings: { address?: string; city?: string } | null
+  } | null
+
+  if (!booking?.guest_email) return
+
+  const listing = booking.listings as { address?: string; city?: string } | null
+  const listingAddress = [listing?.address, listing?.city].filter(Boolean).join(', ')
+
+  await admin.rpc(
+    'queue_guest_email' as never,
+    {
+      p_template: 'booking_receipt',
+      p_email: booking.guest_email,
+      p_payload: {
+        booking_id: booking.id,
+        guest_name: booking.guest_name,
+        check_in: booking.check_in,
+        check_out: booking.check_out,
+        amount_cents: booking.amount_cents,
+        listing_address: listingAddress,
+      },
+    } as never
+  )
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  const cronSecret = process.env.CRON_SECRET?.trim()
+  if (supabaseUrl && cronSecret) {
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/process-guest-email-outbox`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cronSecret}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+      })
+    } catch {
+      /* outbox will be processed on next cron run */
+    }
+  }
+}
 
 export async function POST(request: Request) {
   const stripe = getStripe()
@@ -48,6 +106,7 @@ export async function POST(request: Request) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', bookingId)
+      await queueBookingReceipt(admin, bookingId)
     }
   }
 
@@ -59,6 +118,7 @@ export async function POST(request: Request) {
         .from('bookings')
         .update({ status: 'paid', payment_intent_id: pi.id, updated_at: new Date().toISOString() })
         .eq('id', bookingId)
+      await queueBookingReceipt(admin, bookingId)
     }
   }
 

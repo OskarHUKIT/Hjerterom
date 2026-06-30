@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
-import { submitBookingRequest } from '@/features/tourism/lib/submitBookingRequest'
+import { submitBookingRequest, bookingErrorTranslationKey } from '@/features/tourism/lib/submitBookingRequest'
 
 type Props = {
   listingId: string
@@ -67,7 +67,8 @@ export default function BookingRequestForm({
     })
     setSubmitting(false)
     if (!result.ok) {
-      toast(result.error, 'error')
+      const key = bookingErrorTranslationKey(result.errorCode)
+      toast(key ? t(key) : result.error, 'error')
       return
     }
     if (result.instantBook && result.status === 'accepted') {

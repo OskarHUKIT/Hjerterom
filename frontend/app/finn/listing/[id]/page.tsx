@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { PageSkeleton } from '@/app/components/design-system'
@@ -22,11 +22,22 @@ type ListingDetail = {
   beds: number | null
 }
 
+type EventContext = {
+  id: string
+  slug: string
+  name: string
+  routing_mode: 'saksbehandler' | 'turisme'
+}
+
 export default function FinnListingDetailPage() {
   const params = useParams<{ id: string }>()
+  const searchParams = useSearchParams()
+  const eventId = searchParams.get('event')
   const id = params?.id
   const { t } = useLanguage()
   const [listing, setListing] = useState<ListingDetail | null>(null)
+  const [eventContext, setEventContext] = useState<EventContext | null>(null)
+  const [eventOptInOk, setEventOptInOk] = useState(true)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -43,15 +54,47 @@ export default function FinnListingDetailPage() {
         .eq('tourism_enabled', true)
         .maybeSingle()
 
-      if (!cancelled) {
-        setListing(data as ListingDetail | null)
+      if (cancelled) return
+      if (!data) {
+        setListing(null)
         setLoading(false)
+        return
       }
+      setListing(data as ListingDetail)
+
+      if (eventId) {
+        const { data: eventRow } = await supabase
+          .from('central_events')
+          .select('id, slug, name, routing_mode, status')
+          .eq('id', eventId)
+          .eq('status', 'published')
+          .maybeSingle()
+
+        if (!cancelled && eventRow) {
+          setEventContext(eventRow as EventContext)
+          const { data: optIn } = await supabase
+            .from('listing_event_availability')
+            .select('id')
+            .eq('event_id', eventId)
+            .eq('listing_id', id)
+            .eq('status', 'active')
+            .maybeSingle()
+          setEventOptInOk(Boolean(optIn))
+        } else if (!cancelled) {
+          setEventContext(null)
+          setEventOptInOk(false)
+        }
+      } else {
+        setEventContext(null)
+        setEventOptInOk(true)
+      }
+
+      setLoading(false)
     })()
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, eventId])
 
   if (loading) return <PageSkeleton minHeight={240} />
 
@@ -71,11 +114,23 @@ export default function FinnListingDetailPage() {
       ? `${Math.round(listing.tourism_nightly_price_cents / 100).toLocaleString('nb-NO')} kr`
       : null
 
+  const eventBlocksBooking =
+    Boolean(eventContext) &&
+    (eventContext?.routing_mode !== 'turisme' || !eventOptInOk)
+
+  const bookableEventId =
+    eventContext?.routing_mode === 'turisme' && eventOptInOk ? eventContext.id : null
+
   return (
     <article>
       <Link href="/finn" className="finn-footer-link" style={{ marginBottom: 'var(--space-4)', display: 'inline-flex' }}>
         ← {t('finnBackToSearch')}
       </Link>
+      {eventContext ? (
+        <p className="finn-badge" style={{ marginBottom: 'var(--space-3)', display: 'inline-block' }}>
+          {t('finnEventBookingContext').replace('{name}', eventContext.name)}
+        </p>
+      ) : null}
       <div className="finn-card" style={{ maxWidth: 720, marginBottom: 'var(--space-8)' }}>
         {listing.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -118,13 +173,25 @@ export default function FinnListingDetailPage() {
         </div>
       </div>
 
-      <BookingRequestForm
-        listingId={listing.id}
-        nightlyPriceCents={listing.tourism_nightly_price_cents}
-        listingAddress={`${listing.address}, ${listing.city}`}
-        instantBook={listing.tourism_instant_book}
-        cancellationPolicy={listing.cancellation_policy}
-      />
+      {eventBlocksBooking ? (
+        <div className="finn-empty">
+          <p>{t('finnEventBookingNotAllowed')}</p>
+          {eventContext ? (
+            <Link href={`/finn/arrangement/${eventContext.slug}`} className={buttonClassName('secondary')}>
+              {t('finnNavEvents')}
+            </Link>
+          ) : null}
+        </div>
+      ) : (
+        <BookingRequestForm
+          listingId={listing.id}
+          eventId={bookableEventId}
+          nightlyPriceCents={listing.tourism_nightly_price_cents}
+          listingAddress={`${listing.address}, ${listing.city}`}
+          instantBook={listing.tourism_instant_book}
+          cancellationPolicy={listing.cancellation_policy}
+        />
+      )}
     </article>
   )
 }

@@ -1,4 +1,5 @@
 import { supabase } from '@/app/lib/supabase'
+import type { TranslationKey } from '@/lib/translations'
 
 export type BookingRequestPayload = {
   listingId: string
@@ -14,7 +15,22 @@ export type BookingRequestPayload = {
 
 export type BookingRequestResult =
   | { ok: true; id: string; instantBook: boolean; status: string }
-  | { ok: false; error: string }
+  | { ok: false; error: string; errorCode?: string }
+
+const BOOKING_ERROR_KEYS: Record<string, TranslationKey> = {
+  dates_unavailable: 'finnBookingErrorDatesUnavailable',
+  dates_conflict: 'finnBookingErrorDatesConflict',
+  event_not_bookable: 'finnBookingErrorEventNotBookable',
+  event_not_found: 'finnBookingErrorEventNotFound',
+  invalid_dates: 'finnBookingInvalidDates',
+  listing_not_found: 'finnListingNotFound',
+  email_required: 'finnBookingRequired',
+}
+
+export function bookingErrorTranslationKey(code: string | undefined): TranslationKey | null {
+  if (!code) return null
+  return BOOKING_ERROR_KEYS[code] ?? null
+}
 
 export async function submitBookingRequest(
   payload: BookingRequestPayload
@@ -41,7 +57,11 @@ export async function submitBookingRequest(
   } | null
 
   if (!row?.ok || !row.booking_id) {
-    return { ok: false, error: row?.error ?? 'Booking failed' }
+    return {
+      ok: false,
+      error: row?.error ?? 'Booking failed',
+      errorCode: row?.error,
+    }
   }
 
   return {

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAuthUserDeduped, supabase } from '@/app/lib/supabase'
+import { opsListKommuner, type OpsKommuneListItem } from '@/app/lib/opsApi'
 import { useLanguage } from '@/context/LanguageContext'
 import OpsShell from '../../components/OpsShell'
 import OpsPageHeader from '../../components/OpsPageHeader'
@@ -25,6 +26,9 @@ export default function OpsEventNewPage() {
   const toast = useToast()
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [kommuner, setKommuner] = useState<OpsKommuneListItem[]>([])
+  const [selectedKommuneIds, setSelectedKommuneIds] = useState<string[]>([])
+  const [regionKeysInput, setRegionKeysInput] = useState('')
   const [form, setForm] = useState({
     name: '',
     slug: '',
@@ -35,6 +39,20 @@ export default function OpsEventNewPage() {
     arrangement_tag: '',
   })
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        setKommuner(await opsListKommuner())
+      } catch {
+        setKommuner([])
+      }
+    })()
+  }, [])
+
+  const toggleKommune = (id: string) => {
+    setSelectedKommuneIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
   const submit = async (publish: boolean) => {
     if (!form.name.trim() || !form.start_date || !form.end_date) {
       toast(t('errSaveListing'), 'error')
@@ -43,6 +61,14 @@ export default function OpsEventNewPage() {
     setSaving(true)
     try {
       const slug = form.slug.trim() || slugify(form.name)
+      const regionKeys = regionKeysInput
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
+      const geographyScope = {
+        kommune_ids: selectedKommuneIds,
+        region_keys: regionKeys,
+      }
       const authUser = await getAuthUserDeduped()
       const { data, error } = await supabase
         .from('central_events')
@@ -55,6 +81,7 @@ export default function OpsEventNewPage() {
             end_date: form.end_date,
             routing_mode: form.routing_mode,
             arrangement_tag: form.arrangement_tag.trim() || null,
+            geography_scope: geographyScope,
             status: publish ? 'published' : 'draft',
             published_at: publish ? new Date().toISOString() : null,
             created_by: authUser?.id ?? null,
@@ -146,6 +173,35 @@ export default function OpsEventNewPage() {
               value={form.arrangement_tag}
               onChange={(e) => setForm((f) => ({ ...f, arrangement_tag: e.target.value }))}
               placeholder="VM Alpint"
+            />
+          </label>
+          <label className="ops-label" style={{ gridColumn: '1 / -1' }}>
+            {t('opsEventGeographyTitle')}
+            <p className="ops-meta" style={{ margin: '4px 0 8px' }}>{t('opsEventGeographyLead')}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 160, overflowY: 'auto', border: '1px solid var(--ops-border)', borderRadius: 8, padding: 12 }}>
+              {kommuner.length === 0 ? (
+                <span className="ops-meta">—</span>
+              ) : (
+                kommuner.map((k) => (
+                  <label key={k.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 400 }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedKommuneIds.includes(k.id)}
+                      onChange={() => toggleKommune(k.id)}
+                    />
+                    {k.display_name}
+                  </label>
+                ))
+              )}
+            </div>
+          </label>
+          <label className="ops-label" style={{ gridColumn: '1 / -1' }}>
+            {t('opsEventGeographyRegionKeys')}
+            <input
+              className="ops-input"
+              value={regionKeysInput}
+              onChange={(e) => setRegionKeysInput(e.target.value)}
+              placeholder="narvik, tromso"
             />
           </label>
           <label className="ops-label" style={{ gridColumn: '1 / -1' }}>

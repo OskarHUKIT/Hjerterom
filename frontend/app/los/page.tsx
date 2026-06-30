@@ -9,7 +9,7 @@ import { logPlatformEvent } from '@/app/lib/platformEvents'
 
 type ChatMessage = { role: string; content: string; at?: string }
 
-const STORAGE_KEY = 'hjerterum_los_session_id'
+const TOKEN_STORAGE_KEY = 'hjerterum_los_anonymous_token'
 
 function botReply(userText: string, t: (key: import('@/lib/translations').TranslationKey) => string): string {
   const lower = userText.toLowerCase()
@@ -47,6 +47,7 @@ export default function LosChatPage() {
   const { t } = useLanguage()
   const toast = useToast()
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [anonymousToken, setAnonymousToken] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [consent, setConsent] = useState(false)
@@ -56,6 +57,7 @@ export default function LosChatPage() {
   const [kommuneSlug, setKommuneSlug] = useState('')
   const [contactName, setContactName] = useState('')
   const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -73,27 +75,42 @@ export default function LosChatPage() {
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const stored = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
-      if (stored) {
-        const { data } = await supabase.from('los_sessions').select('id, messages, handed_off_at').eq('id', stored).maybeSingle()
-        if (!cancelled && data) {
-          setSessionId(data.id)
-          setMessages((data.messages as ChatMessage[]) ?? [])
-          setHandedOff(Boolean(data.handed_off_at))
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null
+
+      if (storedToken) {
+        const { data: resumeData } = await supabase.rpc('los_resume_session', {
+          p_anonymous_token: storedToken,
+        })
+        const resume = resumeData as {
+          ok?: boolean
+          session_id?: string
+          messages?: ChatMessage[]
+          handed_off_at?: string | null
+        } | null
+        if (!cancelled && resume?.ok && resume.session_id) {
+          setSessionId(resume.session_id)
+          setAnonymousToken(storedToken)
+          setMessages((resume.messages as ChatMessage[]) ?? [])
+          setHandedOff(Boolean(resume.handed_off_at))
           return
         }
+        localStorage.removeItem(TOKEN_STORAGE_KEY)
       }
-      const { data, error } = await supabase
-        .from('los_sessions')
-        .insert([{ consent_level: 'anonymous' }])
-        .select('id, messages')
-        .single()
-      if (!cancelled && !error && data) {
-        setSessionId(data.id)
-        localStorage.setItem(STORAGE_KEY, data.id)
+
+      const { data: startData, error } = await supabase.rpc('los_start_session')
+      const start = startData as { ok?: boolean; session_id?: string; anonymous_token?: string } | null
+      if (!cancelled && !error && start?.ok && start.session_id && start.anonymous_token) {
+        setSessionId(start.session_id)
+        setAnonymousToken(start.anonymous_token)
+        localStorage.setItem(TOKEN_STORAGE_KEY, start.anonymous_token)
         const welcome: ChatMessage[] = [{ role: 'assistant', content: t('losWelcome') }]
         setMessages(welcome)
-        await supabase.from('los_sessions').update({ messages: welcome }).eq('id', data.id)
+        await supabase.rpc('los_append_message', {
+          p_session_id: start.session_id,
+          p_role: 'assistant',
+          p_content: t('losWelcome'),
+          p_anonymous_token: start.anonymous_token,
+        })
       }
     })()
     return () => {
@@ -109,11 +126,21 @@ export default function LosChatPage() {
     const userMsg: ChatMessage = { role: 'user', content: text, at: new Date().toISOString() }
     const next = [...messages, userMsg]
     setMessages(next)
-    await supabase.rpc('los_append_message', { p_session_id: sessionId, p_role: 'user', p_content: text })
+    await supabase.rpc('los_append_message', {
+      p_session_id: sessionId,
+      p_role: 'user',
+      p_content: text,
+      p_anonymous_token: anonymousToken,
+    })
     const reply = await fetchLosReply(text, t)
     const botMsg: ChatMessage = { role: 'assistant', content: reply, at: new Date().toISOString() }
     setMessages([...next, botMsg])
-    await supabase.rpc('los_append_message', { p_session_id: sessionId, p_role: 'assistant', p_content: reply })
+    await supabase.rpc('los_append_message', {
+      p_session_id: sessionId,
+      p_role: 'assistant',
+      p_content: reply,
+      p_anonymous_token: anonymousToken,
+    })
     void logPlatformEvent({
       source: 'los',
       code: 'chat_turn',
@@ -138,25 +165,23 @@ export default function LosChatPage() {
     }
     setBusy(true)
     const summary = messages.map((m) => `${m.role}: ${m.content}`).join('\n').slice(0, 4000)
-    const { data: handoffId, error } = await supabase.rpc('los_create_handoff', {
+    const { data, error } = await supabase.rpc('los_create_handoff', {
       p_session_id: sessionId,
       p_summary: summary,
       p_kommune_slug: kommuneSlug || null,
       p_contact_name: contactName.trim(),
       p_contact_phone: contactPhone.trim() || null,
+      p_contact_email: contactEmail.trim() || null,
+      p_anonymous_token: anonymousToken,
     })
     setBusy(false)
     if (error) {
       toast(error.message, 'error')
       return
     }
-    if (handoffId) {
-      const { data: row } = await supabase
-        .from('los_handoffs')
-        .select('case_reference')
-        .eq('id', handoffId)
-        .maybeSingle()
-      setCaseReference(row?.case_reference ?? null)
+    const handoff = data as { ok?: boolean; case_reference?: string } | null
+    if (handoff?.case_reference) {
+      setCaseReference(handoff.case_reference)
     }
     setHandedOff(true)
     toast(t('losHandoffSent'), 'success')
@@ -224,6 +249,23 @@ export default function LosChatPage() {
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
                   autoComplete="name"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: '1px solid rgba(148, 163, 184, 0.35)',
+                  }}
+                />
+              </label>
+              <label style={{ display: 'block' }}>
+                <span style={{ display: 'block', marginBottom: 4, fontWeight: 600, fontSize: '0.85rem' }}>
+                  {t('losContactEmailLabel')}
+                </span>
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  autoComplete="email"
                   style={{
                     width: '100%',
                     padding: '10px 12px',

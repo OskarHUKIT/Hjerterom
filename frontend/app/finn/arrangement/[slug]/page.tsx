@@ -101,7 +101,7 @@ export default function FinnEventDetailPage() {
             {listings.map((listing) => {
               const price = formatFinnNightlyPrice(listing.tourism_nightly_price_cents)
               return (
-                <Link key={listing.id} href={`/finn/listing/${listing.id}`} className="finn-card">
+                <Link key={listing.id} href={`/finn/listing/${listing.id}?event=${event.id}`} className="finn-card">
                   <div className="finn-card-body">
                     <h2>{listing.address}</h2>
                     <p className="finn-card-meta">{listing.city}</p>
@@ -128,12 +128,14 @@ export default function FinnEventDetailPage() {
         />
       ) : null}
 
-      <EventInquiryForm
-        eventId={event.id}
-        isTourismRouting={isTourismRouting}
-        eventStart={event.start_date}
-        eventEnd={event.end_date}
-      />
+      {!isTourismRouting ? (
+        <EventInquiryForm
+          eventId={event.id}
+          isTourismRouting={isTourismRouting}
+          eventStart={event.start_date}
+          eventEnd={event.end_date}
+        />
+      ) : null}
     </>
   )
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { opsListKommuner, type OpsKommuneListItem } from '@/app/lib/opsApi'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import OpsShell from '../../components/OpsShell'
@@ -24,6 +25,9 @@ export default function OpsEventDetailPage() {
   const [busy, setBusy] = useState(false)
   const [staffEmail, setStaffEmail] = useState('')
   const [staffRows, setStaffRows] = useState<{ profile_id: string; profiles: { email: string; full_name: string } | null }[]>([])
+  const [kommuner, setKommuner] = useState<OpsKommuneListItem[]>([])
+  const [selectedKommuneIds, setSelectedKommuneIds] = useState<string[]>([])
+  const [regionKeysInput, setRegionKeysInput] = useState('')
 
   const load = async () => {
     if (!slug) return
@@ -31,6 +35,9 @@ export default function OpsEventDetailPage() {
     const { data } = await supabase.from('central_events').select('*').eq('slug', slug).maybeSingle()
     setEvent(data)
     if (data?.id) {
+      const scope = (data.geography_scope ?? {}) as { kommune_ids?: string[]; region_keys?: string[] }
+      setSelectedKommuneIds(Array.isArray(scope.kommune_ids) ? scope.kommune_ids : [])
+      setRegionKeysInput(Array.isArray(scope.region_keys) ? scope.region_keys.join(', ') : '')
       const [{ count }, { data: staff }] = await Promise.all([
         supabase
           .from('listing_event_availability')
@@ -55,7 +62,40 @@ export default function OpsEventDetailPage() {
 
   useEffect(() => {
     void load()
+    void (async () => {
+      try {
+        setKommuner(await opsListKommuner())
+      } catch {
+        setKommuner([])
+      }
+    })()
   }, [slug])
+
+  const toggleKommune = (id: string) => {
+    setSelectedKommuneIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const saveGeography = async () => {
+    if (!event?.id) return
+    setBusy(true)
+    const regionKeys = regionKeysInput
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+    const { error } = await supabase
+      .from('central_events')
+      .update({
+        geography_scope: { kommune_ids: selectedKommuneIds, region_keys: regionKeys },
+      })
+      .eq('id', event.id)
+    setBusy(false)
+    if (error) {
+      toast(error.message, 'error')
+      return
+    }
+    toast(t('opsSaved'), 'success')
+    void load()
+  }
 
   const assignEventStaff = async () => {
     if (!event?.id || !staffEmail.trim()) return
@@ -170,6 +210,35 @@ export default function OpsEventDetailPage() {
             {t('opsEventViewPublic')}
           </Link>
         </div>
+      </OpsPanel>
+      <OpsPanel title={t('opsEventGeographyTitle')} className="ops-stack">
+        <p className="ops-meta" style={{ marginTop: 0 }}>{t('opsEventGeographyLead')}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflowY: 'auto' }}>
+          {kommuner.map((k) => (
+            <label key={k.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                checked={selectedKommuneIds.includes(k.id)}
+                onChange={() => toggleKommune(k.id)}
+                disabled={busy}
+              />
+              {k.display_name}
+            </label>
+          ))}
+        </div>
+        <label className="ops-field">
+          {t('opsEventGeographyRegionKeys')}
+          <input
+            className="ops-input"
+            value={regionKeysInput}
+            onChange={(e) => setRegionKeysInput(e.target.value)}
+            disabled={busy}
+            placeholder="narvik, tromso"
+          />
+        </label>
+        <button type="button" className={buttonClassName('accent')} disabled={busy} onClick={() => void saveGeography()}>
+          {t('opsSave')}
+        </button>
       </OpsPanel>
       <OpsPanel title={t('opsEventStaffTitle')} className="ops-stack">
         <ul style={{ margin: '0 0 16px', paddingLeft: 20 }}>
