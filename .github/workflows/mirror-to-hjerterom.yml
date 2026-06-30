@@ -15,6 +15,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.MIRROR_TOKEN }}
 
       - name: Mirror branches and tags to Hjerterom
         env:
@@ -25,7 +26,6 @@ jobs:
 
           if [ -z "$TOKEN" ]; then
             echo "MIRROR_TOKEN is missing on OskarHUKIT/Boly."
-            echo "Add it under Settings -> Secrets and variables -> Actions -> Repository secrets"
             exit 1
           fi
 
@@ -36,7 +36,6 @@ jobs:
 
           if [ "$HTTP_CODE" != "200" ]; then
             echo "Token cannot read OskarHUKIT/Hjerterom (HTTP ${HTTP_CODE})."
-            echo "Create a classic PAT with the 'repo' scope, or a fine-grained PAT with Contents read/write on both Boly and Hjerterom."
             cat /tmp/repo-check.json || true
             exit 1
           fi
@@ -50,14 +49,14 @@ jobs:
 
           if [ "$PERM" != "True" ]; then
             echo "Token can read Hjerterom but does not have push permission."
-            echo "Use a classic PAT with the full 'repo' scope."
+            echo "Create a classic PAT with the full 'repo' scope."
             exit 1
           fi
 
+          git config --local --unset-all http.https://github.com/.extraheader || true
           git config --global --unset-all http.https://github.com/.extraheader || true
           git config --global credential.helper ""
-          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
 
-          git remote add hjerterom "https://github.com/OskarHUKIT/Hjerterom.git"
-          git push hjerterom --all
-          git push hjerterom --tags
+          DEST="https://x-access-token:${TOKEN}@github.com/OskarHUKIT/Hjerterom.git"
+          git push "$DEST" --all
+          git push "$DEST" --tags
