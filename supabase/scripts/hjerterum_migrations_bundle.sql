@@ -1,0 +1,7 @@
+-- Hjerterum-only (existing Boly): kjør disse fire filene i rekkefølge i SQL Editor
+-- (GitHub Action gjør dette automatisk med database_mode = existing_boly)
+--
+-- 1. supabase/migrations/20260630120000_hjerterum_lanes_and_central_events.sql
+-- 2. supabase/migrations/20260630180000_hjerterum_complete_phase3_5.sql
+-- 3. supabase/migrations/20260630200000_hjerterum_production_ready.sql
+-- 4. supabase/migrations/20260630210000_platform_control_panel.sql

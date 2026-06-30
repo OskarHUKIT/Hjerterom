@@ -25,6 +25,9 @@ jobs:
     if: github.event_name == 'push' || github.event.inputs.confirm == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,31 +39,28 @@ jobs:
 
       - name: Link project
         working-directory: supabase
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
 
-      - name: Mark pre-Hjerterum migrations applied (existing Boly)
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.database_mode == 'existing_boly'
+      - name: Apply Hjerterum migrations only (existing Boly)
+        if: github.event_name == 'push' || github.event.inputs.database_mode == 'existing_boly'
         working-directory: supabase
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
-          for f in migrations/*.sql; do
-            base="$(basename "$f" .sql)"
-            ts="${base%%_*}"
-            if [[ "$ts" -lt "20260630120000" ]]; then
-              echo "Repair (applied): $base"
-              supabase migration repair "$base" --status applied || true
-            fi
+          HJERTERUM=(
+            migrations/20260630120000_hjerterum_lanes_and_central_events.sql
+            migrations/20260630180000_hjerterum_complete_phase3_5.sql
+            migrations/20260630200000_hjerterum_production_ready.sql
+            migrations/20260630210000_platform_control_panel.sql
+          )
+          for f in "${HJERTERUM[@]}"; do
+            echo "Applying $f ..."
+            supabase db execute --linked -f "$f"
+            version="$(basename "$f" .sql)"
+            version="${version%%_*}"
+            supabase migration repair "$version" --status applied
           done
 
-      - name: Push migrations
+      - name: Push all migrations (fresh database)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.database_mode == 'fresh'
         working-directory: supabase
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: supabase db push --yes
