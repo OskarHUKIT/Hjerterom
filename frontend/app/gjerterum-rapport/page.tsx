@@ -34,8 +34,7 @@ export default function GjerterumRapportPage() {
             Digital Los — KI i boligformidling
           </h2>
           <p style={{ marginBottom: 'var(--space-4)' }}>
-            2-siders partnerproposisjon med essensen, korrigert finansieringskart og forespørsel til
-            UiT Narvik og Nav Narvik.
+            2-siders partnerproposisjon — klar til avsending til UiT Narvik og Nav Narvik.
           </p>
           <a
             href={digitalLosPdf}
