@@ -36,6 +36,8 @@ export type ListingDetailsRecord = {
   pet_policy_detail?: string
   latitude?: number | null
   longitude?: number | null
+  map_lat?: number | null
+  map_lng?: number | null
   last_verified?: string | null
   deposit_guarantee?: unknown
   [key: string]: unknown

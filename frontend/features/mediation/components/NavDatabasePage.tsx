@@ -53,6 +53,7 @@ import {
 } from '@/app/lib/formidletNotification'
 import { notifyLandlordInvoiceBasisIfKonto } from '@/app/lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
+import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
 import { getOverviewBackLink } from '@/app/lib/overviewBackNav'
 import type { PostgrestError } from '@supabase/supabase-js'
 import { logError } from '@/app/lib/appLogger'
@@ -88,7 +89,14 @@ const MapView = dynamic(() => import('@/app/components/MapView'), {
   loading: () => <div className="card" style={{ height: '500px' }} />,
 })
 
-export default function NavDatabasePage() {
+export type NavDatabasePortalMode = 'kommune' | 'event'
+
+type NavDatabasePageProps = {
+  portalMode?: NavDatabasePortalMode
+}
+
+export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabasePageProps) {
+  const isEventPortal = portalMode === 'event'
   const { t, locale } = useLanguage()
   const toast = useToast()
   const confirmDialog = useConfirm()
@@ -123,13 +131,57 @@ export default function NavDatabasePage() {
     isError: accessError,
     error: accessQueryError,
     refetch: refetchKommuneAccess,
-  } = useKommuneNavAccess()
+  } = useKommuneNavAccess({ redirectUnauthenticated: !isEventPortal })
 
-  const userRole = access?.kind === 'ok' ? access.userRole : null
-  const kommuneCanEdit = access?.kind === 'ok' ? access.kommuneCanEdit : true
-  const kommuneRegion = access?.kind === 'ok' ? access.kommuneRegion : null
-  const isAuthorized: boolean | null =
-    accessPending || access === undefined
+  const [eventAccessPending, setEventAccessPending] = useState(isEventPortal)
+  const [eventAccessOk, setEventAccessOk] = useState<boolean | null>(null)
+  const [eventStaffRole, setEventStaffRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isEventPortal) return
+    let cancelled = false
+    void (async () => {
+      const { data: auth } = await supabase.auth.getUser()
+      if (!auth.user) {
+        if (!cancelled) {
+          setEventAccessOk(null)
+          setEventAccessPending(false)
+          router.replace('/login?redirect=/nav/event/database')
+        }
+        return
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', auth.user.id)
+        .maybeSingle()
+      if (cancelled) return
+      const role = profile?.role ?? null
+      setEventStaffRole(role)
+      setEventAccessOk(isEventStaffRole(role))
+      setEventAccessPending(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [isEventPortal, router])
+
+  const userRole = isEventPortal
+    ? eventStaffRole
+    : access?.kind === 'ok'
+      ? access.userRole
+      : null
+  const kommuneCanEdit = isEventPortal
+    ? false
+    : access?.kind === 'ok'
+      ? access.kommuneCanEdit
+      : true
+  const kommuneRegion = isEventPortal ? 'event' : access?.kind === 'ok' ? access.kommuneRegion : null
+  const isAuthorized: boolean | null = isEventPortal
+    ? eventAccessPending
+      ? null
+      : eventAccessOk
+    : accessPending || access === undefined
       ? null
       : access.kind === 'unauthenticated'
         ? null
@@ -504,7 +556,43 @@ export default function NavDatabasePage() {
       let error: PostgrestError | null = null
 
       setKommuneFetchError(null)
-      if (isAuthorized && isKommuneStaffRole(userRole)) {
+      if (isEventPortal && isEventStaffRole(userRole)) {
+        const acc: NavDatabaseListingRow[] = []
+        let offset = 0
+        let done = false
+        while (!done && offset < navDbListingsMaxRows) {
+          const res = await supabase.rpc('get_listings_for_event_staff_paged', {
+            p_limit: navDbListingsPageSize,
+            p_offset: offset,
+          })
+          if (res.error) {
+            setKommuneFetchError(res.error.message || t('dbRpcFetchErrorHint'))
+            error = acc.length > 0 ? null : res.error
+            data = acc
+            done = true
+            break
+          }
+          const raw = res.data
+          const batch = (Array.isArray(raw) ? raw : raw != null ? [raw] : []) as NavDatabaseListingRow[]
+          acc.push(...batch)
+          if (batch.length < navDbListingsPageSize) {
+            data = acc
+            error = null
+            done = true
+            break
+          }
+          offset += batch.length
+          if (offset >= navDbListingsMaxRows) {
+            data = acc
+            error = null
+            done = true
+          }
+        }
+        if (!done && acc.length > 0 && data.length === 0) {
+          data = acc
+          error = null
+        }
+      } else if (isAuthorized && isKommuneStaffRole(userRole)) {
         const acc: NavDatabaseListingRow[] = []
         let offset = 0
         let done = false
@@ -732,6 +820,10 @@ export default function NavDatabasePage() {
 
   useEffect(() => {
     if (!isAuthorized) return
+    if (isEventPortal) {
+      fetchListings()
+      return
+    }
     // For kommune uten region ennå: vis tom liste (ikke blank skjerm), så vi henter på nytt når region er satt
     if (isKommuneStaffRole(userRole) && kommuneRegion == null) {
       setLoading(false)
@@ -753,9 +845,10 @@ export default function NavDatabasePage() {
     isAuthorized,
     userRole,
     kommuneRegion,
+    isEventPortal,
   ])
 
-  if (accessError) {
+  if (!isEventPortal && accessError) {
     return (
       <main className="container" style={{ padding: 'var(--space-8)' }}>
         <div className="card" style={{ padding: 'var(--space-6)', maxWidth: 480, margin: '0 auto' }}>
@@ -2389,6 +2482,7 @@ export default function NavDatabasePage() {
               })}
               availability={availability}
               focusListingId={focusListingId || null}
+              listingDetailQuery="?view=nav"
             />
           ) : (
             <div style={{ display: 'grid', gap: 'var(--space-4)' }}>

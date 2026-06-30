@@ -416,8 +416,9 @@ export default function HomeownerRegister() {
         price_monthly_short: priceShort,
         price_monthly_long: priceLong,
         deposit_amount: deposit,
-        latitude: formData.latitude,
-        longitude: formData.longitude,
+        ...(formData.latitude != null && formData.longitude != null
+          ? { map_lat: formData.latitude, map_lng: formData.longitude }
+          : {}),
       }
 
       if (isFirstListing && !agreementRow) {

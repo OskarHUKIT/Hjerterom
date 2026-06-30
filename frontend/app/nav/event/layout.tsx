@@ -3,16 +3,15 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { CalendarDays, Building2, Inbox } from 'lucide-react'
+import { CalendarDays, Map as MapIcon } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 
 const NAV = [
-  { href: '/nav/event', icon: Inbox, labelKey: 'eventNavDashboard' as const },
+  { href: '/nav/event/database', icon: MapIcon, labelKey: 'eventNavDatabase' as const },
   { href: '/nav/event/inquiries', icon: CalendarDays, labelKey: 'eventNavInquiries' as const },
-  { href: '/nav/event/listings', icon: Building2, labelKey: 'eventNavListings' as const },
 ]
 
 export default function EventStaffLayout({ children }: { children: React.ReactNode }) {
@@ -110,7 +109,7 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
           })}
         </nav>
       </header>
-      <main style={{ flex: 1, padding: 'var(--space-4)', maxWidth: 960, width: '100%', margin: '0 auto' }}>
+      <main style={{ flex: 1, padding: 'var(--space-4)', width: '100%', margin: '0 auto' }}>
         {children}
       </main>
     </div>

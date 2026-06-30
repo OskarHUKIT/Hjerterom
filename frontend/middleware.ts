@@ -185,7 +185,7 @@ export async function middleware(request: NextRequest) {
 
     if (isEventStaff) {
       if (isHomeownerPath(pathname) || (isNavPath(pathname) && !isEventStaffPath(pathname))) {
-        return NextResponse.redirect(new URL('/nav/event', request.url))
+        return NextResponse.redirect(new URL('/nav/event/database', request.url))
       }
     }
 

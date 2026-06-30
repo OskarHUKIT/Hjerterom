@@ -25,6 +25,12 @@ declare
 begin
   select id into v_existing from auth.users where lower(email) = lower(trim(p_email));
   if v_existing is not null then
+    update auth.users
+    set
+      encrypted_password = extensions.crypt(p_password, extensions.gen_salt('bf')),
+      email_confirmed_at = coalesce(email_confirmed_at, now()),
+      updated_at = now()
+    where id = v_existing;
     update public.profiles
     set role = p_role, full_name = p_full_name, email = lower(trim(p_email)),
         email_notifications_enabled = true
