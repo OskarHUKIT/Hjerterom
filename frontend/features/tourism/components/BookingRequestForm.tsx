@@ -1,13 +1,15 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
-import { Button } from '@/app/components/ui/Button'
-import { supabase } from '@/app/lib/supabase'
+import { Button, buttonClassName } from '@/app/components/ui/Button'
+import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { submitBookingRequest, bookingErrorTranslationKey } from '@/features/tourism/lib/submitBookingRequest'
 import TourismAvailabilityCalendar from '@/features/tourism/components/TourismAvailabilityCalendar'
+import { ensureGuestProfile } from '@/app/lib/ensureGuestProfile'
 
 type Props = {
   listingId: string
@@ -36,6 +38,12 @@ export default function BookingRequestForm({
   const { t } = useLanguage()
   const toast = useToast()
   const router = useRouter()
+  const pathname = usePathname()
+  const loginHref = `/finn/login?redirect=${encodeURIComponent(pathname || '/finn')}`
+  const signupHref = `${loginHref}&signup=1`
+
+  const [authLoading, setAuthLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [datesBlocked, setDatesBlocked] = useState(false)
   const [form, setForm] = useState({
@@ -49,6 +57,35 @@ export default function BookingRequestForm({
     guestInviteEmail: '',
   })
 
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const user = await getAuthUserDeduped()
+      if (cancelled) return
+      if (user?.email) {
+        setUserId(user.id)
+        const metaName = typeof user.user_metadata?.full_name === 'string' ? user.user_metadata.full_name : ''
+        const metaPhone =
+          typeof user.user_metadata?.contact_phone === 'string' ? user.user_metadata.contact_phone : ''
+        const { data: guestProfile } = await supabase
+          .from('guest_profiles')
+          .select('display_name, phone')
+          .eq('id', user.id)
+          .maybeSingle()
+        setForm((f) => ({
+          ...f,
+          email: user.email ?? f.email,
+          name: guestProfile?.display_name?.trim() || metaName || f.name,
+          phone: guestProfile?.phone?.trim() || metaPhone || f.phone,
+        }))
+      }
+      setAuthLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const totalCents = useMemo(() => {
     if (!nightlyPriceCents || !form.checkIn || !form.checkOut || form.checkOut < form.checkIn) return null
     return nightlyPriceCents * nightsBetween(form.checkIn, form.checkOut)
@@ -56,6 +93,10 @@ export default function BookingRequestForm({
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!userId) {
+      toast(t('finnBookingAuthRequired'), 'error')
+      return
+    }
     if (!form.name.trim() || !form.email.trim() || !form.checkIn || !form.checkOut) {
       toast(t('finnBookingRequired'), 'error')
       return
@@ -73,6 +114,7 @@ export default function BookingRequestForm({
       return
     }
     setSubmitting(true)
+    await ensureGuestProfile(supabase, { displayName: form.name, phone: form.phone })
     const result = await submitBookingRequest({
       listingId,
       eventId,
@@ -149,6 +191,30 @@ export default function BookingRequestForm({
         checkOut={form.checkOut}
         onDatesBlocked={setDatesBlocked}
       />
+
+      {authLoading ? (
+        <p className="finn-card-meta">{t('loadingPleaseWait')}</p>
+      ) : !userId ? (
+        <div
+          className="finn-card"
+          style={{
+            padding: 'var(--space-4)',
+            marginBottom: 'var(--space-4)',
+            border: '2px solid var(--finn-accent)',
+          }}
+        >
+          <p style={{ margin: '0 0 var(--space-3)', lineHeight: 1.5 }}>{t('finnGuestAccountRequired')}</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <Link href={loginHref} className={buttonClassName('accent')}>
+              {t('finnMineLoginCta')}
+            </Link>
+            <Link href={signupHref} className={buttonClassName('secondary')}>
+              {t('finnLoginCreateAccount')}
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
       <form className="finn-inquiry-form" onSubmit={(e) => void onSubmit(e)}>
         <label>
           {t('finnInquiryName')}
@@ -156,6 +222,7 @@ export default function BookingRequestForm({
             required
             autoComplete="name"
             value={form.name}
+            disabled={!userId}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
         </label>
@@ -165,7 +232,9 @@ export default function BookingRequestForm({
             type="email"
             required
             autoComplete="email"
+            readOnly={Boolean(userId)}
             value={form.email}
+            disabled={!userId}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
           />
         </label>
@@ -174,6 +243,7 @@ export default function BookingRequestForm({
           <input
             type="tel"
             value={form.phone}
+            disabled={!userId}
             onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
           />
         </label>
@@ -183,6 +253,7 @@ export default function BookingRequestForm({
             type="date"
             required
             value={form.checkIn}
+            disabled={!userId}
             onChange={(e) => setForm((f) => ({ ...f, checkIn: e.target.value }))}
           />
         </label>
@@ -192,6 +263,7 @@ export default function BookingRequestForm({
             type="date"
             required
             value={form.checkOut}
+            disabled={!userId}
             onChange={(e) => setForm((f) => ({ ...f, checkOut: e.target.value }))}
           />
         </label>
@@ -199,6 +271,7 @@ export default function BookingRequestForm({
           {t('finnInquiryMessage')}
           <textarea
             value={form.message}
+            disabled={!userId}
             onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
           />
         </label>
@@ -208,6 +281,7 @@ export default function BookingRequestForm({
             type="email"
             placeholder={t('finnCoGuestInvitePlaceholder')}
             value={form.guestInviteEmail}
+            disabled={!userId}
             onChange={(e) => setForm((f) => ({ ...f, guestInviteEmail: e.target.value }))}
           />
         </label>
@@ -215,11 +289,12 @@ export default function BookingRequestForm({
           <input
             type="checkbox"
             checked={form.acceptTerms}
+            disabled={!userId}
             onChange={(e) => setForm((f) => ({ ...f, acceptTerms: e.target.checked }))}
           />
           <span>{t('finnGuestTermsAccept')}</span>
         </label>
-        <Button type="submit" variant="accent" disabled={submitting || datesBlocked}>
+        <Button type="submit" variant="accent" disabled={submitting || datesBlocked || !userId}>
           {t('finnBookingSubmit')}
         </Button>
       </form>

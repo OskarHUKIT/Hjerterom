@@ -73,7 +73,18 @@ Full liste i SQL-filen (`jsonb`-blokken for utleiere).
 ### Finn / turisme
 - `/finn` — kart med ~22 turismeboliger  
 - `/finn/arrangement/arctic-ski-narvik-2026`  
-- Logg inn som **emma.becker@demo.ofoten.no** → `/finn/mine`
+- `/finn/login` — leietakerkonto (e-post + passord)  
+- Logg inn som **emma.becker@demo.ofoten.no** → `/finn/mine` (leietakerrolle)
+
+### Leietaker (Finn)
+
+| Rolle | E-post |
+|-------|--------|
+| Leietaker | `emma.becker@demo.ofoten.no` |
+| Leietaker | `pierre.martin@demo.ofoten.no` |
+| Leietaker | `ole.nordmann@demo.ofoten.no` |
+
+Passord for alle demo-kontoer: **`Ofoten2026!`**
 
 ### Ops
 - `/ops/events` — 5 arrangement  
