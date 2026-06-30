@@ -86,7 +86,7 @@
 
 **Ungdom:** Minimal friksjon — chat, ett samtykk, ett saksnummer, tydelig «noen tar kontakt».
 
-**Saksbehandler:** Samme mental modell som formidling — innboks → ta sak → boligbank. Ikke raw `<pre>`-dump som sluttstation.
+**Saksbehandler:** Samme mental modell som formidling — innboks → ta sak → boligbank. **Alle SB i kommunen** ser alle Los-saker der. Kobling skjer **kun via KI-chat** (placeholder OK).
 
 ---
 
@@ -116,6 +116,8 @@
 | T3.6 | Booking-bekreftelse e-post |
 | T3.7 | EN/NB språkvelger prominent på Finn |
 | T3.8 | Rate limiting på public inserts |
+| T3.9 | **Gruppebooking** (flere boliger per event) |
+| T3.10 | **Anmeldelser v1** (etter opphold) |
 
 ---
 
@@ -133,7 +135,7 @@
 | # | Oppgave | Prioritet |
 |---|---------|-----------|
 | E1 | Ops: rediger `geography_scope` | P0 |
-| E2 | Ops: `central_event_staff` UI + **`event_ansatt` rolle** | **P0** |
+| E2 | Ops: `central_event_staff` UI + **`event_ansatt` rolle** + **isolasjon fra sosial** | **P0** |
 | E3 | Skill routing: `saksbehandler` vs `turisme` på Finn | P0 |
 | E4 | Push ved event publish til utleiere | P1 |
 | E5 | Custom opt-in periode (sub-range av event) | P2 |
