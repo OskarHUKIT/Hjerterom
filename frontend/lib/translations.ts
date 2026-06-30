@@ -45,6 +45,11 @@ export const translations = {
       'Utleiere og saksbehandlere i dine regioner. Med kun lesetilgang kan du skrive med andre saksbehandlere; meldinger fra utleiere er til lesing.',
     tabLandlords: 'Utleiere',
     tabStaff: 'Saksbehandlere',
+    tabLos: 'Digital Los',
+    messagesLosPanelTitle: 'Overleveringer fra ungdom',
+    messagesLosPanelDesc:
+      'Los-saker håndteres i innboksen. Full chat-tråd i meldinger kommer snart — samme design som utleier-samtaler.',
+    messagesLosPanelCta: 'Åpne Los-innboks',
     staffEditAccess: 'Kan redigere (formidling m.m.)',
     kommuneAdminRole: 'Kommune-admin',
     termsMissingForRegion:
@@ -1478,6 +1483,10 @@ export const translations = {
       'Goddánuslohkkit ja sáhttibealddit du guovlluin. Jus dus lea dušše lohkanoktavuohta, sáhttát čállit eará sáhttibealddiiguin; goddánuslohkkiid sáhcastagat leat lohkamii.',
     tabLandlords: 'Goddánuslohkkit',
     tabStaff: 'Sáhttibealddit',
+    tabLos: 'Digital Los',
+    messagesLosPanelTitle: 'Los overleveringer',
+    messagesLosPanelDesc: 'Los-inbox.',
+    messagesLosPanelCta: 'Los-inbox',
     staffEditAccess: 'Sáhttá rievddadit',
     kommuneAdminRole: 'Kommuvdna-admin',
     termsMissingForRegion:
@@ -2882,6 +2891,11 @@ export const translations = {
       'Landlords and caseworkers in your regions. With view-only access you can message other caseworkers; landlord messages are read-only.',
     tabLandlords: 'Landlords',
     tabStaff: 'Caseworkers',
+    tabLos: 'Digital Los',
+    messagesLosPanelTitle: 'Youth handoffs',
+    messagesLosPanelDesc:
+      'Los cases are handled in the inbox. Full chat threads in Messages are coming soon.',
+    messagesLosPanelCta: 'Open Los inbox',
     staffEditAccess: 'Edit access (mediation etc.)',
     kommuneAdminRole: 'Municipality admin',
     termsMissingForRegion:

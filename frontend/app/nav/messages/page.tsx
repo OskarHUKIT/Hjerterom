@@ -14,6 +14,7 @@ import {
   ImagePlus,
   X,
   Users,
+  MessageCircle,
   Home,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -25,6 +26,7 @@ import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { OptimizedPublicStorageImage } from '../../components/OptimizedPublicStorageImage'
+import { usePlatformMode } from '../../../context/PlatformModeContext'
 import { useChatUserBootstrap } from '../../hooks/useChatUserBootstrap'
 
 const LandlordOnboardingModal = dynamic(() => import('../../components/LandlordOnboardingModal'), {
@@ -83,13 +85,17 @@ function MessagesContent() {
   const [landlordAccounts, setLandlordAccounts] = useState<{ id: string; name: string }[]>([])
   const [showLandlordMessagesIntro, setShowLandlordMessagesIntro] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  /** Sidefelt: velg liste under Samtaler (utleiere uten tråd vs. saksbehandlere). */
-  const [messagesPickerTab, setMessagesPickerTab] = useState<'landlords' | 'staff'>('landlords')
+  const { flags: platformFlags } = usePlatformMode()
+  /** Sidefelt: velg liste under Samtaler (utleiere / saksbehandlere / Digital Los). */
+  const [messagesPickerTab, setMessagesPickerTab] = useState<'landlords' | 'staff' | 'los'>(
+    'landlords'
+  )
   const [messagesContactSearch, setMessagesContactSearch] = useState('')
   const messagesScrollRef = useRef<HTMLDivElement>(null)
   /** Visningsnavn for avsender (kollega i delt tråd / saksbehandler fra utleiers perspektiv). */
   const [threadSenderLabelById, setThreadSenderLabelById] = useState<Record<string, string>>({})
   const isKommune = role === 'kommune_ansatt' || role === 'kommune_admin'
+  const losInMessagesEnabled = isKommune && platformFlags.los
   const peerIsKommuneColleague = peerRole === 'kommune_ansatt' || peerRole === 'kommune_admin'
   const readonlyBlocksReply =
     isKommune &&
@@ -1035,6 +1041,41 @@ function MessagesContent() {
                   <Users size={16} style={{ opacity: 0.9, flexShrink: 0 }} />
                   {t('tabStaff')}
                 </button>
+                {losInMessagesEnabled ? (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={messagesPickerTab === 'los'}
+                    onClick={() => {
+                      setMessagesPickerTab('los')
+                      setMessagesContactSearch('')
+                    }}
+                    style={{
+                      flex: 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border:
+                        messagesPickerTab === 'los'
+                          ? '1px solid rgba(45, 212, 191, 0.45)'
+                          : '1px solid var(--border-subtle)',
+                      background:
+                        messagesPickerTab === 'los'
+                          ? 'rgba(45, 212, 191, 0.14)'
+                          : 'var(--bg-subtle)',
+                      color: 'var(--text-main)',
+                      fontWeight: 600,
+                      fontSize: '0.9rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <MessageCircle size={16} style={{ opacity: 0.9, flexShrink: 0 }} />
+                    {t('tabLos')}
+                  </button>
+                ) : null}
               </div>
 
               <div
@@ -1049,7 +1090,37 @@ function MessagesContent() {
                   minHeight: 0,
                 }}
               >
-                {messagesPickerTab === 'landlords' ? (
+                {messagesPickerTab === 'los' ? (
+                  <div
+                    style={{
+                      padding: 'var(--space-3)',
+                      borderRadius: '10px',
+                      background: 'rgba(45, 212, 191, 0.08)',
+                      border: '1px solid rgba(45, 212, 191, 0.25)',
+                    }}
+                  >
+                    <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: '0.9rem' }}>
+                      {t('messagesLosPanelTitle')}
+                    </p>
+                    <p style={{ margin: '0 0 12px', fontSize: '0.82rem', lineHeight: 1.5, opacity: 0.85 }}>
+                      {t('messagesLosPanelDesc')}
+                    </p>
+                    <Link
+                      href="/nav/los-inbox"
+                      className="button button-accent"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: '0.85rem',
+                        padding: '8px 12px',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      {t('messagesLosPanelCta')} <ChevronRight size={16} aria-hidden />
+                    </Link>
+                  </div>
+                ) : messagesPickerTab === 'landlords' ? (
                   landlordAccounts.length === 0 ? (
                     <p className="text-sm" style={{ opacity: 0.65, margin: 0 }}>
                       {t('messagesNoLandlordsInRegion')}
