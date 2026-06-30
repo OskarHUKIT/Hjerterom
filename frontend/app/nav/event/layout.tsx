@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { CalendarDays, Map as MapIcon } from 'lucide-react'
+import { CalendarDays, Map as MapIcon, MessageSquare } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
@@ -12,6 +12,7 @@ import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 const NAV = [
   { href: '/nav/event/database', icon: MapIcon, labelKey: 'eventNavDatabase' as const },
   { href: '/nav/event/inquiries', icon: CalendarDays, labelKey: 'eventNavInquiries' as const },
+  { href: '/nav/event/messages', icon: MessageSquare, labelKey: 'eventNavMessages' as const },
 ]
 
 export default function EventStaffLayout({ children }: { children: React.ReactNode }) {

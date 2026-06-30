@@ -644,7 +644,7 @@ export default function ListingDetailsClient() {
             setViewerIsEventStaff(isEvent)
             setKommuneCanEdit(
               isEvent
-                ? false
+                ? true
                 : profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false
             )
             if (!isKommune && !isEvent) {
