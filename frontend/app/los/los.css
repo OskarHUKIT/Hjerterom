@@ -1,0 +1,136 @@
+/* Digital Los — calm, accessible chat-first UI (always light) */
+
+.los-shell {
+  --los-bg: #0f172a;
+  --los-bg-panel: #1e293b;
+  --los-text: #f8fafc;
+  --los-text-muted: #94a3b8;
+  --los-accent: #2dd4bf;
+  --los-user-bubble: #334155;
+  --los-bot-bubble: rgba(45, 212, 191, 0.15);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at top, #1e3a5f 0%, var(--los-bg) 55%);
+  color: var(--los-text);
+}
+
+.los-header {
+  padding: var(--space-4) max(var(--space-4), env(safe-area-inset-left))
+    var(--space-4) max(var(--space-4), env(safe-area-inset-right));
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.los-header h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.los-header p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--los-text-muted);
+}
+
+.los-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-4);
+  box-sizing: border-box;
+}
+
+.los-messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  min-height: 50vh;
+}
+
+.los-bubble {
+  max-width: 85%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: 16px;
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+.los-bubble--user {
+  align-self: flex-end;
+  background: var(--los-user-bubble);
+  color: var(--los-text);
+  border-bottom-right-radius: 4px;
+}
+
+.los-bubble--assistant {
+  align-self: flex-start;
+  background: var(--los-bot-bubble);
+  color: var(--los-text);
+  border: 1px solid rgba(45, 212, 191, 0.25);
+  border-bottom-left-radius: 4px;
+}
+
+.los-input-row {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3) 0 calc(var(--space-3) + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.los-input-row input {
+  flex: 1;
+  min-height: var(--touch-target, 44px);
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: var(--los-bg-panel);
+  color: var(--los-text);
+  font: inherit;
+}
+
+.los-input-row input::placeholder {
+  color: var(--los-text-muted);
+}
+
+.los-input-row input:focus {
+  outline: 2px solid var(--los-accent);
+  outline-offset: 1px;
+}
+
+.los-consent {
+  font-size: 0.8rem;
+  color: var(--los-text-muted);
+  line-height: 1.5;
+  margin-bottom: var(--space-3);
+}
+
+.los-consent label {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.los-consent input {
+  margin-top: 3px;
+}
+
+.los-handoff-banner {
+  padding: var(--space-3) var(--space-4);
+  border-radius: 12px;
+  background: rgba(45, 212, 191, 0.12);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  font-size: 0.9rem;
+  margin-bottom: var(--space-3);
+}

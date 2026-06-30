@@ -4,6 +4,14 @@ import { usePathname } from 'next/navigation'
 import Header from './Header'
 import Footer from './Footer'
 
+function isFinnRoute(pathname: string | null): boolean {
+  return pathname === '/finn' || (pathname?.startsWith('/finn/') ?? false)
+}
+
+function isLosRoute(pathname: string | null): boolean {
+  return pathname === '/los' || (pathname?.startsWith('/los/') ?? false)
+}
+
 function isOpsRoute(pathname: string | null): boolean {
   return pathname === '/ops' || (pathname?.startsWith('/ops/') ?? false)
 }
@@ -11,9 +19,17 @@ function isOpsRoute(pathname: string | null): boolean {
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const ops = isOpsRoute(pathname)
+  const finn = isFinnRoute(pathname)
+  const los = isLosRoute(pathname)
 
-  if (ops) {
-    return <div className="site-main site-main--ops">{children}</div>
+  if (ops || finn || los) {
+    return (
+      <div
+        className={`site-main${ops ? ' site-main--ops' : finn ? ' site-main--finn' : ' site-main--los'}`}
+      >
+        {children}
+      </div>
+    )
   }
 
   return (

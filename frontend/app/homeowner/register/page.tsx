@@ -36,6 +36,7 @@ import { savePendingFirstListingDraft } from '../lib/pendingFirstListing'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
+import PageSkeleton from '../../components/design-system/PageSkeleton'
 
 export default function HomeownerRegister() {
   const { t } = useLanguage()
@@ -534,7 +535,7 @@ export default function HomeownerRegister() {
     }
   }
 
-  if (hasSignedTerms === null) return <div className="container" style={{ minHeight: '80vh' }} />
+  if (hasSignedTerms === null) return <PageSkeleton minHeight={400} />
 
   return (
     <main className="container">

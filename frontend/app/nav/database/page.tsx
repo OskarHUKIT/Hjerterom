@@ -193,6 +193,25 @@ export default function NavDatabase() {
   const [mapStatusFilter, setMapStatusFilter] = useState<
     ('Tilgjengelig' | 'Utilgjengelig' | 'Formidlet')[]
   >(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'])
+  const [eventFilterId, setEventFilterId] = useState('Alle')
+  const [publishedEvents, setPublishedEvents] = useState<{ id: string; name: string }[]>([])
+
+  useEffect(() => {
+    if (!isKommuneStaffRole(userRole)) return
+    let cancelled = false
+    void (async () => {
+      const { data } = await supabase
+        .from('central_events')
+        .select('id, name')
+        .eq('status', 'published')
+        .order('start_date', { ascending: false })
+        .limit(30)
+      if (!cancelled) setPublishedEvents((data ?? []) as { id: string; name: string }[])
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [userRole])
 
   const ALL_COLUMNS = [
     { id: 'address', label: t('address') },
@@ -697,6 +716,16 @@ export default function NavDatabase() {
         })
       }
 
+      if (eventFilterId !== 'Alle') {
+        const { data: eventOptIns } = await supabase
+          .from('listing_event_availability')
+          .select('listing_id')
+          .eq('event_id', eventFilterId)
+          .eq('status', 'active')
+        const eventListingIds = new Set((eventOptIns ?? []).map((r) => r.listing_id))
+        filtered = filtered.filter((item) => eventListingIds.has(item.id))
+      }
+
       let availMap: Record<string, ListingAvailabilityRow[]> = {}
       if (filtered.length > 0) {
         const listingIds = filtered.map((l) => l.id)
@@ -767,6 +796,7 @@ export default function NavDatabase() {
     activeTab,
     searchTerm,
     filters,
+    eventFilterId,
     sortField,
     sortOrder,
     viewMode,
@@ -1651,6 +1681,22 @@ export default function NavDatabase() {
               gap: 'var(--space-6)',
             }}
           >
+            <div>
+              <label className="label">{t('dbFilterEvent')}</label>
+              <select
+                className="input"
+                value={eventFilterId}
+                onChange={(e) => setEventFilterId(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                <option value="Alle">{t('dbFilterEventAll')}</option>
+                {publishedEvents.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="label">{t('dbSearch')}</label>
               <div style={{ position: 'relative' }}>

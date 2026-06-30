@@ -2330,3 +2330,155 @@ body {
 [data-theme='light'] .report-filter-option[data-selected='true']:hover {
   background: rgba(59, 130, 246, 0.25) !important;
 }
+
+/* ─── Design system (Hjerterum) ─── */
+.ds-empty {
+  text-align: center;
+  padding: var(--space-8) var(--space-6);
+}
+
+.ds-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--color-royal-blue);
+  margin-bottom: var(--space-4);
+}
+
+.ds-empty-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 var(--space-2);
+}
+
+.ds-empty-desc {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  margin: 0 0 var(--space-4);
+  max-width: 36ch;
+  margin-inline: auto;
+}
+
+.ds-empty-action {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.ds-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(8, 15, 30, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.ds-dialog {
+  width: min(100%, 420px);
+  padding: var(--space-6);
+}
+
+.ds-dialog-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.25rem;
+  margin: 0 0 var(--space-3);
+  color: var(--text-main);
+}
+
+.ds-dialog-message {
+  color: var(--text-body);
+  margin: 0 0 var(--space-5);
+  line-height: 1.5;
+}
+
+.ds-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.ds-toast-region {
+  position: fixed;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  right: 16px;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.ds-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+.ds-toast--success {
+  border-color: rgba(45, 212, 191, 0.45);
+}
+
+.ds-toast--error {
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.ds-toast-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ds-check-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.ds-tourism-settings {
+  margin-top: var(--space-4);
+}
+
+.ds-tourism-settings-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.ds-tourism-settings-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+body.mobile-bottom-nav-active .ds-toast-region {
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}

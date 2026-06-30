@@ -12,6 +12,7 @@ import {
   Building2,
   HeartPulse,
   ArrowLeft,
+  CalendarDays,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useLanguage } from '../../../context/LanguageContext'
@@ -22,6 +23,7 @@ import { OpsPageSkeleton } from './OpsSkeleton'
 
 const NAV_ITEMS = [
   { href: '/ops', icon: LayoutDashboard, labelKey: 'opsNavDashboard' as const, exact: true },
+  { href: '/ops/events', icon: CalendarDays, labelKey: 'opsNavEvents' as const },
   { href: '/ops/kommuner', icon: Building2, labelKey: 'opsNavKommuner' as const },
   { href: '/ops/service-areas', icon: Building2, labelKey: 'opsNavServiceAreas' as const },
   { href: '/ops/accounts', icon: Users, labelKey: 'opsNavAccounts' as const },

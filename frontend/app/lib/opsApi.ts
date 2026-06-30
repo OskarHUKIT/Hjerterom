@@ -294,6 +294,8 @@ export type OpsKommuneDetail = {
     launched_at: string | null
     notes: string | null
     created_at: string
+    digital_los_enabled?: boolean
+    tourism_enabled?: boolean
   }
   health_metrics: OpsKommuneHealth
   staff: {
@@ -401,6 +403,19 @@ export async function opsGetKommuneDetail(slug: string): Promise<OpsKommuneDetai
   const { data, error } = await supabase.rpc('ops_get_kommune_detail', { p_slug: slug })
   if (error) throw error
   return data as OpsKommuneDetail
+}
+
+export async function opsSetKommuneFeatures(
+  slug: string,
+  features: { digitalLosEnabled?: boolean; tourismEnabled?: boolean }
+) {
+  const { data, error } = await supabase.rpc('ops_set_kommune_features', {
+    p_slug: slug,
+    p_digital_los_enabled: features.digitalLosEnabled ?? null,
+    p_tourism_enabled: features.tourismEnabled ?? null,
+  })
+  if (error) throw error
+  return data
 }
 
 export async function opsUpsertKommune(args: {

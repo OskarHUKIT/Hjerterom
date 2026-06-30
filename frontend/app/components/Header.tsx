@@ -34,6 +34,7 @@ import {
 } from '../lib/kommuneRoles'
 import { devInfo, logError } from '@/app/lib/appLogger'
 import MobileBottomNav from './MobileBottomNav'
+import { navItemsFor, isNavActive } from '../../lib/navConfig'
 
 export default function Header() {
   const router = useRouter()
@@ -205,23 +206,22 @@ export default function Header() {
             </Link>
           ) : (
             <>
-              <Link prefetch={false} href="/nav/database" className="nav-link" onClick={closeMobileNav}>
-                {t('housingBank')}
-              </Link>
-              <Link prefetch={false} href="/nav/users" className="nav-link" onClick={closeMobileNav}>
-                {kommuneNavUsesAccountsLabel(navRoleForLinks) ? t('navAccounts') : t('navLandlords')}
-              </Link>
-              <Link prefetch={false} href="/nav/messages" className="nav-link" onClick={closeMobileNav}>
-                {t('messages')}
-              </Link>
-              <Link prefetch={false} href="/nav/expired" className="nav-link" onClick={closeMobileNav}>
-                {t('expired')}
-              </Link>
-              {isKommuneAdminRole(navRoleForLinks) && (
-                <Link prefetch={false} href="/nav/terms-documents" className="nav-link" onClick={closeMobileNav}>
-                  {t('termsDocumentsNav')}
+              {navItemsFor('kommune', 'headerDesktop', {
+                isAdmin: isKommuneAdminRole(navRoleForLinks),
+              }).map((item) => (
+                <Link
+                  key={item.id}
+                  prefetch={false}
+                  href={item.href}
+                  className="nav-link"
+                  onClick={closeMobileNav}
+                  aria-current={isNavActive(pathname, item.href) ? 'page' : undefined}
+                >
+                  {item.id === 'users' && kommuneNavUsesAccountsLabel(navRoleForLinks)
+                    ? t('navAccounts')
+                    : t(item.labelKey as Parameters<typeof t>[0])}
                 </Link>
-              )}
+              ))}
             </>
           )}
         </>
