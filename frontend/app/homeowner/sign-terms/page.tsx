@@ -651,7 +651,7 @@ function SignTermsContent() {
               gap: 'var(--space-2)',
             }}
           >
-            <ArrowLeft size={18} /> Avbryt og gå tilbake
+            <ArrowLeft size={18} /> {t('signTermsBack')}
           </Link>
           <h1 style={{ fontSize: 'var(--fluid-h1-hero)', marginBottom: 'var(--space-2)' }}>
             {t('signTermsPageTitle')}

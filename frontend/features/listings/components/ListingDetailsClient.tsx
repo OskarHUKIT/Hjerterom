@@ -69,6 +69,7 @@ import {
 import { notifyLandlordInvoiceBasisIfKonto } from '@/app/lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
+import { getAppHubHref } from '@/app/lib/appHubNav'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '@/app/lib/storagePublicUrl'
 import {
   getHouseRulesPublicUrl,
@@ -143,6 +144,7 @@ export default function ListingDetailsClient() {
   /** True når innlogget bruker er kommune (for meldingslenke til utleier utenfor nav-visning). */
   const [viewerIsKommuneStaff, setViewerIsKommuneStaff] = useState(false)
   const [viewerIsEventStaff, setViewerIsEventStaff] = useState(false)
+  const [viewerRole, setViewerRole] = useState<string | null>(null)
   /** Utleierens user_agreements.is_terminated – blokkerer formidling og melding i Nav-visning */
   const [ownerAgreementTerminated, setOwnerAgreementTerminated] = useState(false)
   const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{
@@ -638,6 +640,7 @@ export default function ListingDetailsClient() {
               .maybeSingle()
             const role = user.user_metadata?.role || profile?.role
             navViewerRole = role ?? null
+            setViewerRole(role ?? null)
             const isKommune = isKommuneStaffRole(role)
             const isEvent = isEventStaffRole(role)
             setViewerIsKommuneStaff(isKommune)
@@ -658,6 +661,7 @@ export default function ListingDetailsClient() {
               .eq('id', user.id)
               .maybeSingle()
             const role = user.user_metadata?.role || profile?.role
+            setViewerRole(role ?? null)
             setViewerIsKommuneStaff(isKommuneStaffRole(role))
           }
         } else {
@@ -1260,7 +1264,7 @@ export default function ListingDetailsClient() {
               ? viewerIsEventStaff
                 ? '/nav/event/database'
                 : '/nav/database'
-              : '/homeowner/manage'
+              : getAppHubHref(viewerRole)
           }
           className="nav-link listing-details-back-link"
           style={{
@@ -1269,7 +1273,12 @@ export default function ListingDetailsClient() {
             gap: 'var(--space-2)',
           }}
         >
-          <ArrowLeft size={18} /> {isNavView ? t('backToHousingBank') : t('backToMyProperties')}
+          <ArrowLeft size={18} />{' '}
+          {isNavView
+            ? t('backToHousingBank')
+            : viewerRole === 'leietaker'
+              ? t('finnNavMine')
+              : t('backToMyProperties')}
         </Link>
       </div>
 

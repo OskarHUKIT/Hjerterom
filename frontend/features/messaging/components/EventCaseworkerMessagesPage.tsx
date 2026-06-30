@@ -197,7 +197,12 @@ export default function EventCaseworkerMessagesPage() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 320px) 1fr', gap: 16, minHeight: 480 }}>
       <aside className="card" style={{ padding: 'var(--space-3)', overflow: 'auto' }}>
-        <h2 style={{ margin: '0 0 12px', fontSize: '1rem' }}>{t('eventNavMessages')}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <Link href="/nav/event/database" aria-label={t('back')} style={{ color: 'inherit' }}>
+            <ArrowLeft size={18} />
+          </Link>
+          <h2 style={{ margin: 0, fontSize: '1rem' }}>{t('eventNavMessages')}</h2>
+        </div>
         {threads.length === 0 ? (
           <p style={{ opacity: 0.65, fontSize: '0.88rem' }}>{t('noMessagesYet')}</p>
         ) : (
@@ -245,7 +250,7 @@ export default function EventCaseworkerMessagesPage() {
                 gap: 8,
               }}
             >
-              <Link href="/nav/event/database" style={{ color: 'inherit' }} aria-label={t('back')}>
+              <Link href="/nav/event/messages" style={{ color: 'inherit' }} aria-label={t('back')}>
                 <ArrowLeft size={18} />
               </Link>
               <div>

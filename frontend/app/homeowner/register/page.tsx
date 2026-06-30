@@ -34,6 +34,8 @@ import {
   type GeocodeHit,
 } from '../../lib/geocoding'
 import { savePendingFirstListingDraft } from '../lib/pendingFirstListing'
+import { getRegisterBackHref } from '../../lib/appHubNav'
+import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
@@ -48,6 +50,7 @@ export default function HomeownerRegister() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [houseRulesFile, setHouseRulesFile] = useState<File | null>(null)
   const [hasSignedTerms, setHasSignedTerms] = useState<boolean | null>(null)
+  const [backHref, setBackHref] = useState('/')
 
   const [formData, setFormData] = useState({
     owner_name: '',
@@ -116,6 +119,10 @@ export default function HomeownerRegister() {
         return
       }
 
+      const postLogin = await getLandlordPostLoginHref(supabase, user.id, user.email, {
+        reuseProfileRole: profile?.role ?? null,
+      })
+      setBackHref(getRegisterBackHref(postLogin))
       setHasSignedTerms(!!ua && !ua.is_terminated)
     }
     checkTerms()
@@ -544,7 +551,7 @@ export default function HomeownerRegister() {
     <main className="container">
       <div style={{ marginBottom: 'var(--space-8)' }}>
         <Link
-          href="/homeowner/manage"
+          href={backHref}
           className="nav-link"
           style={{
             marginLeft: '-1rem',
@@ -554,7 +561,8 @@ export default function HomeownerRegister() {
             gap: 'var(--space-2)',
           }}
         >
-          <ArrowLeft size={18} /> {t('regBack')}
+          <ArrowLeft size={18} />{' '}
+          {backHref === '/homeowner/manage' ? t('regBack') : t('backToHome')}
         </Link>
         <h1 style={{ fontSize: 'var(--fluid-h1-hero)' }}>{t('regTitle')}</h1>
         <p style={{ maxWidth: '700px', opacity: 0.8 }}>{t('regLead')}</p>

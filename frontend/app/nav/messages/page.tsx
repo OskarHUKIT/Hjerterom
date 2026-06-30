@@ -861,11 +861,13 @@ function MessagesContent() {
   }
 
   const backHref =
-    isKommune && withUserId
+    landlordMobileChatOnly || (kommuneMobileChatOnly && !!withUserId)
       ? '/nav/messages'
-      : isKommune
-        ? '/nav/database'
-        : '/homeowner/manage'
+      : isKommune && withUserId
+        ? '/nav/messages'
+        : isKommune
+          ? '/nav/database'
+          : '/homeowner/manage'
 
   const contactPickerQuery = messagesContactSearch.trim().toLowerCase()
   const filteredLandlordsForPicker = contactPickerQuery
@@ -1715,7 +1717,13 @@ function MessagesContent() {
                   flexShrink: 0,
                 }}
               >
-                {!compactMobileChat && <MessageSquare size={20} style={{ color: 'var(--color-sky-blue)' }} />}
+                {compactMobileChat ? (
+                  <Link href="/nav/messages" aria-label={t('back')}>
+                    <ArrowLeft size={20} />
+                  </Link>
+                ) : (
+                  <MessageSquare size={20} style={{ color: 'var(--color-sky-blue)' }} />
+                )}
                 <span style={{ fontWeight: 600 }}>
                   {isKommune && withUserId
                     ? otherUser
