@@ -2,6 +2,10 @@ name: Mirror to Hjerterom
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/mirror-to-hjerterom.yml
 
 jobs:
   mirror:
