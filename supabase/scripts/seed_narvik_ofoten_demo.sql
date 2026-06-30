@@ -382,9 +382,10 @@ begin
   on conflict do nothing;
 
   -- Event opt-in (mange boliger)
-  insert into public.listing_event_availability (listing_id, event_id, status)
-  select l.listing_id, e.event_id, 'active'
+  insert into public.listing_event_availability (listing_id, event_id, available_from, available_to, status)
+  select l.listing_id, e.event_id, ce.start_date, ce.end_date, 'active'
   from _l l cross join _e e
+  join public.central_events ce on ce.id = e.event_id
   where e.key = 'ski_festival' and l.key in (
     'ingrid_hytte','ingrid_studio','tor_sentrum','kjell_ankenes','haakon_fjord',
     'elin_narvik1','kari_hytte','hanne_ank','ola_pendler','lisa_fjord','magnus_fjell',
@@ -392,18 +393,20 @@ begin
   )
   on conflict do nothing;
 
-  insert into public.listing_event_availability (listing_id, event_id, status)
-  select l.listing_id, e.event_id, 'active'
+  insert into public.listing_event_availability (listing_id, event_id, available_from, available_to, status)
+  select l.listing_id, e.event_id, ce.start_date, ce.end_date, 'active'
   from _l l cross join _e e
+  join public.central_events ce on ce.id = e.event_id
   where e.key = 'veidekke' and l.key in (
     'marit_bjerkvik','petter_ball1','petter_ball2','aase_gratangen',
     'frank_ball3','rune_hytte','tommy_3','geir_hybel1'
   )
   on conflict do nothing;
 
-  insert into public.listing_event_availability (listing_id, event_id, status)
-  select l.listing_id, e.event_id, 'active'
+  insert into public.listing_event_availability (listing_id, event_id, available_from, available_to, status)
+  select l.listing_id, e.event_id, ce.start_date, ce.end_date, 'active'
   from _l l cross join _e e
+  join public.central_events ce on ce.id = e.event_id
   where e.key = 'sommerleir' and l.key in ('silje_gard','aase_gratangen','aase_naust')
   on conflict do nothing;
 
