@@ -13,11 +13,13 @@ type Props = {
   initialNightlyPriceCents: number | null
   initialInstantBook?: boolean
   initialCancellationPolicy?: string
+  initialCheckInGuide?: string | null
   onUpdated?: (patch: {
     tourism_enabled: boolean
     tourism_nightly_price_cents: number | null
     tourism_instant_book?: boolean
     cancellation_policy?: string
+    tourism_check_in_guide?: string | null
   }) => void
 }
 
@@ -27,6 +29,7 @@ export default function ListingTourismSettings({
   initialNightlyPriceCents,
   initialInstantBook = false,
   initialCancellationPolicy = 'moderate',
+  initialCheckInGuide = null,
   onUpdated,
 }: Props) {
   const { t } = useLanguage()
@@ -37,6 +40,7 @@ export default function ListingTourismSettings({
   )
   const [instantBook, setInstantBook] = useState(initialInstantBook)
   const [cancellationPolicy, setCancellationPolicy] = useState(initialCancellationPolicy)
+  const [checkInGuide, setCheckInGuide] = useState(initialCheckInGuide ?? '')
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
@@ -59,6 +63,7 @@ export default function ListingTourismSettings({
           tourism_nightly_price_cents: enabled ? cents : null,
           tourism_instant_book: enabled ? instantBook : false,
           cancellation_policy: enabled ? cancellationPolicy : 'moderate',
+          tourism_check_in_guide: enabled ? (checkInGuide.trim() || null) : null,
         })
         .eq('id', listingId)
 
@@ -69,6 +74,7 @@ export default function ListingTourismSettings({
         tourism_nightly_price_cents: enabled ? cents : null,
         tourism_instant_book: enabled ? instantBook : false,
         cancellation_policy: enabled ? cancellationPolicy : 'moderate',
+        tourism_check_in_guide: enabled ? (checkInGuide.trim() || null) : null,
       })
       toast(t('tourismSaved'), 'success')
     } catch {
@@ -137,6 +143,19 @@ export default function ListingTourismSettings({
               <option value="moderate">{t('finnCancellation_moderate')}</option>
               <option value="strict">{t('finnCancellation_strict')}</option>
             </select>
+          </div>
+          <div style={{ marginTop: 'var(--space-4)' }}>
+            <label className="label" htmlFor={`tourism-checkin-${listingId}`}>
+              {t('checkInGuideTitle')}
+            </label>
+            <textarea
+              id={`tourism-checkin-${listingId}`}
+              className="input"
+              rows={4}
+              value={checkInGuide}
+              onChange={(e) => setCheckInGuide(e.target.value)}
+              placeholder={t('checkInGuidePlaceholder')}
+            />
           </div>
         </>
       ) : null}

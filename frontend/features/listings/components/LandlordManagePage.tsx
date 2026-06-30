@@ -33,6 +33,7 @@ import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import BottomSheet from '@/app/components/BottomSheet'
 import { EmptyState, useToast } from '@/app/components/design-system'
 import ListingTourismSettings from '@/features/listings/components/ListingTourismSettings'
+import ListingCoHostsPanel from '@/features/listings/components/ListingCoHostsPanel'
 import ListingEventOptIn from '@/features/listings/components/ListingEventOptIn'
 import EventTaskCards from '@/features/listings/components/EventTaskCards'
 import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
@@ -1470,12 +1471,21 @@ export default function HomeownerManage() {
                         }
                         initialInstantBook={Boolean(listing.tourism_instant_book)}
                         initialCancellationPolicy={listing.cancellation_policy ?? 'moderate'}
+                        initialCheckInGuide={
+                          typeof listing.tourism_check_in_guide === 'string'
+                            ? listing.tourism_check_in_guide
+                            : null
+                        }
                         onUpdated={(patch) => {
                           setMyListings((prev) =>
                             prev.map((l) => (l.id === listing.id ? { ...l, ...patch } : l))
                           )
                         }}
                       />
+                      ) : null}
+
+                      {platformFlags.tourism && listing.tourism_enabled ? (
+                        <ListingCoHostsPanel listingId={listing.id} />
                       ) : null}
 
                       {platformFlags.centralEvents ? (

@@ -30,6 +30,7 @@ import { OptimizedPublicStorageImage } from '../../components/OptimizedPublicSto
 import { usePlatformMode } from '../../../context/PlatformModeContext'
 import { useChatUserBootstrap } from '../../hooks/useChatUserBootstrap'
 import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
+import MessageQuickRepliesPanel from '@/features/messaging/components/MessageQuickRepliesPanel'
 
 const LandlordOnboardingModal = dynamic(() => import('../../components/LandlordOnboardingModal'), {
   ssr: false,
@@ -1721,6 +1722,13 @@ function MessagesContent() {
                     ))}
                   </div>
                 )}
+                {!inputDisabled && bootOk?.user?.id ? (
+                  <MessageQuickRepliesPanel
+                    userId={bootOk.user.id}
+                    channelType="social_caseworker"
+                    onInsert={(text) => setNewMessage((prev) => (prev.trim() ? `${prev}\n${text}` : text))}
+                  />
+                ) : null}
                 <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
                   <input
                     ref={fileInputRef}
