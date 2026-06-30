@@ -43,14 +43,13 @@ jobs:
 
       - name: Apply Hjerterum migrations only (existing Boly)
         if: github.event_name == 'push' || github.event.inputs.database_mode == 'existing_boly'
-        working-directory: supabase
         run: |
           set -euo pipefail
           HJERTERUM=(
-            migrations/20260630120000_hjerterum_lanes_and_central_events.sql
-            migrations/20260630180000_hjerterum_complete_phase3_5.sql
-            migrations/20260630200000_hjerterum_production_ready.sql
-            migrations/20260630210000_platform_control_panel.sql
+            supabase/migrations/20260630120000_hjerterum_lanes_and_central_events.sql
+            supabase/migrations/20260630180000_hjerterum_complete_phase3_5.sql
+            supabase/migrations/20260630200000_hjerterum_production_ready.sql
+            supabase/migrations/20260630210000_platform_control_panel.sql
           )
           for f in "${HJERTERUM[@]}"; do
             echo "Applying $f ..."
