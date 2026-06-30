@@ -416,7 +416,7 @@ export const translations = {
     loginAuthNoResponse:
       'Innloggingen fikk ikke svar i tide. Sjekk internett, VPN/brannmur og at URL og anon-nøkkel i .env.local matcher Supabase-prosjektet. Prøv igjen om et øyeblikk.',
     loginAuthNetworkFailed:
-      'Kunne ikke nå innloggingstjenesten (nettverksfeil). Sjekk at du er på nett, at ingen annonsblokkerer blokkerer siden, og at NEXT_PUBLIC_SUPABASE_URL i .env.local peker på et tilgjengelig Supabase-prosjekt (samme opprinnelse som siden unngår ofte CORS-problemer).',
+      'Kunne ikke nå innloggingstjenesten (nettverksfeil). Sjekk nett og annonsblokkerer. På Vercel: sett NEXT_PUBLIC_SUPABASE_URL og NEXT_PUBLIC_SUPABASE_ANON_KEY under Environment Variables (Production), redeploy, og test /api/health/supabase. Lokalt: .env.local i frontend/ og restart npm run dev. URL og anon-nøkkel må være fra samme Hjerterum Supabase-prosjekt.',
     retryLoad: 'Prøv igjen',
     orDivider: 'eller',
     loginWithBankID: 'Logg inn med BankID',

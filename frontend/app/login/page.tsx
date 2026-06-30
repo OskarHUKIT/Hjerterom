@@ -251,7 +251,7 @@ function LoginPageContent() {
           '[Boly] Login: request failed before response. Check NEXT_PUBLIC_SUPABASE_URL is reachable from the browser:',
           process.env.NEXT_PUBLIC_SUPABASE_URL || '(missing)'
         )
-        text = t('loginAuthNetworkFailed')
+        text = `${t('loginAuthNetworkFailed')} (${typeof window !== 'undefined' ? window.location.origin : ''})`
       } else {
         const raw = (err?.message || '').toLowerCase()
         if (
