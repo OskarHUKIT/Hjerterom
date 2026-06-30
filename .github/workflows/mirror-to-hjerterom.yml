@@ -58,5 +58,19 @@ jobs:
           git config --global credential.helper ""
 
           DEST="https://x-access-token:${TOKEN}@github.com/OskarHUKIT/Hjerterom.git"
-          git push "$DEST" --all
+
+          if git cat-file -e "main:.github/workflows/mirror-to-hjerterom.yml" 2>/dev/null; then
+            git branch hjerterom-main main
+            git checkout hjerterom-main
+            git rm -f .github/workflows/mirror-to-hjerterom.yml
+            git commit -m "Remove Boly mirror workflow from Hjerterom"
+            git push "$DEST" hjerterom-main:main
+          else
+            git push "$DEST" main:main
+          fi
+
+          for branch in $(git for-each-ref --format='%(refname:short)' refs/heads/ | grep -v '^hjerterom-main$' | grep -v '^main$'); do
+            git push "$DEST" "${branch}:${branch}"
+          done
+
           git push "$DEST" --tags
