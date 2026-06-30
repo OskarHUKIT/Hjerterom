@@ -230,8 +230,8 @@ as $$
         from public.listing_availability la
         where la.listing_id = l.id
           and la.lane = 'turisme'
-          and la.available_from <= p_check_in
-          and la.available_to >= p_check_out
+          and la.start_date <= p_check_in
+          and la.end_date >= p_check_out
       )
     )
   order by l.city, l.address
