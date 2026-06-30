@@ -99,3 +99,7 @@ cd frontend && npm ci && npm run dev
 - **Rate limit:** `/api/stripe/checkout` (20/min/IP)
 - **Sentry (valgfritt):** `NEXT_PUBLIC_SENTRY_DSN` + `npm i @sentry/nextjs`
 - **Finn locale:** default engelsk for turister (`finn.hjerterum.no`)
+
+## 11. Rydde prosjekt og iPad-deploy
+
+Se **`docs/hjerterum/SUPABASE_RESET_AND_IPAD.md`** — reset av gammelt prosjekt, testdata-cleanup, og GitHub Actions for `db push` fra iPad.

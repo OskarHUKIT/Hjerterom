@@ -1,0 +1,44 @@
+name: Supabase Functions Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Skriv deploy for å bekrefte edge functions'
+        required: true
+        type: string
+
+jobs:
+  functions-deploy:
+    if: github.event.inputs.confirm == 'deploy'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        working-directory: supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      - name: Deploy edge functions
+        working-directory: supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy auth-signicat
+          supabase functions deploy los-chat
+          supabase functions deploy notify-terms-central-review
+          supabase functions deploy remind-handover-report
+          supabase functions deploy send-notification-email
+          supabase functions deploy send-push
+          supabase functions deploy sign-agreement
+          supabase functions deploy sign-callback
