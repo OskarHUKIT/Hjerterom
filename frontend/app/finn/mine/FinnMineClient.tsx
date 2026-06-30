@@ -9,6 +9,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import { PageSkeleton, useToast } from '@/app/components/design-system'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
 import { formatDateNo } from '@/app/lib/dateFormat'
+import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
 
 type BookingRow = {
   id: string
@@ -36,6 +37,8 @@ export default function FinnMineClient() {
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewBody, setReviewBody] = useState('')
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
+  const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const loadBookings = async (uid: string, em: string) => {
     const { data } = await supabase
@@ -69,6 +72,7 @@ export default function FinnMineClient() {
         })
         if (termsOk === false) setTermsOpen(true)
         await loadBookings(user.id, user.email)
+        if (highlightId) setExpandedBookingId(highlightId)
       }
       setLoading(false)
     })()
@@ -142,6 +146,19 @@ export default function FinnMineClient() {
       return
     }
     toast(t('finnMagicLinkSent'), 'success')
+  }
+
+  const cancelBooking = async (bookingId: string) => {
+    if (!window.confirm(t('finnCancelBookingConfirm'))) return
+    setCancellingId(bookingId)
+    const { data, error } = await supabase.rpc('guest_cancel_booking', { p_booking_id: bookingId })
+    setCancellingId(null)
+    if (error || data?.ok === false) {
+      toast(error?.message ?? t('finnCancelBookingError'), 'error')
+      return
+    }
+    toast(t('finnCancelBookingDone'), 'success')
+    if (userId && userEmail) void loadBookings(userId, userEmail)
   }
 
   const statusLabel = (status: string) => {
@@ -238,15 +255,39 @@ export default function FinnMineClient() {
                     {listing?.city} · {formatDateNo(b.check_in)} – {formatDateNo(b.check_out)}
                   </p>
                   <span className="finn-badge">{statusLabel(b.status)}</span>
-                  {(b.status === 'accepted' || b.status === 'pending') && (
-                    <Link
-                      href={`/finn/book/${b.id}`}
-                      className={buttonClassName('accent')}
-                      style={{ marginTop: 12, display: 'inline-flex' }}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                    {(b.status === 'accepted' || b.status === 'pending') && (
+                      <Link
+                        href={`/finn/book/${b.id}`}
+                        className={buttonClassName('accent')}
+                        style={{ display: 'inline-flex' }}
+                      >
+                        {t('finnCheckoutPay')}
+                      </Link>
+                    )}
+                    {(b.status === 'accepted' || b.status === 'pending') && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={cancellingId === b.id}
+                        onClick={() => void cancelBooking(b.id)}
+                      >
+                        {t('finnCancelBooking')}
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() =>
+                        setExpandedBookingId((prev) => (prev === b.id ? null : b.id))
+                      }
                     >
-                      {t('finnCheckoutPay')}
-                    </Link>
-                  )}
+                      {expandedBookingId === b.id ? t('finnHideChat') : t('finnOpenChat')}
+                    </Button>
+                  </div>
+                  {expandedBookingId === b.id ? (
+                    <GuestBookingChatPanel bookingId={b.id} compact />
+                  ) : null}
                   {(b.status === 'paid' || b.status === 'completed') && !reviewedIds.has(b.id) ? (
                     <div style={{ marginTop: 12 }}>
                       {reviewBookingId === b.id ? (

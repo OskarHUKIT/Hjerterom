@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { MapPin, Search } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { EmptyState, PageSkeleton, ComingSoonPlaceholder } from '@/app/components/design-system'
+import { EmptyState, PageSkeleton } from '@/app/components/design-system'
+import FinnTourismMap from '@/features/tourism/components/FinnTourismMap'
 import { buttonClassName } from '@/app/components/ui/Button'
 import type { FinnListingCard, FinnSearchFilters } from '@/features/tourism/types/finn'
 import { formatFinnNightlyPrice } from '@/features/tourism/types/finn'
@@ -108,13 +109,7 @@ export default function FinnSearchPage() {
         </button>
       </form>
 
-      <div style={{ marginBottom: 'var(--space-6)' }}>
-        <ComingSoonPlaceholder
-          badge={t('comingSoonBadge')}
-          title={t('finnMapPlaceholderTitle')}
-          description={t('finnMapPlaceholderDesc')}
-        />
-      </div>
+      <FinnTourismMap city={applied.city?.trim() || undefined} />
 
       {loading ? (
         <PageSkeleton minHeight={240} />
@@ -167,13 +162,6 @@ export default function FinnSearchPage() {
         </>
       )}
 
-      <div style={{ marginTop: 'var(--space-8)' }}>
-        <ComingSoonPlaceholder
-          badge="Vipps"
-          title={t('finnVippsPlaceholderTitle')}
-          description={t('finnVippsPlaceholderDesc')}
-        />
-      </div>
     </>
   )
 }

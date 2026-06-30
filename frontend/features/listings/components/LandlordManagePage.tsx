@@ -1468,6 +1468,8 @@ export default function HomeownerManage() {
                             ? listing.tourism_nightly_price_cents
                             : null
                         }
+                        initialInstantBook={Boolean(listing.tourism_instant_book)}
+                        initialCancellationPolicy={listing.cancellation_policy ?? 'moderate'}
                         onUpdated={(patch) => {
                           setMyListings((prev) =>
                             prev.map((l) => (l.id === listing.id ? { ...l, ...patch } : l))

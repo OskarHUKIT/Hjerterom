@@ -12,6 +12,8 @@ type Props = {
   eventId?: string | null
   nightlyPriceCents: number | null
   listingAddress: string
+  instantBook?: boolean
+  cancellationPolicy?: string | null
 }
 
 export default function BookingRequestForm({
@@ -19,6 +21,8 @@ export default function BookingRequestForm({
   eventId,
   nightlyPriceCents,
   listingAddress,
+  instantBook,
+  cancellationPolicy,
 }: Props) {
   const { t } = useLanguage()
   const toast = useToast()
@@ -66,6 +70,11 @@ export default function BookingRequestForm({
       toast(result.error, 'error')
       return
     }
+    if (result.instantBook && result.status === 'accepted') {
+      toast(t('finnInstantBookConfirmed'), 'success')
+      router.push(`/finn/book/${result.id}`)
+      return
+    }
     toast(t('finnBookingSent'), 'success')
     router.push(`/finn/mine?booking=${result.id}`)
   }
@@ -82,9 +91,20 @@ export default function BookingRequestForm({
       </h2>
       <p className="finn-card-meta">{listingAddress}</p>
       {priceLabel ? <p className="finn-price">{priceLabel} / {t('finnPerNight')}</p> : null}
-      <p className="finn-card-meta" style={{ marginBottom: 'var(--space-4)' }}>
-        {t('finnBookingLead')}
-      </p>
+      {instantBook ? (
+        <p className="finn-badge" style={{ display: 'inline-block', marginBottom: 8 }}>
+          {t('finnInstantBookBadge')}
+        </p>
+      ) : null}
+      {cancellationPolicy ? (
+        <p className="finn-card-meta" style={{ marginBottom: 'var(--space-4)' }}>
+          {t('finnCancellationPolicy')}: {t(`finnCancellation_${cancellationPolicy}` as Parameters<typeof t>[0])}
+        </p>
+      ) : (
+        <p className="finn-card-meta" style={{ marginBottom: 'var(--space-4)' }}>
+          {t('finnBookingLead')}
+        </p>
+      )}
       <form className="finn-inquiry-form" onSubmit={(e) => void onSubmit(e)}>
         <label>
           {t('finnInquiryName')}

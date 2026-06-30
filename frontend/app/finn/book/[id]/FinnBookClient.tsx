@@ -62,7 +62,7 @@ export default function FinnBookClient() {
       })
       const data = (await res.json()) as { url?: string; error?: string; code?: string }
       if (!res.ok) {
-        if (data.code === 'vipps_not_configured' || data.code === 'vipps_stub') {
+        if (data.code === 'vipps_not_configured') {
           toast(t('finnVippsNotReady'), 'info')
         } else {
           toast(data.error ?? t('finnCheckoutError'), 'error')
