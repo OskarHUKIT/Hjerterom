@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { MapPin, Search } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { EmptyState, PageSkeleton } from '@/app/components/design-system'
+import { EmptyState, PageSkeleton, ComingSoonPlaceholder } from '@/app/components/design-system'
 import { buttonClassName } from '@/app/components/ui/Button'
 import type { FinnListingCard, FinnSearchFilters } from '@/features/tourism/types/finn'
 import { formatFinnNightlyPrice } from '@/features/tourism/types/finn'
@@ -25,20 +25,28 @@ export default function FinnSearchPage() {
     let cancelled = false
     void (async () => {
       setLoading(true)
-      let query = supabase
-        .from('listings')
-        .select('id, address, city, tourism_nightly_price_cents, image_url, type, beds')
-        .eq('tourism_enabled', true)
-        .order('city', { ascending: true })
-
-      if (applied.city?.trim()) {
-        query = query.ilike('city', `%${applied.city.trim()}%`)
-      }
-
-      const { data, error } = await query.limit(60)
+      const { data, error } = await supabase.rpc('search_tourism_listings', {
+        p_city: applied.city?.trim() || null,
+        p_check_in: applied.checkIn || null,
+        p_check_out: applied.checkOut || null,
+        p_limit: 60,
+      })
 
       if (!cancelled) {
-        if (!error) setListings((data ?? []) as FinnListingCard[])
+        if (!error && Array.isArray(data)) {
+          setListings(data as FinnListingCard[])
+        } else {
+          let query = supabase
+            .from('listings')
+            .select('id, address, city, tourism_nightly_price_cents, image_url, type, beds')
+            .eq('tourism_enabled', true)
+            .order('city', { ascending: true })
+          if (applied.city?.trim()) {
+            query = query.ilike('city', `%${applied.city.trim()}%`)
+          }
+          const fallback = await query.limit(60)
+          if (!fallback.error) setListings((fallback.data ?? []) as FinnListingCard[])
+        }
         setLoading(false)
       }
     })()
@@ -100,6 +108,14 @@ export default function FinnSearchPage() {
         </button>
       </form>
 
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <ComingSoonPlaceholder
+          badge={t('comingSoonBadge')}
+          title={t('finnMapPlaceholderTitle')}
+          description={t('finnMapPlaceholderDesc')}
+        />
+      </div>
+
       {loading ? (
         <PageSkeleton minHeight={240} />
       ) : resultCount === 0 ? (
@@ -119,41 +135,45 @@ export default function FinnSearchPage() {
             {t('finnResultCount').replace('{count}', String(resultCount))}
           </p>
           <div className="finn-grid">
-            {listings.map((listing) => {
-              const price = formatFinnNightlyPrice(listing.tourism_nightly_price_cents)
-              return (
-                <Link key={listing.id} href={`/finn/listing/${listing.id}`} className="finn-card">
-                  <div className="finn-card-image">
-                    {listing.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={listing.image_url}
-                        alt=""
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      t('finnNoPhoto')
-                    )}
-                  </div>
-                  <div className="finn-card-body">
-                    <h2>{listing.address}</h2>
-                    <p className="finn-card-meta">
-                      {listing.city}
-                      {listing.type ? ` · ${listing.type}` : ''}
-                      {listing.beds ? ` · ${listing.beds} ${t('finnBeds')}` : ''}
+            {listings.map((listing) => (
+              <Link key={listing.id} href={`/finn/listing/${listing.id}`} className="finn-card">
+                <div className="finn-card-image">
+                  {listing.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={listing.image_url}
+                      alt=""
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    t('finnNoPhoto')
+                  )}
+                </div>
+                <div className="finn-card-body">
+                  <h2>{listing.address}</h2>
+                  <p className="finn-card-meta">
+                    {listing.city}
+                    {listing.beds ? ` · ${listing.beds} ${t('finnBeds')}` : ''}
+                  </p>
+                  {listing.tourism_nightly_price_cents ? (
+                    <p className="finn-price">
+                      {formatFinnNightlyPrice(listing.tourism_nightly_price_cents)}
                     </p>
-                    {price ? (
-                      <p className="finn-price">
-                        {t('finnFromPrice').replace('{price}', price)}
-                      </p>
-                    ) : null}
-                  </div>
-                </Link>
-              )
-            })}
+                  ) : null}
+                </div>
+              </Link>
+            ))}
           </div>
         </>
       )}
+
+      <div style={{ marginTop: 'var(--space-8)' }}>
+        <ComingSoonPlaceholder
+          badge="Vipps"
+          title={t('finnVippsPlaceholderTitle')}
+          description={t('finnVippsPlaceholderDesc')}
+        />
+      </div>
     </>
   )
 }
