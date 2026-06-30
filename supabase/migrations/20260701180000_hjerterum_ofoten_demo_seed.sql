@@ -545,7 +545,7 @@ begin
   where l.key = 'tor_sentrum';
 
   -- Hurtigsvar
-  insert into public.message_quick_replies (owner_id, title, body, sort_order) values
+  insert into public.message_quick_replies (owner_id, label, body, sort_order) values
     (v_lars, 'Los — første kontakt', 'Hei! Jeg har fått saken din fra Digital Los og ringer deg i løpet av dagen.', 1),
     (v_lars, 'Formidling pågår', 'Vi har funnet aktuelle alternativer og kommer tilbake med forslag.', 2),
     (v_sigrid, 'Trenger mer info', 'Kan du sende telefonnummer og når du kan ta en prat?', 1),
