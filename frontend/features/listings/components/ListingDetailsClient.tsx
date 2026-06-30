@@ -54,6 +54,7 @@ import { Button } from '@/app/components/ui/Button'
 import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
 import { formatDateNo, formatDateTimeNo } from '@/app/lib/dateFormat'
 import { geocodeAddressBestEffort } from '@/app/lib/geocoding'
+import { getListingMapCoords, listingMapCoordsPayload } from '@/app/lib/listingMapCoords'
 import { supabaseErrorMessage } from '@/app/lib/supabaseErrorMessage'
 import { dayAvailabilityToneForIso } from '@/app/lib/listingDayAvailabilityTone'
 import {
@@ -67,6 +68,7 @@ import {
 } from '@/app/lib/formidletNotification'
 import { notifyLandlordInvoiceBasisIfKonto } from '@/app/lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
+import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '@/app/lib/storagePublicUrl'
 import {
   getHouseRulesPublicUrl,
@@ -140,6 +142,7 @@ export default function ListingDetailsClient() {
   const [kommuneCanEdit, setKommuneCanEdit] = useState(false)
   /** True når innlogget bruker er kommune (for meldingslenke til utleier utenfor nav-visning). */
   const [viewerIsKommuneStaff, setViewerIsKommuneStaff] = useState(false)
+  const [viewerIsEventStaff, setViewerIsEventStaff] = useState(false)
   /** Utleierens user_agreements.is_terminated – blokkerer formidling og melding i Nav-visning */
   const [ownerAgreementTerminated, setOwnerAgreementTerminated] = useState(false)
   const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{
@@ -258,12 +261,13 @@ export default function ListingDetailsClient() {
           city: String(nextListing.city || ''),
         })
         if (hit && Number.isFinite(hit.lat) && Number.isFinite(hit.lon)) {
+          const coords = listingMapCoordsPayload(hit.lat, hit.lon)
           const { error: geoErr } = await supabase
             .from('listings')
-            .update({ latitude: hit.lat, longitude: hit.lon })
+            .update(coords)
             .eq('id', id)
           if (!geoErr) {
-            setListing({ ...nextListing, latitude: hit.lat, longitude: hit.lon })
+            setListing({ ...nextListing, ...coords })
           }
         }
       }
@@ -623,6 +627,8 @@ export default function ListingDetailsClient() {
         const user = await getAuthUserDeduped()
         setCurrentUser(user)
 
+        let navViewerRole: string | null = null
+
         if (user) {
           if (isNavView) {
             const { data: profile } = await supabase
@@ -631,11 +637,17 @@ export default function ListingDetailsClient() {
               .eq('id', user.id)
               .maybeSingle()
             const role = user.user_metadata?.role || profile?.role
-            setViewerIsKommuneStaff(isKommuneStaffRole(role))
+            navViewerRole = role ?? null
+            const isKommune = isKommuneStaffRole(role)
+            const isEvent = isEventStaffRole(role)
+            setViewerIsKommuneStaff(isKommune)
+            setViewerIsEventStaff(isEvent)
             setKommuneCanEdit(
-              profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false
+              isEvent
+                ? false
+                : profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false
             )
-            if (!isKommuneStaffRole(role)) {
+            if (!isKommune && !isEvent) {
               router.push(`/listings/${id}?view=owner`)
               return
             }
@@ -654,7 +666,9 @@ export default function ListingDetailsClient() {
 
         const listingPromise =
           isNavView && user
-            ? supabase.rpc('get_listing_by_id_for_kommune', { p_listing_id: id })
+            ? isEventStaffRole(navViewerRole)
+              ? supabase.rpc('get_listing_by_id_for_event_staff', { p_listing_id: id })
+              : supabase.rpc('get_listing_by_id_for_kommune', { p_listing_id: id })
             : supabase.from('listings').select('*').eq('id', id).single()
 
         const agreementPromise = user
@@ -1241,7 +1255,13 @@ export default function ListingDetailsClient() {
         }}
       >
         <Link
-          href={isNavView ? '/nav/database' : '/homeowner/manage'}
+          href={
+            isNavView
+              ? viewerIsEventStaff
+                ? '/nav/event/database'
+                : '/nav/database'
+              : '/homeowner/manage'
+          }
           className="nav-link listing-details-back-link"
           style={{
             display: 'inline-flex',
@@ -1410,10 +1430,8 @@ export default function ListingDetailsClient() {
                   />
                 </Link>
               ) : (() => {
-                  const lat = parseFloat(String(listing.latitude ?? ''))
-                  const lon = parseFloat(String(listing.longitude ?? ''))
-                  const hasCoords = !Number.isNaN(lat) && !Number.isNaN(lon)
-                  if (!hasCoords) {
+                  const coords = getListingMapCoords(listing)
+                  if (!coords) {
                     return (
                       <MapPin
                         size={18}
@@ -1422,6 +1440,7 @@ export default function ListingDetailsClient() {
                       />
                     )
                   }
+                  const { lat, lng: lon } = coords
                   const osm = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`
                   return (
                     <a

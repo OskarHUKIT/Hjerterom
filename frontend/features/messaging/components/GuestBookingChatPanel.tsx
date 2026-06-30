@@ -53,6 +53,27 @@ export default function GuestBookingChatPanel({ bookingId, compact }: Props) {
   }, [load])
 
   useEffect(() => {
+    const channel = supabase
+      .channel(`booking-chat-${bookingId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `booking_id=eq.${bookingId}`,
+        },
+        () => {
+          void load()
+        }
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [bookingId, load])
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -66,7 +87,14 @@ export default function GuestBookingChatPanel({ bookingId, compact }: Props) {
     })
     setBusy(false)
     if (error || data?.ok === false) {
-      toast(error?.message ?? t('errSaveListing'), 'error')
+      const code = String(data?.error ?? error?.message ?? '')
+      const msg =
+        code === 'no_receiver'
+          ? t('bookingChatNoReceiver')
+          : code === 'forbidden'
+            ? t('bookingChatForbidden')
+            : error?.message ?? t('errSaveListing')
+      toast(msg, 'error')
       return
     }
     setInput('')

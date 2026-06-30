@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js'
 import type { QueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabase'
 import { isKommuneStaffRole } from '../kommuneRoles'
+import { isEventStaffRole } from '../eventStaffRoles'
 import { getLandlordPostLoginHref } from '../landlordNavGate'
 import { fetchAuthUserForQueryClient } from './authUserQuery'
 
@@ -18,7 +19,7 @@ export type LandlordNavGateProfile = {
 export type LandlordNavGateResult =
   | { kind: 'anon' }
   | { kind: 'redirect'; href: string; user: User }
-  | { kind: 'ready'; mode: 'kommune' | 'landlord'; user: User; profile: LandlordNavGateProfile | null }
+  | { kind: 'ready'; mode: 'kommune' | 'landlord' | 'event'; user: User; profile: LandlordNavGateProfile | null }
 
 /**
  * Lightweight gate used by /nav/notifications and as part of chat bootstrap.
@@ -48,6 +49,9 @@ export async function fetchLandlordNavGate(qc: QueryClient): Promise<LandlordNav
   const r = profile?.role || user.user_metadata?.role
   if (isKommuneStaffRole(r)) {
     return { kind: 'ready', mode: 'kommune', user, profile }
+  }
+  if (isEventStaffRole(r)) {
+    return { kind: 'ready', mode: 'event', user, profile }
   }
 
   const href = await getLandlordPostLoginHref(supabase, user.id, user.email, {
