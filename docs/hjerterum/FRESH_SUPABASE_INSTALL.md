@@ -73,4 +73,18 @@ Tidligere «existing Boly»-modus i Action er **fjernet** — kun full `db push`
 
 ---
 
+## 7. Innlogging: «Kunne ikke nå innloggingstjenesten»
+
+`.env.local` gjelder **kun lokalt**. På Vercel teller **Environment Variables** + **redeploy**.
+
+1. Vercel → Settings → Environment Variables → **Production**:
+   - `NEXT_PUBLIC_SUPABASE_URL` = `https://REF.supabase.co` (uten trailing `/`)
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = anon key fra **samme** Hjerterum-prosjekt
+2. **Redeploy** etter endring
+3. Test: `https://dittdomene.no/api/health/supabase` → skal vise `"ok": true`
+4. Supabase Dashboard → prosjekt **Active** (ikke Paused)
+5. Authentication → URL Configuration → Site URL + Redirect URLs for domenet ditt
+
+---
+
 Se også: `SUPABASE_DEPLOY.md`, `BRUKERVEILEDNING.md`, `PLATFORM_CONTROL_PANEL.md`
