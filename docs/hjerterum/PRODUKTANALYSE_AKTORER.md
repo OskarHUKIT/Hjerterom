@@ -18,7 +18,7 @@ Hjerterum er **ikke én app** — det er et **synergistisk nettverk** med én bo
 | **Turisme** | Utleier (direct) | Sentral turisme-avtale (+ ev. kommune) | Utleier ↔ leietaker | **Stripe + Vipps** |
 | **Event (saksbehandler)** | Event saksbehandler | Event-spesifikke vilkår | Henvendelse → formidling utenfor | Utenfor Hjerterum |
 | **Event (turisme)** | Utleier + leietaker på Finn | Turisme + event addendum | Utleier ↔ leietaker | In-app |
-| **Los (ungdom)** | Kommune (etter handoff) | Personvern / samtykke | Los → **samme meldingsmotor** | — |
+| **Los (ungdom)** | Kommune (etter KI-handoff) | Personvern / samtykke | **KI kobler** → SB innboks | — |
 
 **Største strukturelle gap i dag:**
 
@@ -87,18 +87,22 @@ Avtalepakke for utleier =
   BASE (alltid)
 + SOSIAL_REGIONAL (hvis listing i kommune X og lane sosial)
 + TURISME_SENTRAL (hvis tourism_enabled — én nasjonal mal fra ops)
-+ EVENT_[slug] (hvis opt-in på sentralt arrangement)
++ EVENT_[slug] (kun når utleier opt-in på det arrangementet — **egen avtale per event**)
 ```
 
 | Avtaletype | Hvem publiserer | Når kreves | Signering |
 |------------|-----------------|------------|-----------|
 | Grunnavtale Boly/Hjerterum | Ops | Alltid | **BankID** (utleier) |
 | Kommune sosial | Kommune admin → ops godkjenner | Listing i kommune + lane sosial | **BankID** (utleier) |
-| Turisme sentral | Ops | `tourism_enabled` | **BankID** (utleier) |
-| Event addendum | Ops (+ event-spesifikke vedlegg) | Event opt-in | **BankID** (utleier) |
-| Leietaker vilkår (Finn) | Ops | Konto + booking | **Click-wrap** (leietaker-konto) |
+| Turisme sentral | **Gamechanging** (via ops) | `tourism_enabled` | **BankID** (utleier) |
+| **Event (per arrangement)** | Ops (+ event-vedlegg) | Utleier **opt-in** på event | **BankID** (utleier) — **én avtale per event** |
+| Leietaker vilkår (Finn) | Ops / Gamechanging | Konto + booking | **Click-wrap** (leietaker-konto) |
 
-**Besluttet (juni 2026):** Utleiere signerer **alltid med BankID**. Leietakere har **egen konto** på Finn og godtar vilkår via **click-wrap** (registrering + booking).
+**Besluttet (juni 2026):**
+
+- Utleiere signerer **alltid med BankID**. Leietakere har **egen konto** på Finn og godtar vilkår via **click-wrap**.
+- **Event:** Hvert sentralt arrangement har **sin egen avtale-PDF**. Utleiere som velger å leie ut på eventet må signere **den event-spesifikke avtalen** før opt-in blir aktiv (BankID).
+- **Turisme:** Nasjonal avtale eies juridisk av **Gamechanging**; ops publiserer og administrerer i plattformen.
 
 **Utleier-side — «Mine avtaler» (ny hub):**
 
@@ -106,10 +110,7 @@ Avtalepakke for utleier =
 - **Blokkerer** turisme-publisering / event opt-in til riktig avtale er signert
 - Varsel-badge på `LandlordManagePage` sidebar
 
-**Fortsatt åpent:**
-
-1. Kan én utleier ha **ulike sosiale avtaler** for boliger i ulike kommuner — signeres én gang per region eller per bolig?
-2. Skal **event-avtale** gjelde alle opt-in boliger, eller kan utleier velge per bolig?
+**Fortsatt åpent:** Kan én utleier ha **ulike sosiale avtaler** for boliger i ulike kommuner — signeres én gang per region eller per bolig?
 
 ### 2.2 Utleier administrasjon (dashboard)
 
@@ -121,7 +122,7 @@ Avtalepakke for utleier =
 | **Boliger** | Eksisterende listing cards |
 | **Kalender & lanes** | Sosial / turisme / event per periode |
 | **Bookinger** | Turisme-forespørsler + status |
-| **Meldinger** | Faner: *Kommune* | *Leietakere* | (fremtid: *Event*) |
+| **Meldinger** | Faner: *Sosial SB* | *Event SB* | *Leietakere* — tydelig merking |
 | **Avtaler** | Matrix region/lane/event |
 | **Stripe / utbetaling** | Connect status |
 
@@ -136,19 +137,24 @@ Avtalepakke for utleier =
 
 **Si fra om du vil prioritere:** prisregler, co-host, eller avtale-matrix først.
 
-### 2.3 Meldinger for utleier
+### 2.3 Meldinger for utleier — **besluttet UX**
 
-**I dag:** Utleier ↔ kommune via `chat_messages` (service area tråd).
+**Prinsipp:** Samme meldingsmotor som i dag, men utleier skal **alltid** se tydelig **hvem** og **hva** de skriver med.
 
-**Må ha:**
+| Motpart | Merke / fane | Kontekstlinje (eksempel) |
+|---------|--------------|---------------------------|
+| **Sosial saksbehandler** (kommune / **NAV**) | 🏛️ Sosial | «Formidling · Narvik» |
+| **Event saksbehandler** | 🎫 Event | «VM 2026 · henvendelse» |
+| **Leietaker** (Finn) | 🧳 Leietaker | «Booking #4821 · 12–15 aug» |
 
-| Motpart | Tråd-type | Når åpnes |
-|---------|-----------|-----------|
-| Kommune saksbehandler | `channel: kommune` | Formidling, sosial |
-| Leietaker (Finn) | `channel: guest_booking` | Etter booking-forespørsel / bekreftet |
-| Event saksbehandler | **Nei** — event utleie skjer utenfor | — |
+**UX-krav (P0):**
 
-**UX:** Tydelig **avatar/merke** på hver tråd: 🏛️ Kommune · 🧳 Leietaker · (ikke event).
+- Farge + ikon + rolle-badge på hver tråd og i tråd-header
+- Faner eller filter: *Sosial* | *Event* | *Leietakere*
+- Aldri blande trådtyper uten visuell skillnad
+- **NAV** behandles som sosial saksbehandler (samme rollemodell som kommune SB)
+
+**Teknisk:** `conversation_type` eller metadata på tråd: `social_caseworker` | `event_caseworker` | `guest_booking`.
 
 ---
 
@@ -157,38 +163,38 @@ Avtalepakke for utleier =
 ### 3.1 Boly-funksjoner (behold)
 
 - Boligbank, formidling, reservasjon, meldinger med utleier, brukere, vilkår, varsler.
+- **NAV** er et eksempel på sosial saksbehandler — samme rolle (`kommune_ansatt` / grants), ikke egen produktrolle.
 
-### 3.2 Los i meldingsfunksjonen
+### 3.2 Digital Los — **besluttet modell**
 
-**Dagens gap:** Los er `/nav/los-inbox` (summary), ikke i `/nav/messages`.
-
-**Mål-UX (verdensklasse):**
+**Los kobler ungdom til saksbehandler via KI — ikke som generell meldingsapp for ungdom.**
 
 ```
-/nav/messages
-├── Faner: [Alle] [Utleiere] [Kollegaer] [Digital Los]
-└── Los-fane:
-    ├── Liste: handoffs med saksnummer, status, kommune
-    ├── Valgfritt: fortsett samtale (når ungdom har gitt kontakt)
-    └── CTA: «Åpne boligbank» (beholder kobling formidling)
+Ungdom (/los)
+  → Chat med KI (Los)
+  → Velger frivillig: «Koble meg til saksbehandler»
+  → Oppgir navn (+ valgfri telefon)
+  → KI kobler til valgt / riktig saksbehandler (placeholder inntil full KI-routing)
+  → Saksbehandler får handoff i /nav/los-inbox (+ Los-fane i meldinger)
+  → Videre: formidling i boligbank (Boly-flyt)
 ```
 
-**Placeholder nå (inntil full integrasjon):**
+| Aspekt | Beslutning |
+|--------|------------|
+| Ungdoms-side | **Kun KI-chat** — Los er inngangsporten |
+| Kobling til SB | **Via KI** (kan være placeholder: manuell assign i innboks) |
+| Identitet ved handoff | **Navn** (påkrevd) + **telefon** (valgfritt) |
+| SB-side | Innboks + varsler; Los-fane i `/nav/messages` som inngang |
+| Meldinger ungdom↔SB | **Ikke** primær Los-funksjon — KI håndterer til kobling er gjort |
 
-- Los-fane i meldinger som **peker til innboks** + kort forklaring
-- Eller: embed handoff-liste i meldingslayout med samme design språk
+**Placeholder (P0):** KI viser «Vi kobler deg til [kommune]» → oppretter handoff → SB tar saken manuelt. Full automatisk SB-routing kommer senere.
 
 **Los-tilgang per konto:**
 
 | Flag | Hvor settes | Effekt |
 |------|-------------|--------|
 | `digital_los_enabled` | Ops → kommune | Kommune kan motta handoffs |
-| `staff.los_access` (ny) | Kommune admin | Individuell tilgang til Los-fane |
-
-**Besluttet (juni 2026) — identitet etter handoff:**
-
-- Ungdom oppgir **navn** (påkrevd) og **telefon** (valgfritt) ved overlevering.
-- Saksbehandler ser navn i Los-innboks og ev. meldingstråd — **ikke** anonym videre chat.
+| `staff.los_access` (ny) | Kommune admin | Individuell tilgang til Los-fane / innboks |
 
 **Fortsatt åpent:**
 
@@ -238,7 +244,7 @@ central_event_staff (finnes):
 | **Geografi-filter** | `geography_scope` på event |
 | **Eksport kontaktinfo** | Utleie skjer utenfor — trenger PDF/CSV til hotell/koordinator |
 | **Statistikk** | Antall henvendelser, opt-in boliger, kapasitet |
-| **Meldinger** | Kun internt mellom event-staff (ikke utleier) |
+| **Meldinger** | Med utleier ved behov (tydelig merket 🎫) | Internt mellom event-staff |
 | **Avtale-oversikt** | Event-spesifikke vilkår for utleier-opt-in (read-only) |
 
 **Forskjell fra kommune:**
@@ -293,14 +299,16 @@ finn.hjerterum.no
 
 **Leietaker-konto (besluttet):** Ikke BankID. Permanent konto med profil (`guest_profiles`), bookinghistorikk, meldinger og click-wrap ved registrering og booking.
 
-### 5.3 Event + turisme (routing)
+### 5.3 Event + turisme (routing) — **besluttet**
 
 | `central_events.routing_mode` | Leietaker-opplevelse |
 |-------------------------------|----------------------|
-| `saksbehandler` | Skjema → event saksbehandler (ingen direkte utleier) |
-| `turisme` | Listing opt-in → **booking som vanlig turisme** + event-badge |
+| `saksbehandler` | Skjema → event saksbehandler (ingen direkte utleier-booking) |
+| `turisme` | Opt-in boliger → **full Airbnb-lignende flyt**: søk, dato, pris, instant book / forespørsel, betaling, melding med utleier, `/finn/mine` |
 
-**Spørsmål:**
+**Besluttet:** Event med `routing_mode = turisme` skal føles som **vanlig turisme-booking** (Airbnb-nivå) — event er kontekst/badge, ikke annen bookingmotor.
+
+**Fortsatt åpent:**
 
 1. Skal leietaker kunne **booke flere boliger** for ett event (gruppe)?
 2. **Gjesteliste** (Airbnb: inviter medreisende til tråd)?
@@ -391,9 +399,9 @@ Event har **ikke** kommune admin — ops styrer event staff. Kommune admin kan e
 
 | # | Leveranse |
 |---|-----------|
-| 1 | Avtalemodell v2: lane + turisme sentral + event addendum (BankID utleier; click-wrap leietaker) |
-| 2 | Gjest-meldinger knyttet til `bookings` |
-| 3 | Los-fane i `/nav/messages` + navn/telefon ved handoff |
+| 1 | Avtalemodell v2: per-event avtale + Gamechanging turisme + BankID/click-wrap |
+| 2 | Gjest-meldinger + **utleier tråd-merking** (sosial / event / leietaker) |
+| 3 | Los: KI-kobling + handoff (navn/telefon) + placeholder routing |
 | 4 | `los_access` per saksbehandler (kommune admin) |
 | 5 | **`event_ansatt` rolle** + ops UI + scoped `/nav/event` dashboard |
 | 6 | Finn: pris breakdown + booking lifecycle på `/finn/mine` |
@@ -405,7 +413,7 @@ Event har **ikke** kommune admin — ops styrer event staff. Kommune admin kan e
 |---|-----------|
 | 8 | Kart på Finn |
 | 9 | Instant book + avbestilling |
-| 10 | Utleier meldings-faner (kommune vs leietaker) |
+| 10 | Utleier meldings-faner + channel badges (sosial / event / leietaker) |
 
 ### P2 — Verdensklasse polish
 
@@ -426,31 +434,32 @@ Event har **ikke** kommune admin — ops styrer event staff. Kommune admin kan e
 | 2 | **Avtaler leietaker** | **Click-wrap** + **egen konto** på Finn (e-post/magic link, ikke BankID) |
 | 3 | **Los etter handoff** | **Navn** (påkrevd) + **telefon** (valgfritt) — ikke anonym videre |
 | 4 | **Event saksbehandler** | **Egen rolle** `event_ansatt`, tildelt av ops per event — lik kommune SB ellers |
-| 5 | **Betaling turisme** | **Stripe og Vipps parallelt** — leietaker/utleier velger eller default |
+| 5 | **Betaling turisme** | **Stripe og Vipps parallelt** |
+| 6 | **Event-avtale** | **Egen avtale per event** — utleier signerer ved opt-in (BankID) |
+| 7 | **Turisme-avtale eier** | **Gamechanging** (juridisk); ops publiserer |
+| 8 | **Los** | **Kun KI-kobling** ungdom → saksbehandler (placeholder routing OK) |
+| 9 | **Utleier meldinger** | Tydelig skillnad: sosial SB / event SB / leietaker |
+| 10 | **Event + turisme** | Leietaker booker **som Airbnb** (full turisme-flyt + event-badge) |
+| 11 | **NAV** | Eksempel på **sosial saksbehandler** — samme rolle som kommune SB |
 
 ---
 
 ## 11. Fortsatt åpne spørsmål
 
 ### Avtaler
-1. Event-avtale per utleier globalt eller per bolig?
-2. Skal kommuner **publisere egne turisme-vilkår**, eller kun ops sentral?
+1. Sosial avtale: én signering per region eller per bolig?
 
 ### Los
-3. Alle SB ser alle Los-saker i kommunen, eller kun assigned?
-4. Skal Los **erstatte** telefon for ungdom i pilotkommune?
+2. Alle SB ser alle Los-saker i kommunen, eller kun assigned?
+3. Skal Los **erstatte** telefon for ungdom i pilotkommune?
 
 ### Event
-5. Trenger event SB **melding til utleier** i appen?
-6. Skal event SB se **sosial boligbank** read-only i samme region?
+4. Skal event SB se **sosial boligbank** read-only i samme region?
 
 ### Leietaker
-7. Gruppebooking / flere rom for event?
-8. Anmeldelser — ja/nei i v1?
-
-### Organisatorisk
-9. Skal **NAV**-saksbehandlere ha samme rolle som kommune SB?
-10. Én nasjonal **turisme-avtale** — hvem eier juridisk (ops/kommune/forbund)?
+5. Gruppebooking / flere rom for event?
+6. Anmeldelser — ja/nei i v1?
+7. Språk: EN default — skal NB være like prominent på Finn?
 
 ---
 
@@ -464,6 +473,6 @@ Hjerterum har **riktig konseptuell arkitektur** (én pool, flere baner), men **p
 - **Leietaker:** Finn-konto + click-wrap + Airbnb-nivå (søk, book, administrer, **melding**)  
 - **Admin/Ops:** intuitive tilgangspaneler for kommune, event, avtaler  
 
-Neste steg anbefales: **avtale v2 (BankID/click-wrap) + `event_ansatt` + gjest-meldinger + Los navn/telefon + Vipps/Stripe** som P0.
+Neste steg anbefales: **per-event avtaler + utleier meldings-merking + Los KI-handoff + event_ansatt + Finn/Airbnb event-turisme + Vipps/Stripe** som P0.
 
 *Dokumentet er levende — oppdater når flere spørsmål i §11 avklares.*

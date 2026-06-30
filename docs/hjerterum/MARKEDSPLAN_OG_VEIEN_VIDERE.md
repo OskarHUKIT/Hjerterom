@@ -54,13 +54,16 @@
 
 ## 2. Ungdom ↔ saksbehandler — målbilde
 
+**Besluttet:** Los **kobler kun via KI**. Ungdom chatter med Los → velger frivillig kobling til saksbehandler → KI kobler (placeholder: manuell assign i innboks).
+
 ### I dag (etter sprint 2)
 
 1. **Ungdom** åpner `/los` (ingen innlogging, ingen BankID).
 2. Velger **kommune** (kun kommuner med `digital_los_enabled`).
-3. Chatter med Los (OpenAI edge fn eller fallback).
-4. Samtykker → **Overlevering** → får **saksnummer** (`LOS-XXXXXXXX`).
-5. **Saksbehandler** ser innboks på `/nav/los-inbox`:
+3. Chatter med **Los (KI)**.
+4. Velger **kobling til saksbehandler** → oppgir **navn** (+ valgfri telefon).
+5. **KI kobler** til saksbehandler (placeholder: handoff + saksnummer `LOS-XXXXXXXX`).
+6. **Saksbehandler** ser innboks på `/nav/los-inbox` (+ Los-fane i meldinger):
    - **Ta saken** (assign)
    - **Start formidling** (status `in_progress`)
    - **Åpne boligbank** (`/nav/database`)
@@ -72,7 +75,7 @@
 |---|----------|-----------|--------|
 | 1 | Push/e-post til saksbehandler ved ny overlevering | P0 | Placeholder (varsler finnes i Boly) |
 | 2 | Ungdom får SMS/e-post med saksnummer | P1 | Placeholder |
-| 3 | Koble Los-sak til `chat_messages`-tråd | P1 | Planlagt |
+| 3 | **KI-routing** til riktig saksbehandler | P1 | Placeholder (manuell assign) |
 | 4 | RLS: session kun lesbar med token (sikkerhet) | P0 | Migrasjon planlagt |
 | 5 | Filtrer handoffs på saksbehandlers kommune-grants | P0 | Delvis (kommune_id på handoff) |
 | 6 | **Navn + valgfri telefon** ved handoff (besluttet) | P0 | Schema/UI mangler |

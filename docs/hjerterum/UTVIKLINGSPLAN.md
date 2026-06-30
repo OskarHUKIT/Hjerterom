@@ -45,6 +45,11 @@ Disse er avklart i planlegging — **ikke re-besluttes under implementering** ut
 12. **Avtaler leietaker:** **Click-wrap** ved konto + booking — ikke BankID.
 13. **Event saksbehandler:** Egen rolle **`event_ansatt`**, tildelt av ops via `central_event_staff` — parallell med kommune SB.
 14. **Betaling turisme:** **Stripe og Vipps parallelt** (begge tilgjengelig på checkout).
+15. **Event-avtale:** **Egen avtale per event** — utleier som opt-in må signere den event-spesifikke avtalen (BankID).
+16. **Turisme-avtale:** Juridisk eier **Gamechanging**; ops publiserer nasjonal mal.
+17. **Los:** Kobler ungdom til saksbehandler **via KI**; ungdom velger frivillig kobling; KI-routing kan være placeholder (manuell assign).
+18. **Utleier meldinger:** Tydelig merking av motpart — sosial SB (inkl. **NAV**) / event SB / leietaker.
+19. **Event turisme-routing:** Leietaker booker **Airbnb-lignende** (full turisme-flyt + event-kontekst).
 
 ---
 

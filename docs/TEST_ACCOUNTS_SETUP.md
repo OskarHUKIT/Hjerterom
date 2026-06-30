@@ -23,9 +23,10 @@ Gjelder **nytt Hjerterum Supabase-prosjekt** — ikke eksisterende Boly-produksj
 - **Ikke** sett `profiles.role = 'platform_operators'` — den rollen finnes ikke i appen.
 - Ops-tilgang = **`platform_operators`**-tabellen (se `supabase/scripts/seed_platform_operator.sql`).
 
-### Viktig om kommune
+### Viktig om kommune / sosial saksbehandler
 
 - **`profiles.role` alene er ikke nok** — brukeren må ha **`user_kommune_grants`** (eller ha registrert seg etter **invitasjon** i `kommune_invitations`).
+- **NAV**-saksbehandlere er **samme rollemodell** som kommune SB (`kommune_ansatt` + grants) — NAV er et eksempel, ikke egen rolle.
 - **`can_edit = false`**: kan lese boligbank, men ikke markere formidling.
 - **`grant_role = 'admin'`**: kommune-admin (vilkår, invitere saksbehandlere).
 
