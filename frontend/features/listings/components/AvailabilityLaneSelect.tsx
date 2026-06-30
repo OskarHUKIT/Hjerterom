@@ -1,5 +1,6 @@
 'use client'
 
+import { Building2, Palmtree } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import type { ListingLane } from '../types/lanes'
 import { LISTING_LANES } from '../types/lanes'
@@ -11,27 +12,35 @@ type Props = {
   disabled?: boolean
 }
 
+const LANE_ICONS = { sosial: Building2, turisme: Palmtree } as const
+
 export default function AvailabilityLaneSelect({ value, onChange, id, disabled }: Props) {
   const { t } = useLanguage()
 
   return (
-    <div>
-      <label className="label" htmlFor={id}>
+    <div className="lane-segmented" role="group" aria-labelledby={id}>
+      <span className="lane-segmented-label" id={id}>
         {t('laneLabel')}
-      </label>
-      <select
-        id={id}
-        className="input"
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value as ListingLane)}
-      >
-        {LISTING_LANES.map((lane) => (
-          <option key={lane} value={lane}>
-            {lane === 'sosial' ? t('laneSosial') : t('laneTourism')}
-          </option>
-        ))}
-      </select>
+      </span>
+      <div className="lane-segmented-track">
+        {LISTING_LANES.map((lane) => {
+          const Icon = LANE_ICONS[lane]
+          const active = value === lane
+          return (
+            <button
+              key={lane}
+              type="button"
+              disabled={disabled}
+              aria-pressed={active}
+              className={`lane-segmented-btn lane-segmented-btn--${lane}${active ? ' lane-segmented-btn--active' : ''}`}
+              onClick={() => onChange(lane)}
+            >
+              <Icon size={16} aria-hidden />
+              <span>{lane === 'sosial' ? t('laneSosial') : t('laneTourism')}</span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

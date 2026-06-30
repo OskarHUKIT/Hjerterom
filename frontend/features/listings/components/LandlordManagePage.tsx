@@ -15,6 +15,7 @@ import {
   Sparkles,
   LayoutDashboard,
   Compass,
+  CalendarDays,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
@@ -28,8 +29,6 @@ import {
   shouldShowPwaPrompt,
 } from '@/app/components/PWAInstallPrompt'
 import { useLanguage } from '@/context/LanguageContext'
-import { formatDateNo } from '@/app/lib/dateFormat'
-import { DateInput } from '@/app/components/DateInput'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import BottomSheet from '@/app/components/BottomSheet'
 import { EmptyState, useToast } from '@/app/components/design-system'
@@ -37,13 +36,16 @@ import ListingTourismSettings from '@/features/listings/components/ListingTouris
 import ListingCoHostsPanel from '@/features/listings/components/ListingCoHostsPanel'
 import ListingEventOptIn from '@/features/listings/components/ListingEventOptIn'
 import EventTaskCards from '@/features/listings/components/EventTaskCards'
+import LandlordAvailabilityHub from '@/features/listings/components/LandlordAvailabilityHub'
+import ListingAvailabilityOverview from '@/features/listings/components/ListingAvailabilityOverview'
+import { useListingEventCalendarData } from '@/features/listings/hooks/useListingEventCalendarData'
 import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
 import LandlordStripeConnect from '@/features/bookings/components/LandlordStripeConnect'
 import AvailabilityLaneSelect from '@/features/listings/components/AvailabilityLaneSelect'
 import { checkAvailabilityConflict } from '@/features/listings/lib/availabilityConflict'
-import type { ListingLane } from '@/features/listings/types/lanes'
+import type { ListingEventOptInPeriod, ListingLane } from '@/features/listings/types/lanes'
 
-type ManagePanel = 'periods' | 'events' | 'tourism'
+type ManagePanel = 'calendar' | 'events' | 'tourism'
 import { buttonClassName } from '@/app/components/ui/Button'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '@/app/lib/storagePublicUrl'
 import { getLandlordPostLoginHref } from '@/app/lib/landlordNavGate'
@@ -95,6 +97,17 @@ export default function HomeownerManage() {
   const listingPanelRef = useRef<HTMLDivElement>(null)
   const [isMobileLayout, setIsMobileLayout] = useState(false)
   const [actionSheetListingId, setActionSheetListingId] = useState<string | null>(null)
+  const [eventOptInsByListing, setEventOptInsByListing] = useState<
+    Record<string, ListingEventOptInPeriod[]>
+  >({})
+
+  const calendarListingId =
+    openPanel?.panel === 'calendar' ? openPanel.listingId : null
+  const {
+    activeOptIns: eventCalendarOptIns,
+    allPublished: allPublishedEvents,
+    refresh: refreshEventCalendar,
+  } = useListingEventCalendarData(calendarListingId)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -121,7 +134,7 @@ export default function HomeownerManage() {
   const openListingPanel = useCallback(
     (listingId: string, panel: ManagePanel, periodStatus?: 'Tilgjengelig' | 'Utilgjengelig') => {
       setOpenPanel({ listingId, panel })
-      if (panel === 'periods') {
+      if (panel === 'calendar') {
         const t = todayStr()
         setNewPeriod({
           start: t,
@@ -137,7 +150,7 @@ export default function HomeownerManage() {
 
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
-    openListingPanel(listingId, 'periods', status)
+    openListingPanel(listingId, 'calendar', status)
   }
 
   const fetchData = useCallback(async () => {
@@ -195,6 +208,38 @@ export default function HomeownerManage() {
         setAvailability(availMap)
       }
 
+      if (listingsData && listingsData.length > 0 && platformFlags.centralEvents) {
+        const listingIds = listingsData.map((l) => l.id)
+        const [{ data: published }, { data: optIns }] = await Promise.all([
+          supabase
+            .from('central_events')
+            .select('id, name, start_date, end_date')
+            .eq('status', 'published'),
+          supabase
+            .from('listing_event_availability')
+            .select('listing_id, event_id, status, available_from, available_to')
+            .in('listing_id', listingIds)
+            .eq('status', 'active'),
+        ])
+        const eventMeta = new Map((published ?? []).map((e) => [e.id, e]))
+        const byListing: Record<string, ListingEventOptInPeriod[]> = {}
+        ;(optIns ?? []).forEach((row) => {
+          const meta = eventMeta.get(row.event_id)
+          if (!meta) return
+          if (!byListing[row.listing_id]) byListing[row.listing_id] = []
+          byListing[row.listing_id].push({
+            event_id: row.event_id,
+            event_name: meta.name,
+            start_date: meta.start_date,
+            end_date: meta.end_date,
+            status: 'active',
+          })
+        })
+        setEventOptInsByListing(byListing)
+      } else {
+        setEventOptInsByListing({})
+      }
+
       if (typeof window !== 'undefined') {
         const uid = user.id
         const ovKey = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.overview, uid)
@@ -221,7 +266,7 @@ export default function HomeownerManage() {
     } finally {
       setLoading(false)
     }
-  }, [router])
+  }, [router, platformFlags.centralEvents])
 
   const dismissLandlordWelcome = async () => {
     const user = await getAuthUserDeduped()
@@ -370,12 +415,45 @@ export default function HomeownerManage() {
     if (typeof window === 'undefined' || myListings.length === 0) return
     const params = new URLSearchParams(window.location.search)
     const listingId = params.get('listing')?.trim() || ''
-    const panel = params.get('panel')?.trim() as ManagePanel | ''
-    if (!listingId || !panel || !['periods', 'events', 'tourism'].includes(panel)) return
+    const panelRaw = params.get('panel')?.trim() || ''
+    const panel = (panelRaw === 'periods' ? 'calendar' : panelRaw) as ManagePanel | ''
+    if (!listingId || !panel || !['calendar', 'events', 'tourism'].includes(panel)) return
     if (!myListings.some((l) => l.id === listingId)) return
     setOpenPanel({ listingId, panel })
     scrollListingPanelIntoView()
   }, [myListings, scrollListingPanelIntoView])
+
+  const refreshListingEventOptIns = useCallback(
+    async (listingId: string) => {
+      if (!platformFlags.centralEvents) return
+      const [{ data: published }, { data: optIns }] = await Promise.all([
+        supabase
+          .from('central_events')
+          .select('id, name, start_date, end_date')
+          .eq('status', 'published'),
+        supabase
+          .from('listing_event_availability')
+          .select('listing_id, event_id, status')
+          .eq('listing_id', listingId)
+          .eq('status', 'active'),
+      ])
+      const eventMeta = new Map((published ?? []).map((e) => [e.id, e]))
+      const rows: ListingEventOptInPeriod[] = []
+      ;(optIns ?? []).forEach((row) => {
+        const meta = eventMeta.get(row.event_id)
+        if (!meta) return
+        rows.push({
+          event_id: row.event_id,
+          event_name: meta.name,
+          start_date: meta.start_date,
+          end_date: meta.end_date,
+          status: 'active',
+        })
+      })
+      setEventOptInsByListing((prev) => ({ ...prev, [listingId]: rows }))
+    },
+    [platformFlags.centralEvents]
+  )
 
   const setStatus = async (id: string, newStatus: 'Tilgjengelig' | 'Utilgjengelig') => {
     const listing = myListings.find((l) => l.id === id)
@@ -1240,6 +1318,15 @@ export default function HomeownerManage() {
                             ? `${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`
                             : `${translateType(listing.type)} • ${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`}
                         </p>
+                        {getEffectiveStatus(listing) !== 'Formidla' ? (
+                          <ListingAvailabilityOverview
+                            periods={availability[listing.id] ?? []}
+                            eventOptIns={eventOptInsByListing[listing.id] ?? []}
+                            tourismEnabled={Boolean(listing.tourism_enabled)}
+                            showTourism={platformFlags.tourism}
+                            showEvents={platformFlags.centralEvents}
+                          />
+                        ) : null}
                       </div>
                     </div>
 
@@ -1366,26 +1453,26 @@ export default function HomeownerManage() {
                             <button
                               type="button"
                               onClick={() =>
-                                openPanel?.listingId === listing.id && openPanel?.panel === 'periods'
+                                openPanel?.listingId === listing.id && openPanel?.panel === 'calendar'
                                   ? setOpenPanel(null)
-                                  : openListingPanel(listing.id, 'periods')
+                                  : openListingPanel(listing.id, 'calendar')
                               }
                               style={{
                                 padding: '8px',
                                 borderRadius: '8px',
                                 background:
-                                  openPanel?.listingId === listing.id && openPanel?.panel === 'periods'
+                                  openPanel?.listingId === listing.id && openPanel?.panel === 'calendar'
                                     ? 'rgba(59, 130, 246, 0.2)'
                                     : 'var(--bg-app)',
                                 border: 'none',
                                 cursor: 'pointer',
                                 color:
-                                  openPanel?.listingId === listing.id && openPanel?.panel === 'periods'
+                                  openPanel?.listingId === listing.id && openPanel?.panel === 'calendar'
                                     ? 'var(--color-accent)'
                                     : 'var(--text-main)',
                               }}
-                              title={t('managePeriods')}
-                              aria-label={t('managePeriods')}
+                              title={t('managePanelCalendar')}
+                              aria-label={t('managePanelCalendar')}
                             >
                               <Clock size={18} aria-hidden />
                             </button>
@@ -1432,12 +1519,43 @@ export default function HomeownerManage() {
                     </div>
                   </div>
 
-                  {getEffectiveStatus(listing) !== 'Formidla' &&
-                  (platformFlags.centralEvents || platformFlags.tourism) ? (
+                  {getEffectiveStatus(listing) !== 'Formidla' ? (
                     <div
                       onClick={(e) => e.stopPropagation()}
                       style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}
                     >
+                      <button
+                        type="button"
+                        className="button"
+                        onClick={() => openListingPanel(listing.id, 'calendar')}
+                        style={{
+                          padding: 'var(--space-2) var(--space-4)',
+                          fontSize: '0.85rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}
+                      >
+                        <CalendarDays size={16} aria-hidden />
+                        {t('managePanelCalendar')}
+                      </button>
+                      {platformFlags.tourism ? (
+                        <button
+                          type="button"
+                          className="button button-secondary"
+                          onClick={() => openListingPanel(listing.id, 'tourism')}
+                          style={{
+                            padding: 'var(--space-2) var(--space-4)',
+                            fontSize: '0.85rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                        >
+                          <Compass size={16} aria-hidden />
+                          {listing.tourism_enabled ? t('managePanelTourism') : t('tourismEnableBannerCta')}
+                        </button>
+                      ) : null}
                       {platformFlags.centralEvents ? (
                         <button
                           type="button"
@@ -1453,23 +1571,6 @@ export default function HomeownerManage() {
                         >
                           <Sparkles size={16} aria-hidden />
                           {t('managePanelEvents')}
-                        </button>
-                      ) : null}
-                      {platformFlags.tourism ? (
-                        <button
-                          type="button"
-                          className="button button-secondary"
-                          onClick={() => openListingPanel(listing.id, 'tourism')}
-                          style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            fontSize: '0.85rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}
-                        >
-                          <Compass size={16} aria-hidden />
-                          {t('managePanelTourism')}
                         </button>
                       ) : null}
                     </div>
@@ -1564,7 +1665,7 @@ export default function HomeownerManage() {
                             </>
                           ) : (
                             <>
-                              <Clock size={16} /> {t('availablePeriods')}
+                              <CalendarDays size={16} /> {t('managePanelCalendar')}
                             </>
                           )}
                         </h4>
@@ -1615,199 +1716,24 @@ export default function HomeownerManage() {
                         </>
                       ) : null}
 
-                      {openPanel.panel === 'periods' ? (
-                        <>
-                      <div
-                        style={{
-                          display: 'grid',
-                          gap: 'var(--space-2)',
-                          marginBottom: 'var(--space-4)',
-                        }}
-                      >
-                        {(availability[listing.id] || []).length > 0 ? (
-                          availability[listing.id].map((p) => {
-                            const statusLabel =
-                              p.status === 'Formidla'
-                                ? t('formidlet')
-                                : p.status === 'Utilgjengelig'
-                                  ? t('unavailable')
-                                  : t('available')
-                            const statusStyle =
-                              p.status === 'Formidla'
-                                ? {
-                                    background: 'rgba(59, 130, 246, 0.2)',
-                                    color: 'var(--color-royal-blue)',
-                                    border: '1px solid rgba(59, 130, 246, 0.4)',
-                                  }
-                                : p.status === 'Utilgjengelig'
-                                  ? {
-                                      background: 'rgba(239, 68, 68, 0.15)',
-                                      color: '#ef4444',
-                                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    }
-                                  : {
-                                      background: 'rgba(45, 212, 191, 0.15)',
-                                      color: 'var(--color-teal)',
-                                      border: '1px solid rgba(45, 212, 191, 0.3)',
-                                    }
-                            return (
-                              <div
-                                key={p.id}
-                                className="hm-period-item"
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  gap: 'var(--space-2)',
-                                  background: 'rgba(255,255,255,0.03)',
-                                  padding: '8px 12px',
-                                  borderRadius: '8px',
-                                  fontSize: '0.85rem',
-                                  flexWrap: 'wrap',
-                                }}
-                              >
-                                <span className="hm-period-dates" style={{ color: 'var(--text-main)' }}>
-                                  {formatDateNo(p.start_date)} – {formatDateNo(p.end_date)}
-                                </span>
-                                <span
-                                  style={{
-                                    fontSize: '0.75rem',
-                                    fontWeight: 600,
-                                    padding: '2px 8px',
-                                    borderRadius: '6px',
-                                    ...statusStyle,
-                                  }}
-                                >
-                                  {statusLabel}
-                                </span>
-                                {p.status !== 'Formidla' ? (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setPendingDeletePeriod({ id: p.id, listingId: listing.id })
-                                    }
-                                    style={{
-                                      background: 'none',
-                                      border: 'none',
-                                      color: '#ef4444',
-                                      cursor: 'pointer',
-                                      marginLeft: 'auto',
-                                    }}
-                                    title={t('manageDeletePeriodTitle')}
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                ) : (
-                                  <span
-                                    style={{
-                                      fontSize: '0.7rem',
-                                      color: 'var(--text-muted)',
-                                      marginLeft: 'auto',
-                                    }}
-                                  >
-                                    Kun kommune kan fjerne
-                                  </span>
-                                )}
-                              </div>
-                            )
-                          })
-                        ) : (
-                          <p
-                            style={{
-                              fontSize: '0.85rem',
-                              opacity: 0.5,
-                              margin: 'var(--space-2) 0',
-                            }}
-                          >
-                            {t('noPeriods')}
-                          </p>
-                        )}
-                      </div>
-
-                      <div
-                        className="hm-add-period-row"
-                        style={{
-                          display: 'flex',
-                          gap: 'var(--space-2)',
-                          alignItems: 'flex-end',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        {platformFlags.tourism && listing.tourism_enabled ? (
-                          <div style={{ flex: '1 1 100%', minWidth: 160 }}>
-                            <AvailabilityLaneSelect
-                              id={`lane-${listing.id}`}
-                              value={newPeriod.lane}
-                              onChange={(lane) => setNewPeriod({ ...newPeriod, lane })}
-                            />
-                          </div>
-                        ) : null}
-                        <div style={{ flex: 1 }}>
-                          <label className="label" style={{ fontSize: '0.7rem' }}>
-                            {t('status')}
-                          </label>
-                          <select
-                            className="input"
-                            style={{ marginBottom: 0, fontSize: '0.85rem' }}
-                            value={newPeriod.status}
-                            onChange={(e) => setNewPeriod({ ...newPeriod, status: e.target.value })}
-                          >
-                            <option value="Tilgjengelig">{t('available')}</option>
-                            <option value="Utilgjengelig">{t('unavailable')}</option>
-                          </select>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <label className="label" style={{ fontSize: '0.7rem' }}>
-                            {t('fromDate')}
-                          </label>
-                          <DateInput
-                            showCalendar
-                            className="input"
-                            style={{ marginBottom: 0, fontSize: '0.85rem' }}
-                            value={newPeriod.start}
-                            onChange={(v) => setNewPeriod({ ...newPeriod, start: v })}
-                            max={newPeriod.end || undefined}
-                            placeholder={t('dateInputPlaceholder')}
-                            calendarDayTone={(iso) =>
-                              dayAvailabilityToneForIso(iso, availability[listing.id] ?? [])
-                            }
-                          />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <label className="label" style={{ fontSize: '0.7rem' }}>
-                            {t('toDate')}
-                          </label>
-                          <DateInput
-                            showCalendar
-                            className="input"
-                            style={{ marginBottom: 0, fontSize: '0.85rem' }}
-                            value={newPeriod.end}
-                            onChange={(v) => setNewPeriod({ ...newPeriod, end: v })}
-                            min={newPeriod.start || undefined}
-                            placeholder={t('dateInputPlaceholder')}
-                            calendarDayTone={(iso) =>
-                              dayAvailabilityToneForIso(iso, availability[listing.id] ?? [])
-                            }
-                          />
-                        </div>
-                        <button
-                          onClick={() => {
-                            addAvailability(
-                              listing.id,
-                              newPeriod.start,
-                              newPeriod.end,
-                              newPeriod.status,
-                              newPeriod.lane
-                            )
-                            setNewPeriod({ start: '', end: '', status: 'Tilgjengelig', lane: 'sosial' })
+                      {openPanel.panel === 'calendar' ? (
+                        <LandlordAvailabilityHub
+                          listing={listing}
+                          periods={availability[listing.id] ?? []}
+                          eventOptIns={eventCalendarOptIns}
+                          allPublishedEvents={allPublishedEvents}
+                          showTourism={platformFlags.tourism}
+                          showEvents={platformFlags.centralEvents}
+                          onAddPeriod={addAvailability}
+                          onDeletePeriod={(periodId, listingId) =>
+                            void deleteAvailability(periodId, listingId)
+                          }
+                          onRefreshEvents={async () => {
+                            await refreshEventCalendar()
+                            await refreshListingEventOptIns(listing.id)
                           }}
-                          className="button"
-                          style={{ padding: '10px 16px', borderRadius: '8px' }}
-                        >
-                          {t('add')}
-                        </button>
-                      </div>
-                        </>
+                          onOpenTourismSettings={() => openListingPanel(listing.id, 'tourism')}
+                        />
                       ) : null}
                     </div>
                   )}
@@ -2030,12 +1956,12 @@ export default function HomeownerManage() {
                       gap: 8,
                     }}
                     onClick={() => {
-                      openListingPanel(actionSheetListing.id, 'periods')
+                      openListingPanel(actionSheetListing.id, 'calendar')
                       setActionSheetListingId(null)
                     }}
                   >
                     <Clock size={18} aria-hidden />
-                    {t('managePeriods')}
+                    {t('managePanelCalendar')}
                   </button>
                 </div>
               )}
