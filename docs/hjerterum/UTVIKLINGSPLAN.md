@@ -50,6 +50,12 @@ Disse er avklart i planlegging — **ikke re-besluttes under implementering** ut
 17. **Los:** Kobler ungdom til saksbehandler **via KI**; ungdom velger frivillig kobling; KI-routing kan være placeholder (manuell assign).
 18. **Utleier meldinger:** Tydelig merking av motpart — sosial SB (inkl. **NAV**) / event SB / leietaker.
 19. **Event turisme-routing:** Leietaker booker **Airbnb-lignende** (full turisme-flyt + event-kontekst).
+20. **Avtale-scope:** Signer **når relevant**; **én avtale per scope** (kommune/event/turisme) dekker alle matchende boliger; ny signering ved nytt valg.
+21. **Los synlighet:** **Alle** kommune-SB ser **alle** Los-saker i sine kommuner.
+22. **Los kobling:** **Kun via KI-chat** (placeholder routing OK) — ikke egen Los-meldingsapp.
+23. **Event SB isolasjon:** **Ingen** sosial boligbank eller sosiale meldinger; kun event opt-in boliger og event-henvendelser.
+24. **Gruppebooking:** **Ja** — flere boliger per event.
+25. **Anmeldelser:** **Ja i v1** (etter opphold).
 
 ---
 
