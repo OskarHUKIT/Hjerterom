@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Sparkles,
   LayoutDashboard,
+  Compass,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
@@ -41,6 +42,8 @@ import LandlordStripeConnect from '@/features/bookings/components/LandlordStripe
 import AvailabilityLaneSelect from '@/features/listings/components/AvailabilityLaneSelect'
 import { checkAvailabilityConflict } from '@/features/listings/lib/availabilityConflict'
 import type { ListingLane } from '@/features/listings/types/lanes'
+
+type ManagePanel = 'periods' | 'events' | 'tourism'
 import { buttonClassName } from '@/app/components/ui/Button'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '@/app/lib/storagePublicUrl'
 import { getLandlordPostLoginHref } from '@/app/lib/landlordNavGate'
@@ -60,7 +63,9 @@ export default function HomeownerManage() {
   const [filter, setFilter] = useState<'Alle' | 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'>(
     'Alle'
   )
-  const [editingAvailability, setEditingAvailability] = useState<string | null>(null)
+  const [openPanel, setOpenPanel] = useState<{ listingId: string; panel: ManagePanel } | null>(
+    null
+  )
   const [newPeriod, setNewPeriod] = useState({
     start: '',
     end: '',
@@ -86,6 +91,7 @@ export default function HomeownerManage() {
   const pageGateRef = useRef(pageGate)
   pageGateRef.current = pageGate
   const filtersRowRef = useRef<HTMLDivElement>(null)
+  const listingPanelRef = useRef<HTMLDivElement>(null)
   const [isMobileLayout, setIsMobileLayout] = useState(false)
   const [actionSheetListingId, setActionSheetListingId] = useState<string | null>(null)
 
@@ -105,11 +111,32 @@ export default function HomeownerManage() {
     })
   }, [])
 
+  const scrollListingPanelIntoView = useCallback(() => {
+    requestAnimationFrame(() => {
+      listingPanelRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    })
+  }, [])
+
+  const openListingPanel = useCallback(
+    (listingId: string, panel: ManagePanel, periodStatus?: 'Tilgjengelig' | 'Utilgjengelig') => {
+      setOpenPanel({ listingId, panel })
+      if (panel === 'periods') {
+        const t = todayStr()
+        setNewPeriod({
+          start: t,
+          end: t,
+          status: periodStatus ?? 'Tilgjengelig',
+          lane: 'sosial',
+        })
+      }
+      scrollListingPanelIntoView()
+    },
+    [scrollListingPanelIntoView]
+  )
+
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
-    const t = todayStr()
-    setEditingAvailability(listingId)
-    setNewPeriod({ start: t, end: t, status, lane: 'sosial' })
+    openListingPanel(listingId, 'periods', status)
   }
 
   const fetchData = useCallback(async () => {
@@ -325,6 +352,17 @@ export default function HomeownerManage() {
     }, 60000)
     return () => clearTimeout(id)
   }, [loading, pageGate])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || myListings.length === 0) return
+    const params = new URLSearchParams(window.location.search)
+    const listingId = params.get('listing')?.trim() || ''
+    const panel = params.get('panel')?.trim() as ManagePanel | ''
+    if (!listingId || !panel || !['periods', 'events', 'tourism'].includes(panel)) return
+    if (!myListings.some((l) => l.id === listingId)) return
+    setOpenPanel({ listingId, panel })
+    scrollListingPanelIntoView()
+  }, [myListings, scrollListingPanelIntoView])
 
   const setStatus = async (id: string, newStatus: 'Tilgjengelig' | 'Utilgjengelig') => {
     const listing = myListings.find((l) => l.id === id)
@@ -1056,13 +1094,11 @@ export default function HomeownerManage() {
                 <div
                   key={listing.id}
                   className="card hm-listing-card"
-                  onClick={() => router.push(`/listings/${listing.id}?view=owner`)}
                   style={{
                     padding: 'var(--space-4) var(--space-6)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 'var(--space-4)',
-                    cursor: 'pointer',
                   }}
                 >
                   <div
@@ -1124,7 +1160,22 @@ export default function HomeownerManage() {
                           className="hm-listing-title-row"
                           style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}
                         >
-                          <h3 style={{ margin: 0 }}>{listing.address}</h3>
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/listings/${listing.id}?view=owner`)}
+                            style={{
+                              margin: 0,
+                              padding: 0,
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              font: 'inherit',
+                              color: 'inherit',
+                            }}
+                          >
+                            <h3 style={{ margin: 0 }}>{listing.address}</h3>
+                          </button>
                           {todaySt === 'Formidla' ? (
                             <span
                               style={{
@@ -1301,23 +1352,22 @@ export default function HomeownerManage() {
                             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                             <button
                               type="button"
-                              onClick={() => {
-                                setEditingAvailability(
-                                  editingAvailability === listing.id ? null : listing.id
-                                )
-                                setNewPeriod({ start: '', end: '', status: 'Tilgjengelig', lane: 'sosial' })
-                              }}
+                              onClick={() =>
+                                openPanel?.listingId === listing.id && openPanel?.panel === 'periods'
+                                  ? setOpenPanel(null)
+                                  : openListingPanel(listing.id, 'periods')
+                              }
                               style={{
                                 padding: '8px',
                                 borderRadius: '8px',
                                 background:
-                                  editingAvailability === listing.id
+                                  openPanel?.listingId === listing.id && openPanel?.panel === 'periods'
                                     ? 'rgba(59, 130, 246, 0.2)'
                                     : 'var(--bg-app)',
                                 border: 'none',
                                 cursor: 'pointer',
                                 color:
-                                  editingAvailability === listing.id
+                                  openPanel?.listingId === listing.id && openPanel?.panel === 'periods'
                                     ? 'var(--color-accent)'
                                     : 'var(--text-main)',
                               }}
@@ -1369,6 +1419,49 @@ export default function HomeownerManage() {
                     </div>
                   </div>
 
+                  {getEffectiveStatus(listing) !== 'Formidla' &&
+                  (platformFlags.centralEvents || platformFlags.tourism) ? (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}
+                    >
+                      {platformFlags.centralEvents ? (
+                        <button
+                          type="button"
+                          className="button button-secondary"
+                          onClick={() => openListingPanel(listing.id, 'events')}
+                          style={{
+                            padding: 'var(--space-2) var(--space-4)',
+                            fontSize: '0.85rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                        >
+                          <Sparkles size={16} aria-hidden />
+                          {t('managePanelEvents')}
+                        </button>
+                      ) : null}
+                      {platformFlags.tourism ? (
+                        <button
+                          type="button"
+                          className="button button-secondary"
+                          onClick={() => openListingPanel(listing.id, 'tourism')}
+                          style={{
+                            padding: 'var(--space-2) var(--space-4)',
+                            fontSize: '0.85rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                        >
+                          <Compass size={16} aria-hidden />
+                          {t('managePanelTourism')}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+
                   {getEffectiveStatus(listing) === 'Formidla' && !isMobileLayout && (
                     <div
                       onClick={(e) => e.stopPropagation()}
@@ -1418,8 +1511,9 @@ export default function HomeownerManage() {
                     </div>
                   )}
 
-                  {editingAvailability === listing.id && (
+                  {openPanel && openPanel.listingId === listing.id && (
                     <div
+                      ref={listingPanelRef}
                       onClick={(e) => e.stopPropagation()}
                       style={{
                         padding: 'var(--space-4)',
@@ -1434,6 +1528,8 @@ export default function HomeownerManage() {
                           justifyContent: 'space-between',
                           alignItems: 'center',
                           marginBottom: 'var(--space-3)',
+                          flexWrap: 'wrap',
+                          gap: 'var(--space-2)',
                         }}
                       >
                         <h4
@@ -1445,10 +1541,23 @@ export default function HomeownerManage() {
                             gap: '8px',
                           }}
                         >
-                          <Clock size={16} /> {t('availablePeriods')}
+                          {openPanel.panel === 'events' ? (
+                            <>
+                              <Sparkles size={16} /> {t('managePanelEvents')}
+                            </>
+                          ) : openPanel.panel === 'tourism' ? (
+                            <>
+                              <Compass size={16} /> {t('managePanelTourism')}
+                            </>
+                          ) : (
+                            <>
+                              <Clock size={16} /> {t('availablePeriods')}
+                            </>
+                          )}
                         </h4>
                         <button
-                          onClick={() => setEditingAvailability(null)}
+                          type="button"
+                          onClick={() => setOpenPanel(null)}
                           style={{
                             background: 'none',
                             border: 'none',
@@ -1460,38 +1569,41 @@ export default function HomeownerManage() {
                         </button>
                       </div>
 
-                      {platformFlags.tourism ? (
-                      <ListingTourismSettings
-                        listingId={listing.id}
-                        initialEnabled={Boolean(listing.tourism_enabled)}
-                        initialNightlyPriceCents={
-                          typeof listing.tourism_nightly_price_cents === 'number'
-                            ? listing.tourism_nightly_price_cents
-                            : null
-                        }
-                        initialInstantBook={Boolean(listing.tourism_instant_book)}
-                        initialCancellationPolicy={listing.cancellation_policy ?? 'moderate'}
-                        initialCheckInGuide={
-                          typeof listing.tourism_check_in_guide === 'string'
-                            ? listing.tourism_check_in_guide
-                            : null
-                        }
-                        onUpdated={(patch) => {
-                          setMyListings((prev) =>
-                            prev.map((l) => (l.id === listing.id ? { ...l, ...patch } : l))
-                          )
-                        }}
-                      />
+                      {openPanel.panel === 'events' && platformFlags.centralEvents ? (
+                        <ListingEventOptIn listingId={listing.id} />
                       ) : null}
 
-                      {platformFlags.tourism && listing.tourism_enabled ? (
-                        <ListingCoHostsPanel listingId={listing.id} />
+                      {openPanel.panel === 'tourism' && platformFlags.tourism ? (
+                        <>
+                          <ListingTourismSettings
+                            listingId={listing.id}
+                            initialEnabled={Boolean(listing.tourism_enabled)}
+                            initialNightlyPriceCents={
+                              typeof listing.tourism_nightly_price_cents === 'number'
+                                ? listing.tourism_nightly_price_cents
+                                : null
+                            }
+                            initialInstantBook={Boolean(listing.tourism_instant_book)}
+                            initialCancellationPolicy={listing.cancellation_policy ?? 'moderate'}
+                            initialCheckInGuide={
+                              typeof listing.tourism_check_in_guide === 'string'
+                                ? listing.tourism_check_in_guide
+                                : null
+                            }
+                            onUpdated={(patch) => {
+                              setMyListings((prev) =>
+                                prev.map((l) => (l.id === listing.id ? { ...l, ...patch } : l))
+                              )
+                            }}
+                          />
+                          {listing.tourism_enabled ? (
+                            <ListingCoHostsPanel listingId={listing.id} />
+                          ) : null}
+                        </>
                       ) : null}
 
-                      {platformFlags.centralEvents ? (
-                      <ListingEventOptIn listingId={listing.id} />
-                      ) : null}
-
+                      {openPanel.panel === 'periods' ? (
+                        <>
                       <div
                         style={{
                           display: 'grid',
@@ -1682,6 +1794,8 @@ export default function HomeownerManage() {
                           {t('add')}
                         </button>
                       </div>
+                        </>
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -1846,6 +1960,72 @@ export default function HomeownerManage() {
                 )}
               </div>
             )}
+            {getEffectiveStatus(actionSheetListing) !== 'Formidla' &&
+              (platformFlags.centralEvents || platformFlags.tourism) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {platformFlags.centralEvents ? (
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      style={{
+                        width: '100%',
+                        justifyContent: 'center',
+                        padding: 'var(--space-3) var(--space-4)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                      onClick={() => {
+                        openListingPanel(actionSheetListing.id, 'events')
+                        setActionSheetListingId(null)
+                      }}
+                    >
+                      <Sparkles size={18} aria-hidden />
+                      {t('managePanelEvents')}
+                    </button>
+                  ) : null}
+                  {platformFlags.tourism ? (
+                    <button
+                      type="button"
+                      className="button button-secondary"
+                      style={{
+                        width: '100%',
+                        justifyContent: 'center',
+                        padding: 'var(--space-3) var(--space-4)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                      onClick={() => {
+                        openListingPanel(actionSheetListing.id, 'tourism')
+                        setActionSheetListingId(null)
+                      }}
+                    >
+                      <Compass size={18} aria-hidden />
+                      {t('managePanelTourism')}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    style={{
+                      width: '100%',
+                      justifyContent: 'center',
+                      padding: 'var(--space-3) var(--space-4)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                    onClick={() => {
+                      openListingPanel(actionSheetListing.id, 'periods')
+                      setActionSheetListingId(null)
+                    }}
+                  >
+                    <Clock size={18} aria-hidden />
+                    {t('managePeriods')}
+                  </button>
+                </div>
+              )}
             {getEffectiveStatus(actionSheetListing) !== 'Formidla' && (
               <>
                 <button

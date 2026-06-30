@@ -60,6 +60,11 @@ export default function EventTaskCards({ listingIds }: Props) {
   const pending = events.filter((e) => !optIns[e.id] && !dismissed[e.id])
   if (pending.length === 0) return null
 
+  const targetListingId = listingIds[0]
+  const manageHref = targetListingId
+    ? `/homeowner/manage?listing=${targetListingId}&panel=events`
+    : '/homeowner/manage'
+
   return (
     <div style={{ display: 'grid', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
       {pending.map((event) => (
@@ -82,7 +87,7 @@ export default function EventTaskCards({ listingIds }: Props) {
                 {event.start_date} – {event.end_date}. {t('eventTaskCardBody')}
               </p>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Link href="/homeowner/manage" style={{ textDecoration: 'none' }}>
+                <Link href={manageHref} style={{ textDecoration: 'none' }}>
                   <Button type="button" variant="accent">
                     {t('eventTaskCardCta')}
                   </Button>

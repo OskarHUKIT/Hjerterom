@@ -331,6 +331,20 @@ export default function MobileBottomNav({
             </Link>
             <Link
               prefetch={false}
+              href="/homeowner/agreements"
+              className="button"
+              style={{
+                justifyContent: 'flex-start',
+                textDecoration: 'none',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+              onClick={() => setMoreOpen(false)}
+            >
+              {t('landlordAgreementsTitle')}
+            </Link>
+            <Link
+              prefetch={false}
               href="/homeowner/sign-terms"
               className="button"
               style={{

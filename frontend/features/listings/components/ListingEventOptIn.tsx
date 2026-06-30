@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
@@ -28,6 +29,7 @@ export default function ListingEventOptIn({ listingId }: Props) {
   const toast = useToast()
   const [events, setEvents] = useState<PublishedEvent[]>([])
   const [optIns, setOptIns] = useState<Record<string, OptInRow>>({})
+  const [termsDocByEvent, setTermsDocByEvent] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
 
@@ -48,12 +50,34 @@ export default function ListingEventOptIn({ listingId }: Props) {
       ])
 
       if (cancelled) return
-      setEvents((published ?? []) as PublishedEvent[])
+      const eventList = (published ?? []) as PublishedEvent[]
+      setEvents(eventList)
       const map: Record<string, OptInRow> = {}
       ;(mine ?? []).forEach((row) => {
         map[row.event_id] = row as OptInRow
       })
       setOptIns(map)
+
+      if (eventList.length > 0) {
+        const { data: termsDocs } = await supabase
+          .from('terms_documents')
+          .select('id, event_id, version')
+          .eq('scope', 'event')
+          .eq('approved_for_utleier_signing', true)
+          .in(
+            'event_id',
+            eventList.map((e) => e.id)
+          )
+          .order('version', { ascending: false })
+        const docMap: Record<string, string> = {}
+        ;(termsDocs ?? []).forEach((row) => {
+          if (row.event_id && !docMap[row.event_id]) {
+            docMap[row.event_id] = row.id
+          }
+        })
+        setTermsDocByEvent(docMap)
+      }
+
       setLoading(false)
     })()
     return () => {
@@ -123,6 +147,8 @@ export default function ListingEventOptIn({ listingId }: Props) {
 
   if (loading) return null
 
+  const returnTo = `/homeowner/manage?listing=${listingId}&panel=events`
+
   return (
     <section className="card" style={{ marginTop: 'var(--space-4)', padding: 'var(--space-4)' }}>
       <h4 style={{ margin: '0 0 var(--space-3)' }}>{t('eventOptInTitle')}</h4>
@@ -134,6 +160,7 @@ export default function ListingEventOptIn({ listingId }: Props) {
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
           {events.map((event) => {
             const active = optIns[event.id]?.status === 'active'
+            const termsDocId = termsDocByEvent[event.id]
             return (
               <li
                 key={event.id}
@@ -154,14 +181,25 @@ export default function ListingEventOptIn({ listingId }: Props) {
                     {event.arrangement_tag ? ` · ${event.arrangement_tag}` : ''}
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant={active ? 'secondary' : 'accent'}
-                  disabled={busyId === event.id}
-                  onClick={() => void toggle(event, !active)}
-                >
-                  {active ? t('eventOptInWithdraw') : t('eventOptInYes')}
-                </Button>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                  {termsDocId ? (
+                    <Link
+                      href={`/homeowner/sign-terms?doc=${termsDocId}&returnTo=${encodeURIComponent(returnTo)}`}
+                      className="text-sm nav-link"
+                      style={{ fontWeight: 600 }}
+                    >
+                      {t('eventOptInSignTermsCta')}
+                    </Link>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant={active ? 'secondary' : 'accent'}
+                    disabled={busyId === event.id}
+                    onClick={() => void toggle(event, !active)}
+                  >
+                    {active ? t('eventOptInWithdraw') : t('eventOptInYes')}
+                  </Button>
+                </div>
               </li>
             )
           })}

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Compass } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { supabase } from '@/app/lib/supabase'
@@ -42,10 +43,52 @@ export default function ListingTourismSettings({
   const [cancellationPolicy, setCancellationPolicy] = useState(initialCancellationPolicy)
   const [checkInGuide, setCheckInGuide] = useState(initialCheckInGuide ?? '')
   const [saving, setSaving] = useState(false)
+  const [tourismTermsDocId, setTourismTermsDocId] = useState<string | null>(null)
+  const [tourismTermsSigned, setTourismTermsSigned] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const user = await supabase.auth.getUser()
+      const uid = user.data.user?.id
+      if (!uid) return
+      const [{ data: signed }, { data: doc }] = await Promise.all([
+        supabase.rpc('landlord_has_tourism_terms_signed', { p_user_id: uid }),
+        supabase
+          .from('terms_documents')
+          .select('id, version')
+          .eq('scope', 'turisme')
+          .eq('approved_for_utleier_signing', true)
+          .order('version', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ])
+      if (cancelled) return
+      setTourismTermsSigned(signed !== false)
+      setTourismTermsDocId(doc?.id ?? null)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const save = async () => {
     setSaving(true)
     try {
+      if (enabled && !initialEnabled) {
+        const user = await supabase.auth.getUser()
+        const uid = user.data.user?.id
+        if (uid) {
+          const { data: signed } = await supabase.rpc('landlord_has_tourism_terms_signed', {
+            p_user_id: uid,
+          })
+          if (signed === false) {
+            toast(t('tourismTermsRequired'), 'error')
+            return
+          }
+        }
+      }
+
       const cents =
         enabled && priceKr.trim()
           ? Math.max(0, Math.round(Number.parseFloat(priceKr.replace(',', '.')) * 100))
@@ -93,6 +136,18 @@ export default function ListingTourismSettings({
       <p className="text-sm" style={{ color: 'var(--text-muted)', margin: '0 0 var(--space-4)' }}>
         {t('tourismEnabledDesc')}
       </p>
+      {!tourismTermsSigned && tourismTermsDocId ? (
+        <p className="text-sm" style={{ margin: '0 0 var(--space-4)', lineHeight: 1.5 }}>
+          {t('tourismTermsRequired')}{' '}
+          <Link
+            href={`/homeowner/sign-terms?doc=${tourismTermsDocId}&returnTo=${encodeURIComponent(`/homeowner/manage?listing=${listingId}&panel=tourism`)}`}
+            className="nav-link"
+            style={{ fontWeight: 600 }}
+          >
+            {t('eventOptInSignTermsCta')}
+          </Link>
+        </p>
+      ) : null}
       <label className="ds-check-row">
         <input
           type="checkbox"
