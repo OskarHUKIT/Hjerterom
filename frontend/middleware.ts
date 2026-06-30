@@ -34,8 +34,33 @@ function isOpsPath(pathname: string): boolean {
   return pathname === '/ops' || pathname.startsWith('/ops/')
 }
 
+function resolveHjerterumShell(host: string): 'finn' | 'los' | 'ops' | 'app' | null {
+  const h = host.split(':')[0]?.toLowerCase() ?? ''
+  if (h.startsWith('finn.')) return 'finn'
+  if (h.startsWith('los.')) return 'los'
+  if (h.startsWith('ops.')) return 'ops'
+  if (h.startsWith('app.')) return 'app'
+  return null
+}
+
 export async function middleware(request: NextRequest) {
+  const host = request.headers.get('host') ?? ''
+  const shell = resolveHjerterumShell(host)
+  const pathname = request.nextUrl.pathname
+
+  /** Subdomain → /finn/* rewrite (finn.hjerterum.no locally via /etc/hosts). */
+  if (shell === 'finn' && !pathname.startsWith('/finn')) {
+    const url = request.nextUrl.clone()
+    url.pathname = pathname === '/' ? '/finn' : `/finn${pathname}`
+    const rewrite = NextResponse.rewrite(url)
+    rewrite.headers.set('x-hjerterum-shell', 'finn')
+    return rewrite
+  }
+
   let response = NextResponse.next({ request })
+  if (shell) {
+    response.headers.set('x-hjerterum-shell', shell)
+  }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -63,8 +88,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const pathname = request.nextUrl.pathname
 
   if (!user && isProtectedPath(pathname)) {
     const loginUrl = new URL('/login', request.url)
@@ -144,18 +167,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   /**
-   * Middleware kjører kun på beskyttede prefikser — ikke på offentlige ruter
-   * (`/`, `/login`, `/brukervilkar`, `/personvern`, `/om-boly`, `/listings/*`).
-   * Unngår unødvendig Vercel→Supabase `getUser()`-rundtur på hver navigasjon,
-   * som ellers koster transatlantisk RTT når Vercel-region ikke matcher EU-Supabase.
-   * Cookie-/token-refresh på klientsiden håndteres fortsatt av `@supabase/ssr` (browser client).
+   * Kjører på alle app-ruter (unntatt statiske assets) slik at subdomain-rewrite
+   * for finn.* fungerer på `/`. Beskyttede prefikser får fortsatt auth-gates.
    */
   matcher: [
-    '/homeowner/:path*',
-    '/nav/:path*',
-    '/documents/:path*',
-    '/settings/:path*',
-    '/ops',
-    '/ops/:path*',
+    '/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

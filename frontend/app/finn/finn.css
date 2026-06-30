@@ -1,0 +1,292 @@
+.finn-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #f0f9ff 0%, #f8fafc 40%, #ffffff 100%);
+  color: #0f172a;
+}
+
+[data-theme='dark'] .finn-shell {
+  background: linear-gradient(180deg, #0c1929 0%, #0f172a 40%, #020617 100%);
+  color: #f1f5f9;
+}
+
+.finn-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) max(var(--space-4), env(safe-area-inset-left))
+    var(--space-4) max(var(--space-4), env(safe-area-inset-right));
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+[data-theme='dark'] .finn-header {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.finn-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+  color: inherit;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.finn-brand-text {
+  letter-spacing: -0.02em;
+}
+
+.finn-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.finn-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #475569;
+  border: 1px solid transparent;
+  transition: background 0.15s, color 0.15s;
+}
+
+[data-theme='dark'] .finn-nav-link {
+  color: #94a3b8;
+}
+
+.finn-nav-link:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: #2563eb;
+}
+
+.finn-nav-link--active {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.finn-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-6) max(var(--space-4), env(safe-area-inset-left))
+    var(--space-10) max(var(--space-4), env(safe-area-inset-right));
+  box-sizing: border-box;
+}
+
+.finn-footer {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  font-size: 0.85rem;
+  color: #64748b;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.finn-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-2);
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.finn-hero {
+  margin-bottom: var(--space-8);
+}
+
+.finn-hero h1 {
+  font-family: var(--font-display), serif;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  margin: 0 0 var(--space-3);
+  letter-spacing: -0.03em;
+}
+
+.finn-hero p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #475569;
+  max-width: 52ch;
+}
+
+[data-theme='dark'] .finn-hero p {
+  color: #94a3b8;
+}
+
+.finn-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+  padding: var(--space-4);
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme='dark'] .finn-search-bar {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.finn-search-bar label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 140px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.finn-search-bar input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  font-size: 0.95rem;
+  min-height: var(--touch-target, 44px);
+  background: #f8fafc;
+  color: inherit;
+}
+
+[data-theme='dark'] .finn-search-bar input {
+  background: #0f172a;
+}
+
+.finn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: var(--space-5);
+}
+
+.finn-card {
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+  transition: transform 0.15s, box-shadow 0.15s;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='dark'] .finn-card {
+  background: rgba(30, 41, 59, 0.7);
+}
+
+.finn-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.1);
+}
+
+.finn-card-image {
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.finn-card-body {
+  padding: var(--space-4);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.finn-card-body h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.finn-card-meta {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.finn-price {
+  font-weight: 700;
+  color: #2563eb;
+  margin-top: auto;
+}
+
+.finn-empty {
+  text-align: center;
+  padding: var(--space-10);
+  color: #64748b;
+}
+
+.finn-event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.finn-event-item {
+  display: block;
+  padding: var(--space-5);
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s;
+}
+
+[data-theme='dark'] .finn-event-item {
+  background: rgba(30, 41, 59, 0.7);
+}
+
+.finn-event-item:hover {
+  border-color: #2563eb;
+}
+
+.finn-inquiry-form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 480px;
+  margin-top: var(--space-6);
+}
+
+.finn-inquiry-form textarea,
+.finn-inquiry-form input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  font: inherit;
+  box-sizing: border-box;
+  min-height: var(--touch-target, 44px);
+}
+
+.finn-inquiry-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}

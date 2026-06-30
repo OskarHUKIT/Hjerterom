@@ -32,10 +32,11 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Boly',
-  description: 'Boly – formidling av bolig mellom kommune og private utleiere',
+  title: 'Hjerterum',
+  description:
+    'Hjerterum – boligformidling, arrangement og turisme mellom kommune, utleiere og gjester i Nord-Norge',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, title: 'Boly' },
+  appleWebApp: { capable: true, title: 'Hjerterum' },
   icons: {
     icon: [{ url: '/BolyMobilIcon.png', sizes: '1024x1024', type: 'image/png' }],
     apple: '/BolyMobilIcon.png',

@@ -8,6 +8,7 @@ import Link from 'next/link'
 import type { User as AuthUser } from '@supabase/supabase-js'
 import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { devWarn, logError } from '@/app/lib/appLogger'
+import PageSkeleton from '../../components/design-system/PageSkeleton'
 import { useLanguage } from '../../../context/LanguageContext'
 import {
   MapPin,
@@ -1119,7 +1120,7 @@ export default function ListingDetailsClient() {
   })()
 
   if (loading) {
-    return <div className="container" style={{ minHeight: '80vh' }} />
+    return <PageSkeleton minHeight={400} />
   }
 
   if (!listing) {

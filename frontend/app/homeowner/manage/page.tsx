@@ -31,6 +31,13 @@ import { formatDateNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import BottomSheet from '../../components/BottomSheet'
+import { EmptyState, useToast } from '../../components/design-system'
+import ListingTourismSettings from '@/features/listings/components/ListingTourismSettings'
+import ListingEventOptIn from '@/features/listings/components/ListingEventOptIn'
+import AvailabilityLaneSelect from '@/features/listings/components/AvailabilityLaneSelect'
+import { checkAvailabilityConflict } from '@/features/listings/lib/availabilityConflict'
+import type { ListingLane } from '@/features/listings/types/lanes'
+import { buttonClassName } from '../../components/ui/Button'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
 import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
 import { logError } from '@/app/lib/appLogger'
@@ -39,6 +46,7 @@ import { listingAvailabilityStatusToday } from '../../lib/listingAvailabilitySta
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
+  const toast = useToast()
   const router = useRouter()
   const [myListings, setMyListings] = useState<any[]>([])
   const [availability, setAvailability] = useState<Record<string, any[]>>({})
@@ -47,7 +55,12 @@ export default function HomeownerManage() {
     'Alle'
   )
   const [editingAvailability, setEditingAvailability] = useState<string | null>(null)
-  const [newPeriod, setNewPeriod] = useState({ start: '', end: '', status: 'Tilgjengelig' })
+  const [newPeriod, setNewPeriod] = useState({
+    start: '',
+    end: '',
+    status: 'Tilgjengelig',
+    lane: 'sosial' as ListingLane,
+  })
   const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{
     id: string
     listingId: string
@@ -90,7 +103,7 @@ export default function HomeownerManage() {
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
     const t = todayStr()
     setEditingAvailability(listingId)
-    setNewPeriod({ start: t, end: t, status })
+    setNewPeriod({ start: t, end: t, status, lane: 'sosial' })
   }
 
   const fetchData = useCallback(async () => {
@@ -397,13 +410,30 @@ export default function HomeownerManage() {
     listingId: string,
     startDate: string,
     endDate: string,
-    status: string = 'Tilgjengelig'
+    status: string = 'Tilgjengelig',
+    lane: ListingLane = 'sosial'
   ) => {
     if (!startDate || !endDate) return
     try {
+      const conflict = await checkAvailabilityConflict(listingId, startDate, endDate)
+      if (!conflict.ok) {
+        toast(t('availabilityConflict'), 'error')
+        return
+      }
+
+      const effectiveLane = status === 'Formidla' ? 'sosial' : lane
+
       const { data, error } = await supabase
         .from('listing_availability')
-        .insert([{ listing_id: listingId, start_date: startDate, end_date: endDate, status }])
+        .insert([
+          {
+            listing_id: listingId,
+            start_date: startDate,
+            end_date: endDate,
+            status,
+            lane: effectiveLane,
+          },
+        ])
         .select()
         .single()
 
@@ -478,17 +508,9 @@ export default function HomeownerManage() {
     return mapping[type] || type
   }
 
-  if (pageGate === 'init') {
+  if (pageGate === 'init' || loading) {
     return (
-      <main
-        className="container"
-        style={{
-          minHeight: '80vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+      <main className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center' }}>
         <LoadingPlaceholder minHeight={160} />
       </main>
     )
@@ -1250,7 +1272,7 @@ export default function HomeownerManage() {
                                 setEditingAvailability(
                                   editingAvailability === listing.id ? null : listing.id
                                 )
-                                setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
+                                setNewPeriod({ start: '', end: '', status: 'Tilgjengelig', lane: 'sosial' })
                               }}
                               style={{
                                 padding: '8px',
@@ -1405,6 +1427,23 @@ export default function HomeownerManage() {
                         </button>
                       </div>
 
+                      <ListingTourismSettings
+                        listingId={listing.id}
+                        initialEnabled={Boolean(listing.tourism_enabled)}
+                        initialNightlyPriceCents={
+                          typeof listing.tourism_nightly_price_cents === 'number'
+                            ? listing.tourism_nightly_price_cents
+                            : null
+                        }
+                        onUpdated={(patch) => {
+                          setMyListings((prev) =>
+                            prev.map((l) => (l.id === listing.id ? { ...l, ...patch } : l))
+                          )
+                        }}
+                      />
+
+                      <ListingEventOptIn listingId={listing.id} />
+
                       <div
                         style={{
                           display: 'grid',
@@ -1521,6 +1560,15 @@ export default function HomeownerManage() {
                           flexWrap: 'wrap',
                         }}
                       >
+                        {listing.tourism_enabled ? (
+                          <div style={{ flex: '1 1 100%', minWidth: 160 }}>
+                            <AvailabilityLaneSelect
+                              id={`lane-${listing.id}`}
+                              value={newPeriod.lane}
+                              onChange={(lane) => setNewPeriod({ ...newPeriod, lane })}
+                            />
+                          </div>
+                        ) : null}
                         <div style={{ flex: 1 }}>
                           <label className="label" style={{ fontSize: '0.7rem' }}>
                             {t('status')}
@@ -1575,9 +1623,10 @@ export default function HomeownerManage() {
                               listing.id,
                               newPeriod.start,
                               newPeriod.end,
-                              newPeriod.status
+                              newPeriod.status,
+                              newPeriod.lane
                             )
-                            setNewPeriod({ start: '', end: '', status: 'Tilgjengelig' })
+                            setNewPeriod({ start: '', end: '', status: 'Tilgjengelig', lane: 'sosial' })
                           }}
                           className="button"
                           style={{ padding: '10px 16px', borderRadius: '8px' }}
@@ -1590,10 +1639,14 @@ export default function HomeownerManage() {
                 </div>
               )})
             ) : (
-              <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-                <Info size={40} style={{ margin: '0 auto var(--space-3)', opacity: 0.3 }} />
-                <p>{t('noProperties')}</p>
-              </div>
+              <EmptyState
+                title={t('noProperties')}
+                action={
+                  <Link href="/homeowner/register" className={buttonClassName('accent')}>
+                    {t('noPropertiesCta')}
+                  </Link>
+                }
+              />
             )}
           </div>
         </div>

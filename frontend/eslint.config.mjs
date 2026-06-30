@@ -74,6 +74,12 @@ const eslintConfig = [
     },
   },
   eslintConfigPrettier,
+  {
+    files: ['app/**/*.{ts,tsx}', 'features/**/*.{ts,tsx}'],
+    rules: {
+      'no-alert': 'warn',
+    },
+  },
 ]
 
 export default eslintConfig
