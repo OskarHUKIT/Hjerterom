@@ -11,6 +11,7 @@ cd supabase && supabase db push
 | 1 | `20260630120000_hjerterum_lanes_and_central_events.sql` |
 | 2 | `20260630180000_hjerterum_complete_phase3_5.sql` |
 | 3 | `20260630200000_hjerterum_production_ready.sql` |
+| 4 | `20260630210000_platform_control_panel.sql` |
 
 ## 2. Miljøvariabler
 

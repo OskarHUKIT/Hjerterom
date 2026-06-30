@@ -46,10 +46,12 @@ import { getLandlordPostLoginHref } from '@/app/lib/landlordNavGate'
 import { logError } from '@/app/lib/appLogger'
 import { dayAvailabilityToneForIso } from '@/app/lib/listingDayAvailabilityTone'
 import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
+import { usePlatformMode } from '@/context/PlatformModeContext'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
   const toast = useToast()
+  const { flags: platformFlags } = usePlatformMode()
   const router = useRouter()
   const [myListings, setMyListings] = useState<any[]>([])
   const [availability, setAvailability] = useState<Record<string, any[]>>({})
@@ -852,9 +854,13 @@ export default function HomeownerManage() {
         </Link>
       </div>
 
-      <EventTaskCards listingIds={myListings.map((l) => l.id)} />
-      <LandlordStripeConnect />
-      <LandlordBookingRequests listingIds={myListings.map((l) => l.id)} />
+      {platformFlags.centralEvents ? (
+        <EventTaskCards listingIds={myListings.map((l) => l.id)} />
+      ) : null}
+      {platformFlags.stripeBookings ? <LandlordStripeConnect /> : null}
+      {platformFlags.stripeBookings ? (
+        <LandlordBookingRequests listingIds={myListings.map((l) => l.id)} />
+      ) : null}
 
       <div
         className="hm-layout"
@@ -1434,6 +1440,7 @@ export default function HomeownerManage() {
                         </button>
                       </div>
 
+                      {platformFlags.tourism ? (
                       <ListingTourismSettings
                         listingId={listing.id}
                         initialEnabled={Boolean(listing.tourism_enabled)}
@@ -1448,8 +1455,11 @@ export default function HomeownerManage() {
                           )
                         }}
                       />
+                      ) : null}
 
+                      {platformFlags.centralEvents ? (
                       <ListingEventOptIn listingId={listing.id} />
+                      ) : null}
 
                       <div
                         style={{
@@ -1567,7 +1577,7 @@ export default function HomeownerManage() {
                           flexWrap: 'wrap',
                         }}
                       >
-                        {listing.tourism_enabled ? (
+                        {platformFlags.tourism && listing.tourism_enabled ? (
                           <div style={{ flex: '1 1 100%', minWidth: 160 }}>
                             <AvailabilityLaneSelect
                               id={`lane-${listing.id}`}

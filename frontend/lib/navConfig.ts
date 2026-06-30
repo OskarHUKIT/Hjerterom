@@ -115,12 +115,18 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
 export function navItemsFor(
   audience: NavAudience,
   surface: NavSurface,
-  opts?: { isAdmin?: boolean }
+  opts?: {
+    isAdmin?: boolean
+    /** Hide Hjerterum nav when modules are off (from platform_settings). */
+    platform?: { centralEvents?: boolean; los?: boolean }
+  }
 ): NavItemDef[] {
   return APP_NAV_ITEMS.filter((item) => {
     if (!item.audiences.includes(audience)) return false
     if (!item.surfaces.includes(surface)) return false
     if (item.adminOnly && !opts?.isAdmin) return false
+    if (item.id === 'eventInquiries' && opts?.platform?.centralEvents === false) return false
+    if (item.id === 'losInbox' && opts?.platform?.los === false) return false
     return true
   })
 }

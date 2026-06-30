@@ -17,7 +17,7 @@ export function useNavDatabasePublishedEvents(userRole: string | null | undefine
         .limit(30)
       return (data ?? []) as PublishedEventOption[]
     },
-    enabled: isKommuneStaffRole(userRole),
+    enabled: isKommuneStaffRole(userRole ?? undefined),
     staleTime: 60_000,
   })
 }

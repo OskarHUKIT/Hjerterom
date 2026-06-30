@@ -4,10 +4,12 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { LogIn, Presentation, ArrowRight, X, Compass, MessageCircle } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
+import { usePlatformMode } from '../context/PlatformModeContext'
 import { Button, buttonClassName } from './components/ui/Button'
 
 export default function Home() {
   const { t } = useLanguage()
+  const { flags } = usePlatformMode()
   const [showDemoPopup, setShowDemoPopup] = useState(false)
 
   return (
@@ -99,7 +101,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Finn bolig */}
+        {/* Finn bolig — kun når aktivert */}
+        {flags.finn ? (
         <div
           className="card portal-card portal-card-align-buttons"
           style={{
@@ -140,8 +143,10 @@ export default function Home() {
             </div>
           </div>
         </div>
+        ) : null}
 
-        {/* Digital Los */}
+        {/* Digital Los — kun når aktivert */}
+        {flags.los ? (
         <div
           className="card portal-card portal-card-align-buttons"
           style={{
@@ -182,6 +187,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+        ) : null}
         </div>
       </div>
 

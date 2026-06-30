@@ -12,6 +12,7 @@ import NotificationsRealtimeSync from './components/NotificationsRealtimeSync'
 import PrefetchAuthUser from './components/PrefetchAuthUser'
 import CookieBanner from './components/CookieBanner'
 import { ConfirmProvider, ToastProvider } from './components/design-system'
+import { PlatformModeProvider } from '../context/PlatformModeContext'
 
 function makeQueryClient() {
   return new QueryClient({
@@ -37,12 +38,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <CookieConsentProvider>
               <ToastProvider>
                 <ConfirmProvider>
+                  <PlatformModeProvider>
                   <PrefetchAuthUser />
                   <AuthQuerySync />
                   <NotificationsRealtimeSync />
                   <NavigationProgress />
                   {children}
                   <CookieBanner />
+                  </PlatformModeProvider>
                 </ConfirmProvider>
               </ToastProvider>
             </CookieConsentProvider>

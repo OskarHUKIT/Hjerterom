@@ -76,6 +76,7 @@ import {
 import { getNavDbColumns } from '@/features/mediation/lib/navDatabaseColumns'
 import { parseKommuneRegions } from '@/features/mediation/lib/parseKommuneRegions'
 import { useNavDatabasePublishedEvents } from '@/features/mediation/hooks/useNavDatabasePublishedEvents'
+import { usePlatformMode } from '@/context/PlatformModeContext'
 
 function navDbErrMessage(err: unknown): string {
   return supabaseErrorMessage(err)
@@ -91,6 +92,7 @@ export default function NavDatabasePage() {
   const { t, locale } = useLanguage()
   const toast = useToast()
   const confirmDialog = useConfirm()
+  const { flags: platformFlags } = usePlatformMode()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -197,7 +199,9 @@ export default function NavDatabasePage() {
     ('Tilgjengelig' | 'Utilgjengelig' | 'Formidlet')[]
   >(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'])
   const [eventFilterId, setEventFilterId] = useState('Alle')
-  const publishedEventsQuery = useNavDatabasePublishedEvents(userRole)
+  const publishedEventsQuery = useNavDatabasePublishedEvents(
+    platformFlags.centralEvents ? userRole : null
+  )
   const publishedEvents = publishedEventsQuery.data ?? []
 
   const ALL_COLUMNS = getNavDbColumns(t, isMobile)
@@ -1632,6 +1636,7 @@ export default function NavDatabasePage() {
               gap: 'var(--space-6)',
             }}
           >
+            {platformFlags.centralEvents ? (
             <div>
               <label className="label">{t('dbFilterEvent')}</label>
               <select
@@ -1648,6 +1653,7 @@ export default function NavDatabasePage() {
                 ))}
               </select>
             </div>
+            ) : null}
             <div>
               <label className="label">{t('dbSearch')}</label>
               <div style={{ position: 'relative' }}>

@@ -7,6 +7,7 @@ import { CalendarDays, Compass, User } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import type { Locale } from '@/lib/translations'
 import Logo from '@/app/components/Logo'
+import FeaturePortalGate from '@/app/components/FeaturePortalGate'
 
 const FINN_LOCALE_KEY = 'hjerterum-finn-locale'
 
@@ -78,7 +79,9 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
       </header>
-      <main className="finn-main">{children}</main>
+      <main className="finn-main">
+        <FeaturePortalGate feature="finn">{children}</FeaturePortalGate>
+      </main>
       <footer className="finn-footer">
         <p>{t('finnFooterTagline')}</p>
         <div className="finn-footer-links">
