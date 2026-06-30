@@ -11,6 +11,7 @@ export const translations = {
     myProperties: 'Mine boliger',
     signTerms: 'Signer vilkår',
     signTermsPageTitle: 'Signering av vilkårsavtale',
+    signTermsBack: 'Avbryt og gå tilbake',
     signTermsCityHint:
       'Dokumentet som gjelder for signering, er knyttet til bolig i {city} (kommune/område fra registrering).',
     signTermsIntroFirstTimeWithCity:
@@ -1559,6 +1560,7 @@ export const translations = {
     myProperties: 'Mu dávvirat',
     signTerms: 'Almmuhán oaivámuša',
     signTermsPageTitle: 'Oaivámuša almmu',
+    signTermsBack: 'Heahtá ja máhcat',
     signTermsCityHint:
       'Dokumeanta mii gustu alibmái lea čadnon dávvira {city} (kommuvdna/guovlu registreremis).',
     signTermsIntroFirstTimeWithCity:
@@ -3077,6 +3079,7 @@ export const translations = {
     myProperties: 'My properties',
     signTerms: 'Sign terms',
     signTermsPageTitle: 'Sign the terms agreement',
+    signTermsBack: 'Cancel and go back',
     signTermsCityHint:
       'The document you must sign is tied to a property in {city} (municipality/area from your registration).',
     signTermsIntroFirstTimeWithCity:

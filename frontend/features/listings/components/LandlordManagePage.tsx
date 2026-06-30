@@ -107,9 +107,9 @@ export default function HomeownerManage() {
 
   const todayStr = () => new Date().toISOString().slice(0, 10)
   const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
-    const t = todayStr()
+    const today = todayStr()
     setEditingAvailability(listingId)
-    setNewPeriod({ start: t, end: t, status, lane: 'sosial' })
+    setNewPeriod({ start: today, end: today, status, lane: 'sosial' })
   }
 
   const fetchData = useCallback(async () => {
@@ -139,8 +139,6 @@ export default function HomeownerManage() {
         router.replace(gateHref)
         return
       }
-
-      // Fetch listings
       const { data: listingsData, error: listingsError } = await supabase
         .from('listings')
         .select('*')
@@ -277,7 +275,10 @@ export default function HomeownerManage() {
         return
       }
       if (!user) {
-        if (!cancelled) router.push('/login')
+        if (!cancelled) {
+          setLoading(false)
+          router.push('/login')
+        }
         return
       }
       const { data: profile } = await supabase
@@ -286,21 +287,30 @@ export default function HomeownerManage() {
         .eq('id', user.id)
         .maybeSingle()
       if (isKommuneStaffRole(profile?.role)) {
-        if (!cancelled) router.replace('/nav/database')
+        if (!cancelled) {
+          setLoading(false)
+          router.replace('/nav/database')
+        }
         return
       }
       const gateHref = await getLandlordPostLoginHref(supabase, user.id, user.email, {
         reuseProfileRole: profile?.role ?? null,
       })
       if (gateHref !== '/homeowner/manage') {
-        if (!cancelled) router.replace(gateHref)
+        if (!cancelled) {
+          setLoading(false)
+          router.replace(gateHref)
+        }
         return
       }
       const dismissed =
         typeof window !== 'undefined' &&
         localStorage.getItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.welcome, user.id))
       if (!dismissed) {
-        if (!cancelled) setPageGate('welcome')
+        if (!cancelled) {
+          setPageGate('welcome')
+          setLoading(false)
+        }
         return
       }
       if (!cancelled) setPageGate('ready')
@@ -514,7 +524,15 @@ export default function HomeownerManage() {
     return mapping[type] || type
   }
 
-  if (pageGate === 'init' || loading) {
+  if (pageGate === 'init') {
+    return (
+      <main className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center' }}>
+        <LoadingPlaceholder minHeight={160} />
+      </main>
+    )
+  }
+
+  if (pageGate === 'ready' && loading && !fetchError) {
     return (
       <main className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center' }}>
         <LoadingPlaceholder minHeight={160} />
