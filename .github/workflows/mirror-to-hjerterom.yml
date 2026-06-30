@@ -21,7 +21,9 @@ jobs:
           MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: |
           if [ -z "$MIRROR_TOKEN" ]; then
-            echo "Missing MIRROR_TOKEN secret. Add a PAT with repo access under Settings → Secrets → Actions."
+            echo "MIRROR_TOKEN is missing on OskarHUKIT/Boly."
+            echo "Add it under: Settings -> Secrets and variables -> Actions -> Repository secrets"
+            echo "Name must be exactly: MIRROR_TOKEN"
             exit 1
           fi
           git remote add hjerterom "https://x-access-token:${MIRROR_TOKEN}@github.com/OskarHUKIT/Hjerterom.git"
