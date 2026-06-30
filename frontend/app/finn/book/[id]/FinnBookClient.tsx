@@ -17,6 +17,7 @@ export default function FinnBookClient() {
   const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'vipps'>('stripe')
   const [booking, setBooking] = useState<{
     id: string
     status: string
@@ -53,14 +54,19 @@ export default function FinnBookClient() {
     if (!booking) return
     setPaying(true)
     try {
-      const res = await fetch('/api/stripe/checkout', {
+      const endpoint = paymentMethod === 'vipps' ? '/api/vipps/checkout' : '/api/stripe/checkout'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId: booking.id }),
       })
-      const data = (await res.json()) as { url?: string; error?: string }
+      const data = (await res.json()) as { url?: string; error?: string; code?: string }
       if (!res.ok) {
-        toast(data.error ?? t('finnCheckoutError'), 'error')
+        if (data.code === 'vipps_not_configured' || data.code === 'vipps_stub') {
+          toast(t('finnVippsNotReady'), 'info')
+        } else {
+          toast(data.error ?? t('finnCheckoutError'), 'error')
+        }
         return
       }
       if (data.url) window.location.href = data.url
@@ -104,9 +110,32 @@ export default function FinnBookClient() {
           {t('finnCheckoutStatus')}: <strong>{booking.status}</strong>
         </p>
         {booking.status === 'accepted' || booking.status === 'pending' ? (
-          <Button type="button" variant="accent" disabled={paying} onClick={() => void pay()}>
-            {paying ? t('finnCheckoutPaying') : t('finnCheckoutPay')}
-          </Button>
+          <>
+            <fieldset style={{ border: 'none', margin: '0 0 var(--space-4)', padding: 0 }}>
+              <legend style={{ fontWeight: 600, marginBottom: 8 }}>{t('finnPaymentMethod')}</legend>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentMethod === 'stripe'}
+                  onChange={() => setPaymentMethod('stripe')}
+                />
+                Stripe
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentMethod === 'vipps'}
+                  onChange={() => setPaymentMethod('vipps')}
+                />
+                Vipps
+              </label>
+            </fieldset>
+            <Button type="button" variant="accent" disabled={paying} onClick={() => void pay()}>
+              {paying ? t('finnCheckoutPaying') : t('finnCheckoutPay')}
+            </Button>
+          </>
         ) : booking.status === 'paid' ? (
           <p style={{ color: 'var(--finn-accent)', fontWeight: 600 }}>{t('finnBookingStatus_paid')}</p>
         ) : (

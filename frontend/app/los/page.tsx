@@ -54,6 +54,8 @@ export default function LosChatPage() {
   const [caseReference, setCaseReference] = useState<string | null>(null)
   const [kommuner, setKommuner] = useState<{ slug: string; name: string }[]>([])
   const [kommuneSlug, setKommuneSlug] = useState('')
+  const [contactName, setContactName] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
   const [busy, setBusy] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -130,12 +132,18 @@ export default function LosChatPage() {
       toast(t('losKommuneRequired'), 'error')
       return
     }
+    if (!contactName.trim()) {
+      toast(t('losContactNameRequired'), 'error')
+      return
+    }
     setBusy(true)
     const summary = messages.map((m) => `${m.role}: ${m.content}`).join('\n').slice(0, 4000)
     const { data: handoffId, error } = await supabase.rpc('los_create_handoff', {
       p_session_id: sessionId,
       p_summary: summary,
       p_kommune_slug: kommuneSlug || null,
+      p_contact_name: contactName.trim(),
+      p_contact_phone: contactPhone.trim() || null,
     })
     setBusy(false)
     if (error) {
@@ -205,6 +213,44 @@ export default function LosChatPage() {
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
             <span>{t('losConsentLabel')}</span>
           </label>
+          {messages.length > 2 ? (
+            <div style={{ marginTop: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <label style={{ display: 'block' }}>
+                <span style={{ display: 'block', marginBottom: 4, fontWeight: 600, fontSize: '0.85rem' }}>
+                  {t('losContactNameLabel')} *
+                </span>
+                <input
+                  type="text"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  autoComplete="name"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: '1px solid rgba(148, 163, 184, 0.35)',
+                  }}
+                />
+              </label>
+              <label style={{ display: 'block' }}>
+                <span style={{ display: 'block', marginBottom: 4, fontWeight: 600, fontSize: '0.85rem' }}>
+                  {t('losContactPhoneLabel')}
+                </span>
+                <input
+                  type="tel"
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  autoComplete="tel"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: '1px solid rgba(148, 163, 184, 0.35)',
+                  }}
+                />
+              </label>
+            </div>
+          ) : null}
         </div>
       )}
 

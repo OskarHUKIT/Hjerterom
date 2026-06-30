@@ -23,6 +23,7 @@ import { formatDateTimeNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
 import { parseKommuneRegions } from '../../lib/kommuneRegions'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import { channelBadgeEmoji } from '../../lib/messageChannelLabels'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '../../lib/landlordOnboarding'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { OptimizedPublicStorageImage } from '../../components/OptimizedPublicStorageImage'
@@ -1329,7 +1330,9 @@ function MessagesContent() {
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>{a.name}</div>
+                      <div style={{ fontWeight: 600 }}>
+                        {channelBadgeEmoji('social_caseworker')} {t('msgChannelSocial')} · {a.name}
+                      </div>
                       {a.lastMessage ? (
                         <div className="text-sm" style={{ opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {a.lastMessage}

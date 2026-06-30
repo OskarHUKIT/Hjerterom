@@ -31,6 +31,8 @@ export default function BookingRequestForm({
     checkIn: '',
     checkOut: '',
     message: '',
+    acceptTerms: false,
+    guestInviteEmail: '',
   })
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -41,6 +43,10 @@ export default function BookingRequestForm({
     }
     if (form.checkOut < form.checkIn) {
       toast(t('finnBookingInvalidDates'), 'error')
+      return
+    }
+    if (!form.acceptTerms) {
+      toast(t('finnGuestTermsAccept'), 'error')
       return
     }
     setSubmitting(true)
@@ -131,6 +137,14 @@ export default function BookingRequestForm({
             value={form.message}
             onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
           />
+        </label>
+        <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <input
+            type="checkbox"
+            checked={form.acceptTerms}
+            onChange={(e) => setForm((f) => ({ ...f, acceptTerms: e.target.checked }))}
+          />
+          <span>{t('finnGuestTermsAccept')}</span>
         </label>
         <Button type="submit" variant="accent" disabled={submitting}>
           {t('finnBookingSubmit')}

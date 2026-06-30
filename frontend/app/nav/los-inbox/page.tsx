@@ -17,6 +17,8 @@ type HandoffRow = {
   summary_text: string
   status: string
   case_reference: string | null
+  contact_name: string | null
+  contact_phone: string | null
   assigned_profile_id: string | null
   kommune_id: string | null
   kommuner: { name: string } | { name: string }[] | null
@@ -42,7 +44,7 @@ export default function NavLosInboxPage() {
     const { data, error } = await supabase
       .from('los_handoffs')
       .select(
-        'id, created_at, summary_text, status, case_reference, assigned_profile_id, kommune_id, kommuner(name)'
+        'id, created_at, summary_text, status, case_reference, contact_name, contact_phone, assigned_profile_id, kommune_id, kommuner(name)'
       )
       .order('created_at', { ascending: false })
       .limit(50)
@@ -164,6 +166,15 @@ export default function NavLosInboxPage() {
                     </span>
                   ) : null}
                 </div>
+
+                {row.contact_name ? (
+                  <p style={{ margin: '0 0 8px', fontSize: '0.9rem' }}>
+                    <strong>{row.contact_name}</strong>
+                    {row.contact_phone ? (
+                      <span style={{ opacity: 0.8 }}> · {row.contact_phone}</span>
+                    ) : null}
+                  </p>
+                ) : null}
 
                 <pre
                   style={{
