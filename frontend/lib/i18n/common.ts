@@ -383,6 +383,23 @@ export const commonTranslations = {
     losContactPhoneLabel: "Telefon (valgfritt)",
     losContactEmailLabel: "E-post (valgfritt, for bekreftelse)",
     losContactNameRequired: "Oppgi navn før overlevering.",
+    losLegalTitle: "Personvern — Digital Los",
+    losLegalLead:
+      "Digital Los (los.hjerterum.no) er en chat-første inngang for ungdom 16–25. Den kobler deg til kommunal saksbehandler for sosial boligformidling — ikke turisme eller arrangement.",
+    losLegalStoreTitle: "Hva vi lagrer",
+    losLegalStoreItem1: "Anonym sesjons-ID i nettleseren til overlevering eller utløp.",
+    losLegalStoreItem2: "Chatmeldinger du sender, lagret i Supabase (EU-region).",
+    losLegalStoreItem3: "Etter overlevering: et sammendrag til saksbehandlerens innboks.",
+    losLegalConsentTitle: "Samtykke",
+    losLegalConsentBody:
+      "Overlevering til saksbehandler krever eksplisitt samtykke. Uten samtykke forblir chatten anonym veiledning.",
+    losLegalRetentionTitle: "Oppbevaring",
+    losLegalRetentionBody:
+      "Sesjoner slettes eller anonymiseres i tråd med kommunens databehandleravtale (DPIA). Ikke del helseopplysninger uten nødvendighet.",
+    losLegalContactTitle: "Kontakt",
+    losLegalContactBody:
+      "Behandlingsansvarlig: din kommune. Plattformoperatør: Hjerterum / Boligbanken AS. Spørsmål:",
+    losLegalBackLink: "← Tilbake til chat",
     agreementScopeTourism: "Turisme (nasjonal)",
     agreementScopeEvent: "Arrangement",
     agreementScopeKommune: "Kommune / sosial",
@@ -781,6 +798,23 @@ export const commonTranslations = {
     losContactPhoneLabel: "Telefovdna (voluntárta)",
     losContactEmailLabel: "E-poasta (voluntárta)",
     losContactNameRequired: "Čále namma.",
+    losLegalTitle: "Persovdnasuodjaleapmi — Digital Los",
+    losLegalLead:
+      "Digital Los (los.hjerterum.no) lea čállinvuohkásaš álggeforbmo nuoraid 16–25 várás. Dat čuovvuha du gieldda saksbehandlerii sosiála orruveahkki várás — ii turisma dahje arrangement.",
+    losLegalStoreTitle: "Maid mii vurket",
+    losLegalStoreItem1: "Anonyma sesjona-ID du neahttalohkkis gitta overleverejuvvot dahje beaiváduvvá.",
+    losLegalStoreItem2: "Čállosat maid sáddet, vurkejuvvon Supabase:s (EU-guovlu).",
+    losLegalStoreItem3: "Maŋŋá overleverema: kopihtta saksbehandlera inboxii.",
+    losLegalConsentTitle: "Mielet",
+    losLegalConsentBody:
+      "Overleveren saksbehandlerii gáibida dohkkeheami. Jus ii leat mielet, chat lea anonyma veahkkin.",
+    losLegalRetentionTitle: "Vurken",
+    losLegalRetentionBody:
+      "Sesjonat sihkkojuvvojit dahje anonymisererejuvvojit gieldda DPA/DPIA mielde. Ale juoge veahkáheami dieđuid jus ii leat dárbu.",
+    losLegalContactTitle: "Oktavuohta",
+    losLegalContactBody:
+      "Behandlingsansvarlig: du gielda. Plattformoperatør: Hjerterum / Boligbanken AS. Gažaldagat:",
+    losLegalBackLink: "← Ruovttoluotta čállimii",
     agreementScopeTourism: "Turisme",
     agreementScopeEvent: "Arrangement",
     agreementScopeKommune: "Kommune",
@@ -1185,6 +1219,23 @@ export const commonTranslations = {
     losContactPhoneLabel: "Phone (optional)",
     losContactEmailLabel: "Email (optional, for confirmation)",
     losContactNameRequired: "Please enter your name before handoff.",
+    losLegalTitle: "Privacy — Digital Los",
+    losLegalLead:
+      "Digital Los (los.hjerterum.no) is a chat-first entry point for young people aged 16–25. It connects you to a municipal caseworker for social housing assistance — not tourism or event booking.",
+    losLegalStoreTitle: "What we store",
+    losLegalStoreItem1: "Anonymous session ID in your browser until handoff or expiry.",
+    losLegalStoreItem2: "Chat messages you send, stored in Supabase (EU region).",
+    losLegalStoreItem3: "After handoff: a summary for the assigned caseworker inbox.",
+    losLegalConsentTitle: "Consent",
+    losLegalConsentBody:
+      "Handoff to a caseworker requires your explicit consent. Without consent, the chat remains anonymous guidance only.",
+    losLegalRetentionTitle: "Retention",
+    losLegalRetentionBody:
+      "Sessions are deleted or anonymised according to the municipal data processing agreement (DPIA). Do not share special category health data unless necessary.",
+    losLegalContactTitle: "Contact",
+    losLegalContactBody:
+      "Data controller: your municipality. Platform operator: Hjerterum / Boligbanken AS. Questions:",
+    losLegalBackLink: "← Back to chat",
     agreementScopeTourism: "Tourism (national)",
     agreementScopeEvent: "Event",
     agreementScopeKommune: "Municipality / social",

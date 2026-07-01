@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { appOrigin, getStripe } from '@/app/lib/stripeServer'
 import { checkRateLimit, clientIpFromRequest } from '@/app/lib/rateLimit'
 import { logPlatformEvent } from '@/app/lib/platformEvents'
+import { platformApplicationFeeCents } from '@/app/lib/platformFee'
 import { createAuthedServerClient } from '@/app/lib/supabaseServer'
 
 export const runtime = 'nodejs'
@@ -101,7 +102,7 @@ export async function POST(request: Request) {
       },
     ],
     payment_intent_data: {
-      application_fee_amount: Math.round(amountCents * 0.05),
+      application_fee_amount: platformApplicationFeeCents(amountCents),
       transfer_data: { destination: connectAccount },
       metadata: { booking_id: bookingId },
     },

@@ -5,7 +5,12 @@ import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { PageSkeleton, useToast } from '@/app/components/design-system'
+import { PageSkeleton, PortalPageShell, useToast } from '@/app/components/design-system'
+import {
+  formatNokFromCents,
+  platformApplicationFeeCents,
+  PLATFORM_FEE_RATE,
+} from '@/app/lib/platformFee'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
 
 export default function FinnBookClient() {
@@ -77,9 +82,9 @@ export default function FinnBookClient() {
     }
   }
 
-  if (loading) return <PageSkeleton minHeight={240} />
+  const pageLoading = loading
 
-  if (!booking) {
+  if (!pageLoading && !booking) {
     return (
       <div className="finn-empty">
         <p>{t('finnBookingNotFound')}</p>
@@ -90,12 +95,16 @@ export default function FinnBookClient() {
     )
   }
 
+  const amountCents = booking?.amount_cents ?? 0
+  const platformFeeCents = platformApplicationFeeCents(amountCents)
   const amount =
-    booking.amount_cents != null
-      ? `${Math.round(booking.amount_cents / 100).toLocaleString('nb-NO')} kr`
-      : null
+    amountCents > 0 ? formatNokFromCents(amountCents) : null
+  const platformFee =
+    platformFeeCents > 0 ? formatNokFromCents(platformFeeCents) : null
 
   return (
+    <PortalPageShell loading={pageLoading} loadingFallback={<PageSkeleton minHeight={240} />}>
+      {booking ? (
     <section>
       <div className="finn-hero">
         <h1>{t('finnCheckoutTitle')}</h1>
@@ -106,6 +115,11 @@ export default function FinnBookClient() {
           {booking.check_in} – {booking.check_out}
         </p>
         {amount ? <p className="finn-price" style={{ fontSize: '1.5rem' }}>{amount}</p> : null}
+        {platformFee ? (
+          <p className="finn-card-meta" style={{ marginBottom: 'var(--space-3)' }}>
+            {t('finnCheckoutPlatformFee')}: {platformFee} ({Math.round(PLATFORM_FEE_RATE * 100)}%)
+          </p>
+        ) : null}
         <p className="finn-card-meta" style={{ marginBottom: 'var(--space-4)' }}>
           {t('finnCheckoutStatus')}: <strong>{booking.status}</strong>
         </p>
@@ -145,5 +159,7 @@ export default function FinnBookClient() {
         )}
       </div>
     </section>
+      ) : null}
+    </PortalPageShell>
   )
 }
