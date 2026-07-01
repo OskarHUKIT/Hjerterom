@@ -1,10 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
-import type { ListingAvailabilityRow, NavDatabaseListingRow } from '@/app/lib/listingUiTypes'
 import { QK } from '@/app/lib/queries/queryKeys'
+import {
+  fetchNavDatabaseListings,
+  type FetchNavDatabaseListingsParams,
+  type NavDatabaseListingsPayload,
+} from '@/features/mediation/lib/navDatabaseFetch'
 
-export type NavDatabaseListingsPayload = {
-  listings: NavDatabaseListingRow[]
-  availability: Record<string, ListingAvailabilityRow[]>
+export type { NavDatabaseListingsPayload }
+
+export type NavDatabaseListingsQueryParams = FetchNavDatabaseListingsParams & {
+  enabled: boolean
+  /** Included in cache key so kommune region changes bust stale empty cache. */
+  kommuneRegion: string | null
 }
 
 /** React Query cache key for Boligbank listing lists (filters + view). */
@@ -12,15 +19,13 @@ export function navDatabaseListingsQueryKey(params: Record<string, unknown>) {
   return [...QK.navDatabaseListings, params] as const
 }
 
-/**
- * Thin wrapper — NavDatabasePage still owns fetch logic; this hook enables
- * imperative cache invalidation via queryClient.invalidateQueries({ queryKey: QK.navDatabaseListings }).
- */
-export function useNavDatabaseListingsPlaceholder(enabled: boolean) {
-  return useQuery<NavDatabaseListingsPayload>({
-    queryKey: navDatabaseListingsQueryKey({ placeholder: true }),
-    queryFn: async () => ({ listings: [], availability: {} }),
-    enabled: false,
+export function useNavDatabaseListingsQuery(params: NavDatabaseListingsQueryParams) {
+  const { enabled, kommuneRegion, ...fetchParams } = params
+
+  return useQuery({
+    queryKey: navDatabaseListingsQueryKey({ ...fetchParams, kommuneRegion }),
+    queryFn: () => fetchNavDatabaseListings(fetchParams),
+    enabled,
     staleTime: 30_000,
   })
 }

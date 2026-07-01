@@ -55,8 +55,8 @@ import { notifyLandlordInvoiceBasisIfKonto } from '@/app/lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
 import { getOverviewBackLink } from '@/app/lib/overviewBackNav'
-import type { PostgrestError } from '@supabase/supabase-js'
-import { logError } from '@/app/lib/appLogger'
+import { useQueryClient } from '@tanstack/react-query'
+import { QK } from '@/app/lib/queries/queryKeys'
 import { useKommuneNavAccess } from '@/app/hooks/useKommuneNavAccess'
 import {
   formidlaPeriodIdsOverlappingToday,
@@ -71,13 +71,12 @@ import {
   type NavDbViewMode,
   mobileNavDbViewKey,
   sessionNavDbViewSessionKey,
-  navDbListingsPageSize,
-  navDbListingsMaxRows,
 } from '@/features/mediation/constants/navDatabase'
 import { getNavDbColumns } from '@/features/mediation/lib/navDatabaseColumns'
-import { parseKommuneRegions } from '@/app/lib/kommuneRegions'
 import { useNavDatabasePublishedEvents } from '@/features/mediation/hooks/useNavDatabasePublishedEvents'
+import { useNavDatabaseListingsQuery } from '@/features/mediation/hooks/useNavDatabaseListingsQuery'
 import { usePlatformMode } from '@/context/PlatformModeContext'
+import { useEventStaffAccess } from '@/features/auth/hooks/useEventStaffAccess'
 
 function navDbErrMessage(err: unknown): string {
   return supabaseErrorMessage(err)
@@ -100,6 +99,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
   const { t, locale } = useLanguage()
   const toast = useToast()
   const confirmDialog = useConfirm()
+  const queryClient = useQueryClient()
   const { flags: platformFlags } = usePlatformMode()
   const router = useRouter()
   const pathname = usePathname()
@@ -133,41 +133,18 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
     refetch: refetchKommuneAccess,
   } = useKommuneNavAccess({ redirectUnauthenticated: !isEventPortal })
 
-  const [eventAccessPending, setEventAccessPending] = useState(isEventPortal)
-  const [eventAccessOk, setEventAccessOk] = useState<boolean | null>(null)
-  const [eventStaffRole, setEventStaffRole] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!isEventPortal) return
-    let cancelled = false
-    void (async () => {
-      const { data: auth } = await supabase.auth.getUser()
-      if (!auth.user) {
-        if (!cancelled) {
-          setEventAccessOk(null)
-          setEventAccessPending(false)
-          router.replace('/login?redirect=/nav/event/database')
-        }
-        return
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', auth.user.id)
-        .maybeSingle()
-      if (cancelled) return
-      const role = profile?.role ?? null
-      setEventStaffRole(role)
-      setEventAccessOk(isEventStaffRole(role))
-      setEventAccessPending(false)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [isEventPortal, router])
+  const {
+    data: eventAccess,
+    isPending: eventAccessPending,
+  } = useEventStaffAccess({
+    enabled: isEventPortal,
+    loginRedirect: '/nav/event/database',
+  })
 
   const userRole = isEventPortal
-    ? eventStaffRole
+    ? eventAccess?.kind === 'ok'
+      ? eventAccess.userRole
+      : null
     : access?.kind === 'ok'
       ? access.userRole
       : null
@@ -178,9 +155,13 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
       : true
   const kommuneRegion = isEventPortal ? 'event' : access?.kind === 'ok' ? access.kommuneRegion : null
   const isAuthorized: boolean | null = isEventPortal
-    ? eventAccessPending
+    ? eventAccessPending || !eventAccess
       ? null
-      : eventAccessOk
+      : eventAccess.kind === 'ok'
+        ? true
+        : eventAccess.kind === 'forbidden'
+          ? false
+          : null
     : accessPending || access === undefined
       ? null
       : access.kind === 'unauthenticated'
@@ -194,16 +175,6 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
   const [searchTerm, setSearchTerm] = useState('')
   // ... rest of state ...
 
-  const [listings, setListings] = useState<NavDatabaseListingRow[]>([])
-  const [availability, setAvailability] = useState<Record<string, ListingAvailabilityRow[]>>({})
-  const [loading, setLoading] = useState(true)
-  const [initialLoad, setInitialLoad] = useState(true)
-  const [tabCache, setTabCache] = useState<
-    Record<
-      string,
-      { listings: NavDatabaseListingRow[]; availability: Record<string, ListingAvailabilityRow[]> }
-    >
-  >({})
   const [activeTab, setActiveTab] = useState<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'>(
     'Tilgjengelig'
   )
@@ -238,7 +209,6 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
     period: ListingAvailabilityRow
   } | null>(null)
   const [formidletExtendEnd, setFormidletExtendEnd] = useState('')
-  const [kommuneFetchError, setKommuneFetchError] = useState<string | null>(null)
 
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
     'address',
@@ -502,17 +472,39 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
   })
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
-  /** Cache-nøkkel inkluderer region slik at vi ikke gjenbruker tom cache fra før kommune_region er lastet. Kart og tidslinje: én nøkkel (status filtreres i klient, ikke ved henting). */
-  const getTabCacheKey = () => {
-    const base =
-      viewMode === 'map' ? 'map' : viewMode === 'timeline' ? 'timeline' : `${activeTab}_${viewMode}`
-    if (isKommuneStaffRole(userRole)) {
-      const regions = parseKommuneRegions(kommuneRegion)
-      const regionKey = regions.length ? regions.sort().join(',') : 'none'
-      return `${base}_${regionKey}`
-    }
-    return base
-  }
+  const listingsQueryEnabled =
+    isAuthorized === true &&
+    (isEventPortal || !isKommuneStaffRole(userRole ?? undefined) || kommuneRegion != null)
+
+  const listingsQuery = useNavDatabaseListingsQuery({
+    enabled: listingsQueryEnabled,
+    isEventPortal,
+    userRole,
+    isAuthorized: isAuthorized === true,
+    searchTerm,
+    filters,
+    eventFilterId,
+    sortField,
+    sortOrder,
+    viewMode,
+    activeTab,
+    rpcErrorHint: t('dbRpcFetchErrorHint'),
+    kommuneRegion: Array.isArray(kommuneRegion) ? kommuneRegion.join('|') : kommuneRegion,
+  })
+
+  const listings = listingsQuery.data?.listings ?? []
+  const availability = listingsQuery.data?.availability ?? {}
+  const kommuneFetchError = listingsQuery.data?.fetchError ?? null
+  const waitingForKommuneRegion =
+    isAuthorized === true &&
+    !isEventPortal &&
+    isKommuneStaffRole(userRole ?? undefined) &&
+    kommuneRegion == null
+  const loading = waitingForKommuneRegion ? false : listingsQuery.isPending
+
+  const invalidateListings = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: QK.navDatabaseListings })
+  }, [queryClient])
 
   /** Status for dagens dato (lokal tid, normaliserte datoer). Null = ingen periode dekker i dag → i filter vises som tilgjengelig. */
   const getStatusForToday = listingAvailabilityStatusToday
@@ -532,321 +524,6 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
           : 'Tilgjengelig'
     return effectiveMapTimelineStatusFilter.includes(status)
   }
-
-  const fetchListings = async (showLoader = true) => {
-    const cacheKey = getTabCacheKey()
-    if (tabCache[cacheKey]) {
-      setListings(tabCache[cacheKey].listings)
-      setAvailability(tabCache[cacheKey].availability)
-      setLoading(false)
-    } else if (!initialLoad) {
-      setListings([])
-      setAvailability({})
-    }
-    const useLoader = showLoader && !tabCache[cacheKey] && initialLoad
-    if (useLoader) setLoading(true)
-    try {
-      const { data: terminatedUsers } = await supabase
-        .from('user_agreements')
-        .select('user_id')
-        .eq('is_terminated', true)
-      const terminatedIds = new Set(terminatedUsers?.map((u) => u.user_id) || [])
-
-      let data: NavDatabaseListingRow[] = []
-      let error: PostgrestError | null = null
-
-      setKommuneFetchError(null)
-      if (isEventPortal && isEventStaffRole(userRole)) {
-        const acc: NavDatabaseListingRow[] = []
-        let offset = 0
-        let done = false
-        while (!done && offset < navDbListingsMaxRows) {
-          const res = await supabase.rpc('get_listings_for_event_staff_paged', {
-            p_limit: navDbListingsPageSize,
-            p_offset: offset,
-          })
-          if (res.error) {
-            setKommuneFetchError(res.error.message || t('dbRpcFetchErrorHint'))
-            error = acc.length > 0 ? null : res.error
-            data = acc
-            done = true
-            break
-          }
-          const raw = res.data
-          const batch = (Array.isArray(raw) ? raw : raw != null ? [raw] : []) as NavDatabaseListingRow[]
-          acc.push(...batch)
-          if (batch.length < navDbListingsPageSize) {
-            data = acc
-            error = null
-            done = true
-            break
-          }
-          offset += batch.length
-          if (offset >= navDbListingsMaxRows) {
-            data = acc
-            error = null
-            done = true
-          }
-        }
-        if (!done && acc.length > 0 && data.length === 0) {
-          data = acc
-          error = null
-        }
-      } else if (isAuthorized && isKommuneStaffRole(userRole)) {
-        const acc: NavDatabaseListingRow[] = []
-        let offset = 0
-        let done = false
-        while (!done && offset < navDbListingsMaxRows) {
-          const res = await supabase.rpc('get_listings_for_kommune_paged', {
-            p_limit: navDbListingsPageSize,
-            p_offset: offset,
-          })
-          if (res.error) {
-            const msg = res.error.message || ''
-            const missingFn =
-              res.error.code === '42883' ||
-              /function.*does not exist|Could not find the function/i.test(msg)
-            if (missingFn && acc.length === 0) {
-              const legacy = await supabase.rpc('get_listings_for_kommune')
-              if (legacy.error) {
-                setKommuneFetchError(legacy.error.message || t('dbRpcFetchErrorHint'))
-                error = legacy.error
-                data = []
-              } else {
-                const raw = legacy.data
-                data = (Array.isArray(raw) ? raw : raw != null ? [raw] : []) as NavDatabaseListingRow[]
-                error = null
-              }
-            } else {
-              setKommuneFetchError(res.error.message || t('dbRpcFetchErrorHint'))
-              error = acc.length > 0 ? null : res.error
-              data = acc
-            }
-            done = true
-            break
-          }
-          const raw = res.data
-          const batch = (Array.isArray(raw) ? raw : raw != null ? [raw] : []) as NavDatabaseListingRow[]
-          acc.push(...batch)
-          if (batch.length < navDbListingsPageSize) {
-            data = acc
-            error = null
-            done = true
-            break
-          }
-          offset += batch.length
-          if (offset >= navDbListingsMaxRows) {
-            data = acc
-            error = null
-            if (batch.length === navDbListingsPageSize) {
-              logError('[nav/database] listings fetch stopped at row cap', navDbListingsMaxRows)
-            }
-            done = true
-          }
-        }
-        if (!done && acc.length > 0 && data.length === 0) {
-          data = acc
-          error = null
-        }
-      } else {
-        const acc: NavDatabaseListingRow[] = []
-        let from = 0
-        let done = false
-        while (!done && from < navDbListingsMaxRows) {
-          const to = from + navDbListingsPageSize - 1
-          const result = await supabase
-            .from('listings')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .range(from, to)
-          if (result.error) {
-            error = result.error
-            data = acc.length > 0 ? acc : ((result.data || []) as NavDatabaseListingRow[])
-            done = true
-            break
-          }
-          const batch = (result.data || []) as NavDatabaseListingRow[]
-          acc.push(...batch)
-          if (batch.length === 0 || batch.length < navDbListingsPageSize) {
-            data = acc
-            error = null
-            done = true
-            break
-          }
-          from += batch.length
-          if (from >= navDbListingsMaxRows) {
-            data = acc
-            error = null
-            if (batch.length === navDbListingsPageSize) {
-              logError('[nav/database] listings fetch stopped at row cap', navDbListingsMaxRows)
-            }
-            done = true
-          }
-        }
-        if (!done && acc.length > 0 && data.length === 0) {
-          data = acc
-          error = null
-        }
-      }
-
-      if (error) throw error
-      let filtered = data || []
-
-      const afterTerminatedCount = (() => {
-        if (terminatedIds.size > 0) {
-          filtered = filtered.filter((item) => !terminatedIds.has(item.owner_id))
-        }
-        return filtered.length
-      })()
-
-      if (searchTerm) {
-        const q = searchTerm.toLowerCase()
-        filtered = filtered.filter(
-          (item) =>
-            String(item.address ?? '')
-              .toLowerCase()
-              .includes(q) ||
-            String(item.owner_name ?? '')
-              .toLowerCase()
-              .includes(q)
-        )
-      }
-      // Tillatelsesområder håndteres av get_listings_for_kommune_paged (kommune_listing_region_ok i DB)
-      if (filters.city !== 'Alle') {
-        filtered = filtered.filter((item) => item.city === filters.city)
-      }
-      if (filters.type !== 'Alle') {
-        filtered = filtered.filter((item) => item.type === filters.type)
-      }
-      if (filters.minPrice) {
-        const min = parseFloat(filters.minPrice)
-        filtered = filtered.filter((item) => Number(item.price_daily) >= min)
-      }
-      if (filters.maxPrice) {
-        const max = parseFloat(filters.maxPrice)
-        filtered = filtered.filter((item) => Number(item.price_daily) <= max)
-      }
-      if (filters.minBedrooms) {
-        const minB = parseInt(filters.minBedrooms, 10)
-        filtered = filtered.filter((item) => Number(item.bedrooms) >= minB)
-      }
-      if (filters.minSize) {
-        const minS = parseFloat(filters.minSize)
-        filtered = filtered.filter((item) => Number(item.size_sqm) >= minS)
-      }
-      if (filters.minOccupants) {
-        const minO = parseInt(filters.minOccupants, 10)
-        filtered = filtered.filter((item) => Number(item.max_occupants) >= minO)
-      }
-      if (filters.floor !== 'Alle') {
-        filtered = filtered.filter((item) => item.floor_number === filters.floor)
-      }
-      if (filters.furnishing !== 'Alle') {
-        filtered = filtered.filter((item) => item.furnishing === filters.furnishing)
-      }
-      if (filters.accessibility.length > 0) {
-        filtered = filtered.filter((item) => {
-          const acc = item.accessibility
-          return (
-            Array.isArray(acc) &&
-            filters.accessibility.every((a) => (acc as string[]).includes(a))
-          )
-        })
-      }
-
-      if (eventFilterId !== 'Alle') {
-        const { data: eventOptIns } = await supabase
-          .from('listing_event_availability')
-          .select('listing_id')
-          .eq('event_id', eventFilterId)
-          .eq('status', 'active')
-        const eventListingIds = new Set((eventOptIns ?? []).map((r) => r.listing_id))
-        filtered = filtered.filter((item) => eventListingIds.has(item.id))
-      }
-
-      let availMap: Record<string, ListingAvailabilityRow[]> = {}
-      if (filtered.length > 0) {
-        const listingIds = filtered.map((l) => l.id)
-        const { data: availabilityData } = await supabase
-          .from('listing_availability')
-          .select('*')
-          .in('listing_id', listingIds)
-          .order('start_date', { ascending: true })
-
-        availabilityData?.forEach((item) => {
-          if (!availMap[item.listing_id]) availMap[item.listing_id] = []
-          availMap[item.listing_id].push(item)
-        })
-
-        // Liste/tabell: filtrer på status for dagens dato. Kart og tidslinje: alle boliger hentes; status filtreres i UI (mapStatusFilter).
-        if (viewMode === 'table' || viewMode === 'list') {
-          const todayStatus = (lid: string) => getStatusForToday(lid, availMap)
-          if (activeTab === 'Tilgjengelig') {
-            filtered = filtered.filter((l) => {
-              const s = todayStatus(l.id)
-              return s === 'Tilgjengelig'
-            })
-          } else if (activeTab === 'Formidlet') {
-            filtered = filtered.filter((l) => todayStatus(l.id) === 'Formidla')
-          } else if (activeTab === 'Utilgjengelig') {
-            filtered = filtered.filter((l) => todayStatus(l.id) === 'Utilgjengelig')
-          }
-        }
-      }
-
-      filtered.sort((a, b) => {
-        const valA = (a as Record<string, unknown>)[sortField]
-        const valB = (b as Record<string, unknown>)[sortField]
-        const sa = valA == null ? '' : String(valA)
-        const sb = valB == null ? '' : String(valB)
-        const cmp = sa.localeCompare(sb, undefined, { numeric: true })
-        return sortOrder === 'asc' ? cmp : -cmp
-      })
-
-      setListings(filtered)
-      setAvailability(availMap)
-
-      setTabCache((prev) => ({
-        ...prev,
-        [getTabCacheKey()]: { listings: filtered, availability: availMap },
-      }))
-      setInitialLoad(false)
-    } catch (err: unknown) {
-      logError('Error fetching listings:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (!isAuthorized) return
-    if (isEventPortal) {
-      fetchListings()
-      return
-    }
-    // For kommune uten region ennå: vis tom liste (ikke blank skjerm), så vi henter på nytt når region er satt
-    if (isKommuneStaffRole(userRole) && kommuneRegion == null) {
-      setLoading(false)
-      setListings([])
-      setAvailability({})
-      return
-    }
-    fetchListings()
-    // fetchListings leser/oppdaterer tabCache; å liste den som avhengighet gir henteløkke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- synk med activeTab, filtre, region osv. over
-  }, [
-    activeTab,
-    searchTerm,
-    filters,
-    eventFilterId,
-    sortField,
-    sortOrder,
-    viewMode,
-    isAuthorized,
-    userRole,
-    kommuneRegion,
-    isEventPortal,
-  ])
 
   if (!isEventPortal && accessError) {
     return (
@@ -994,7 +671,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
           ])
       }
       setFormidletExtendModal(null)
-      fetchListings(false)
+      invalidateListings()
     } catch (err: unknown) {
       toast(t('errorPrefix') + navDbErrMessage(err), 'error')
     } finally {
@@ -1134,12 +811,10 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
         })
       }
 
-      setAvailability((prev) => ({ ...prev, [id]: mergedAvail }))
-      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, ...rowSync } : l)))
       setFormidletMediationNote('')
       setFormidletIncludeNoteInOwnerNotif(false)
       setFormidletModalListing(null)
-      fetchListings(false) // Synk tab-filter m.m.
+      invalidateListings()
     } catch (err: unknown) {
       toast(t('errorPrefix') + navDbErrMessage(err), 'error')
     } finally {
@@ -1186,9 +861,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
         ])
       }
 
-      setAvailability((prev) => ({ ...prev, [id]: nextAvailRows }))
-      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, ...rowSync } : l)))
-      fetchListings(false)
+      invalidateListings()
     } catch (err: unknown) {
       toast(t('errorPrefix') + navDbErrMessage(err), 'error')
     }
