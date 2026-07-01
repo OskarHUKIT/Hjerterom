@@ -13,6 +13,7 @@ import { channelBadgeEmoji } from '@/app/lib/messageChannelLabels'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
 import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
 import MessageQuickRepliesPanel from '@/features/messaging/components/MessageQuickRepliesPanel'
+import { fetchDisplayNamesBatch } from '@/features/messaging/hooks/useDisplayNamesBatch'
 
 type ThreadRow = {
   landlordId: string
@@ -61,13 +62,7 @@ export default function EventCaseworkerMessagesPage() {
       last_at: string | null
     }>
     const ids = [...new Set(rows.map((r) => r.landlord_id))]
-    let names = new Map<string, string>()
-    if (ids.length > 0) {
-      const { data: batch } = await supabase.rpc('get_user_display_names_batch', { p_user_ids: ids })
-      for (const row of (batch ?? []) as Array<{ user_id: string; display_name: string }>) {
-        names.set(row.user_id, row.display_name)
-      }
-    }
+    const names = await fetchDisplayNamesBatch(ids, t('unknownUser'))
     setThreads(
       rows.map((r) => ({
         landlordId: r.landlord_id,
@@ -97,12 +92,8 @@ export default function EventCaseworkerMessagesPage() {
     setMessages(msgs)
     const ids = [...new Set(msgs.map((m) => m.sender_id))]
     if (ids.length > 0) {
-      const { data: batch } = await supabase.rpc('get_user_display_names_batch', { p_user_ids: ids })
-      const map: Record<string, string> = {}
-      for (const row of (batch ?? []) as Array<{ user_id: string; display_name: string }>) {
-        map[row.user_id] = row.display_name
-      }
-      setSenderLabels(map)
+      const nameById = await fetchDisplayNamesBatch(ids, t('landlordLabel'))
+      setSenderLabels(Object.fromEntries(nameById))
     }
   }, [withLandlordId, withEventId, toast])
 

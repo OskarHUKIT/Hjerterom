@@ -75,7 +75,7 @@ import {
   navDbListingsMaxRows,
 } from '@/features/mediation/constants/navDatabase'
 import { getNavDbColumns } from '@/features/mediation/lib/navDatabaseColumns'
-import { parseKommuneRegions } from '@/features/mediation/lib/parseKommuneRegions'
+import { parseKommuneRegions } from '@/app/lib/kommuneRegions'
 import { useNavDatabasePublishedEvents } from '@/features/mediation/hooks/useNavDatabasePublishedEvents'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 

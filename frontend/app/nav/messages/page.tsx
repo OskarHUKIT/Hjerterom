@@ -31,6 +31,7 @@ import { usePlatformMode } from '../../../context/PlatformModeContext'
 import { useChatUserBootstrap } from '../../hooks/useChatUserBootstrap'
 import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
 import MessageQuickRepliesPanel from '@/features/messaging/components/MessageQuickRepliesPanel'
+import { fetchDisplayNamesBatch } from '@/features/messaging/hooks/useDisplayNamesBatch'
 
 const LandlordOnboardingModal = dynamic(() => import('../../components/LandlordOnboardingModal'), {
   ssr: false,
@@ -268,30 +269,7 @@ function MessagesContent() {
       }
 
       const ids = [...new Set((rows as { landlord_id: string }[]).map((r) => r.landlord_id))]
-      let nameById = new Map<string, string>()
-      if (ids.length > 0) {
-        const { data: batchRows, error: batchErr } = await supabase.rpc('get_user_display_names_batch', {
-          p_user_ids: ids,
-        })
-        if (batchErr) {
-          const resolved = await Promise.all(
-            ids.map(async (pid) => {
-              const { data: name } = await supabase.rpc('get_user_display_name', { p_user_id: pid })
-              return { user_id: pid, display_name: name ?? null }
-            })
-          )
-          nameById = new Map(
-            resolved.map((r) => [r.user_id, r.display_name ?? 'Ukjent bruker'])
-          )
-        } else {
-          nameById = new Map(
-            (batchRows || []).map((r: { user_id: string; display_name: string }) => [
-              r.user_id,
-              r.display_name ?? 'Ukjent bruker',
-            ])
-          )
-        }
-      }
+      const nameById = await fetchDisplayNamesBatch(ids)
 
       const peers = (
         rows as {
@@ -588,23 +566,9 @@ function MessagesContent() {
     let cancelled = false
     void (async () => {
       const ids = [...need]
-      const { data: batchRows, error: batchErr } = await supabase.rpc('get_user_display_names_batch', {
-        p_user_ids: ids,
-      })
+      const nameById = await fetchDisplayNamesBatch(ids)
       if (cancelled) return
-      const next: Record<string, string> = {}
-      if (batchErr) {
-        for (const pid of ids) {
-          const { data: name } = await supabase.rpc('get_user_display_name', { p_user_id: pid })
-          if (!cancelled) next[pid] = (name as string | null)?.trim() || 'Ukjent bruker'
-        }
-      } else {
-        for (const r of batchRows || []) {
-          const row = r as { user_id: string; display_name: string | null }
-          next[row.user_id] = row.display_name?.trim() || 'Ukjent bruker'
-        }
-      }
-      if (!cancelled) setThreadSenderLabelById(next)
+      setThreadSenderLabelById(Object.fromEntries(nameById))
     })()
     return () => {
       cancelled = true
