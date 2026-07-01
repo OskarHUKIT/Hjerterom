@@ -1,13 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { CalendarDays, Map as MapIcon, MessageSquare } from 'lucide-react'
-import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
+import { useEventStaffAccess } from '@/features/auth/hooks/useEventStaffAccess'
 
 const NAV = [
   { href: '/nav/event/database', icon: MapIcon, labelKey: 'eventNavDatabase' as const },
@@ -17,46 +15,19 @@ const NAV = [
 
 export default function EventStaffLayout({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage()
-  const router = useRouter()
   const pathname = usePathname()
-  const [ready, setReady] = useState(false)
-  const [allowed, setAllowed] = useState(false)
+  const { data: access, isPending } = useEventStaffAccess({
+    loginRedirect: '/nav/event',
+    redirectForbidden: true,
+  })
 
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      const { data: auth } = await supabase.auth.getUser()
-      if (!auth.user) {
-        router.replace('/login?redirect=/nav/event')
-        return
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, full_name')
-        .eq('id', auth.user.id)
-        .maybeSingle()
-      if (cancelled) return
-      if (!isEventStaffRole(profile?.role)) {
-        router.replace('/')
-        return
-      }
-      setAllowed(true)
-      setReady(true)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [router])
-
-  if (!ready) {
+  if (isPending || !access || access.kind !== 'ok') {
     return (
       <div style={{ padding: 'var(--space-6)' }}>
         <LoadingPlaceholder />
       </div>
     )
   }
-
-  if (!allowed) return null
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

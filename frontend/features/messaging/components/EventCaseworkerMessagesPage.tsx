@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, Send } from 'lucide-react'
-import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
+import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import { Button } from '@/app/components/ui/Button'
 import { channelBadgeEmoji } from '@/app/lib/messageChannelLabels'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
-import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
+import { useEventStaffAccess } from '@/features/auth/hooks/useEventStaffAccess'
 import MessageQuickRepliesPanel from '@/features/messaging/components/MessageQuickRepliesPanel'
 import { fetchDisplayNamesBatch } from '@/features/messaging/hooks/useDisplayNamesBatch'
 
@@ -35,18 +35,21 @@ type Msg = {
 export default function EventCaseworkerMessagesPage() {
   const { t } = useLanguage()
   const toast = useToast()
-  const router = useRouter()
   const searchParams = useSearchParams()
+  const { data: access, isPending: accessPending } = useEventStaffAccess({
+    loginRedirect: '/nav/event/messages',
+    redirectForbidden: true,
+  })
   const withLandlordId = searchParams.get('landlord')
   const withEventId = searchParams.get('event')
-  const [ready, setReady] = useState(false)
   const [threads, setThreads] = useState<ThreadRow[]>([])
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
-  const [userId, setUserId] = useState<string | null>(null)
   const [senderLabels, setSenderLabels] = useState<Record<string, string>>({})
   const bottomRef = useRef<HTMLDivElement>(null)
+  const userId = access?.kind === 'ok' ? access.userId : null
+  const ready = access?.kind === 'ok'
 
   const loadThreads = useCallback(async () => {
     const { data, error } = await supabase.rpc('get_event_landlord_thread_summaries')
@@ -98,26 +101,9 @@ export default function EventCaseworkerMessagesPage() {
   }, [withLandlordId, withEventId, toast])
 
   useEffect(() => {
-    void (async () => {
-      const user = await getAuthUserDeduped()
-      if (!user) {
-        router.replace('/login?redirect=/nav/event/messages')
-        return
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle()
-      if (!isEventStaffRole(profile?.role)) {
-        router.replace('/')
-        return
-      }
-      setUserId(user.id)
-      setReady(true)
-      await loadThreads()
-    })()
-  }, [router, loadThreads])
+    if (!ready) return
+    void loadThreads()
+  }, [ready, loadThreads])
 
   useEffect(() => {
     if (!ready) return
@@ -173,7 +159,7 @@ export default function EventCaseworkerMessagesPage() {
     }
   }
 
-  if (!ready) {
+  if (accessPending || !ready) {
     return (
       <div style={{ padding: 'var(--space-6)' }}>
         <LoadingPlaceholder />

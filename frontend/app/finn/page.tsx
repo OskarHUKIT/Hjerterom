@@ -3,14 +3,19 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { MapPin, Search } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { EmptyState, PageSkeleton } from '@/app/components/design-system'
-import { useAsyncQuery } from '@/app/hooks/useAsyncQuery'
+import { QK } from '@/app/lib/queries/queryKeys'
 import FinnTourismMap from '@/features/tourism/components/FinnTourismMap'
 import { buttonClassName } from '@/app/components/ui/Button'
 import type { FinnListingCard, FinnSearchFilters } from '@/features/tourism/types/finn'
 import { formatFinnNightlyPrice } from '@/features/tourism/types/finn'
+
+function finnListingsQueryKey(filters: FinnSearchFilters) {
+  return [...QK.finnListings, filters] as const
+}
 
 async function fetchTourismListings(applied: FinnSearchFilters): Promise<FinnListingCard[]> {
   const { data, error } = await supabase.rpc('search_tourism_listings', {
@@ -46,10 +51,11 @@ export default function FinnSearchPage() {
   })
   const [applied, setApplied] = useState<FinnSearchFilters>({})
 
-  const { data: listings = [], isPending: loading } = useAsyncQuery(
-    () => fetchTourismListings(applied),
-    [applied]
-  )
+  const { data: listings = [], isPending: loading } = useQuery({
+    queryKey: finnListingsQueryKey(applied),
+    queryFn: () => fetchTourismListings(applied),
+    staleTime: 30_000,
+  })
 
   const resultCount = listings.length
 
