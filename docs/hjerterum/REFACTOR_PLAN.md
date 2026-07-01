@@ -205,20 +205,22 @@ flowchart LR
 
 ## 7. Suksesskriterier (ferdig refactor)
 
-- [ ] Ingen TSX-fil > 800 linjer (ESLint warn håndhever fra W6) — **gjenstår:** `ListingDetailsClient`, `NavDatabasePage`, `NavMessagesPage`, `ListingDetailsNavView`
+- [ ] Ingen TSX-fil > 800 linjer (ESLint warn håndhever fra W6) — **gjenstår:** `ListingDetailsNavView` (~975)
 - [x] Alle `app/**/page.tsx` under 50 linjer (unntak dokumentert)
 - [x] 0 `confirm()` / `alert()`
 - [x] `useListingAvailability`, `usePublishedEventsQuery`, `useNavDatabaseListingsQuery` i bruk
 - [x] `SERVICE_FLOW.md` §8 modulstatus oppdatert for utleier manage, nav database, meldinger (W6)
 - [x] `npm run build` grønn; eslint grønn (warnings på megasider)
 
-### Wave 7 (anbefalt neste)
-| ID | Oppgave | Mål |
-|----|---------|-----|
-| 7.1 | `NavDatabasePage` timeline/map → egne komponenter | < 800 linjer |
-| 7.2 | `NavMessagesPage` thread list + realtime hooks | < 800 linjer |
-| 7.3 | `ListingDetailsClient` gallery/handover sections | < 800 linjer |
-| 7.4 | `useAuthGate` / `useTermsGate` unified | Færre dupliserte gates |
+### Wave 7 (fullført 2026-07-01)
+| ID | Oppgave | Status |
+|----|---------|--------|
+| 7.1 | `NavDatabasePage` timeline/map/toolbar → egne komponenter | ✅ ~785 linjer |
+| 7.2 | `NavMessagesPage` thread hooks + kommune/landlord sidebars | ✅ ~711 linjer |
+| 7.3 | `ListingDetailsClient` address/property/availability/handover sections | ✅ ~696 linjer |
+| 7.4 | `useTermsGate` unified landlord edit gates | ✅ `useListingDetailsOwnerActions` + invoice basis |
+
+Nye filer: `NavDatabaseTimelineView`, `NavDatabaseTimelineColorHelp`, `NavDatabasePageToolbar`, `NavDatabaseMobileListView`, `NavDatabaseColumnSettings`, `useNavDatabaseTranslate`, `NavMessagesKommuneSidebar`, `NavMessagesLandlordSidebar`, `useNavMessagesThreads`, `useNavMessagesRealtimeChat`, `ListingDetails*Section` (×5), `useListingDetailsOwnerActions`, `useTermsGate`.
 
 ---
 
@@ -227,4 +229,4 @@ flowchart LR
 | Dato | Versjon | Endring |
 |------|---------|---------|
 | 2026-06-30 | 1.0 | Første plan basert på agent-kartlegging og megafil-måling |
-| 2026-07-01 | 1.1 | W5–6 status: i18n split, ESLint max-lines, Playwright smoke stub |
+| 2026-07-01 | 1.2 | W7: megapage-split NavDatabase, NavMessages, ListingDetailsClient; useTermsGate |

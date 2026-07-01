@@ -15,12 +15,9 @@ import {
   Home,
 } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
-import { devWarn } from '@/app/lib/appLogger'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
 import { useLanguage } from '@/context/LanguageContext'
-import { parseKommuneRegions } from '@/app/lib/kommuneRegions'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
-import { channelBadgeEmoji } from '@/app/lib/messageChannelLabels'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '@/app/lib/landlordOnboarding'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import { usePlatformMode } from '@/context/PlatformModeContext'
@@ -33,43 +30,22 @@ import {
   sendEventCaseworkerBroadcast,
   sendSocialCaseworkerMessage,
 } from '@/features/messaging/lib/chatSend'
-import { fetchDisplayNamesBatch } from '@/features/messaging/hooks/useDisplayNamesBatch'
+import { channelBadgeEmoji } from '@/app/lib/messageChannelLabels'
+import { useNavMessagesThreads } from '@/features/messaging/hooks/useNavMessagesThreads'
+import { useNavMessagesRealtimeChat } from '@/features/messaging/hooks/useNavMessagesRealtimeChat'
+import NavMessagesKommuneSidebar from '@/features/messaging/components/NavMessagesKommuneSidebar'
+import NavMessagesLandlordSidebar from '@/features/messaging/components/NavMessagesLandlordSidebar'
 
 const LandlordOnboardingModal = dynamic(() => import('@/app/components/LandlordOnboardingModal'), {
   ssr: false,
 })
 
-type ConversationRow = {
-  userId: string
-  serviceAreaId: string
-  name: string
-  areaName: string
-  lastMessage: string
-  lastAt: string
-}
-
-type LandlordAreaThread = {
-  serviceAreaId: string
-  name: string
-  lastMessage: string
-  lastAt: string
-}
-
-type LandlordEventThread = {
-  eventId: string
-  eventName: string
-  lastMessage: string
-  lastAt: string
-}
-
-type GuestBookingThread = {
-  bookingId: string
-  guestLabel: string
-  listingAddress: string
-  lastPreview: string
-  lastAt: string
-  bookingStatus: string
-}
+import type {
+  ConversationRow,
+  LandlordAreaThread,
+  LandlordEventThread,
+  GuestBookingThread,
+} from '@/features/messaging/types/navMessages'
 
 export default function NavMessagesPage() {
   const { t, locale } = useLanguage()
@@ -88,35 +64,52 @@ export default function NavMessagesPage() {
   const kommuneCanEdit = bootOk?.kommuneCanEdit ?? true
   const myKommuneRegion = bootOk?.myKommuneRegion ?? null
   const profileResolved = Boolean(bootOk)
-  const [messages, setMessages] = useState<any[]>([])
+  const isKommune = role === 'kommune_ansatt' || role === 'kommune_admin'
+
+  const {
+    loading,
+    conversationsLoading,
+    conversations,
+    landlordAreaThreads,
+    landlordEventThreads,
+    guestBookingThreads,
+    colleagues,
+    landlordAccounts,
+  } = useNavMessagesThreads({
+    profileResolved,
+    currentUser,
+    isKommune,
+    myKommuneRegion,
+    withUserId,
+    withAreaId,
+    kommuneCanEdit,
+  })
+
+  const { messages, setMessages, otherUser, threadSenderLabelById } = useNavMessagesRealtimeChat({
+    profileResolved,
+    currentUser,
+    isKommune,
+    withUserId,
+    withAreaId,
+    withEventId,
+    conversations,
+    landlordAreaThreads,
+    landlordEventThreads,
+    bootUserId: bootOk?.user?.id,
+  })
+
   const [newMessage, setNewMessage] = useState('')
   const [pendingImages, setPendingImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [sending, setSending] = useState(false)
-  const [loading, setLoading] = useState(true)
-  /** Kommune: unngå «ingen meldinger»-tekst mens første henting av samtaler pågår. */
-  const [conversationsLoading, setConversationsLoading] = useState(false)
-  const [conversations, setConversations] = useState<ConversationRow[]>([])
-  const [landlordAreaThreads, setLandlordAreaThreads] = useState<LandlordAreaThread[]>([])
-  const [landlordEventThreads, setLandlordEventThreads] = useState<LandlordEventThread[]>([])
-  const [guestBookingThreads, setGuestBookingThreads] = useState<GuestBookingThread[]>([])
   const [landlordMessagesTab, setLandlordMessagesTab] = useState<'social' | 'event' | 'guest'>('social')
-  const [otherUser, setOtherUser] = useState<any>(null)
   const [peerRole, setPeerRole] = useState<string | null>(null)
-  const [colleagues, setColleagues] = useState<{ id: string; name: string }[]>([])
-  const [landlordAccounts, setLandlordAccounts] = useState<{ id: string; name: string }[]>([])
   const [showLandlordMessagesIntro, setShowLandlordMessagesIntro] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const { flags: platformFlags } = usePlatformMode()
-  /** Sidefelt: velg liste under Samtaler (utleiere / saksbehandlere / Digital Los). */
-  const [messagesPickerTab, setMessagesPickerTab] = useState<'landlords' | 'staff' | 'los'>(
-    'landlords'
-  )
+  const [messagesPickerTab, setMessagesPickerTab] = useState<'landlords' | 'staff' | 'los'>('landlords')
   const [messagesContactSearch, setMessagesContactSearch] = useState('')
   const messagesScrollRef = useRef<HTMLDivElement>(null)
-  /** Visningsnavn for avsender (kollega i delt tråd / saksbehandler fra utleiers perspektiv). */
-  const [threadSenderLabelById, setThreadSenderLabelById] = useState<Record<string, string>>({})
-  const isKommune = role === 'kommune_ansatt' || role === 'kommune_admin'
   const losInMessagesEnabled = isKommune && platformFlags.los
   const peerIsKommuneColleague = peerRole === 'kommune_ansatt' || peerRole === 'kommune_admin'
   const readonlyBlocksReply =
@@ -124,6 +117,8 @@ export default function NavMessagesPage() {
     kommuneCanEdit === false &&
     !!withUserId &&
     (peerRole === null || !peerIsKommuneColleague)
+
+  const activeServiceAreaId = withAreaId
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 768px)')
@@ -133,7 +128,6 @@ export default function NavMessagesPage() {
     return () => mq.removeEventListener('change', sync)
   }, [])
 
-  /** Kommune: resolve service area when opening landlord without ?area= */
   useEffect(() => {
     if (!profileResolved || !isKommune || !withUserId || withAreaId) return
     let cancelled = false
@@ -149,12 +143,20 @@ export default function NavMessagesPage() {
     }
   }, [profileResolved, isKommune, withUserId, withAreaId, router])
 
-  /** Utleier: auto-select sole service area thread */
   useEffect(() => {
-    if (!profileResolved || isKommune || withAreaId || withBookingId || landlordAreaThreads.length !== 1) return
+    if (!profileResolved || isKommune || withAreaId || withBookingId || landlordAreaThreads.length !== 1)
+      return
     if (guestBookingThreads.length > 0) return
     router.replace(`/nav/messages?area=${landlordAreaThreads[0].serviceAreaId}`)
-  }, [profileResolved, isKommune, withAreaId, withBookingId, landlordAreaThreads, guestBookingThreads, router])
+  }, [
+    profileResolved,
+    isKommune,
+    withAreaId,
+    withBookingId,
+    landlordAreaThreads,
+    guestBookingThreads,
+    router,
+  ])
 
   useEffect(() => {
     if (withBookingId) setLandlordMessagesTab('guest')
@@ -175,71 +177,6 @@ export default function NavMessagesPage() {
       .then(({ data }) => setPeerRole(data?.role ?? null))
   }, [profileResolved, isKommune, withUserId])
 
-  /** Kollegeliste + utleiere i region: én round-trip-kjede med Promise.all (to parallelle grener). */
-  useEffect(() => {
-    if (!currentUser || !isKommune) {
-      setColleagues([])
-      setLandlordAccounts([])
-      return
-    }
-    let cancelled = false
-    const myRegions = parseKommuneRegions(myKommuneRegion)
-    if (myRegions.length === 0) {
-      setColleagues([])
-      setLandlordAccounts([])
-      return
-    }
-
-    const loadColleagues = async () => {
-      const { data: rows } = await supabase.rpc('get_kommune_staff_for_admin')
-      if (cancelled) return []
-      return (rows || [])
-        .map((p: { id: string; full_name?: string | null; email?: string | null }) => ({
-          id: p.id,
-          name: p.full_name?.trim() || p.email?.split('@')[0] || 'Ukjent',
-        }))
-        .sort((a: { id: string; name: string }, b: { id: string; name: string }) =>
-          a.name.localeCompare(b.name, 'nb')
-        )
-    }
-
-    const loadLandlords = async () => {
-      const { data: profiles, error: profileError } = await supabase.rpc(
-        'get_all_users_for_kommune'
-      )
-      if (cancelled) return []
-      if (profileError) return []
-      return (profiles || [])
-        .filter((p: { role?: string | null }) => !isKommuneStaffRole(p.role))
-        .map((p: { id: string; full_name?: string | null; email?: string | null }) => ({
-          id: p.id,
-          name: p.full_name?.trim() || p.email?.split('@')[0] || 'Ukjent',
-        }))
-        .sort((a: { id: string; name: string }, b: { id: string; name: string }) =>
-          a.name.localeCompare(b.name, 'nb')
-        )
-    }
-
-    void (async () => {
-      try {
-        const [colleaguesList, landlordsList] = await Promise.all([loadColleagues(), loadLandlords()])
-        if (!cancelled) {
-          setColleagues(colleaguesList)
-          setLandlordAccounts(landlordsList)
-        }
-      } catch {
-        if (!cancelled) {
-          setColleagues([])
-          setLandlordAccounts([])
-        }
-      }
-    })()
-
-    return () => {
-      cancelled = true
-    }
-  }, [currentUser, isKommune, myKommuneRegion])
-
   useEffect(() => {
     if (!currentUser || loading) return
     if (role == null) return
@@ -248,329 +185,6 @@ export default function NavMessagesPage() {
     const key = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.messages, currentUser.id)
     if (!localStorage.getItem(key)) setShowLandlordMessagesIntro(true)
   }, [currentUser, loading, role])
-
-  useEffect(() => {
-    if (!profileResolved || !currentUser) return
-    let cancelled = false
-
-    const fetchConversationsKommune = async () => {
-      const { data: rows, error: sumErr } = await supabase.rpc('get_kommune_landlord_thread_summaries')
-      if (sumErr) {
-        devWarn('[Boly/chat] get_kommune_landlord_thread_summaries', sumErr)
-        setConversations([])
-        return
-      }
-      if (!rows?.length) {
-        setConversations([])
-        return
-      }
-
-      const ids = [...new Set((rows as { landlord_id: string }[]).map((r) => r.landlord_id))]
-      const nameById = await fetchDisplayNamesBatch(ids)
-
-      const peers = (
-        rows as {
-          landlord_id: string
-          service_area_id: string
-          service_area_name: string
-          last_at: string
-          last_preview: string | null
-        }[]
-      ).map((r) => {
-        const raw = (r.last_preview ?? '').trim()
-        return {
-          userId: r.landlord_id,
-          serviceAreaId: r.service_area_id,
-          name: nameById.get(r.landlord_id) ?? 'Ukjent bruker',
-          areaName: r.service_area_name || '',
-          lastMessage: raw.length > 40 ? `${raw.slice(0, 40)}…` : raw,
-          lastAt: r.last_at || '',
-        }
-      })
-      setConversations(peers.sort((a, b) => (b.lastAt > a.lastAt ? 1 : -1)))
-    }
-
-    const fetchConversationsLandlord = async () => {
-      const { data: rows, error: sumErr } = await supabase.rpc('get_landlord_service_area_threads')
-      if (sumErr) {
-        devWarn('[Boly/chat] get_landlord_service_area_threads', sumErr)
-        setLandlordAreaThreads([])
-        return
-      }
-      setLandlordAreaThreads(
-        (rows || []).map(
-          (r: {
-            service_area_id: string
-            display_name: string
-            last_at: string | null
-            last_preview: string | null
-          }) => {
-            const raw = (r.last_preview ?? '').trim()
-            return {
-              serviceAreaId: r.service_area_id,
-              name: r.display_name || '',
-              lastMessage: raw.length > 40 ? `${raw.slice(0, 40)}…` : raw,
-              lastAt: r.last_at || '',
-            }
-          }
-        )
-      )
-    }
-
-    const fetchGuestBookingThreads = async () => {
-      const { data: rows, error: guestErr } = await supabase.rpc('list_landlord_guest_booking_threads')
-      if (guestErr) {
-        devWarn('[Boly/chat] list_landlord_guest_booking_threads', guestErr)
-        setGuestBookingThreads([])
-        return
-      }
-      setGuestBookingThreads(
-        (rows || []).map(
-          (r: {
-            booking_id: string
-            guest_label: string
-            listing_address: string
-            last_preview: string
-            last_at: string
-            booking_status: string
-          }) => ({
-            bookingId: r.booking_id,
-            guestLabel: r.guest_label || t('msgChannelGuest'),
-            listingAddress: r.listing_address || '',
-            lastPreview: r.last_preview || '',
-            lastAt: r.last_at || '',
-            bookingStatus: r.booking_status || '',
-          })
-        )
-      )
-    }
-
-    const fetchLandlordEventThreads = async () => {
-      const { data: rows, error: evErr } = await supabase.rpc('get_landlord_event_threads')
-      if (evErr) {
-        devWarn('[Boly/chat] get_landlord_event_threads', evErr)
-        setLandlordEventThreads([])
-        return
-      }
-      setLandlordEventThreads(
-        (rows || []).map(
-          (r: { event_id: string; event_name: string; last_at: string | null; last_preview: string | null }) => {
-            const raw = (r.last_preview ?? '').trim()
-            return {
-              eventId: r.event_id,
-              eventName: r.event_name || '',
-              lastMessage: raw.length > 40 ? `${raw.slice(0, 40)}…` : raw,
-              lastAt: r.last_at || '',
-            }
-          }
-        )
-      )
-    }
-
-    void (async () => {
-      try {
-        if (isKommune) {
-          setConversationsLoading(true)
-          await fetchConversationsKommune()
-        } else {
-          setConversationsLoading(true)
-          await Promise.all([
-            fetchConversationsLandlord(),
-            fetchLandlordEventThreads(),
-            fetchGuestBookingThreads(),
-          ])
-          setConversations([])
-        }
-      } catch {
-        if (!cancelled && isKommune) setConversations([])
-        if (!cancelled && !isKommune) setLandlordAreaThreads([])
-      } finally {
-        if (!cancelled) {
-          setConversationsLoading(false)
-          setLoading(false)
-        }
-      }
-    })()
-
-    return () => {
-      cancelled = true
-      setConversationsLoading(false)
-    }
-  }, [profileResolved, currentUser, isKommune, withUserId, withAreaId, kommuneCanEdit, t])
-
-  const activeServiceAreaId = withAreaId
-
-  useEffect(() => {
-    if (!profileResolved || !currentUser) return
-    const isHomeownerEventChat = !isKommune && !!withEventId
-    const isHomeownerChat = !isKommune && !!withAreaId
-    const isKommuneChat = isKommune && withUserId && withAreaId
-    if (!isHomeownerChat && !isKommuneChat && !isHomeownerEventChat) {
-      setMessages([])
-      setOtherUser(null)
-      return
-    }
-
-    const fetchMessages = async () => {
-      if (isHomeownerEventChat && withEventId) {
-        const { data: rpcData, error: rpcErr } = await supabase.rpc(
-          'get_landlord_event_thread_messages',
-          { p_event_id: withEventId }
-        )
-        if (!rpcErr && rpcData != null) {
-          setMessages((rpcData as any[]) || [])
-          return
-        }
-        if (rpcErr) devWarn('[Boly/chat] get_landlord_event_thread_messages', rpcErr)
-        setMessages([])
-        return
-      }
-
-      if (isHomeownerChat && withAreaId) {
-        const { data: rpcData, error: rpcErr } = await supabase.rpc(
-          'get_landlord_kommune_thread_messages',
-          { p_service_area_id: withAreaId }
-        )
-        if (!rpcErr && rpcData != null) {
-          setMessages((rpcData as any[]) || [])
-          return
-        }
-        if (rpcErr) devWarn('[Boly/chat] get_landlord_kommune_thread_messages', rpcErr)
-        setMessages([])
-        return
-      }
-
-      if (isKommuneChat && withUserId && withAreaId) {
-        const { data: rpcData, error: rpcErr } = await supabase.rpc(
-          'get_kommune_landlord_thread_messages',
-          { p_landlord_id: withUserId, p_service_area_id: withAreaId }
-        )
-        if (!rpcErr && rpcData != null) {
-          setMessages((rpcData as any[]) || [])
-          return
-        }
-        if (rpcErr) devWarn('[Boly/chat] get_kommune_landlord_thread_messages', rpcErr)
-        setMessages([])
-      }
-    }
-
-    if (isHomeownerEventChat && withEventId) {
-      const eventLabel =
-        landlordEventThreads.find((e) => e.eventId === withEventId)?.eventName ||
-        t('msgChannelEvent')
-      setOtherUser({
-        id: null,
-        name: `${channelBadgeEmoji('event_caseworker')} ${t('msgChannelEvent')} · ${eventLabel}`,
-      })
-      void fetchMessages()
-    } else if (isHomeownerChat && withAreaId) {
-      const areaLabel =
-        landlordAreaThreads.find((a) => a.serviceAreaId === withAreaId)?.name ||
-        t('messagesLandlordSharedChannelTitle')
-      setOtherUser({ id: null, name: areaLabel })
-      void fetchMessages()
-    } else if (withUserId && withAreaId) {
-      void Promise.all([
-        supabase.rpc('get_user_display_name', { p_user_id: withUserId }).then(({ data: name }) => {
-          const areaLabel =
-            conversations.find(
-              (c) => c.userId === withUserId && c.serviceAreaId === withAreaId
-            )?.areaName || ''
-          setOtherUser({
-            id: withUserId,
-            name: areaLabel ? `${name ?? 'Ukjent bruker'} · ${areaLabel}` : (name ?? 'Ukjent bruker'),
-          })
-        }),
-        fetchMessages(),
-      ])
-    }
-
-    const onVisibleRefetch = () => {
-      if (document.visibilityState === 'visible') void fetchMessages()
-    }
-    document.addEventListener('visibilitychange', onVisibleRefetch)
-
-    const channelId = isHomeownerEventChat
-      ? `chat:${currentUser.id}:event:${withEventId}`
-      : isHomeownerChat
-        ? `chat:${currentUser.id}:area:${withAreaId}`
-        : `chat:${currentUser.id}:${withUserId}:area:${withAreaId}`
-    const sub = supabase
-      .channel(channelId)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
-        (payload) => {
-          const row = payload.new as {
-            sender_id?: string
-            receiver_id?: string | null
-            service_area_id?: string | null
-            event_id?: string | null
-          }
-          if (!row?.sender_id) return
-          if (withEventId && row.event_id && row.event_id !== withEventId) return
-          if (withAreaId && row.service_area_id && row.service_area_id !== withAreaId) return
-          if (isKommuneChat && withUserId) {
-            if (row.sender_id !== withUserId && row.receiver_id !== withUserId) return
-          } else if (isHomeownerChat) {
-            if (row.sender_id !== currentUser.id && row.receiver_id !== currentUser.id) return
-          }
-          void fetchMessages()
-        }
-      )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') return
-        if (process.env.NODE_ENV === 'development' && err) {
-          devWarn('[Boly/chat] realtime', status, err)
-        }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          void fetchMessages()
-        }
-      })
-
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibleRefetch)
-      void sub.unsubscribe()
-    }
-  }, [
-    profileResolved,
-    currentUser,
-    withUserId,
-    withAreaId,
-    withEventId,
-    isKommune,
-    t,
-    landlordAreaThreads,
-    landlordEventThreads,
-    conversations,
-  ])
-
-  useEffect(() => {
-    if (!bootOk?.user?.id || messages.length === 0) {
-      setThreadSenderLabelById({})
-      return
-    }
-    const need = new Set<string>()
-    for (const m of messages) {
-      if (typeof m.sender_id === 'string' && m.sender_id.trim()) {
-        need.add(m.sender_id)
-      }
-    }
-    if (need.size === 0) {
-      setThreadSenderLabelById({})
-      return
-    }
-    let cancelled = false
-    void (async () => {
-      const ids = [...need]
-      const nameById = await fetchDisplayNamesBatch(ids)
-      if (cancelled) return
-      setThreadSenderLabelById(Object.fromEntries(nameById))
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [messages, isKommune, withUserId, bootOk])
 
   useEffect(() => {
     if (!currentUser) return
@@ -912,645 +526,38 @@ export default function NavMessagesPage() {
         }}
       >
         {showKommuneSidebar && !kommuneMobileChatOnly && (
-          <aside
-            className="card"
-            style={{
-              padding: 'var(--space-4)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              gap: 'var(--space-4)',
-            }}
-          >
-            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-              <h3
-                style={{
-                  marginBottom: 'var(--space-3)',
-                  fontSize: '1rem',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <MessageSquare size={18} style={{ opacity: 0.85 }} /> {t('conversations')}
-              </h3>
-              {conversationsLoading ? (
-                <LoadingPlaceholder minHeight={120} />
-              ) : conversations.length === 0 ? (
-                <p className="text-sm" style={{ opacity: 0.6, margin: 0 }}>
-                  {t('noMessagesYet')}
-                </p>
-              ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'var(--space-2)',
-                    minWidth: 0,
-                    maxHeight: 'min(32vh, 260px)',
-                    overflowY: 'auto',
-                    WebkitOverflowScrolling: 'touch',
-                  }}
-                >
-                  {conversations.map((c) => (
-                    <Link
-                      key={`${c.userId}:${c.serviceAreaId}`}
-                      href={`/nav/messages?with=${c.userId}&area=${c.serviceAreaId}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-3)',
-                        padding: 'var(--space-3)',
-                        borderRadius: '10px',
-                        background:
-                          withUserId === c.userId && withAreaId === c.serviceAreaId
-                            ? 'rgba(59, 130, 246, 0.15)'
-                            : 'rgba(255,255,255, 0.03)',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        minWidth: 0,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          flexShrink: 0,
-                          borderRadius: '50%',
-                          background: 'rgba(59, 130, 246, 0.2)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <User size={16} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {c.name}
-                        </div>
-                        {c.areaName ? (
-                          <div className="text-sm" style={{ opacity: 0.55, fontSize: '0.78rem' }}>
-                            {c.areaName}
-                          </div>
-                        ) : null}
-                        <div
-                          className="text-sm"
-                          style={{
-                            opacity: 0.6,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {c.lastMessage}
-                        </div>
-                      </div>
-                      <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              <div
-                role="tablist"
-                aria-label={t('messages')}
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  flexShrink: 0,
-                }}
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={messagesPickerTab === 'landlords'}
-                  onClick={() => {
-                    setMessagesPickerTab('landlords')
-                    setMessagesContactSearch('')
-                  }}
-                  style={{
-                    flex: 1,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border:
-                      messagesPickerTab === 'landlords'
-                        ? '1px solid rgba(59, 130, 246, 0.45)'
-                        : '1px solid var(--border-subtle)',
-                    background:
-                      messagesPickerTab === 'landlords'
-                        ? 'rgba(59, 130, 246, 0.18)'
-                        : 'var(--bg-subtle)',
-                    color: 'var(--text-main)',
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Home size={16} style={{ opacity: 0.9, flexShrink: 0 }} />
-                  {t('tabLandlords')}
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={messagesPickerTab === 'staff'}
-                  onClick={() => {
-                    setMessagesPickerTab('staff')
-                    setMessagesContactSearch('')
-                  }}
-                  style={{
-                    flex: 1,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border:
-                      messagesPickerTab === 'staff'
-                        ? '1px solid rgba(59, 130, 246, 0.45)'
-                        : '1px solid var(--border-subtle)',
-                    background:
-                      messagesPickerTab === 'staff'
-                        ? 'rgba(59, 130, 246, 0.18)'
-                        : 'var(--bg-subtle)',
-                    color: 'var(--text-main)',
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Users size={16} style={{ opacity: 0.9, flexShrink: 0 }} />
-                  {t('tabStaff')}
-                </button>
-                {losInMessagesEnabled ? (
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={messagesPickerTab === 'los'}
-                    onClick={() => {
-                      setMessagesPickerTab('los')
-                      setMessagesContactSearch('')
-                    }}
-                    style={{
-                      flex: 1,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      padding: '10px 12px',
-                      borderRadius: '10px',
-                      border:
-                        messagesPickerTab === 'los'
-                          ? '1px solid rgba(45, 212, 191, 0.45)'
-                          : '1px solid var(--border-subtle)',
-                      background:
-                        messagesPickerTab === 'los'
-                          ? 'rgba(45, 212, 191, 0.14)'
-                          : 'var(--bg-subtle)',
-                      color: 'var(--text-main)',
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <MessageCircle size={16} style={{ opacity: 0.9, flexShrink: 0 }} />
-                    {t('tabLos')}
-                  </button>
-                ) : null}
-              </div>
-
-              <div
-                role="tabpanel"
-                style={{
-                  maxHeight: 'min(18vh, 148px)',
-                  overflowY: 'auto',
-                  WebkitOverflowScrolling: 'touch',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 'var(--space-2)',
-                  minHeight: 0,
-                }}
-              >
-                {messagesPickerTab === 'los' ? (
-                  <div
-                    style={{
-                      padding: 'var(--space-3)',
-                      borderRadius: '10px',
-                      background: 'rgba(45, 212, 191, 0.08)',
-                      border: '1px solid rgba(45, 212, 191, 0.25)',
-                    }}
-                  >
-                    <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: '0.9rem' }}>
-                      {t('messagesLosPanelTitle')}
-                    </p>
-                    <p style={{ margin: '0 0 12px', fontSize: '0.82rem', lineHeight: 1.5, opacity: 0.85 }}>
-                      {t('messagesLosPanelDesc')}
-                    </p>
-                    <Link
-                      href="/nav/los-inbox"
-                      className="button button-accent"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: '0.85rem',
-                        padding: '8px 12px',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      {t('messagesLosPanelCta')} <ChevronRight size={16} aria-hidden />
-                    </Link>
-                  </div>
-                ) : messagesPickerTab === 'landlords' ? (
-                  landlordAccounts.length === 0 ? (
-                    <p className="text-sm" style={{ opacity: 0.65, margin: 0 }}>
-                      {t('messagesNoLandlordsInRegion')}
-                    </p>
-                  ) : landlordsWithoutThread.length === 0 ? (
-                    <p className="text-sm" style={{ opacity: 0.65, margin: 0 }}>
-                      {t('messagesLandlordsAllInConversations')}
-                    </p>
-                  ) : filteredLandlordsForPicker.length === 0 ? (
-                    <p className="text-sm" style={{ opacity: 0.65, margin: 0 }}>
-                      {t('noUsersMatch')}
-                    </p>
-                  ) : (
-                    filteredLandlordsForPicker.map((l) => (
-                      <button
-                        key={l.id}
-                        type="button"
-                        onClick={() => {
-                          void supabase
-                            .rpc('resolve_staff_landlord_thread_area', { p_landlord_id: l.id })
-                            .then(({ data, error }) => {
-                              if (error || !data) return
-                              router.push(`/nav/messages?with=${l.id}&area=${data}`)
-                            })
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 'var(--space-3)',
-                          padding: 'var(--space-3)',
-                          borderRadius: '10px',
-                          background:
-                            withUserId === l.id
-                              ? 'rgba(59, 130, 246, 0.15)'
-                              : 'rgba(255,255,255,0.03)',
-                          textDecoration: 'none',
-                          color: 'inherit',
-                          minWidth: 0,
-                          border: 'none',
-                          width: '100%',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: '36px',
-                            height: '36px',
-                            flexShrink: 0,
-                            borderRadius: '50%',
-                            background: 'rgba(59, 130, 246, 0.2)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <User size={16} />
-                        </div>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            flex: 1,
-                          }}
-                        >
-                          {l.name}
-                        </div>
-                        <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
-                      </button>
-                    ))
-                  )
-                ) : colleagues.length === 0 ? (
-                  <p className="text-sm" style={{ opacity: 0.65, margin: 0 }}>
-                    {t('noColleaguesWithEdit')}
-                  </p>
-                ) : filteredColleaguesForPicker.length === 0 ? (
-                  <p className="text-sm" style={{ opacity: 0.65, margin: 0 }}>
-                    {t('noUsersMatch')}
-                  </p>
-                ) : (
-                  filteredColleaguesForPicker.map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/nav/messages?with=${c.id}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-3)',
-                        padding: 'var(--space-3)',
-                        borderRadius: '10px',
-                        background:
-                          withUserId === c.id
-                            ? 'rgba(59, 130, 246, 0.15)'
-                            : 'rgba(255,255,255,0.03)',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        minWidth: 0,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          flexShrink: 0,
-                          borderRadius: '50%',
-                          background: 'rgba(34, 197, 94, 0.2)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <User size={16} />
-                      </div>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          flex: 1,
-                        }}
-                      >
-                        {c.name}
-                      </div>
-                      <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
-                    </Link>
-                  ))
-                )}
-              </div>
-              {showMessagesPickerSearch ? (
-                <input
-                  type="search"
-                  value={messagesContactSearch}
-                  onChange={(e) => setMessagesContactSearch(e.target.value)}
-                  placeholder={t('messagesPickerSearchPlaceholder')}
-                  aria-label={t('messagesPickerSearchAria')}
-                  autoComplete="off"
-                  style={{
-                    width: '100%',
-                    marginTop: 2,
-                    padding: '5px 9px',
-                    fontSize: '0.78rem',
-                    lineHeight: 1.35,
-                    borderRadius: 8,
-                    border: '1px solid var(--border-subtle)',
-                    background: 'rgba(255,255,255,0.035)',
-                    color: 'var(--text-main)',
-                    opacity: 0.92,
-                    boxSizing: 'border-box',
-                  }}
-                />
-              ) : null}
-            </div>
-          </aside>
+        <NavMessagesKommuneSidebar
+          conversationsLoading={conversationsLoading}
+          conversations={conversations}
+          withUserId={withUserId}
+          withAreaId={withAreaId}
+          messagesPickerTab={messagesPickerTab}
+          onMessagesPickerTabChange={setMessagesPickerTab}
+          messagesContactSearch={messagesContactSearch}
+          onMessagesContactSearchChange={setMessagesContactSearch}
+          losInMessagesEnabled={losInMessagesEnabled}
+          filteredLandlordsForPicker={filteredLandlordsForPicker}
+          filteredColleaguesForPicker={filteredColleaguesForPicker}
+          landlordAccounts={landlordAccounts}
+          colleagues={colleagues}
+          showMessagesPickerSearch={showMessagesPickerSearch}
+          landlordsWithoutThread={landlordsWithoutThread}
+          t={t}
+        />
         )}
-
         {showLandlordAreaSidebar && !landlordMobileChatOnly && (
-          <aside
-            className="card"
-            style={{
-              padding: 'var(--space-4)',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              gap: 'var(--space-4)',
-            }}
-          >
-            <h3
-              style={{
-                marginBottom: 0,
-                fontSize: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <MessageSquare size={18} style={{ opacity: 0.85 }} /> {t('conversations')}
-            </h3>
-            {(guestBookingThreads.length > 0 || landlordEventThreads.length > 0) ? (
-              <div role="tablist" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={landlordMessagesTab === 'social'}
-                  onClick={() => setLandlordMessagesTab('social')}
-                  className="button"
-                  style={{
-                    flex: 1,
-                    minWidth: 72,
-                    fontSize: '0.78rem',
-                    padding: '6px 8px',
-                    opacity: landlordMessagesTab === 'social' ? 1 : 0.65,
-                  }}
-                >
-                  {t('landlordMsgTabSocial')}
-                </button>
-                {landlordEventThreads.length > 0 ? (
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={landlordMessagesTab === 'event'}
-                    onClick={() => setLandlordMessagesTab('event')}
-                    className="button"
-                    style={{
-                      flex: 1,
-                      minWidth: 72,
-                      fontSize: '0.78rem',
-                      padding: '6px 8px',
-                      opacity: landlordMessagesTab === 'event' ? 1 : 0.65,
-                    }}
-                  >
-                    {t('landlordMsgTabEvent')}
-                  </button>
-                ) : null}
-                {guestBookingThreads.length > 0 ? (
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={landlordMessagesTab === 'guest'}
-                    onClick={() => setLandlordMessagesTab('guest')}
-                    className="button"
-                    style={{
-                      flex: 1,
-                      minWidth: 72,
-                      fontSize: '0.78rem',
-                      padding: '6px 8px',
-                      opacity: landlordMessagesTab === 'guest' ? 1 : 0.65,
-                    }}
-                  >
-                    {t('landlordMsgTabGuest')}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-            {conversationsLoading ? (
-              <LoadingPlaceholder minHeight={120} />
-            ) : landlordMessagesTab === 'guest' ? (
-              guestBookingThreads.length === 0 ? (
-                <p className="text-sm" style={{ opacity: 0.6, margin: 0 }}>
-                  {t('landlordGuestThreadsEmpty')}
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  {guestBookingThreads.map((g) => (
-                    <Link
-                      key={g.bookingId}
-                      href={`/nav/messages?booking=${g.bookingId}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-3)',
-                        padding: 'var(--space-3)',
-                        borderRadius: '10px',
-                        background:
-                          withBookingId === g.bookingId
-                            ? 'rgba(59, 130, 246, 0.15)'
-                            : 'rgba(255,255,255,0.03)',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600 }}>
-                          {channelBadgeEmoji('guest_booking')} {g.guestLabel}
-                        </div>
-                        <div className="text-sm" style={{ opacity: 0.6 }}>
-                          {g.listingAddress}
-                        </div>
-                        {g.lastPreview ? (
-                          <div
-                            className="text-sm"
-                            style={{
-                              opacity: 0.6,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {g.lastPreview}
-                          </div>
-                        ) : null}
-                      </div>
-                      <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
-                    </Link>
-                  ))}
-                </div>
-              )
-            ) : landlordMessagesTab === 'event' ? (
-              landlordEventThreads.length === 0 ? (
-                <p className="text-sm" style={{ opacity: 0.6, margin: 0 }}>
-                  {t('landlordEventThreadsEmpty')}
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  {landlordEventThreads.map((ev) => (
-                    <Link
-                      key={ev.eventId}
-                      href={`/nav/messages?event=${ev.eventId}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-3)',
-                        padding: 'var(--space-3)',
-                        borderRadius: '10px',
-                        background:
-                          withEventId === ev.eventId
-                            ? 'rgba(168, 85, 247, 0.15)'
-                            : 'rgba(255,255,255,0.03)',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600 }}>
-                          {channelBadgeEmoji('event_caseworker')} {t('msgChannelEvent')}
-                        </div>
-                        <div className="text-sm" style={{ opacity: 0.6 }}>
-                          {ev.eventName}
-                        </div>
-                        {ev.lastMessage ? (
-                          <div className="text-sm" style={{ opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {ev.lastMessage}
-                          </div>
-                        ) : null}
-                      </div>
-                      <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
-                    </Link>
-                  ))}
-                </div>
-              )
-            ) : landlordAreaThreads.length === 0 ? (
-              <p className="text-sm" style={{ opacity: 0.6, margin: 0 }}>
-                {t('noMessagesYet')}
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                {landlordAreaThreads.map((a) => (
-                  <Link
-                    key={a.serviceAreaId}
-                    href={`/nav/messages?area=${a.serviceAreaId}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-3)',
-                      padding: 'var(--space-3)',
-                      borderRadius: '10px',
-                      background:
-                        withAreaId === a.serviceAreaId
-                          ? 'rgba(59, 130, 246, 0.15)'
-                          : 'rgba(255,255,255,0.03)',
-                      textDecoration: 'none',
-                      color: 'inherit',
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600 }}>
-                        {channelBadgeEmoji('social_caseworker')} {t('msgChannelSocial')} · {a.name}
-                      </div>
-                      {a.lastMessage ? (
-                        <div className="text-sm" style={{ opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {a.lastMessage}
-                        </div>
-                      ) : null}
-                    </div>
-                    <ChevronRight size={16} style={{ opacity: 0.5, flexShrink: 0 }} />
-                  </Link>
-                ))}
-              </div>
-            )}
-          </aside>
+          <NavMessagesLandlordSidebar
+            landlordMessagesTab={landlordMessagesTab}
+            onLandlordMessagesTabChange={setLandlordMessagesTab}
+            conversationsLoading={conversationsLoading}
+            guestBookingThreads={guestBookingThreads}
+            landlordEventThreads={landlordEventThreads}
+            landlordAreaThreads={landlordAreaThreads}
+            withBookingId={withBookingId}
+            withEventId={withEventId}
+            withAreaId={withAreaId}
+            t={t}
+          />
         )}
 
         <div
