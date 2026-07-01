@@ -41,7 +41,7 @@ import ListingAvailabilityOverview from '@/features/listings/components/ListingA
 import { useListingEventCalendarData } from '@/features/listings/hooks/useListingEventCalendarData'
 import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
 import LandlordStripeConnect from '@/features/bookings/components/LandlordStripeConnect'
-import { checkAvailabilityConflict } from '@/features/listings/lib/availabilityConflict'
+import { useListingAvailability } from '@/features/listings/hooks/useListingAvailability'
 import type { ListingEventOptInPeriod, ListingLane } from '@/features/listings/types/lanes'
 
 type ManagePanel = 'calendar' | 'events' | 'tourism'
@@ -67,12 +67,6 @@ export default function HomeownerManage() {
   const [openPanel, setOpenPanel] = useState<{ listingId: string; panel: ManagePanel } | null>(
     null
   )
-  const [newPeriod, setNewPeriod] = useState({
-    start: '',
-    end: '',
-    status: 'Tilgjengelig',
-    lane: 'sosial' as ListingLane,
-  })
   const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{
     id: string
     listingId: string
@@ -91,6 +85,7 @@ export default function HomeownerManage() {
   const [fetchError, setFetchError] = useState<'timeout' | string | null>(null)
   const pageGateRef = useRef(pageGate)
   pageGateRef.current = pageGate
+  const availabilityErrorContextRef = useRef<'add' | 'delete'>('add')
   const filtersRowRef = useRef<HTMLDivElement>(null)
   const listingPanelRef = useRef<HTMLDivElement>(null)
   const [isMobileLayout, setIsMobileLayout] = useState(false)
@@ -130,26 +125,27 @@ export default function HomeownerManage() {
   }, [])
 
   const openListingPanel = useCallback(
-    (listingId: string, panel: ManagePanel, periodStatus?: 'Tilgjengelig' | 'Utilgjengelig') => {
+    (listingId: string, panel: ManagePanel) => {
       setOpenPanel({ listingId, panel })
-      if (panel === 'calendar') {
-        const t = todayStr()
-        setNewPeriod({
-          start: t,
-          end: t,
-          status: periodStatus ?? 'Tilgjengelig',
-          lane: 'sosial',
-        })
-      }
       scrollListingPanelIntoView()
     },
     [scrollListingPanelIntoView]
   )
 
-  const todayStr = () => new Date().toISOString().slice(0, 10)
-  const openPeriodCalendar = (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => {
-    openListingPanel(listingId, 'calendar', status)
+  const openPeriodCalendar = (listingId: string, _status: 'Tilgjengelig' | 'Utilgjengelig') => {
+    openListingPanel(listingId, 'calendar')
   }
+
+  const { addPeriod, deletePeriod } = useListingAvailability(availability, setAvailability, {
+    onConflict: () => toast(t('availabilityConflict'), 'error'),
+    onError: (message) => {
+      if (availabilityErrorContextRef.current === 'delete') {
+        toast(t('errDeletePeriod') + message, 'error')
+      } else {
+        toast('Feil ved lagring av periode: ' + message, 'error')
+      }
+    },
+  })
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -546,66 +542,35 @@ export default function HomeownerManage() {
     status: string = 'Tilgjengelig',
     lane: ListingLane = 'sosial'
   ) => {
-    if (!startDate || !endDate) return
-    try {
-      const conflict = await checkAvailabilityConflict(listingId, startDate, endDate)
-      if (!conflict.ok) {
-        toast(t('availabilityConflict'), 'error')
-        return
-      }
+    availabilityErrorContextRef.current = 'add'
+    const result = await addPeriod({
+      listingId,
+      start: startDate,
+      end: endDate,
+      status: status as 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla',
+      lane,
+    })
+    if (!result.ok) return
 
-      const effectiveLane = status === 'Formidla' ? 'sosial' : lane
-
-      const { data, error } = await supabase
-        .from('listing_availability')
-        .insert([
-          {
-            listing_id: listingId,
-            start_date: startDate,
-            end_date: endDate,
-            status,
-            lane: effectiveLane,
-          },
-        ])
-        .select()
-        .single()
-
-      if (error) throw error
-
-      setAvailability((prev) => ({
-        ...prev,
-        [listingId]: [...(prev[listingId] || []), data],
-      }))
-      if (status === 'Tilgjengelig' || status === 'Utilgjengelig') {
-        await supabase
-          .from('listings')
-          .update({ status, is_available: status === 'Tilgjengelig' })
-          .eq('id', listingId)
-        setMyListings((prev) =>
-          prev.map((l) =>
-            l.id === listingId ? { ...l, status, is_available: status === 'Tilgjengelig' } : l
-          )
+    if (status === 'Tilgjengelig' || status === 'Utilgjengelig') {
+      await supabase
+        .from('listings')
+        .update({ status, is_available: status === 'Tilgjengelig' })
+        .eq('id', listingId)
+      setMyListings((prev) =>
+        prev.map((l) =>
+          l.id === listingId ? { ...l, status, is_available: status === 'Tilgjengelig' } : l
         )
-      }
-      // Formidla-perioder kan kun legges inn av kommuneansatte (i Boligbank), ikke av utleier her.
-    } catch (err: any) {
-      toast('Feil ved lagring av periode: ' + err.message, 'error')
+      )
     }
+    // Formidla-perioder kan kun legges inn av kommuneansatte (i Boligbank), ikke av utleier her.
   }
 
   const deleteAvailability = async (id: string, listingId: string) => {
-    try {
-      const { error } = await supabase.from('listing_availability').delete().eq('id', id)
-
-      if (error) throw error
-
-      setAvailability((prev) => ({
-        ...prev,
-        [listingId]: (prev[listingId] || []).filter((p) => p.id !== id),
-      }))
+    availabilityErrorContextRef.current = 'delete'
+    const result = await deletePeriod(id, listingId)
+    if (result.ok) {
       setPendingDeletePeriod(null)
-    } catch (err: any) {
-      toast(t('errDeletePeriod') + err.message, 'error')
     }
   }
 

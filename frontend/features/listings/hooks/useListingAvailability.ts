@@ -18,7 +18,7 @@ type AddPeriodInput = {
   listingId: string
   start: string
   end: string
-  status: 'Tilgjengelig' | 'Utilgjengelig'
+  status: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'
   lane?: ListingLane
 }
 
@@ -40,6 +40,7 @@ export function useListingAvailability(
   const addPeriod = useCallback(
     async (input: AddPeriodInput) => {
       const { listingId, start, end, status, lane = 'sosial' } = input
+      const effectiveLane = status === 'Formidla' ? 'sosial' : lane
       if (!start || !end) return { ok: false as const, reason: 'missing_dates' as const }
       if (new Date(end) < new Date(start)) {
         return { ok: false as const, reason: 'end_before_start' as const }
@@ -61,7 +62,7 @@ export function useListingAvailability(
               start_date: start,
               end_date: end,
               status,
-              lane,
+              lane: effectiveLane,
             },
           ])
           .select()
