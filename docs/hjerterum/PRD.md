@@ -1,6 +1,6 @@
 # Hjerterum — Product Requirements Document
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Date:** July 2026  
 **Owner:** Gamechanging AS (Oskar Høgmo-Utstøl)  
 **Status:** Living document — reflects product owner decisions from July 2026  
@@ -378,10 +378,10 @@ Per-kommune: `digital_los_enabled`, `tourism_enabled`.
 | **Hosting** | Vercel (frontend) + Supabase Cloud (DB, auth, edge functions) |
 | **Subdomains** | `app.*`, `finn.*`, `los.*`, `ops.*` via middleware |
 | **Mobile** | Responsive web + PWA; Capacitor for native apps |
-| **i18n** | NO / SE / EN; Finn default EN per locked decision |
+| **i18n** | Norwegian, Sámi (`se`), and English on **all** surfaces; selector in header; see §15.3 |
 | **GDPR** | DPIA for Los before pilot; privacy notices and DPA bundle in `docs/gdpr/` |
 | **Performance** | Listing search RPC optimized for tourism; conflict check on availability write |
-| **UI/UX** | Boly App Standard (§15) on all caseworker/landlord surfaces; portal planes per §15.2; WCAG 2.1 AA; mobile-first |
+| **UI/UX** | Universal Boly Standard (§15) on **every** page; dark default + light toggle; no white-screen modules; WCAG 2.1 AA; mobile-first |
 
 ---
 
@@ -419,7 +419,9 @@ Per-kommune: `digital_los_enabled`, `tourism_enabled`.
 | Blocking dialog anti-pattern | 0 `alert()` / `confirm()` in `app/` + `features/` | ESLint / CI grep |
 | Mobile viewport usability | No horizontal overflow on 320px for core flows | Playwright + device matrix (§15.6) |
 | Design token drift | 0 new hard-coded hex in TSX for colours | PR review + optional lint |
-| i18n completeness | No user-facing hard-coded NO strings in new code | PR review |
+| i18n completeness | All new strings in NO + Sámi + EN | PR review |
+| Theme on all surfaces | Dark + light toggle on every route incl. Finn/Los/guest | PR checklist |
+| White-screen modules | 0 new always-light-only feature pages | PR review + grep |
 
 ---
 
@@ -433,7 +435,7 @@ Per-kommune: `digital_los_enabled`, `tourism_enabled`.
 | **Event scale** | Ops runbook, event staff workflows polished | §7.3 documented and tested |
 | **Los FoU** | Aug 2026 kickoff → research application Jan–Mar 2027 | DPIA, F1–F3; no public pilot until cleared |
 | **Future** | Event self-registration; national marketing; Boly rebrand complete | Organizer sets routing at creation |
-| **UI/UX (parallel)** | Hjerterum v2 rollout to app shell; Finn/Los polish; visual regression | §15.5 phased plan |
+| **UI/UX (parallel)** | Migrate Finn/Los to Boly theme system; universal dark/light; Sámi parity | §15.8 migration plan |
 
 ---
 
@@ -450,7 +452,9 @@ Per-kommune: `digital_los_enabled`, `tourism_enabled`.
 | Stripe fee (5%) vs pitch (10%) | Medium | Align code and contracts before tourism marketing |
 | Boly/Hjerterum brand split | Low | Phased rebrand; consistent external comms per audience |
 | UI regression during Hjerterum expansion | Medium | Boly App Standard locked (§15); PR UI checklist; smoke + visual tests |
-| Finn.no brand confusion extends to visual identity | Medium | Dedicated Finn plane (light consumer UI); distinct from classifieds |
+| Finn.no brand confusion extends to visual identity | Medium | Same Boly visual language everywhere; distinct **product** positioning, not white consumer skin |
+| White-screen drift on new Hjerterum modules | High | §15.7 ban; migrate `finn.css` / `los.css` to `globals.css` tokens |
+| Sámi translation lag on new features | Medium | UX-16; no ship with NO-only strings |
 | Megasite components resist design-system adoption | Medium | Refactor waves W5–W6; max-lines ESLint; persona-split views |
 
 ---
@@ -469,151 +473,169 @@ Per-kommune: `digital_los_enabled`, `tourism_enabled`.
 | Hjerterum v2 accent rollout to `/homeowner` + `/nav` shell | Product / design | After landing + login validated |
 | Visual regression tooling (Chromatic vs Playwright screenshots) | Engineering | Before tourism GA |
 | Design system Storybook (or equivalent) | Engineering | Post-pilot — optional |
+| **Theme for anonymous/guest users** (Finn, landing) | Product | §15.2 — extend `ThemeContext` beyond logged-in |
+| **Sámi parity deadline** for tourism/Los launch | Product | Full parity vs best-effort new strings only |
+| **Default locale per subdomain** (Finn guests vs app) | Product | See §15.11 grill questions |
+| **Retire `finn.css` / `los.css` always-light** | Engineering | §15.8 migration — target before tourism GA |
 
 ---
 
 ## 15. UI/UX & design system requirements
 
-> **North star:** Every surface must meet or exceed the **Boly App Standard** — the production-proven UX that municipalities and landlords already trust. Hjerterum expansion adds lanes and portals; it must not dilute clarity, accessibility, or professional polish.
+> **North star:** Every page in Hjerterum must feel like **Boly** — the professional dark-first product municipalities and landlords already trust. New modules (Finn, Los, events) must **not** ship as simplistic white screens with a separate visual language. Users choose **dark or light mode** and **Norwegian, Sámi, or English** on every surface, just as in Boly today.
 
-**Canonical references:** `DESIGN_SYSTEM.md` (tokens, components, planes), `UI_UX_GOVERNANCE.md` (how we maintain quality in development).
+**Canonical references:** `DESIGN_SYSTEM.md`, `UI_UX_GOVERNANCE.md`.
 
-### 15.1 The Boly App Standard (non-negotiable baseline)
+### 15.1 The Universal Boly Standard (all pages)
 
-The **Boly App Standard** is defined by the live production surfaces `/homeowner/*` and `/nav/*`. New and refactored code in these areas must preserve:
+The **Boly Standard** (production `/homeowner`, `/nav`, landing) applies to **every route** — including Finn, Los, Ops, marketing, and all future features. There is no exemption for "new" or "consumer" modules.
 
 | Dimension | Requirement | Implementation reference |
 |-----------|-------------|--------------------------|
-| **Visual tone** | Professional, calm, high-trust dark UI ("Northern scenery") | `frontend/app/globals.css` |
+| **Visual tone** | Professional, calm, high-trust UI; **dark default** (`--bg-app: #020617`) with Northern scenery gradient mesh | `globals.css`, `hjerterum-v2.css` |
+| **Not acceptable** | Flat white full-page backgrounds, light-only portals, bootstrap-default styling on new features | Reject in PR — see §15.7 |
 | **Typography** | DM Sans (body), Fraunces (display/hero only) | `layout.tsx`, CSS `--font-*` |
 | **Spacing** | 8px grid via `--space-*` tokens | `globals.css` `:root` |
-| **Colour** | Semantic tokens only — no ad-hoc hex in components | `--bg-app`, `--text-*`, `--color-accent`, lane tokens |
-| **Components** | Shared design-system primitives for feedback, loading, empty, forms | `app/components/design-system/` |
-| **Buttons & inputs** | Global `.button`, `.button-accent`, `.input`, `.card` classes or thin wrappers | `globals.css`, `ui/Button.tsx` |
-| **Feedback** | Toast for transient messages; ConfirmDialog for destructive actions | **Never** `alert()` / `confirm()` |
-| **Loading** | PageSkeleton or LoadingPlaceholder — no blank screens | `PageSkeleton.tsx` |
+| **Colour** | Semantic tokens only — no ad-hoc hex in components | `--bg-app`, `--text-*`, `--color-accent`, `--lane-*` |
+| **Components** | Shared design-system primitives | `app/components/design-system/` |
+| **Buttons & inputs** | Global `.button`, `.button-accent`, `.input`, `.card` | `globals.css`, `ui/Button.tsx` |
+| **Feedback** | Toast + ConfirmDialog — **never** `alert()` / `confirm()` | Design-system |
+| **Loading** | PageSkeleton or LoadingPlaceholder — no blank white screens | `PageSkeleton.tsx` |
 | **Empty states** | EmptyState with clear next action | `EmptyState.tsx` |
-| **Accessibility** | WCAG 2.1 AA contrast; keyboard navigable; visible `:focus-visible` | SkipLink, semantic HTML, ARIA on modals/toasts |
-| **Touch** | Minimum 44×44px interactive targets; 16px+ inputs on mobile (iOS zoom) | `--touch-target: 44px` |
-| **Motion** | Respect `prefers-reduced-motion`; transitions ≤250ms | `--transition-*` tokens |
-| **i18n** | All user-facing copy via `LanguageContext` / `lib/i18n/*` | NO / SE / EN |
-| **Theme** | Light/dark toggle on main app; tokens switch via `[data-theme]` | `ThemeContext.tsx` |
+| **Accessibility** | WCAG 2.1 AA; keyboard navigable; `:focus-visible` | SkipLink, semantic HTML, ARIA |
+| **Touch** | ≥44×44px targets; 16px+ inputs on mobile | `--touch-target: 44px` |
+| **Motion** | `prefers-reduced-motion`; transitions ≤250ms | `--transition-*` |
+| **Theme** | Dark + light on **all** pages — see §15.2 | `ThemeContext.tsx`, `[data-theme]` |
+| **i18n** | Norwegian, Sámi, English on **all** pages — see §15.3 | `LanguageContext.tsx`, `lib/i18n/*` |
 
-**Acceptance:** A caseworker or landlord who used Boly in 2025 should recognise the app immediately after any Hjerterum feature ships.
+**Acceptance:** A user moving from boligbank to Finn to Los should recognise the same product — same chrome, same theme toggle, same language selector, same card and button feel.
 
-### 15.2 Visual planes (one product, four intentional UX contexts)
+### 15.2 Theme — dark and light on every page
 
-Hjerterum is not one flat design — it is **one design system with four visual planes**. Each plane has allowed tokens and forbidden patterns.
+| Rule | Requirement |
+|------|-------------|
+| **Default** | **Dark** (`data-theme="dark"`) on first visit — black/navy app background, not white |
+| **Toggle** | User can switch to **light mode** on every surface, including Finn, Los, landing, and guest flows |
+| **Persistence** | Saved per user (`profiles.preferred_theme` or localStorage); guests use localStorage |
+| **Implementation** | All colours via `[data-theme='light']` overrides in `globals.css` — not separate always-light CSS files |
+| **Current gap** | `ThemeContext` only enables toggle when logged in; `finn.css` / `los.css` force light — **must be fixed** (§15.8) |
 
-| Plane | Routes | Theme | CSS source | Audience expectation |
-|-------|--------|-------|------------|---------------------|
-| **Boly App** | `app.*` → `/homeowner`, `/nav` | Dark default (+ light toggle) | `globals.css` (+ phased `hjerterum-v2.css`) | Professional tool — municipality-grade |
-| **Finn (tourism)** | `finn.*` → `/finn/*` | Always light | `finn/finn.css` | Consumer booking — Airbnb-adjacent clarity |
-| **Digital Los** | `los.*` → `/los/*` | Always light | `los/los.css` | Youth-friendly, low intimidation |
-| **Ops** | `ops.*` → `/ops/*` | Dark admin | `ops/ops.css` | Operator console — reference for data-dense UI |
+**Product decision (locked):** We do **not** ship always-light modules. The previous "Finn = light consumer plane" approach is **retired**.
+
+### 15.3 Languages — Norwegian, Sámi, English (as in Boly)
+
+| Locale code | Language | UI label |
+|-------------|----------|----------|
+| `no` | Norwegian (bokmål) | Norsk |
+| `se` | **Sámi** (Sámegiella) | Sámegiella |
+| `en` | English | English |
 
 **Rules:**
-1. **Do not** import Finn/Los light styles into Boly App routes (or vice versa).
-2. **Lane semantics** (sosial / turisme / event / conflict) use shared lane tokens everywhere calendars appear — see `laneCalendarStyles.ts` and `--lane-*` in `globals.css`.
-3. **Hjerterum v2** brand tokens (`--hrt-*` in `hjerterum-v2.css`) apply to marketing, landing, login, and phased app-shell polish — they **override accent** but must not break contrast or spacing grid.
-4. **Ops components** (`OpsShell`, `OpsDataTable`, `OpsBadge`, etc.) are the reference for new data-dense admin patterns; extract to design-system when reused outside ops.
+1. **Three languages on every page** — language selector in header (or module shell), same as Boly `Header.tsx`.
+2. **Not Swedish** — locale code `se` means **Sámi** in this product. Documentation and PRs must not refer to `se` as Swedish.
+3. **All new user-facing strings** require keys in `no`, `se`, and `en` in `lib/i18n/*` before merge.
+4. **Persistence** — `localStorage` (`boly-locale`) + `profiles.preferred_locale` for authenticated users.
+5. **No hard-coded copy** in TSX for user-visible text.
 
-### 15.3 Functional UI requirements by actor
+**Current gap:** Some Finn/Los shells may lack the full language selector; Sámi coverage may lag on newer tourism strings — tracked as UX-16.
+
+### 15.4 Module contexts (same look, different jobs)
+
+Hjerterum has route **contexts** (social app, tourism, youth, ops) — not separate visual skins.
+
+| Context | Routes | Visual requirement |
+|---------|--------|-------------------|
+| **App** | `/homeowner`, `/nav` | Boly Standard — reference implementation |
+| **Finn** | `/finn/*` | **Same** Boly Standard; layout may differ (search-first) but **same** dark/light, tokens, chrome |
+| **Los** | `/los/*` | **Same** Boly Standard; chat-first layout allowed, not a white chat app |
+| **Ops** | `/ops/*` | Boly Standard + ops data-density patterns (`ops.css` extends tokens, does not replace them) |
+| **Marketing** | `/` landing | Boly Standard + Hjerterum v2 brand layer |
+
+**Shared everywhere:** lane calendar tokens, toast/confirm/skeleton, theme toggle, language selector, `.card` / `.button` patterns.
+
+### 15.5 Functional UI requirements
 
 | ID | Requirement | Priority | Status |
 |----|-------------|----------|--------|
-| UX-1 | Boly App Standard on all `/homeowner` and `/nav` flows | P0 | **Baseline met** — maintain during refactor |
-| UX-2 | Unified lane calendar colours and legend across manage, detail, nav | P0 | Done |
-| UX-3 | Mobile bottom nav + safe-area insets on primary app flows | P0 | Done |
-| UX-4 | Toast/Confirm design-system — zero native dialogs | P0 | Done |
-| UX-5 | Hjerterum v2 landing + portal cards + login polish | P1 | Partial |
-| UX-6 | Consistent header/footer chrome via `SiteChrome` | P0 | Done |
-| UX-7 | Finn consumer UI — light plane, distinct from FINN.no classifieds | P0 | Partial (~55% module) |
-| UX-8 | Los youth UI — light plane, chat-first, low cognitive load | P1 | Scaffold (gated) |
-| UX-9 | Ops console as reference for tables, KPIs, alerts | P0 | Done (~95%) |
-| UX-10 | Full Hjerterum rebrand in logo, PWA manifest, footer copy | P1 | **In progress** — mixed Boly/Hjerterum |
-| UX-11 | Persona-split listing detail views (owner vs nav vs guest) | P1 | Partial — megasite remains |
-| UX-12 | Inline form validation with accessible error association | P1 | Partial |
-| UX-13 | Skeleton loading on all React Query data views | P1 | Partial — megasites lag |
-| UX-14 | Visual regression suite on core routes | P2 | Smoke only — no screenshots yet |
+| UX-1 | Universal Boly Standard on all routes | P0 | **Partial** — core app yes; Finn/Los no |
+| UX-2 | Unified lane calendar colours and legend | P0 | Done |
+| UX-3 | Mobile bottom nav + safe-area insets on app flows | P0 | Done |
+| UX-4 | Toast/Confirm — zero native dialogs | P0 | Done |
+| UX-5 | Hjerterum v2 landing + portal cards + login | P1 | Partial |
+| UX-6 | Consistent header/footer via `SiteChrome` or module shell with same controls | P0 | Partial |
+| UX-7 | Finn uses Boly theme system — **not** always-light `finn.css` | P0 | **Not met** — migration required |
+| UX-8 | Los uses Boly theme system — **not** always-light `los.css` | P0 | **Not met** — migration required |
+| UX-9 | Ops extends Boly tokens; dark + light | P0 | Done (~95%) |
+| UX-10 | Hjerterum rebrand in logo, PWA, footer | P1 | In progress |
+| UX-11 | Persona-split listing detail views | P1 | Partial |
+| UX-12 | Inline form validation + accessible errors | P1 | Partial |
+| UX-13 | Skeleton loading on all React Query views | P1 | Partial |
+| UX-14 | Visual regression suite | P2 | Smoke only |
+| UX-15 | Theme toggle for guests and anonymous users | P0 | **Not met** — logged-in only today |
+| UX-16 | Sámi (`se`) keys for all new user-facing strings | P0 | Partial — audit needed |
+| UX-17 | Language selector on Finn, Los, and guest shells | P0 | **Partial** |
 
-### 15.4 Component catalogue (mandatory reuse)
+### 15.6 Component catalogue (mandatory reuse)
 
-Before building new UI, check this order:
+Before building new UI:
 
 1. **Design-system** (`Toast`, `ConfirmDialog`, `PageSkeleton`, `EmptyState`, `Modal`, `FieldInput`, `PortalCard`, `SkipLink`)
-2. **Ops components** (for admin/data-dense patterns)
+2. **Ops components** (data-dense patterns)
 3. **Feature components** in `features/*/components/`
 4. **Global CSS classes** (`.button`, `.card`, `.input`, `.container`)
-5. **New component** — only if none of the above fit; add to design-system if used twice
+5. **New component** — only if necessary; promote to design-system if used twice
 
-**Anti-patterns (reject in PR review):**
-- Inline `style={{ color: '#...' }}` for brand colours
-- Custom one-off modals duplicating `Modal.tsx`
-- `window.confirm` / `window.alert`
-- Raw `<button>` without touch-target sizing on mobile
-- Hard-coded Norwegian strings in TSX (bypass i18n)
-- Tables without horizontal scroll wrapper on mobile (boligbank pattern)
+### 15.7 Anti-patterns — reject in every PR
 
-### 15.5 Hjerterum v2 rollout plan (brand without UX regression)
+| Anti-pattern | Why forbidden |
+|--------------|---------------|
+| Full-page white (`#fff` / `#f8fafc`) without `[data-theme]` support | Breaks Boly feel; excludes dark-mode users |
+| New `*-only-light.css` files for features | Retired model — use `globals.css` tokens |
+| `finn.css`-style isolated light gradients on new modules | Creates "simplistic white screen" drift |
+| Hard-coded Norwegian (or any single language) in TSX | Violates §15.3 |
+| `alert()` / `confirm()` | Unprofessional; blocks a11y |
+| Inline brand hex in TSX | Token drift |
+| Shipping Finn/Los without theme + language controls | UX-15, UX-17 |
 
-Phased visual upgrade — each phase has a **rollback switch** (revert CSS import) and **smoke checklist**.
+### 15.8 Migration plan — bring Finn/Los onto Boly Standard
+
+Required before tourism GA. Each phase has smoke checklist + rollback.
 
 | Phase | Scope | Gate |
 |-------|-------|------|
-| **v2.0** | Landing, portal cards, login, skip-link, footer | ✅ Shipped |
-| **v2.1** | App header accent + logo treatment on `SiteChrome` | PO sign-off; contrast audit |
-| **v2.2** | Card/button polish inside `/homeowner/manage` | No layout shift; mobile 320px pass |
-| **v2.3** | `/nav/database` + messages chrome alignment | Caseworker UAT (1 kommune) |
-| **v2.4** | PWA manifest + icon set → Hjerterum | App store assets aligned |
-| **v2.5** | Finn/Los plane accent harmonisation (not merge) | Distinct planes preserved |
+| **M1** | Extend `ThemeContext` — theme toggle for guests (localStorage) | Works on `/finn`, `/`, `/los` without login |
+| **M2** | Add language selector to `FinnShell`, `Los` shell | NO / Sámi / EN |
+| **M3** | Refactor `finn.css` — map to `globals.css` tokens + `[data-theme='light']` | Dark mode visually matches app; no white-only |
+| **M4** | Refactor `los.css` — same as M3 | Los chat in dark Boly style |
+| **M5** | Sámi audit on Finn + tourism strings | UX-16 pass |
+| **M6** | Remove "always light" comments and forced light backgrounds | Code grep clean |
 
-**Principle:** Brand evolves; **interaction patterns do not**. Navigation, form flows, and data density stay Boly-familiar.
+### 15.9 Responsive & device matrix
 
-### 15.6 Responsive & device matrix (test before merge)
+Every UI PR must be verified at **320px and 1280px** minimum, in **both dark and light**:
 
-Every UI PR touching `app/` or `features/` must be verified at:
+| Viewport | Critical flows |
+|----------|----------------|
+| 320×568 | Login, manage, nav database, **Finn search (dark)**, language switch |
+| 390×844 | Messaging, lane calendar, Los chat |
+| 1280×800 | Boligbank table, ops console |
 
-| Viewport | Device proxy | Critical flows |
-|----------|--------------|----------------|
-| 320×568 | iPhone SE | Login, manage list, nav database scroll |
-| 375×667 | iPhone SE 2 | Messaging, lane calendar |
-| 390×844 | iPhone 14 | Formidling modal, Finn search |
-| 768×1024 | iPad | Split layouts, ops tables |
-| 1280×800 | Laptop | Boligbank full table |
-| 1920×1080 | Desktop | Hero/landing only |
+### 15.10 Accessibility (WCAG 2.1 AA)
 
-**Safe areas:** `env(safe-area-inset-*)` on fixed headers, bottom nav, and full-screen modals.
+Unchanged: 4.5:1 body contrast, keyboard access, focus visible, skip link, reduced motion. **Dark and light modes both** must pass contrast audit.
 
-### 15.7 Accessibility requirements (WCAG 2.1 AA)
+### 15.11 Critical review & questions for product owner
 
-| Criterion | Requirement |
-|-----------|-------------|
-| **1.4.3 Contrast** | 4.5:1 body text; 3:1 large text and UI components |
-| **2.1.1 Keyboard** | All actions reachable without pointer |
-| **2.4.7 Focus** | Visible focus ring — use `:focus-visible`, not outline removal |
-| **2.4.1 Skip** | Skip-to-content on marketing and app shell |
-| **4.1.2 Name, role, value** | Icons with `aria-label`; form labels associated |
-| **1.4.10 Reflow** | No horizontal scroll at 320px except intentional table wrappers |
-| **2.3.3 Animation** | Honour `prefers-reduced-motion` |
+| Challenge | Reality check |
+|-----------|---------------|
+| **Finn was built light-only** | ~55% tourism module uses `finn.css` white gradients — **direct conflict** with this PRD. Migration M1–M6 is required work, not optional polish. |
+| **Theme for guests** | Today only logged-in users can toggle theme. You asked for all pages — we need PO confirm: guests get localStorage theme immediately? |
+| **Sámi parity cost** | Full `se` translations for all tourism copy is significant. **Grill:** launch blocker, or phased with NO+EN first? |
+| **Dark default on Finn for tourists** | Unusual vs Airbnb/booking.com (light). You want Boly feel — confirm dark default for first-time guests on `finn.hjerterum.no`? |
+| **"Bodi"** | Treated as **Boly** (this codebase). Confirm if a separate product reference was intended. |
+| **Swedish** | Never a locale in code. `se` = Sámi only. Swedish market uses English per `docs/SCALING_SVERIGE_DANMARK.md` — unchanged? |
 
-### 15.8 Critical review — where we are honest
-
-This section exists to **grill** the UI/UX strategy. Gaps and tensions must stay visible.
-
-| Challenge | Reality check | Mitigation |
-|-----------|---------------|------------|
-| **"Same as Boly" vs "Hjerterum rebrand"** | Accent colours already diverge (`#3b82f6` Boly vs `#5b7cfa` Hjerterum v2) | v2 rollout plan (§15.5); accent-only first; spacing/typography unchanged |
-| **Megasites block consistency** | `ListingDetailsClient` (~3k lines), `NavDatabasePage` (~2k), `NavMessagesPage` (~1.7k) violate refactor target | W5 persona-split; ESLint `max-lines: 800`; no new megasites |
-| **Four planes = four QA surfaces** | Finn/Los can drift from Boly App patterns | Plane-specific CSS files; shared lane tokens only |
-| **No Storybook / Figma source of truth** | Design lives in CSS + code; onboarding designers is hard | `DESIGN_SYSTEM.md` + Cursor skill; consider Storybook post-pilot |
-| **Visual regression not automated** | Smoke tests check HTTP status only — not pixels | Add Playwright screenshot diff on 4 core routes before tourism GA |
-| **i18n split incomplete** | SE/EN landing still says "Boly" in places | UX-10 tracked; copy audit per release |
-| **World-class bar is subjective** | Municipal SaaS ≠ consumer unicorn polish | Benchmark: Stripe Dashboard (ops), gov.uk forms (accessibility), Airbnb calendar (Finn) |
-| **Tailwind + globals.css hybrid** | Two styling systems risk inconsistency | New code: prefer tokens + global classes; Tailwind only with `boly-*` mapped tokens |
-| **Light mode less tested** | Dark is default; light overrides are extensive | Light-mode pass on every UI PR |
-
-**Verdict:** The Boly App Standard is **achieved today** on core social flows. Risk is **regression and drift** as Hjerterum modules ship — not absence of a standard. Governance (see `UI_UX_GOVERNANCE.md`) is the product requirement.
+**Verdict:** Core Boly app **already matches** your vision. The **gap is new Hjerterum modules** (Finn, Los) that were built with a retired white-screen model. PRD now locks universal dark/light + trilingual as the target; implementation follows §15.8.
 
 ---
 

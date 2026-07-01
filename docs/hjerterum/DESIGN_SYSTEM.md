@@ -1,6 +1,6 @@
 # Hjerterum / Boly — Design System Reference
 
-**Version:** 1.0 · July 2026  
+**Version:** 1.1 · July 2026  
 **Status:** Canonical companion to `PRD.md` §15  
 **Audience:** Engineers, designers, agents, reviewers
 
@@ -12,258 +12,128 @@ This document is the **single source of truth** for visual and interaction patte
 
 | Principle | Meaning |
 |-----------|---------|
-| **Trust first** | Municipal caseworkers and landlords handle sensitive housing decisions. UI must feel calm, professional, and predictable — never playful at the expense of clarity. |
-| **Boly App Standard** | Production `/homeowner` + `/nav` UX is the baseline. Hjerterum adds lanes; it does not reinvent navigation or data density. |
-| **Four planes, one system** | Marketing, Boly App, Finn, Los, and Ops share tokens and lane semantics but may differ in theme (dark vs light). |
-| **Mobile-first** | Many landlords and some caseworkers work from phones. Design 320px up. |
-| **Accessible by default** | WCAG 2.1 AA is a ship gate, not a backlog item. |
-
-**Benchmarks (aspirational, not copy-paste):**
-- **Boly App / Nav:** gov.uk form clarity + Stripe-level data tables
-- **Finn:** Airbnb booking flow simplicity (without their visual clone)
-- **Ops:** Stripe Dashboard information density
-- **Los:** Low-friction chat apps (iMessage/WhatsApp patterns, not social media)
+| **Trust first** | Municipal caseworkers and landlords handle sensitive housing decisions. UI must feel calm, professional, and predictable. |
+| **Universal Boly Standard** | Production `/homeowner` + `/nav` UX applies to **every page** — Finn, Los, Ops, landing, and all new features. |
+| **Dark default, light optional** | First paint is dark (`--bg-app: #020617`). Users toggle light mode everywhere — no always-light modules. |
+| **No white-screen modules** | New features must not ship as flat white pages with a separate CSS skin. |
+| **Trilingual** | Norwegian, Sámi (`se`), English on every surface — same as Boly. |
+| **Mobile-first** | Design 320px up. |
+| **Accessible by default** | WCAG 2.1 AA in **both** dark and light themes. |
 
 ---
 
-## 2. Visual planes
+## 2. One visual system, module contexts
+
+All routes share `globals.css` tokens and `[data-theme]`. Module contexts differ in **layout and IA**, not in fundamental look-and-feel.
 
 ```
-hjerterum.no / landing     →  hjerterum-v2.css + globals.css (dark/light)
-app.* /homeowner, /nav     →  globals.css (+ phased hjerterum-v2.css)
-finn.* /finn/*             →  finn/finn.css (always light)
-los.* /los/*               →  los/los.css (always light)
-ops.* /ops/*               →  ops/ops.css (dark admin)
+ALL ROUTES  →  globals.css + hjerterum-v2.css (brand layer)
+               [data-theme="dark"|"light"] on <html>
+               LanguageContext: no | se (Sámi) | en
+
+/homeowner, /nav     →  reference Boly implementation
+/finn/*              →  same tokens; search/booking layout (migrate off finn.css light-only)
+/los/*               →  same tokens; chat-first layout (migrate off los.css light-only)
+/ops/*               →  ops.css extends tokens for data density
+/ landing            →  portal cards, hero
 ```
 
-**Cross-plane rules:**
-- Lane calendar colours are **shared** (`--lane-sosial-*`, `--lane-tourism-*`, `--lane-event-*`, `--lane-conflict-*`).
-- Never import `finn.css` or `los.css` into app routes.
-- Portal-specific copy and layout may differ; **feedback patterns** (toast, confirm, skeleton) must not.
+**Retired:** "Finn = always light" and "Los = always light" — see PRD §15.8 migration.
+
+**Cross-context rules:**
+- Lane calendar colours are **shared** (`--lane-*`).
+- Toast, confirm, skeleton, empty state patterns are **shared**.
+- Theme toggle and language selector on **every** shell.
+- Do not create new `*-only-light.css` files.
 
 ---
 
 ## 3. Tokens
 
-### 3.1 Core palette (Boly App — `globals.css`)
+### 3.1 Core palette (`globals.css`)
 
 | Token | Dark | Purpose |
 |-------|------|---------|
-| `--bg-app` | `#020617` | Page background |
+| `--bg-app` | `#020617` | Page background — **default for all modules** |
 | `--bg-card` | `#0f172a` | Cards, panels |
-| `--text-main` | `#f8fafc` | Headings, emphasis |
+| `--text-main` | `#f8fafc` | Headings |
 | `--text-body` | `#cbd5e1` | Body copy |
 | `--text-muted` | `#94a3b8` | Secondary labels |
-| `--color-accent` | `--color-sky-blue` | Links, focus accents |
+| `--color-accent` | `--color-sky-blue` | Links, focus |
 | `--color-royal-blue` | `#3b82f6` | Primary actions |
-| `--color-teal` | `#2dd4bf` | Success, social lane accent |
+| `--color-teal` | `#2dd4bf` | Success, social lane |
+
+Light mode overrides: `[data-theme='light']` block in `globals.css`.
 
 ### 3.2 Hjerterum v2 brand (`hjerterum-v2.css`)
 
-| Token | Value | Use |
-|-------|-------|-----|
-| `--hrt-primary` | `#5b7cfa` | Brand accent (overrides `--color-accent` where loaded) |
-| `--hrt-warm` | `#f97316` | Warm highlights |
-| `--hrt-heart` | `#e879a9` | Brand gradient accent |
-| `--hrt-teal` | `#2dd4bf` | Aligns with social lane |
-| `--hrt-radius-lg/md/sm` | 20/14/10px | Marketing cards, modals |
+Accent and marketing polish — does not replace dark/light infrastructure.
 
-### 3.3 Spacing (8px grid)
+### 3.3 Spacing, breakpoints, typography, lane, motion
 
-| Token | Value |
-|-------|-------|
-| `--space-1` | 4px |
-| `--space-2` | 8px |
-| `--space-3` | 16px |
-| `--space-4` | 24px |
-| `--space-5` | 32px |
-| `--space-6` | 48px |
-
-Use tokens in CSS. In TSX, prefer class names over inline spacing.
-
-### 3.4 Breakpoints
-
-| Token | Value |
-|-------|-------|
-| `--bp-sm` | 480px |
-| `--bp-md` | 768px |
-| `--bp-lg` | 1024px |
-| `--bp-xl` | 1280px |
-
-### 3.5 Typography
-
-| Role | Font | CSS |
-|------|------|-----|
-| Body | DM Sans | `--font-body` |
-| Display / hero | Fraunces | `--font-display` |
-| Page H1 | fluid | `var(--fluid-h1-page)` |
-| Hero H1 | fluid | `var(--fluid-h1-hero)` |
-
-**Rules:**
-- Fraunces only on landing, login hero, Los header — not in dense data tables.
-- Minimum 16px input font on mobile (prevents iOS zoom).
-
-### 3.6 Lane semantics (calendars)
-
-| Lane | Accent token | Meaning |
-|------|--------------|---------|
-| Sosial | `--lane-sosial-accent` (teal) | Municipal mediation |
-| Turisme | `--lane-tourism-accent` (amber) | Short-stay bookings |
-| Event | `--lane-event-accent` (purple) | Central events |
-| Conflict | `--lane-conflict-bg` (red) | Overlapping holds |
-
-Implementation: `frontend/features/listings/lib/laneCalendarStyles.ts` + CSS variables.
-
-### 3.7 Motion
-
-| Token | Value |
-|-------|-------|
-| `--transition-fast` | 0.2s |
-| `--transition-smooth` | 0.25s |
-| `--ease-out-soft` | cubic-bezier(0.25, 0.46, 0.45, 0.94) |
-
-Always provide `@media (prefers-reduced-motion: reduce)` fallbacks.
+Unchanged from v1.0 — see tokens in `globals.css`.
 
 ---
 
-## 4. Global CSS classes
+## 4. Theme (all pages)
 
-Prefer these over bespoke styles:
+| Rule | Detail |
+|------|--------|
+| Default | `data-theme="dark"` |
+| Toggle | Available on every surface — guests included (localStorage) |
+| Mechanism | `ThemeContext.tsx` + `[data-theme]` CSS overrides |
+| Forbidden | Forced light backgrounds in module CSS without dark variant |
 
-| Class | Use |
-|-------|-----|
-| `.container` | Max-width page wrapper |
-| `.card` | Elevated content panel |
-| `.button` | Secondary / outline actions |
-| `.button-accent` | Primary CTA |
-| `.input` | Text fields, selects |
-| `.label` | Form labels |
-
-See `globals.css` for modifiers (sizes, full-width, danger). **Do not duplicate button styles in feature CSS.**
+**Implementation gap:** `ThemeContext` currently limits toggle to logged-in users; `finn.css` / `los.css` force light. Migration tracked in PRD §15.8.
 
 ---
 
-## 5. Component catalogue
+## 5. Languages (all pages)
 
-### 5.1 Design-system (`app/components/design-system/`)
+| Code | Language | Notes |
+|------|----------|-------|
+| `no` | Norwegian | Default for main app |
+| `se` | **Sámi** (Sámegiella) | **Not Swedish** |
+| `en` | English | |
 
-| Component | When to use |
-|-----------|-------------|
-| `Toast` / `useToast` | Success, error, info after actions |
-| `ConfirmDialog` / `useConfirm` | Delete, irreversible actions |
-| `PageSkeleton` | Initial page load |
-| `EmptyState` | Zero results with next step |
-| `Modal` | Focus-trapped overlays |
-| `FieldInput` | Auth and form fields with labels |
-| `PortalCard` | Landing portal selection |
-| `SkipLink` | Skip to main content |
-| `PortalPageShell` | Marketing/portal page wrapper |
-
-### 5.2 UI primitives (`app/components/ui/`)
-
-| Component | When to use |
-|-----------|-------------|
-| `Button` | Thin wrapper when variant prop needed |
-
-### 5.3 Ops reference (`app/ops/components/`)
-
-Use for data-dense patterns: `OpsShell`, `OpsPanel`, `OpsDataTable`, `OpsBadge`, `OpsAlert`, `OpsKpiGrid`, `OpsMobileNav`.
-
-If an ops pattern is needed in `/nav` or `/homeowner`, **extract** to design-system rather than copying CSS.
-
-### 5.4 App chrome
-
-| Component | Role |
-|-----------|------|
-| `SiteChrome` | Header + footer wrapper |
-| `MobileBottomNav` | Mobile primary nav |
-| `BottomSheet` | Mobile actions |
+- Selector in header / module shell (same pattern as `Header.tsx`)
+- Keys in `lib/i18n/{common,listings,nav,finn,ops}.ts`
+- New strings: all three locales before merge
 
 ---
 
-## 6. Interaction patterns
+## 6. Global CSS classes
 
-### 6.1 Loading
-
-```
-User navigates → PageSkeleton (or route-level loading.tsx)
-Data refetch   → Inline spinner or skeleton rows — never freeze UI
-Mutation       → Disable button + show pending state on button
-```
-
-### 6.2 Errors
-
-```
-API error     → Toast with actionable message (i18n key)
-Form error    → Inline field error + aria-describedby
-Fatal error   → EmptyState or error boundary with retry
-```
-
-### 6.3 Confirmations
-
-```
-Destructive   → useConfirm() with clear verb ("Slett", "Avbryt formidling")
-Reversible    → Toast with undo if feasible (future)
-```
-
-### 6.4 Tables (mobile)
-
-Wrap in `overflow-x: auto` with `-webkit-overflow-scrolling: touch`. Set sensible `min-width` on table. **Do not** squash columns below readability.
-
-### 6.5 Messaging
-
-Use shared chat components from `features/messaging/` (`ChatComposer`, `ChatMessageBubble`). Channel label must show counterparty type (social / event / guest).
+`.container`, `.card`, `.button`, `.button-accent`, `.input`, `.label` — use on all modules including Finn and Los after migration.
 
 ---
 
-## 7. i18n
+## 7. Component catalogue
 
-- Keys live in `frontend/lib/i18n/{common,listings,nav,finn,ops}.ts`
-- Finn default language: **EN** (locked product decision)
-- Main app default: **NO**
-- No new user-facing literals in TSX — add keys to appropriate namespace
+Design-system → Ops components → feature components → global classes → new (promote if reused).
 
 ---
 
-## 8. Theming
+## 8. Anti-patterns
 
-| Surface | Mechanism |
-|---------|-----------|
-| Boly App | `data-theme="dark"|"light"` on `<html>` via `ThemeContext` |
-| Finn / Los | Always light — no toggle |
-| Ops | Follows `data-theme` but uses `--ops-*` scoped tokens |
-
----
-
-## 9. Tailwind usage
-
-`tailwind.config.js` has **preflight disabled**. Tailwind is additive only.
-
-- Use `boly-*` colour utilities mapped from tokens when using Tailwind
-- Do not introduce arbitrary values (`bg-[#abc]`) — use CSS variables
-- New features: prefer global classes + tokens unless grid/flex utility clearly helps
+| Do not | Do instead |
+|--------|------------|
+| White full-page new feature screens | `globals.css` dark default + cards |
+| `finn.css`-style light-only gradients | Token-based `[data-theme]` styling |
+| Single-language hard-coded copy | `t('key')` in all three locales |
+| Theme toggle only when logged in | localStorage theme for guests |
 
 ---
 
-## 10. File map
+## 9. File map
 
-| File | Contents |
-|------|----------|
-| `frontend/app/globals.css` | Boly App tokens + global components |
-| `frontend/app/styles/hjerterum-v2.css` | Brand refresh layer |
-| `frontend/app/finn/finn.css` | Tourism plane |
-| `frontend/app/los/los.css` | Digital Los plane |
-| `frontend/app/ops/ops.css` | Ops admin plane |
-| `frontend/tailwind.config.js` | Token-mapped utilities |
-
----
-
-## 11. Adding new patterns
-
-1. Check if existing component/class fits.
-2. If new: use tokens only; add to this doc.
-3. If reused twice: promote to `design-system/`.
-4. Update `PRD.md` §15 if user-facing requirement changes.
+| File | Role |
+|------|------|
+| `globals.css` | **Primary** — all modules |
+| `hjerterum-v2.css` | Brand accent layer |
+| `finn/finn.css` | **Legacy** — migrate to globals (PRD §15.8) |
+| `los/los.css` | **Legacy** — migrate to globals (PRD §15.8) |
+| `ops/ops.css` | Ops density extensions on top of tokens |
 
 ---
 

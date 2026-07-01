@@ -1,5 +1,5 @@
 ---
-description: Hjerterum/Boly design system — visual planes, tokens, components, Boly App Standard, lane semantics, and PR UI requirements
+description: Hjerterum/Boly design system — universal Boly Standard, dark/light on all pages, NO/Sámi/EN, no white-screen modules
 globs: frontend/**/*
 alwaysApply: false
 ---
@@ -8,69 +8,51 @@ alwaysApply: false
 
 **Canonical docs:** `docs/hjerterum/DESIGN_SYSTEM.md`, `docs/hjerterum/PRD.md` §15, `docs/hjerterum/UI_UX_GOVERNANCE.md`
 
-## Boly App Standard (non-negotiable on `/homeowner` + `/nav`)
+## Universal Boly Standard (every page)
 
-Production social flows are the UX baseline. Preserve:
-- Professional dark UI via `globals.css` tokens
-- 8px spacing grid (`--space-*`)
-- DM Sans body; Fraunces only for display/hero
-- Global classes: `.button`, `.button-accent`, `.card`, `.input`, `.container`
+All routes — `/homeowner`, `/nav`, `/finn`, `/los`, `/ops`, landing — must match the Boly look and feel:
+- **Dark default** (`--bg-app: #020617`), professional Northern scenery tone
+- **Not acceptable:** flat white full-page screens, light-only new features, isolated consumer CSS skins
+- `globals.css` tokens + global classes (`.button`, `.card`, `.input`)
 - Design-system: Toast, ConfirmDialog, PageSkeleton, EmptyState, Modal, FieldInput
 - **Never** `alert()` or `confirm()`
-- WCAG 2.1 AA; 44px touch targets; 16px+ inputs on mobile
-- i18n via `lib/i18n/*` — no hard-coded user-facing strings
 
-## Four visual planes — do not cross-contaminate
+## Theme — dark + light everywhere
 
-| Plane | CSS | Theme |
-|-------|-----|-------|
-| Boly App (`/homeowner`, `/nav`) | `globals.css` + phased `hjerterum-v2.css` | Dark default + light toggle |
-| Finn (`/finn`) | `finn/finn.css` | Always light |
-| Los (`/los`) | `los/los.css` | Always light |
-| Ops (`/ops`) | `ops/ops.css` | Dark admin |
+- Default: `data-theme="dark"`
+- User can toggle **light mode on every page** (including Finn, Los, guests)
+- All colours via `[data-theme='light']` overrides — **no** always-light-only CSS for new work
+- `finn.css` / `los.css` light-only model is **retired** (migrate to globals)
 
-Do not import Finn/Los CSS into app routes. Lane calendar colours are shared via `--lane-*` tokens and `laneCalendarStyles.ts`.
+## Languages — Norwegian, Sámi, English
+
+| Code | Language |
+|------|----------|
+| `no` | Norwegian |
+| `se` | **Sámi** (Sámegiella) — NOT Swedish |
+| `en` | English |
+
+- Language selector on every shell (like Boly `Header.tsx`)
+- All new strings: keys in `no`, `se`, `en` in `lib/i18n/*`
+- No hard-coded user-facing copy in TSX
+
+## Module contexts (not separate visual skins)
+
+Finn/Los/Ops differ in **layout**, not fundamental styling. Shared: tokens, theme toggle, language selector, lane colours, toast/confirm/skeleton.
 
 ## Tokens — no magic numbers
 
-- Colours: CSS variables only (`--bg-app`, `--text-main`, `--color-accent`, `--hrt-*`, `--lane-*`)
-- No inline `style={{ color: '#...' }}` for brand colours in TSX
-- Spacing: `--space-*` in CSS; avoid arbitrary pixel margins in components
-- Motion: `--transition-*`; honour `prefers-reduced-motion`
+- CSS variables only for colours and spacing
+- Lane calendars: `--lane-*` + `laneCalendarStyles.ts`
 
 ## Component selection order
 
-1. `app/components/design-system/*`
-2. `app/ops/components/*` (data-dense admin patterns)
-3. `features/*/components/*`
-4. Global CSS classes
-5. New component — only if necessary; promote to design-system if used twice
-
-## Required patterns
-
-| Situation | Use |
-|-----------|-----|
-| Async page load | `PageSkeleton` or route `loading.tsx` |
-| Empty list | `EmptyState` with next action |
-| Success/error feedback | `useToast()` |
-| Destructive confirm | `useConfirm()` |
-| Mobile tables | `overflow-x: auto` wrapper + min-width |
-| Forms | `FieldInput` or `.input` + `.label` + accessible errors |
-| Skip nav | `SkipLink` on marketing/app shell |
-
-## Tailwind
-
-Preflight is **disabled**. Prefer global CSS classes + tokens. If using Tailwind, use `boly-*` mapped utilities — no arbitrary colour values.
+1. `design-system/` → 2. `ops/components/` → 3. `features/*/components/` → 4. global CSS classes → 5. new (promote if reused twice)
 
 ## Before finishing UI work
 
-- [ ] Correct visual plane
-- [ ] 320px viewport — no unintended horizontal scroll
-- [ ] Light + dark if touching Boly App styles
-- [ ] i18n keys for new copy
-- [ ] No alert/confirm
-- [ ] Touch targets ≥44px
-
-## Hjerterum v2 brand rollout
-
-`hjerterum-v2.css` may override accent (`--hrt-primary`) on marketing/login/shell — do not change spacing grid, typography scale, or interaction patterns without PRD update.
+- [ ] Dark **and** light tested
+- [ ] 320px viewport OK
+- [ ] `no` + `se` + `en` i18n keys for new copy
+- [ ] No white-screen / light-only styling
+- [ ] No alert/confirm; touch targets ≥44px

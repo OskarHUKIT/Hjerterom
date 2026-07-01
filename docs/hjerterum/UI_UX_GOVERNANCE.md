@@ -42,8 +42,10 @@ A frontend PR is not done unless:
 
 ### 3.1 Visual plane
 
-- [ ] Correct CSS plane — no cross-import of `finn.css` / `los.css` into app routes
-- [ ] Matches Boly App Standard for `/homeowner` and `/nav` changes
+- [ ] Uses **Universal Boly Standard** — not a white-screen / light-only new module
+- [ ] **Dark and light** both tested on changed flows
+- [ ] **Norwegian + Sámi + EN** keys for all new user-facing strings
+- [ ] Theme toggle and language selector present (or migration ticket linked)
 
 ### 3.2 Components
 
@@ -65,8 +67,9 @@ A frontend PR is not done unless:
 
 ### 3.5 i18n
 
-- [ ] NO / SE / EN keys added for new copy
-- [ ] No regression to hard-coded Norwegian in shared components
+- [ ] `no`, `se` (Sámi), and `en` keys added for new copy
+- [ ] Locale code `se` documented as Sámi — not Swedish
+- [ ] No hard-coded user-facing strings in TSX
 
 ---
 
@@ -109,7 +112,7 @@ From `REFACTOR_PLAN.md` — each wave must preserve UX:
 1. `/homeowner/manage` — list loads, lane calendar renders
 2. `/nav/database` — table scrolls on mobile width
 3. `/nav/messages` — thread list loads
-4. `/finn` — search page loads (light plane)
+4. `/finn` — search page loads in **dark and light**; language selector visible
 
 ---
 
@@ -194,9 +197,9 @@ Track in ops or manual spreadsheet until automated:
 - Use professional feedback patterns (never blocking browser dialogs)
 
 **We will not (v1):**
-- Chase Dribbble aesthetics at the cost of data density for caseworkers
-- Unify Finn and Boly into one theme — different audiences need different planes
-- Ship Los youth UI without safeguarding UX spec (D-8)
+- Ship always-light-only modules (Finn/Los white screens)
+- Ship new user-facing strings without Sámi keys (unless explicit PO exception)
+- Chase Dribbble aesthetics at the cost of caseworker data density
 
 **Honest gap:** We do not yet have automated visual regression or Storybook. Governance relies on PR discipline + quarterly audit until those ship.
 

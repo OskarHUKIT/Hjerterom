@@ -1,116 +1,65 @@
 ---
 name: hjerterum-ui
-description: Build or review Hjerterum/Boly UI to the Boly App Standard — tokens, visual planes, design-system components, accessibility, and mobile patterns. Use when creating or modifying frontend components, styles, layouts, or reviewing UI PRs.
+description: Build or review Hjerterum/Boly UI — universal Boly Standard on all pages, dark/light theme everywhere, Norwegian/Sámi/English, no white-screen modules. Use for frontend UI, styles, or UX review.
 ---
 
 # Hjerterum UI Skill
 
-Apply when working on `frontend/` UI — components, pages, styles, or UX review.
+## Product rules (locked)
 
-## Quick context
+1. **Every page feels like Boly** — dark professional default, not simplistic white screens
+2. **Dark + light mode** on all routes (Finn, Los, guests included)
+3. **Three languages everywhere:** Norwegian (`no`), Sámi (`se`), English (`en`)
+4. **Locale `se` = Sámi** — never Swedish
 
-- **Boly App Standard** = production `/homeowner` + `/nav` UX (`globals.css`)
-- **Hjerterum** = multi-lane expansion; same interaction patterns, phased brand (`hjerterum-v2.css`)
-- **Four planes:** Boly App (dark), Finn (light), Los (light), Ops (dark admin)
+Read: `docs/hjerterum/PRD.md` §15, `docs/hjerterum/DESIGN_SYSTEM.md`
 
-Read before implementing:
-1. `docs/hjerterum/DESIGN_SYSTEM.md` — tokens, components, file map
-2. `docs/hjerterum/PRD.md` §15 — requirements and honest gaps
-3. `docs/hjerterum/UI_UX_GOVERNANCE.md` — PR checklist
+## Styling
 
-## Implementation workflow
+```css
+/* CORRECT — uses globals tokens, works in dark and light */
+.card { background: var(--bg-card); color: var(--text-body); }
 
-### 1. Identify the visual plane
-
-```
-Route prefix          →  CSS file
-/homeowner, /nav      →  globals.css (never finn.css/los.css)
-/finn                 →  finn/finn.css
-/los                  →  los/los.css
-/ops                  →  ops/ops.css
-/ (landing)           →  globals.css + hjerterum-v2.css
+/* WRONG — white-screen new feature */
+.page { background: #ffffff; }
 ```
 
-### 2. Check existing components
+- Primary CSS: `frontend/app/globals.css`
+- Brand layer: `hjerterum-v2.css`
+- **Do not** create always-light-only CSS for new features
+- `finn.css` / `los.css` are legacy — new work uses globals + `[data-theme]`
+
+## Theme
+
+- Default: `document.documentElement.setAttribute('data-theme', 'dark')`
+- Toggle must work for guests (localStorage) — extend `ThemeContext` if needed
+- Test **both** themes before PR
+
+## i18n
 
 ```typescript
-// Prefer these imports
-import { useToast, useConfirm, PageSkeleton, EmptyState, Modal, FieldInput } from '@/app/components/design-system'
+import { useLanguage } from '@/context/LanguageContext'
+const { t } = useLanguage()
+// t('myKey') — add myKey to no, se, AND en in lib/i18n/*
 ```
 
-Search `app/components/design-system/` and `features/*/components/` before creating new UI.
+Language selector pattern: see `Header.tsx` (`no`, `se`, `en` options).
 
-### 3. Styling rules
+## Components
 
-- Use global classes: `.button`, `.button-accent`, `.card`, `.input`
-- Use CSS variables for colours and spacing — never hard-code hex in TSX
-- Lane calendars: import from `features/listings/lib/laneCalendarStyles.ts`
-- Fraunces font only for hero/display — not data tables
-
-### 4. Interaction rules
-
-| Do | Don't |
-|----|-------|
-| `useToast()` for feedback | `alert()` |
-| `useConfirm()` for destructive actions | `confirm()` |
-| `PageSkeleton` while loading | Blank white screen |
-| `EmptyState` for zero results | Empty div |
-| i18n keys in `lib/i18n/*` | Hard-coded Norwegian strings |
-
-### 5. Mobile & a11y
-
-- Min touch target: 44×44px (`--touch-target`)
-- Input font ≥16px on mobile
-- Tables: wrap in scroll container
-- `env(safe-area-inset-*)` on fixed header/footer/nav
-- `:focus-visible` for keyboard users
-- Test at 320px width
-
-### 6. Verify
-
-```bash
-cd frontend && npm run lint
-# If e2e available:
-npm run test:e2e
+```typescript
+import { useToast, useConfirm, PageSkeleton, EmptyState } from '@/app/components/design-system'
 ```
 
-Manual: 320px + 1280px on changed flow; light/dark if Boly App.
+## Checklist
 
-## Review checklist (for PR review)
+- [ ] Not a white/light-only new screen
+- [ ] Dark + light both work
+- [ ] no + se + en strings for new copy
+- [ ] Theme + language controls on shell
+- [ ] PageSkeleton / EmptyState for async views
+- [ ] 320px + keyboard a11y
 
-- [ ] Correct visual plane, no CSS cross-imports
-- [ ] Design-system components used
-- [ ] No alert/confirm/inline brand hex
-- [ ] i18n for new strings
-- [ ] Loading + empty states present
-- [ ] Mobile + keyboard accessible
+## Migration note
 
-## Anti-patterns to flag
-
-```tsx
-// BAD
-window.confirm('Slette?')
-style={{ backgroundColor: '#5b7cfa' }}
-<p>Velg bolig</p>  // hard-coded NO
-
-// GOOD
-const confirmed = await confirm({ title: t('delete.title'), ... })
-className="button-accent"
-<p>{t('listings.select')}</p>
-```
-
-## Escalation
-
-- New colour outside tokens → update `DESIGN_SYSTEM.md` + PRD §15
-- New shared pattern used twice → add to `design-system/`
-- Plane merge (e.g. Finn styles in nav) → reject; requires product decision
-
-## Reference files
-
-| File | Purpose |
-|------|---------|
-| `frontend/app/globals.css` | Boly tokens + global components |
-| `frontend/app/styles/hjerterum-v2.css` | Brand layer |
-| `frontend/app/components/design-system/` | Shared UI |
-| `frontend/app/ops/components/` | Admin reference patterns |
-| `frontend/features/listings/lib/laneCalendarStyles.ts` | Lane colours |
+Finn/Los currently violate PRD (always-light `finn.css`/`los.css`). New PRs must **not** extend that pattern — align with globals.css. See PRD §15.8.
