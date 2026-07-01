@@ -1,6 +1,6 @@
 # Hjerterum / Boly — Design System Reference
 
-**Version:** 1.1 · July 2026  
+**Version:** 1.2 · July 2026  
 **Status:** Canonical companion to `PRD.md` §15  
 **Audience:** Engineers, designers, agents, reviewers
 
@@ -16,7 +16,7 @@ This document is the **single source of truth** for visual and interaction patte
 | **Universal Boly Standard** | Production `/homeowner` + `/nav` UX applies to **every page** — Finn, Los, Ops, landing, and all new features. |
 | **Dark default, light optional** | First paint is dark (`--bg-app: #020617`). Users toggle light mode everywhere — no always-light modules. |
 | **No white-screen modules** | New features must not ship as flat white pages with a separate CSS skin. |
-| **Trilingual** | Norwegian, Sámi (`se`), English on every surface — same as Boly. |
+| **Trilingual** | Norwegian, Sámi (`se`), English **only** — Sámi on every string; Swedish/Danish out of scope. |
 | **Mobile-first** | Design 320px up. |
 | **Accessible by default** | WCAG 2.1 AA in **both** dark and light themes. |
 
@@ -79,26 +79,22 @@ Unchanged from v1.0 — see tokens in `globals.css`.
 
 | Rule | Detail |
 |------|--------|
-| Default | `data-theme="dark"` |
-| Toggle | Available on every surface — guests included (localStorage) |
-| Mechanism | `ThemeContext.tsx` + `[data-theme]` CSS overrides |
-| Forbidden | Forced light backgrounds in module CSS without dark variant |
-
-**Implementation gap:** `ThemeContext` currently limits toggle to logged-in users; `finn.css` / `los.css` force light. Migration tracked in PRD §15.8.
+| Default | **Dark** on Finn, Los, app, ops, landing — no exceptions |
+| Toggle | Dark / light on every surface |
+| Logged in | `profiles.preferred_theme` + per-user localStorage — survives sessions |
+| Guest | `localStorage` — survives reloads on same device |
+| Forbidden | Always-light module CSS (`finn.css` / `los.css` legacy) |
 
 ---
 
 ## 5. Languages (all pages)
 
-| Code | Language | Notes |
-|------|----------|-------|
-| `no` | Norwegian | Default for main app |
-| `se` | **Sámi** (Sámegiella) | **Not Swedish** |
-| `en` | English | |
+**Supported:** `no` (Norwegian), `se` (Sámi / Sámegiella), `en` (English) **only**.
 
-- Selector in header / module shell (same pattern as `Header.tsx`)
-- Keys in `lib/i18n/{common,listings,nav,finn,ops}.ts`
-- New strings: all three locales before merge
+- **Sámi on everything** — every user-facing key must exist in `se`; ship gate
+- Swedish (`sv`), Danish (`da`), and other locales: **not in scope**
+- Locale `se` is Sámi — never label as Swedish
+- Logged-in: `profiles.preferred_locale` + `boly-locale` localStorage
 
 ---
 

@@ -44,8 +44,10 @@ A frontend PR is not done unless:
 
 - [ ] Uses **Universal Boly Standard** — not a white-screen / light-only new module
 - [ ] **Dark and light** both tested on changed flows
-- [ ] **Norwegian + Sámi + EN** keys for all new user-facing strings
-- [ ] Theme toggle and language selector present (or migration ticket linked)
+- [ ] **Sámi (`se`) key for every new user-facing string** — ship gate
+- [ ] **Norwegian + Sámi + English only** — no Swedish/Danish
+- [ ] Dark default verified (including Finn/Los if touched)
+- [ ] Logged-in theme/locale persistence considered
 
 ### 3.2 Components
 
@@ -198,7 +200,8 @@ Track in ops or manual spreadsheet until automated:
 
 **We will not (v1):**
 - Ship always-light-only modules (Finn/Los white screens)
-- Ship new user-facing strings without Sámi keys (unless explicit PO exception)
+- Ship any user-facing string without Norwegian, **Sámi**, and English keys
+- Add Swedish, Danish, or other locale codes
 - Chase Dribbble aesthetics at the cost of caseworker data density
 
 **Honest gap:** We do not yet have automated visual regression or Storybook. Governance relies on PR discipline + quarterly audit until those ship.

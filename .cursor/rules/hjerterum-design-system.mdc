@@ -1,58 +1,35 @@
 ---
-description: Hjerterum/Boly design system — universal Boly Standard, dark/light on all pages, NO/Sámi/EN, no white-screen modules
+description: Hjerterum/Boly design system — universal Boly Standard, dark default everywhere (Finn/Los included), NO/Sámi/EN only, theme persists when logged in
 globs: frontend/**/*
 alwaysApply: false
 ---
 
 # Hjerterum / Boly Design System
 
-**Canonical docs:** `docs/hjerterum/DESIGN_SYSTEM.md`, `docs/hjerterum/PRD.md` §15, `docs/hjerterum/UI_UX_GOVERNANCE.md`
+**Canonical docs:** `docs/hjerterum/DESIGN_SYSTEM.md`, `docs/hjerterum/PRD.md` §15
 
-## Universal Boly Standard (every page)
+## Universal Boly Standard (B-O-L-Y)
 
-All routes — `/homeowner`, `/nav`, `/finn`, `/los`, `/ops`, landing — must match the Boly look and feel:
-- **Dark default** (`--bg-app: #020617`), professional Northern scenery tone
-- **Not acceptable:** flat white full-page screens, light-only new features, isolated consumer CSS skins
-- `globals.css` tokens + global classes (`.button`, `.card`, `.input`)
-- Design-system: Toast, ConfirmDialog, PageSkeleton, EmptyState, Modal, FieldInput
-- **Never** `alert()` or `confirm()`
+Every page — app, **Finn**, **Los**, Ops, landing — same professional Boly look. Dark default. No white-screen modules.
 
-## Theme — dark + light everywhere
+## Theme (locked)
 
-- Default: `data-theme="dark"`
-- User can toggle **light mode on every page** (including Finn, Los, guests)
-- All colours via `[data-theme='light']` overrides — **no** always-light-only CSS for new work
-- `finn.css` / `los.css` light-only model is **retired** (migrate to globals)
+- **Default: dark** on all features including Finn and Los
+- **Toggle:** user chooses dark or light on every page
+- **Logged in:** preference persists across sessions (`profiles.preferred_theme` + localStorage per user)
+- **Guest:** localStorage on device
+- Retire always-light `finn.css` / `los.css`
 
-## Languages — Norwegian, Sámi, English
+## Languages (locked)
 
-| Code | Language |
-|------|----------|
-| `no` | Norwegian |
-| `se` | **Sámi** (Sámegiella) — NOT Swedish |
-| `en` | English |
+**Only three locales:** `no` (Norwegian), `se` (Sámi), `en` (English).
 
-- Language selector on every shell (like Boly `Header.tsx`)
-- All new strings: keys in `no`, `se`, `en` in `lib/i18n/*`
-- No hard-coded user-facing copy in TSX
+- **Sámi on everything** — every string needs a `se` key; ship gate
+- **`se` = Sámi** — not Swedish
+- Swedish and Danish: **out of scope** — do not add
 
-## Module contexts (not separate visual skins)
+## Implementation
 
-Finn/Los/Ops differ in **layout**, not fundamental styling. Shared: tokens, theme toggle, language selector, lane colours, toast/confirm/skeleton.
-
-## Tokens — no magic numbers
-
-- CSS variables only for colours and spacing
-- Lane calendars: `--lane-*` + `laneCalendarStyles.ts`
-
-## Component selection order
-
-1. `design-system/` → 2. `ops/components/` → 3. `features/*/components/` → 4. global CSS classes → 5. new (promote if reused twice)
-
-## Before finishing UI work
-
-- [ ] Dark **and** light tested
-- [ ] 320px viewport OK
-- [ ] `no` + `se` + `en` i18n keys for new copy
-- [ ] No white-screen / light-only styling
-- [ ] No alert/confirm; touch targets ≥44px
+- `globals.css` + `[data-theme]`
+- Design-system components; no `alert()`/`confirm()`
+- i18n: `lib/i18n/*` with `no`, `se`, `en` for every key

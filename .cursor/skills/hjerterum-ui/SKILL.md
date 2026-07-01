@@ -1,65 +1,44 @@
 ---
 name: hjerterum-ui
-description: Build or review Hjerterum/Boly UI — universal Boly Standard on all pages, dark/light theme everywhere, Norwegian/Sámi/English, no white-screen modules. Use for frontend UI, styles, or UX review.
+description: Build/review Hjerterum UI to Boly standard — dark default on all pages (Finn/Los included), dark/light toggle with session persistence when logged in, Norwegian/Sámi/English only with Sámi on every string.
 ---
 
 # Hjerterum UI Skill
 
-## Product rules (locked)
+## Locked product rules
 
-1. **Every page feels like Boly** — dark professional default, not simplistic white screens
-2. **Dark + light mode** on all routes (Finn, Los, guests included)
-3. **Three languages everywhere:** Norwegian (`no`), Sámi (`se`), English (`en`)
-4. **Locale `se` = Sámi** — never Swedish
+1. **Boly (B-O-L-Y) look** on every page — dark default, no white-screen modules
+2. **Dark default** on Finn, Los, and all new features
+3. **Theme:** user picks dark/light; **logged in** = persists across sessions; guest = localStorage
+4. **Languages:** Norwegian (`no`), Sámi (`se`), English (`en`) **only**
+5. **Sámi on everything** — every user-facing key must have `se`; no ship without it
+6. Swedish/Danish: **do not add**
 
-Read: `docs/hjerterum/PRD.md` §15, `docs/hjerterum/DESIGN_SYSTEM.md`
-
-## Styling
-
-```css
-/* CORRECT — uses globals tokens, works in dark and light */
-.card { background: var(--bg-card); color: var(--text-body); }
-
-/* WRONG — white-screen new feature */
-.page { background: #ffffff; }
-```
-
-- Primary CSS: `frontend/app/globals.css`
-- Brand layer: `hjerterum-v2.css`
-- **Do not** create always-light-only CSS for new features
-- `finn.css` / `los.css` are legacy — new work uses globals + `[data-theme]`
+Read: `docs/hjerterum/PRD.md` §15.11 (locked decisions)
 
 ## Theme
 
-- Default: `document.documentElement.setAttribute('data-theme', 'dark')`
-- Toggle must work for guests (localStorage) — extend `ThemeContext` if needed
-- Test **both** themes before PR
+```typescript
+// Logged in: sync profiles.preferred_theme + localStorage boly-theme:{userId}
+// Guest: localStorage boly-theme-guest
+// Default: data-theme="dark" always
+```
 
 ## i18n
 
 ```typescript
-import { useLanguage } from '@/context/LanguageContext'
-const { t } = useLanguage()
-// t('myKey') — add myKey to no, se, AND en in lib/i18n/*
+// Every new key in lib/i18n — all three:
+// no: { myKey: '...' }
+// se: { myKey: '...' }  // Sámi — required
+// en: { myKey: '...' }
 ```
 
-Language selector pattern: see `Header.tsx` (`no`, `se`, `en` options).
+## PR checklist
 
-## Components
-
-```typescript
-import { useToast, useConfirm, PageSkeleton, EmptyState } from '@/app/components/design-system'
-```
-
-## Checklist
-
-- [ ] Not a white/light-only new screen
+- [ ] Dark default (not white first paint)
 - [ ] Dark + light both work
-- [ ] no + se + en strings for new copy
-- [ ] Theme + language controls on shell
-- [ ] PageSkeleton / EmptyState for async views
-- [ ] 320px + keyboard a11y
+- [ ] `no` + `se` + `en` for all new copy
+- [ ] No Swedish/Danish
+- [ ] Finn/Los use globals.css tokens, not light-only CSS
 
-## Migration note
-
-Finn/Los currently violate PRD (always-light `finn.css`/`los.css`). New PRs must **not** extend that pattern — align with globals.css. See PRD §15.8.
+Migration: PRD §15.8 M1–M5
