@@ -7,20 +7,14 @@ import {
   Plus,
   Home as HomeIcon,
   Info,
-  Trash2,
-  Edit3,
-  Clock,
   FileText,
   MessageSquare,
   Sparkles,
   LayoutDashboard,
-  Compass,
-  CalendarDays,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '@/app/lib/landlordOnboarding'
 import LandlordOnboardingModal from '@/app/components/LandlordOnboardingModal'
-import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
 import {
   PwaInstallPromptDialog,
   PWA_PROMPT_DISMISSED_KEY,
@@ -28,23 +22,14 @@ import {
 } from '@/app/components/PWAInstallPrompt'
 import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
-import BottomSheet from '@/app/components/BottomSheet'
 import { EmptyState, useToast } from '@/app/components/design-system'
-import ListingTourismSettings from '@/features/listings/components/ListingTourismSettings'
-import ListingCoHostsPanel from '@/features/listings/components/ListingCoHostsPanel'
-import ListingEventOptIn from '@/features/listings/components/ListingEventOptIn'
 import EventTaskCards from '@/features/listings/components/EventTaskCards'
-import LandlordAvailabilityHub from '@/features/listings/components/LandlordAvailabilityHub'
-import ListingAvailabilityOverview from '@/features/listings/components/ListingAvailabilityOverview'
 import { useListingEventCalendarData } from '@/features/listings/hooks/useListingEventCalendarData'
 import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
 import LandlordStripeConnect from '@/features/bookings/components/LandlordStripeConnect'
 import { useListingAvailability } from '@/features/listings/hooks/useListingAvailability'
 import type { ListingEventOptInPeriod, ListingLane } from '@/features/listings/types/lanes'
-
-type ManagePanel = 'calendar' | 'events' | 'tourism'
 import { buttonClassName } from '@/app/components/ui/Button'
-import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '@/app/lib/storagePublicUrl'
 import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import { shouldShowManageFullScreenSpinner } from '@/features/listings/lib/landlordManagePageGate'
@@ -54,6 +39,13 @@ import {
   type ListingsOnboardingCallbacks,
 } from '@/features/listings/hooks/useLandlordListingsQuery'
 import ConfirmDeleteDialog from '@/features/listings/components/ConfirmDeleteDialog'
+import LandlordManageFilters, {
+  type ManageListingFilter,
+} from '@/features/listings/components/manage/LandlordManageFilters'
+import LandlordListingCard, {
+  type ManagePanel,
+} from '@/features/listings/components/manage/LandlordListingCard'
+import LandlordListingActionSheet from '@/features/listings/components/manage/LandlordListingActionSheet'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
@@ -98,9 +90,7 @@ export default function HomeownerManage() {
     setShowOverviewIntro,
     setShowMineBoligerIntro,
   }
-  const [filter, setFilter] = useState<'Alle' | 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'>(
-    'Alle'
-  )
+  const [filter, setFilter] = useState<ManageListingFilter>('Alle')
   const [openPanel, setOpenPanel] = useState<{ listingId: string; panel: ManagePanel } | null>(
     null
   )
@@ -118,8 +108,7 @@ export default function HomeownerManage() {
   const [isMobileLayout, setIsMobileLayout] = useState(false)
   const [actionSheetListingId, setActionSheetListingId] = useState<string | null>(null)
 
-  const calendarListingId =
-    openPanel?.panel === 'calendar' ? openPanel.listingId : null
+  const calendarListingId = openPanel?.panel === 'calendar' ? openPanel.listingId : null
   const {
     activeOptIns: eventCalendarOptIns,
     allPublished: allPublishedEvents,
@@ -237,54 +226,8 @@ export default function HomeownerManage() {
       })
       setEventOptInsByListing((prev) => ({ ...prev, [listingId]: rows }))
     },
-    [platformFlags.centralEvents]
+    [platformFlags.centralEvents, setEventOptInsByListing]
   )
-
-  const setStatus = async (id: string, newStatus: 'Tilgjengelig' | 'Utilgjengelig') => {
-    const listing = myListings.find((l) => l.id === id)
-    const todayStatus = listingAvailabilityStatusToday(listing.id, availability)
-    if (todayStatus === 'Formidla') {
-      toast(t('formidletByKommune'), 'error')
-      return
-    }
-    setMyListings((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { ...item, status: newStatus, is_available: newStatus === 'Tilgjengelig' }
-          : item
-      )
-    )
-    try {
-      const { error } = await supabase
-        .from('listings')
-        .update({ status: newStatus, is_available: newStatus === 'Tilgjengelig' })
-        .eq('id', id)
-      if (error) throw error
-      const user = await getAuthUserDeduped()
-      await supabase.from('audit_logs').insert([
-        {
-          user_id: user?.id,
-          action_type: 'STATUS_CHANGE',
-          listing_id: id,
-          listing_address: listing?.address,
-          details: { from: listing?.status ?? todayStatus ?? '', to: newStatus },
-        },
-      ])
-    } catch (err: any) {
-      setMyListings((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                status: listing?.status ?? item.status,
-                is_available: (listing?.status ?? item.status) === 'Tilgjengelig',
-              }
-            : item
-        )
-      )
-      toast(t('errUpdateGeneric') + err.message, 'error')
-    }
-  }
 
   const executeDeleteListing = async () => {
     if (!pendingDeleteListing) return
@@ -354,7 +297,6 @@ export default function HomeownerManage() {
         )
       )
     }
-    // Formidla-perioder kan kun legges inn av kommuneansatte (i Boligbank), ikke av utleier her.
   }
 
   const deleteAvailability = async (id: string, listingId: string) => {
@@ -379,18 +321,6 @@ export default function HomeownerManage() {
   const actionSheetListing = actionSheetListingId
     ? myListings.find((l) => l.id === actionSheetListingId) ?? null
     : null
-
-  const translateType = (type: string) => {
-    if (!type) return ''
-    const mapping: Record<string, string> = {
-      'Short-term': t('shortTerm'),
-      'Long-term': t('longTerm'),
-      Apartment: t('apartment'),
-      House: t('house'),
-      Shared: t('shared'),
-    }
-    return mapping[type] || type
-  }
 
   if (shouldShowManageFullScreenSpinner(pageGate, loading, fetchError)) {
     return (
@@ -735,76 +665,13 @@ export default function HomeownerManage() {
         </aside>
 
         <div>
-          <div
-            ref={filtersRowRef}
-            className="hm-filters-row hm-filters-panel"
-            style={{
-              marginBottom: 'var(--space-4)',
-              padding: 'var(--space-3) var(--space-4)',
-              borderRadius: '16px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: 'var(--space-3)',
-            }}
-          >
-            <div className="hm-filters-buttons">
-              {(['Alle', 'Tilgjengelig', 'Utilgjengelig', 'Formidla'] as const).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  aria-pressed={filter === f}
-                  onClick={() => {
-                    setFilter(f)
-                    scrollFiltersIntoViewMobile()
-                  }}
-                  style={{
-                    padding: 'var(--space-2) var(--space-4)',
-                    borderRadius: '20px',
-                    fontSize: '0.85rem',
-                    fontWeight: filter === f ? 600 : 500,
-                    cursor: 'pointer',
-                    background: filter === f ? 'var(--color-royal-blue)' : 'transparent',
-                    border: filter === f ? '1px solid var(--color-royal-blue)' : '1px solid var(--border-medium)',
-                    color: filter === f ? 'white' : 'var(--text-main)',
-                    transition: 'all 0.15s ease',
-                    boxShadow: filter === f ? '0 1px 4px rgba(59, 130, 246, 0.3)' : 'none',
-                  }}
-                >
-                  {f === 'Alle'
-                    ? t('all')
-                    : f === 'Formidla'
-                      ? t('formidlet')
-                      : f === 'Tilgjengelig'
-                        ? t('available')
-                        : t('unavailable')}
-                </button>
-              ))}
-            </div>
-            <div style={{ fontSize: '0.85rem', opacity: 0.6 }}>
-              {t('showing')} {filteredListings.length} {t('propertiesPlural')}
-            </div>
-          </div>
-
-          {filter !== 'Alle' && (
-            <p
-              role="status"
-              aria-live="polite"
-              className="text-sm"
-              style={{
-                margin: '0 0 var(--space-4)',
-                padding: 'var(--space-3) var(--space-4)',
-                borderRadius: 10,
-                background: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.22)',
-                color: 'var(--text-main)',
-                lineHeight: 1.5,
-              }}
-            >
-              {t('manageFilterActiveHint')}
-            </p>
-          )}
+          <LandlordManageFilters
+            filter={filter}
+            onFilterChange={setFilter}
+            filteredCount={filteredListings.length}
+            filtersRowRef={filtersRowRef}
+            onScrollFiltersIntoViewMobile={scrollFiltersIntoViewMobile}
+          />
 
           <div
             style={{
@@ -832,566 +699,38 @@ export default function HomeownerManage() {
                 </button>
               </div>
             ) : filteredListings.length > 0 ? (
-              filteredListings.map((listing) => {
-                const todaySt = listingAvailabilityStatusToday(listing.id, availability)
-                return (
-                <div
+              filteredListings.map((listing) => (
+                <LandlordListingCard
                   key={listing.id}
-                  className="card hm-listing-card"
-                  style={{
-                    padding: 'var(--space-4) var(--space-6)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 'var(--space-4)',
+                  listing={listing}
+                  availability={availability}
+                  eventOptIns={eventOptInsByListing[listing.id] ?? []}
+                  openPanel={openPanel}
+                  isMobileLayout={isMobileLayout}
+                  centralEvents={platformFlags.centralEvents}
+                  tourism={platformFlags.tourism}
+                  eventCalendarOptIns={eventCalendarOptIns}
+                  allPublishedEvents={allPublishedEvents}
+                  listingPanelRef={listingPanelRef}
+                  isTodayAvailableOrUnset={isTodayAvailableOrUnset}
+                  onOpenActionSheet={setActionSheetListingId}
+                  onOpenListingPanel={openListingPanel}
+                  onClosePanel={() => setOpenPanel(null)}
+                  onOpenPeriodCalendar={openPeriodCalendar}
+                  onPendingDeleteListing={setPendingDeleteListing}
+                  onListingUpdated={(listingId, patch) =>
+                    setMyListings((prev) =>
+                      prev.map((l) => (l.id === listingId ? { ...l, ...patch } : l))
+                    )
+                  }
+                  onAddPeriod={addAvailability}
+                  onDeletePeriod={deleteAvailability}
+                  onRefreshEvents={async () => {
+                    await refreshEventCalendar()
+                    await refreshListingEventOptIns(listing.id)
                   }}
-                >
-                  <div
-                    className="hm-listing-row"
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: 'var(--space-4)',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 'var(--space-4)',
-                        alignItems: 'center',
-                        flex: '1 1 200px',
-                        minWidth: 0,
-                      }}
-                    >
-                      <div
-                        style={{
-                          position: 'relative',
-                          width: '100px',
-                          height: '70px',
-                          borderRadius: '10px',
-                          overflow: 'hidden',
-                          background: 'var(--bg-app)',
-                          border: '1px solid var(--border-subtle)',
-                        }}
-                      >
-                        {listing.image_url ? (
-                          <OptimizedPublicStorageImage
-                            variant="fill"
-                            src={listing.image_url}
-                            alt=""
-                            sizes="100px"
-                            style={{ objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <div
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'var(--color-sky-blue)',
-                              opacity: 0.3,
-                            }}
-                          >
-                            <HomeIcon size={30} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="hm-listing-title-block">
-                        <div
-                          className="hm-listing-title-row"
-                          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/listings/${listing.id}?view=owner`)}
-                            style={{
-                              margin: 0,
-                              padding: 0,
-                              border: 'none',
-                              background: 'transparent',
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              font: 'inherit',
-                              color: 'inherit',
-                            }}
-                          >
-                            <h3 style={{ margin: 0 }}>{listing.address}</h3>
-                          </button>
-                          {todaySt === 'Formidla' ? (
-                            <span
-                              style={{
-                                fontSize: '0.7rem',
-                                fontWeight: 800,
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                background: 'rgba(59, 130, 246, 0.1)',
-                                color: 'var(--color-sky-blue)',
-                                textTransform: 'uppercase',
-                              }}
-                            >
-                              {t('formidlet')}
-                            </span>
-                          ) : todaySt === 'Utilgjengelig' ? (
-                            <span
-                              style={{
-                                fontSize: '0.7rem',
-                                fontWeight: 800,
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                background: 'rgba(239, 68, 68, 0.15)',
-                                color: '#ef4444',
-                                textTransform: 'uppercase',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                              }}
-                            >
-                              {t('unavailable')}
-                            </span>
-                          ) : (
-                            <span
-                              style={{
-                                fontSize: '0.7rem',
-                                fontWeight: 800,
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                background: 'rgba(45, 212, 191, 0.15)',
-                                color: 'var(--color-teal)',
-                                textTransform: 'uppercase',
-                                border: '1px solid rgba(45, 212, 191, 0.3)',
-                              }}
-                            >
-                              {t('available')}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm" style={{ marginTop: '4px' }}>
-                          {isMobileLayout
-                            ? `${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`
-                            : `${translateType(listing.type)} • ${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`}
-                        </p>
-                        {listingAvailabilityStatusToday(listing.id, availability) !== 'Formidla' ? (
-                          <ListingAvailabilityOverview
-                            periods={availability[listing.id] ?? []}
-                            eventOptIns={eventOptInsByListing[listing.id] ?? []}
-                            tourismEnabled={Boolean(listing.tourism_enabled)}
-                            showTourism={platformFlags.tourism}
-                            showEvents={platformFlags.centralEvents}
-                          />
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div
-                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {isMobileLayout ? (
-                        <button
-                          type="button"
-                          className="button"
-                          onClick={() => setActionSheetListingId(listing.id)}
-                          style={{
-                            width: '100%',
-                            maxWidth: '100%',
-                            flex: 1,
-                            justifyContent: 'center',
-                            padding: 'var(--space-3) var(--space-4)',
-                            fontSize: '0.9rem',
-                          }}
-                        >
-                          {t('manageListingActions')}
-                        </button>
-                      ) : (
-                        <>
-                          {listingAvailabilityStatusToday(listing.id, availability) !== 'Formidla' && (
-                            <>
-                              <div
-                                className="hm-status-actions"
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 'var(--space-2)',
-                                  minWidth: '200px',
-                                }}
-                              >
-                                {isTodayAvailableOrUnset(listing) ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => openPeriodCalendar(listing.id, 'Utilgjengelig')}
-                                    className="button"
-                                    style={{
-                                      padding: 'var(--space-2) var(--space-4)',
-                                      fontSize: '0.85rem',
-                                      borderRadius: '8px',
-                                      width: '100%',
-                                      background: 'rgba(239, 68, 68, 0.12)',
-                                      color: '#ef4444',
-                                      border: '1px solid rgba(239, 68, 68, 0.25)',
-                                      cursor: 'pointer',
-                                    }}
-                                  >
-                                    {t('manageRentalNav')}
-                                  </button>
-                                ) : listingAvailabilityStatusToday(listing.id, availability) === 'Utilgjengelig' ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => openPeriodCalendar(listing.id, 'Tilgjengelig')}
-                                    className="button"
-                                    style={{
-                                      padding: 'var(--space-2) var(--space-4)',
-                                      fontSize: '0.85rem',
-                                      borderRadius: '8px',
-                                      width: '100%',
-                                      background: 'rgba(32, 187, 175, 0.12)',
-                                      color: 'var(--color-teal)',
-                                      border: '1px solid rgba(32, 187, 175, 0.25)',
-                                      cursor: 'pointer',
-                                    }}
-                                  >
-                                    {t('markAvailable')}
-                                  </button>
-                                ) : (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => openPeriodCalendar(listing.id, 'Utilgjengelig')}
-                                      className="button"
-                                      style={{
-                                        padding: 'var(--space-2) var(--space-4)',
-                                        fontSize: '0.85rem',
-                                        borderRadius: '8px',
-                                        width: '100%',
-                                        background: 'rgba(239, 68, 68, 0.12)',
-                                        color: '#ef4444',
-                                        border: '1px solid rgba(239, 68, 68, 0.25)',
-                                        cursor: 'pointer',
-                                      }}
-                                    >
-                                      {t('manageRentalNav')}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => openPeriodCalendar(listing.id, 'Tilgjengelig')}
-                                      className="button"
-                                      style={{
-                                        padding: 'var(--space-2) var(--space-4)',
-                                        fontSize: '0.85rem',
-                                        borderRadius: '8px',
-                                        width: '100%',
-                                        background: 'rgba(32, 187, 175, 0.12)',
-                                        color: 'var(--color-teal)',
-                                        border: '1px solid rgba(32, 187, 175, 0.25)',
-                                        cursor: 'pointer',
-                                      }}
-                                    >
-                                      {t('markAvailable')}
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                              <div
-                                style={{
-                                  width: '1px',
-                                  height: '32px',
-                                  background: 'var(--border-subtle)',
-                                  alignSelf: 'stretch',
-                                }}
-                              />
-                            </>
-                          )}
-                            {listingAvailabilityStatusToday(listing.id, availability) !== 'Formidla' && (
-                            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openPanel?.listingId === listing.id && openPanel?.panel === 'calendar'
-                                  ? setOpenPanel(null)
-                                  : openListingPanel(listing.id, 'calendar')
-                              }
-                              style={{
-                                padding: '8px',
-                                borderRadius: '8px',
-                                background:
-                                  openPanel?.listingId === listing.id && openPanel?.panel === 'calendar'
-                                    ? 'rgba(59, 130, 246, 0.2)'
-                                    : 'var(--bg-app)',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color:
-                                  openPanel?.listingId === listing.id && openPanel?.panel === 'calendar'
-                                    ? 'var(--color-accent)'
-                                    : 'var(--text-main)',
-                              }}
-                              title={t('managePanelCalendar')}
-                              aria-label={t('managePanelCalendar')}
-                            >
-                              <Clock size={18} aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                router.push(`/listings/${listing.id}?view=owner`)
-                              }
-                              style={{
-                                padding: '8px',
-                                borderRadius: '8px',
-                                background: 'var(--bg-app)',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: 'var(--text-main)',
-                              }}
-                              title={t('editListing')}
-                              aria-label={t('editListing')}
-                            >
-                              <Edit3 size={18} aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setPendingDeleteListing({ id: listing.id, address: listing.address })
-                              }
-                              style={{
-                                padding: '8px',
-                                borderRadius: '8px',
-                                background: 'rgba(239, 68, 68, 0.05)',
-                                border: 'none',
-                                cursor: 'pointer',
-                                color: '#ef4444',
-                              }}
-                              title={t('delete')}
-                              aria-label={t('delete')}
-                            >
-                              <Trash2 size={18} aria-hidden />
-                            </button>
-                          </div>
-                            )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {listingAvailabilityStatusToday(listing.id, availability) !== 'Formidla' ? (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}
-                    >
-                      <button
-                        type="button"
-                        className="button"
-                        onClick={() => openListingPanel(listing.id, 'calendar')}
-                        style={{
-                          padding: 'var(--space-2) var(--space-4)',
-                          fontSize: '0.85rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 8,
-                        }}
-                      >
-                        <CalendarDays size={16} aria-hidden />
-                        {t('managePanelCalendar')}
-                      </button>
-                      {platformFlags.tourism ? (
-                        <button
-                          type="button"
-                          className="button button-secondary"
-                          onClick={() => openListingPanel(listing.id, 'tourism')}
-                          style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            fontSize: '0.85rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}
-                        >
-                          <Compass size={16} aria-hidden />
-                          {listing.tourism_enabled ? t('managePanelTourism') : t('tourismEnableBannerCta')}
-                        </button>
-                      ) : null}
-                      {platformFlags.centralEvents ? (
-                        <button
-                          type="button"
-                          className="button button-secondary"
-                          onClick={() => openListingPanel(listing.id, 'events')}
-                          style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            fontSize: '0.85rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 8,
-                          }}
-                        >
-                          <Sparkles size={16} aria-hidden />
-                          {t('managePanelEvents')}
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {listingAvailabilityStatusToday(listing.id, availability) === 'Formidla' && !isMobileLayout && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        padding: 'var(--space-4)',
-                        background: 'rgba(59, 130, 246, 0.08)',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(59, 130, 246, 0.25)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-                        <a
-                          href={publicContactInfoFormPdfUrl()}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download
-                          className="button"
-                          style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            fontSize: '0.9rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 'var(--space-2)',
-                            textDecoration: 'none',
-                          }}
-                        >
-                          <FileText size={16} /> {t('contactInfoForm')}
-                        </a>
-                        <Link
-                          href={`/report/utleier/${listing.id}`}
-                          className="button"
-                          style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            fontSize: '0.9rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 'var(--space-2)',
-                            textDecoration: 'none',
-                            background: 'var(--color-teal)',
-                            color: 'white',
-                            border: 'none',
-                          }}
-                        >
-                          <FileText size={16} /> {t('fillHandoverReport')}
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-
-                  {openPanel && openPanel.listingId === listing.id && (
-                    <div
-                      ref={listingPanelRef}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        padding: 'var(--space-4)',
-                        background: 'rgba(59, 130, 246, 0.05)',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(59, 130, 246, 0.1)',
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: 'var(--space-3)',
-                          flexWrap: 'wrap',
-                          gap: 'var(--space-2)',
-                        }}
-                      >
-                        <h4
-                          style={{
-                            margin: 0,
-                            fontSize: '0.9rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          {openPanel.panel === 'events' ? (
-                            <>
-                              <Sparkles size={16} /> {t('managePanelEvents')}
-                            </>
-                          ) : openPanel.panel === 'tourism' ? (
-                            <>
-                              <Compass size={16} /> {t('managePanelTourism')}
-                            </>
-                          ) : (
-                            <>
-                              <CalendarDays size={16} /> {t('managePanelCalendar')}
-                            </>
-                          )}
-                        </h4>
-                        <button
-                          type="button"
-                          onClick={() => setOpenPanel(null)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {t('close')}
-                        </button>
-                      </div>
-
-                      {openPanel.panel === 'events' && platformFlags.centralEvents ? (
-                        <ListingEventOptIn listingId={listing.id} />
-                      ) : null}
-
-                      {openPanel.panel === 'tourism' && platformFlags.tourism ? (
-                        <>
-                          <ListingTourismSettings
-                            listingId={listing.id}
-                            initialEnabled={Boolean(listing.tourism_enabled)}
-                            initialNightlyPriceCents={
-                              typeof listing.tourism_nightly_price_cents === 'number'
-                                ? listing.tourism_nightly_price_cents
-                                : null
-                            }
-                            initialInstantBook={Boolean(listing.tourism_instant_book)}
-                            initialCancellationPolicy={listing.cancellation_policy ?? 'moderate'}
-                            initialCheckInGuide={
-                              typeof listing.tourism_check_in_guide === 'string'
-                                ? listing.tourism_check_in_guide
-                                : null
-                            }
-                            onUpdated={(patch) => {
-                              setMyListings((prev) =>
-                                prev.map((l) => (l.id === listing.id ? { ...l, ...patch } : l))
-                              )
-                            }}
-                          />
-                          {listing.tourism_enabled ? (
-                            <ListingCoHostsPanel listingId={listing.id} />
-                          ) : null}
-                        </>
-                      ) : null}
-
-                      {openPanel.panel === 'calendar' ? (
-                        <LandlordAvailabilityHub
-                          listing={listing}
-                          periods={availability[listing.id] ?? []}
-                          eventOptIns={eventCalendarOptIns}
-                          allPublishedEvents={allPublishedEvents}
-                          showTourism={platformFlags.tourism}
-                          showEvents={platformFlags.centralEvents}
-                          onAddPeriod={addAvailability}
-                          onDeletePeriod={(periodId, listingId) =>
-                            void deleteAvailability(periodId, listingId)
-                          }
-                          onRefreshEvents={async () => {
-                            await refreshEventCalendar()
-                            await refreshListingEventOptIns(listing.id)
-                          }}
-                          onOpenTourismSettings={() => openListingPanel(listing.id, 'tourism')}
-                        />
-                      ) : null}
-                    </div>
-                  )}
-                </div>
-              )})
+                />
+              ))
             ) : (
               <EmptyState
                 title={t('noProperties')}
@@ -1407,288 +746,18 @@ export default function HomeownerManage() {
       </div>
 
       {actionSheetListing && (
-        <BottomSheet
+        <LandlordListingActionSheet
+          listing={actionSheetListing}
           open={!!actionSheetListingId}
-          title={String(actionSheetListing.address ?? '—')}
-          titleId="hm-listing-actions-sheet"
-          closeLabel={t('close')}
+          availability={availability}
+          centralEvents={platformFlags.centralEvents}
+          tourism={platformFlags.tourism}
+          isTodayAvailableOrUnset={isTodayAvailableOrUnset}
           onClose={() => setActionSheetListingId(null)}
-          zIndex={2200}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {listingAvailabilityStatusToday(actionSheetListing.id, availability) === 'Formidla' && (
-              <>
-                <a
-                  href={publicContactInfoFormPdfUrl()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                  className="button"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'center',
-                    padding: 'var(--space-3) var(--space-4)',
-                    fontSize: '0.9rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    textDecoration: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                  onClick={() => setActionSheetListingId(null)}
-                >
-                  <FileText size={16} /> {t('contactInfoForm')}
-                </a>
-                <Link
-                  href={`/report/utleier/${actionSheetListing.id}`}
-                  className="button"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'center',
-                    padding: 'var(--space-3) var(--space-4)',
-                    fontSize: '0.9rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    textDecoration: 'none',
-                    background: 'var(--color-teal)',
-                    color: 'white',
-                    border: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                  onClick={() => setActionSheetListingId(null)}
-                >
-                  <FileText size={16} /> {t('fillHandoverReport')}
-                </Link>
-              </>
-            )}
-            {listingAvailabilityStatusToday(actionSheetListing.id, availability) !== 'Formidla' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                {isTodayAvailableOrUnset(actionSheetListing) ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      openPeriodCalendar(actionSheetListing.id, 'Utilgjengelig')
-                      setActionSheetListingId(null)
-                    }}
-                    className="button"
-                    style={{
-                      padding: 'var(--space-3) var(--space-4)',
-                      fontSize: '0.9rem',
-                      borderRadius: '8px',
-                      width: '100%',
-                      background: 'rgba(239, 68, 68, 0.12)',
-                      color: '#ef4444',
-                      border: '1px solid rgba(239, 68, 68, 0.25)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {t('manageRentalNav')}
-                  </button>
-                ) : listingAvailabilityStatusToday(actionSheetListing.id, availability) === 'Utilgjengelig' ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      openPeriodCalendar(actionSheetListing.id, 'Tilgjengelig')
-                      setActionSheetListingId(null)
-                    }}
-                    className="button"
-                    style={{
-                      padding: 'var(--space-3) var(--space-4)',
-                      fontSize: '0.9rem',
-                      borderRadius: '8px',
-                      width: '100%',
-                      background: 'rgba(32, 187, 175, 0.12)',
-                      color: 'var(--color-teal)',
-                      border: '1px solid rgba(32, 187, 175, 0.25)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {t('markAvailable')}
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        openPeriodCalendar(actionSheetListing.id, 'Utilgjengelig')
-                        setActionSheetListingId(null)
-                      }}
-                      className="button"
-                      style={{
-                        padding: 'var(--space-3) var(--space-4)',
-                        fontSize: '0.9rem',
-                        borderRadius: '8px',
-                        width: '100%',
-                        background: 'rgba(239, 68, 68, 0.12)',
-                        color: '#ef4444',
-                        border: '1px solid rgba(239, 68, 68, 0.25)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {t('manageRentalNav')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        openPeriodCalendar(actionSheetListing.id, 'Tilgjengelig')
-                        setActionSheetListingId(null)
-                      }}
-                      className="button"
-                      style={{
-                        padding: 'var(--space-3) var(--space-4)',
-                        fontSize: '0.9rem',
-                        borderRadius: '8px',
-                        width: '100%',
-                        background: 'rgba(32, 187, 175, 0.12)',
-                        color: 'var(--color-teal)',
-                        border: '1px solid rgba(32, 187, 175, 0.25)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {t('markAvailable')}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-            {listingAvailabilityStatusToday(actionSheetListing.id, availability) !== 'Formidla' &&
-              (platformFlags.centralEvents || platformFlags.tourism) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  {platformFlags.centralEvents ? (
-                    <button
-                      type="button"
-                      className="button button-secondary"
-                      style={{
-                        width: '100%',
-                        justifyContent: 'center',
-                        padding: 'var(--space-3) var(--space-4)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                      onClick={() => {
-                        openListingPanel(actionSheetListing.id, 'events')
-                        setActionSheetListingId(null)
-                      }}
-                    >
-                      <Sparkles size={18} aria-hidden />
-                      {t('managePanelEvents')}
-                    </button>
-                  ) : null}
-                  {platformFlags.tourism ? (
-                    <button
-                      type="button"
-                      className="button button-secondary"
-                      style={{
-                        width: '100%',
-                        justifyContent: 'center',
-                        padding: 'var(--space-3) var(--space-4)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                      onClick={() => {
-                        openListingPanel(actionSheetListing.id, 'tourism')
-                        setActionSheetListingId(null)
-                      }}
-                    >
-                      <Compass size={18} aria-hidden />
-                      {t('managePanelTourism')}
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="button button-secondary"
-                    style={{
-                      width: '100%',
-                      justifyContent: 'center',
-                      padding: 'var(--space-3) var(--space-4)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 8,
-                    }}
-                    onClick={() => {
-                      openListingPanel(actionSheetListing.id, 'calendar')
-                      setActionSheetListingId(null)
-                    }}
-                  >
-                    <Clock size={18} aria-hidden />
-                    {t('managePanelCalendar')}
-                  </button>
-                </div>
-              )}
-            {listingAvailabilityStatusToday(actionSheetListing.id, availability) !== 'Formidla' && (
-              <>
-                <button
-                  type="button"
-                  className="button button-secondary"
-                  style={{
-                    width: '100%',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 'var(--space-2)',
-                    padding: 'var(--space-3) var(--space-4)',
-                  }}
-                  onClick={() => {
-                    router.push(`/listings/${actionSheetListing.id}?view=owner`)
-                    setActionSheetListingId(null)
-                  }}
-                >
-                  <Edit3 size={18} aria-hidden />
-                  {t('editListing')}
-                </button>
-                <button
-                  type="button"
-                  className="button"
-                  style={{
-                    width: '100%',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 'var(--space-2)',
-                    padding: 'var(--space-3) var(--space-4)',
-                    background: 'rgba(239, 68, 68, 0.08)',
-                    color: '#ef4444',
-                    border: '1px solid rgba(239, 68, 68, 0.25)',
-                  }}
-                  onClick={() => {
-                    setPendingDeleteListing({
-                      id: actionSheetListing.id,
-                      address: actionSheetListing.address,
-                    })
-                    setActionSheetListingId(null)
-                  }}
-                >
-                  <Trash2 size={18} aria-hidden />
-                  {t('delete')}
-                </button>
-              </>
-            )}
-            {listingAvailabilityStatusToday(actionSheetListing.id, availability) === 'Formidla' && (
-              <button
-                type="button"
-                className="button button-secondary"
-                style={{
-                  width: '100%',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 'var(--space-2)',
-                  padding: 'var(--space-3) var(--space-4)',
-                }}
-                onClick={() => {
-                  router.push(`/listings/${actionSheetListing.id}?view=owner`)
-                  setActionSheetListingId(null)
-                }}
-              >
-                <Edit3 size={18} aria-hidden />
-                {t('viewListing')}
-              </button>
-            )}
-          </div>
-        </BottomSheet>
+          onOpenPeriodCalendar={openPeriodCalendar}
+          onOpenListingPanel={openListingPanel}
+          onPendingDeleteListing={setPendingDeleteListing}
+        />
       )}
     </main>
   )
