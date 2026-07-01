@@ -1,19 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
-
-type PublishedEvent = {
-  id: string
-  name: string
-  start_date: string
-  end_date: string
-  arrangement_tag: string | null
-}
+import {
+  publishedEventsQueryKey,
+  usePublishedEventsQuery,
+  type PublishedCentralEvent,
+} from '@/features/events/hooks/usePublishedEventsQuery'
 
 type OptInRow = {
   event_id: string
@@ -27,65 +25,52 @@ type Props = {
 export default function ListingEventOptIn({ listingId }: Props) {
   const { t } = useLanguage()
   const toast = useToast()
-  const [events, setEvents] = useState<PublishedEvent[]>([])
-  const [optIns, setOptIns] = useState<Record<string, OptInRow>>({})
+  const queryClient = useQueryClient()
+  const { data, isLoading } = usePublishedEventsQuery([listingId])
   const [termsDocByEvent, setTermsDocByEvent] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
 
+  const events = data?.events
+  const optIns = useMemo(() => {
+    const map: Record<string, OptInRow> = {}
+    ;(data?.optIns ?? []).forEach((row) => {
+      map[row.event_id] = { event_id: row.event_id, status: row.status }
+    })
+    return map
+  }, [data?.optIns])
+
   useEffect(() => {
+    if (!events || events.length === 0) {
+      setTermsDocByEvent({})
+      return
+    }
     let cancelled = false
     void (async () => {
-      setLoading(true)
-      const [{ data: published }, { data: mine }] = await Promise.all([
-        supabase
-          .from('central_events')
-          .select('id, name, start_date, end_date, arrangement_tag')
-          .eq('status', 'published')
-          .order('start_date', { ascending: true }),
-        supabase
-          .from('listing_event_availability')
-          .select('event_id, status')
-          .eq('listing_id', listingId),
-      ])
-
+      const { data: termsDocs } = await supabase
+        .from('terms_documents')
+        .select('id, event_id, version')
+        .eq('scope', 'event')
+        .eq('approved_for_utleier_signing', true)
+        .in(
+          'event_id',
+          events.map((e) => e.id)
+        )
+        .order('version', { ascending: false })
       if (cancelled) return
-      const eventList = (published ?? []) as PublishedEvent[]
-      setEvents(eventList)
-      const map: Record<string, OptInRow> = {}
-      ;(mine ?? []).forEach((row) => {
-        map[row.event_id] = row as OptInRow
+      const docMap: Record<string, string> = {}
+      ;(termsDocs ?? []).forEach((row) => {
+        if (row.event_id && !docMap[row.event_id]) {
+          docMap[row.event_id] = row.id
+        }
       })
-      setOptIns(map)
-
-      if (eventList.length > 0) {
-        const { data: termsDocs } = await supabase
-          .from('terms_documents')
-          .select('id, event_id, version')
-          .eq('scope', 'event')
-          .eq('approved_for_utleier_signing', true)
-          .in(
-            'event_id',
-            eventList.map((e) => e.id)
-          )
-          .order('version', { ascending: false })
-        const docMap: Record<string, string> = {}
-        ;(termsDocs ?? []).forEach((row) => {
-          if (row.event_id && !docMap[row.event_id]) {
-            docMap[row.event_id] = row.id
-          }
-        })
-        setTermsDocByEvent(docMap)
-      }
-
-      setLoading(false)
+      setTermsDocByEvent(docMap)
     })()
     return () => {
       cancelled = true
     }
-  }, [listingId])
+  }, [events])
 
-  const toggle = async (event: PublishedEvent, active: boolean) => {
+  const toggle = async (event: PublishedCentralEvent, active: boolean) => {
     setBusyId(event.id)
     try {
       if (active) {
@@ -115,7 +100,6 @@ export default function ListingEventOptIn({ listingId }: Props) {
           { onConflict: 'listing_id,event_id' }
         )
         if (error) throw error
-        setOptIns((prev) => ({ ...prev, [event.id]: { event_id: event.id, status: 'active' } }))
         const authUser = await supabase.auth.getUser()
         await supabase.from('audit_logs').insert([
           {
@@ -132,12 +116,8 @@ export default function ListingEventOptIn({ listingId }: Props) {
           .eq('listing_id', listingId)
           .eq('event_id', event.id)
         if (error) throw error
-        setOptIns((prev) => {
-          const next = { ...prev }
-          delete next[event.id]
-          return next
-        })
       }
+      await queryClient.invalidateQueries({ queryKey: publishedEventsQueryKey([listingId]) })
     } catch {
       toast(t('errSaveListing'), 'error')
     } finally {
@@ -145,14 +125,14 @@ export default function ListingEventOptIn({ listingId }: Props) {
     }
   }
 
-  if (loading) return null
+  if (isLoading) return null
 
   const returnTo = `/homeowner/manage?listing=${listingId}&panel=events`
 
   return (
     <section className="card" style={{ marginTop: 'var(--space-4)', padding: 'var(--space-4)' }}>
       <h4 style={{ margin: '0 0 var(--space-3)' }}>{t('eventOptInTitle')}</h4>
-      {events.length === 0 ? (
+      {!events?.length ? (
         <p className="text-sm" style={{ color: 'var(--text-muted)', margin: 0 }}>
           {t('eventOptInEmpty')}
         </p>

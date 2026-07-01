@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, type MutableRefObject } from 'react'
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
+import { useQueryClient } from '@tanstack/react-query'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '@/app/lib/landlordOnboarding'
@@ -12,6 +13,10 @@ import {
 import { getLandlordPostLoginHref } from '@/app/lib/landlordNavGate'
 import { logError } from '@/app/lib/appLogger'
 import type { ListingEventOptInPeriod } from '@/features/listings/types/lanes'
+import {
+  fetchPublishedEventsWithOptIns,
+  publishedEventsQueryKey,
+} from '@/features/events/hooks/usePublishedEventsQuery'
 
 export type ListingsOnboardingCallbacks = {
   setPendingPwaBeforeOverview: (v: boolean) => void
@@ -30,6 +35,7 @@ export function useLandlordListingsQuery({
   centralEvents,
   onboardingRef,
 }: UseLandlordListingsQueryOptions) {
+  const queryClient = useQueryClient()
   const [myListings, setMyListings] = useState<any[]>([])
   const [availability, setAvailability] = useState<Record<string, any[]>>({})
   const [loading, setLoading] = useState(true)
@@ -93,31 +99,26 @@ export function useLandlordListingsQuery({
 
       if (listingsData && listingsData.length > 0 && centralEvents) {
         const listingIds = listingsData.map((l) => l.id)
-        const [{ data: published }, { data: optIns }] = await Promise.all([
-          supabase
-            .from('central_events')
-            .select('id, name, start_date, end_date')
-            .eq('status', 'published'),
-          supabase
-            .from('listing_event_availability')
-            .select('listing_id, event_id, status, available_from, available_to')
-            .in('listing_id', listingIds)
-            .eq('status', 'active'),
-        ])
-        const eventMeta = new Map((published ?? []).map((e) => [e.id, e]))
-        const byListing: Record<string, ListingEventOptInPeriod[]> = {}
-        ;(optIns ?? []).forEach((row) => {
-          const meta = eventMeta.get(row.event_id)
-          if (!meta) return
-          if (!byListing[row.listing_id]) byListing[row.listing_id] = []
-          byListing[row.listing_id].push({
-            event_id: row.event_id,
-            event_name: meta.name,
-            start_date: meta.start_date,
-            end_date: meta.end_date,
-            status: 'active',
-          })
+        const { events: published, optIns } = await queryClient.fetchQuery({
+          queryKey: publishedEventsQueryKey(listingIds),
+          queryFn: () => fetchPublishedEventsWithOptIns(listingIds),
         })
+        const eventMeta = new Map(published.map((e) => [e.id, e]))
+        const byListing: Record<string, ListingEventOptInPeriod[]> = {}
+        optIns
+          .filter((row) => row.status === 'active')
+          .forEach((row) => {
+            const meta = eventMeta.get(row.event_id)
+            if (!meta) return
+            if (!byListing[row.listing_id]) byListing[row.listing_id] = []
+            byListing[row.listing_id].push({
+              event_id: row.event_id,
+              event_name: meta.name,
+              start_date: meta.start_date,
+              end_date: meta.end_date,
+              status: 'active',
+            })
+          })
         setEventOptInsByListing(byListing)
       } else {
         setEventOptInsByListing({})
@@ -150,7 +151,7 @@ export function useLandlordListingsQuery({
     } finally {
       setLoading(false)
     }
-  }, [router, centralEvents, onboardingRef])
+  }, [router, centralEvents, onboardingRef, queryClient])
 
   return {
     myListings,
