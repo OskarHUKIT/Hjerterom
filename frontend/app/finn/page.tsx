@@ -1,20 +1,49 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { MapPin, Search } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { EmptyState, PageSkeleton } from '@/app/components/design-system'
+import { QK } from '@/app/lib/queries/queryKeys'
 import FinnTourismMap from '@/features/tourism/components/FinnTourismMap'
 import { buttonClassName } from '@/app/components/ui/Button'
 import type { FinnListingCard, FinnSearchFilters } from '@/features/tourism/types/finn'
 import { formatFinnNightlyPrice } from '@/features/tourism/types/finn'
 
+function finnListingsQueryKey(filters: FinnSearchFilters) {
+  return [...QK.finnListings, filters] as const
+}
+
+async function fetchTourismListings(applied: FinnSearchFilters): Promise<FinnListingCard[]> {
+  const { data, error } = await supabase.rpc('search_tourism_listings', {
+    p_city: applied.city?.trim() || null,
+    p_check_in: applied.checkIn || null,
+    p_check_out: applied.checkOut || null,
+    p_limit: 60,
+  })
+
+  if (!error && Array.isArray(data)) {
+    return data as FinnListingCard[]
+  }
+
+  let query = supabase
+    .from('listings')
+    .select('id, address, city, tourism_nightly_price_cents, image_url, type, beds')
+    .eq('tourism_enabled', true)
+    .order('city', { ascending: true })
+  if (applied.city?.trim()) {
+    query = query.ilike('city', `%${applied.city.trim()}%`)
+  }
+  const fallback = await query.limit(60)
+  if (!fallback.error) return (fallback.data ?? []) as FinnListingCard[]
+  return []
+}
+
 export default function FinnSearchPage() {
   const { t } = useLanguage()
-  const [listings, setListings] = useState<FinnListingCard[]>([])
-  const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<FinnSearchFilters>({
     city: '',
     checkIn: '',
@@ -22,39 +51,11 @@ export default function FinnSearchPage() {
   })
   const [applied, setApplied] = useState<FinnSearchFilters>({})
 
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      setLoading(true)
-      const { data, error } = await supabase.rpc('search_tourism_listings', {
-        p_city: applied.city?.trim() || null,
-        p_check_in: applied.checkIn || null,
-        p_check_out: applied.checkOut || null,
-        p_limit: 60,
-      })
-
-      if (!cancelled) {
-        if (!error && Array.isArray(data)) {
-          setListings(data as FinnListingCard[])
-        } else {
-          let query = supabase
-            .from('listings')
-            .select('id, address, city, tourism_nightly_price_cents, image_url, type, beds')
-            .eq('tourism_enabled', true)
-            .order('city', { ascending: true })
-          if (applied.city?.trim()) {
-            query = query.ilike('city', `%${applied.city.trim()}%`)
-          }
-          const fallback = await query.limit(60)
-          if (!fallback.error) setListings((fallback.data ?? []) as FinnListingCard[])
-        }
-        setLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [applied])
+  const { data: listings = [], isPending: loading } = useQuery({
+    queryKey: finnListingsQueryKey(applied),
+    queryFn: () => fetchTourismListings(applied),
+    staleTime: 30_000,
+  })
 
   const resultCount = listings.length
 

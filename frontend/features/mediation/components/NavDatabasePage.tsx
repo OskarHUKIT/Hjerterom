@@ -13,12 +13,10 @@ import Link from 'next/link'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import {
-  Search,
   Filter,
   MapPin,
   Users,
   Info,
-  ChevronRight,
   Home as HomeIcon,
   ShieldCheck,
   ArrowUpDown,
@@ -35,28 +33,21 @@ import {
   Calendar,
   Settings,
   RotateCcw,
-  X,
   CalendarPlus,
   List,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
-import type { ListingAvailabilityRow, NavDatabaseListingRow } from '@/app/lib/listingUiTypes'
+import type { NavDatabaseListingRow } from '@/app/lib/listingUiTypes'
 import { useLanguage } from '@/context/LanguageContext'
 import { formatDateNo } from '@/app/lib/dateFormat'
-import { DateInput } from '@/app/components/DateInput'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import BottomSheet from '@/app/components/BottomSheet'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
-import {
-  appendMediationNoteToOwnerMessage,
-  MAX_MEDIATION_NOTE_IN_NOTIFICATION,
-} from '@/app/lib/formidletNotification'
-import { notifyLandlordInvoiceBasisIfKonto } from '@/app/lib/invoiceBasisNotify'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
 import { getOverviewBackLink } from '@/app/lib/overviewBackNav'
-import type { PostgrestError } from '@supabase/supabase-js'
-import { logError } from '@/app/lib/appLogger'
+import { useQueryClient } from '@tanstack/react-query'
+import { QK } from '@/app/lib/queries/queryKeys'
 import { useKommuneNavAccess } from '@/app/hooks/useKommuneNavAccess'
 import {
   formidlaPeriodIdsOverlappingToday,
@@ -64,20 +55,25 @@ import {
   listingRowFieldsForAvailabilityToday,
 } from '@/app/lib/listingAvailabilityStatusToday'
 import { supabaseErrorMessage } from '@/app/lib/supabaseErrorMessage'
-import { dayAvailabilityToneForIso } from '@/app/lib/listingDayAvailabilityTone'
 import { useToast, useConfirm } from '@/app/components/design-system'
 import NavDatabaseTableView from '@/features/mediation/components/NavDatabaseTableView'
+import FormidletModal from '@/features/mediation/components/FormidletModal'
+import FormidletExtendModal, {
+  type FormidletExtendModalData,
+} from '@/features/mediation/components/FormidletExtendModal'
+import NavDatabaseFilters, {
+  DEFAULT_NAV_DATABASE_FILTERS,
+} from '@/features/mediation/components/NavDatabaseFilters'
 import {
   type NavDbViewMode,
   mobileNavDbViewKey,
   sessionNavDbViewSessionKey,
-  navDbListingsPageSize,
-  navDbListingsMaxRows,
 } from '@/features/mediation/constants/navDatabase'
 import { getNavDbColumns } from '@/features/mediation/lib/navDatabaseColumns'
-import { parseKommuneRegions } from '@/features/mediation/lib/parseKommuneRegions'
 import { useNavDatabasePublishedEvents } from '@/features/mediation/hooks/useNavDatabasePublishedEvents'
+import { useNavDatabaseListingsQuery } from '@/features/mediation/hooks/useNavDatabaseListingsQuery'
 import { usePlatformMode } from '@/context/PlatformModeContext'
+import { useEventStaffAccess } from '@/features/auth/hooks/useEventStaffAccess'
 
 function navDbErrMessage(err: unknown): string {
   return supabaseErrorMessage(err)
@@ -100,6 +96,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
   const { t, locale } = useLanguage()
   const toast = useToast()
   const confirmDialog = useConfirm()
+  const queryClient = useQueryClient()
   const { flags: platformFlags } = usePlatformMode()
   const router = useRouter()
   const pathname = usePathname()
@@ -133,41 +130,18 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
     refetch: refetchKommuneAccess,
   } = useKommuneNavAccess({ redirectUnauthenticated: !isEventPortal })
 
-  const [eventAccessPending, setEventAccessPending] = useState(isEventPortal)
-  const [eventAccessOk, setEventAccessOk] = useState<boolean | null>(null)
-  const [eventStaffRole, setEventStaffRole] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!isEventPortal) return
-    let cancelled = false
-    void (async () => {
-      const { data: auth } = await supabase.auth.getUser()
-      if (!auth.user) {
-        if (!cancelled) {
-          setEventAccessOk(null)
-          setEventAccessPending(false)
-          router.replace('/login?redirect=/nav/event/database')
-        }
-        return
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', auth.user.id)
-        .maybeSingle()
-      if (cancelled) return
-      const role = profile?.role ?? null
-      setEventStaffRole(role)
-      setEventAccessOk(isEventStaffRole(role))
-      setEventAccessPending(false)
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [isEventPortal, router])
+  const {
+    data: eventAccess,
+    isPending: eventAccessPending,
+  } = useEventStaffAccess({
+    enabled: isEventPortal,
+    loginRedirect: '/nav/event/database',
+  })
 
   const userRole = isEventPortal
-    ? eventStaffRole
+    ? eventAccess?.kind === 'ok'
+      ? eventAccess.userRole
+      : null
     : access?.kind === 'ok'
       ? access.userRole
       : null
@@ -178,9 +152,13 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
       : true
   const kommuneRegion = isEventPortal ? 'event' : access?.kind === 'ok' ? access.kommuneRegion : null
   const isAuthorized: boolean | null = isEventPortal
-    ? eventAccessPending
+    ? eventAccessPending || !eventAccess
       ? null
-      : eventAccessOk
+      : eventAccess.kind === 'ok'
+        ? true
+        : eventAccess.kind === 'forbidden'
+          ? false
+          : null
     : accessPending || access === undefined
       ? null
       : access.kind === 'unauthenticated'
@@ -194,16 +172,6 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
   const [searchTerm, setSearchTerm] = useState('')
   // ... rest of state ...
 
-  const [listings, setListings] = useState<NavDatabaseListingRow[]>([])
-  const [availability, setAvailability] = useState<Record<string, ListingAvailabilityRow[]>>({})
-  const [loading, setLoading] = useState(true)
-  const [initialLoad, setInitialLoad] = useState(true)
-  const [tabCache, setTabCache] = useState<
-    Record<
-      string,
-      { listings: NavDatabaseListingRow[]; availability: Record<string, ListingAvailabilityRow[]> }
-    >
-  >({})
   const [activeTab, setActiveTab] = useState<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'>(
     'Tilgjengelig'
   )
@@ -228,17 +196,9 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
   const [formidletModalListing, setFormidletModalListing] = useState<NavDatabaseListingRow | null>(
     null
   )
-  const [formidletStart, setFormidletStart] = useState('')
-  const [formidletEnd, setFormidletEnd] = useState('')
-  const [formidletMediationNote, setFormidletMediationNote] = useState('')
-  const [formidletIncludeNoteInOwnerNotif, setFormidletIncludeNoteInOwnerNotif] = useState(false)
-  const [formidletSending, setFormidletSending] = useState(false)
-  const [formidletExtendModal, setFormidletExtendModal] = useState<{
-    listing: NavDatabaseListingRow
-    period: ListingAvailabilityRow
-  } | null>(null)
-  const [formidletExtendEnd, setFormidletExtendEnd] = useState('')
-  const [kommuneFetchError, setKommuneFetchError] = useState<string | null>(null)
+  const [formidletExtendModal, setFormidletExtendModal] = useState<FormidletExtendModalData | null>(
+    null
+  )
 
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
     'address',
@@ -488,31 +448,41 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
   }
 
   // Filters
-  const [filters, setFilters] = useState({
-    city: 'Alle',
-    type: 'Alle',
-    minPrice: '',
-    maxPrice: '',
-    accessibility: [] as string[],
-    minBedrooms: '',
-    minSize: '',
-    minOccupants: '',
-    floor: 'Alle',
-    furnishing: 'Alle',
-  })
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const [filters, setFilters] = useState(DEFAULT_NAV_DATABASE_FILTERS)
 
-  /** Cache-nøkkel inkluderer region slik at vi ikke gjenbruker tom cache fra før kommune_region er lastet. Kart og tidslinje: én nøkkel (status filtreres i klient, ikke ved henting). */
-  const getTabCacheKey = () => {
-    const base =
-      viewMode === 'map' ? 'map' : viewMode === 'timeline' ? 'timeline' : `${activeTab}_${viewMode}`
-    if (isKommuneStaffRole(userRole)) {
-      const regions = parseKommuneRegions(kommuneRegion)
-      const regionKey = regions.length ? regions.sort().join(',') : 'none'
-      return `${base}_${regionKey}`
-    }
-    return base
-  }
+  const listingsQueryEnabled =
+    isAuthorized === true &&
+    (isEventPortal || !isKommuneStaffRole(userRole ?? undefined) || kommuneRegion != null)
+
+  const listingsQuery = useNavDatabaseListingsQuery({
+    enabled: listingsQueryEnabled,
+    isEventPortal,
+    userRole,
+    isAuthorized: isAuthorized === true,
+    searchTerm,
+    filters,
+    eventFilterId,
+    sortField,
+    sortOrder,
+    viewMode,
+    activeTab,
+    rpcErrorHint: t('dbRpcFetchErrorHint'),
+    kommuneRegion: Array.isArray(kommuneRegion) ? kommuneRegion.join('|') : kommuneRegion,
+  })
+
+  const listings = listingsQuery.data?.listings ?? []
+  const availability = listingsQuery.data?.availability ?? {}
+  const kommuneFetchError = listingsQuery.data?.fetchError ?? null
+  const waitingForKommuneRegion =
+    isAuthorized === true &&
+    !isEventPortal &&
+    isKommuneStaffRole(userRole ?? undefined) &&
+    kommuneRegion == null
+  const loading = waitingForKommuneRegion ? false : listingsQuery.isPending
+
+  const invalidateListings = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: QK.navDatabaseListings })
+  }, [queryClient])
 
   /** Status for dagens dato (lokal tid, normaliserte datoer). Null = ingen periode dekker i dag → i filter vises som tilgjengelig. */
   const getStatusForToday = listingAvailabilityStatusToday
@@ -532,321 +502,6 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
           : 'Tilgjengelig'
     return effectiveMapTimelineStatusFilter.includes(status)
   }
-
-  const fetchListings = async (showLoader = true) => {
-    const cacheKey = getTabCacheKey()
-    if (tabCache[cacheKey]) {
-      setListings(tabCache[cacheKey].listings)
-      setAvailability(tabCache[cacheKey].availability)
-      setLoading(false)
-    } else if (!initialLoad) {
-      setListings([])
-      setAvailability({})
-    }
-    const useLoader = showLoader && !tabCache[cacheKey] && initialLoad
-    if (useLoader) setLoading(true)
-    try {
-      const { data: terminatedUsers } = await supabase
-        .from('user_agreements')
-        .select('user_id')
-        .eq('is_terminated', true)
-      const terminatedIds = new Set(terminatedUsers?.map((u) => u.user_id) || [])
-
-      let data: NavDatabaseListingRow[] = []
-      let error: PostgrestError | null = null
-
-      setKommuneFetchError(null)
-      if (isEventPortal && isEventStaffRole(userRole)) {
-        const acc: NavDatabaseListingRow[] = []
-        let offset = 0
-        let done = false
-        while (!done && offset < navDbListingsMaxRows) {
-          const res = await supabase.rpc('get_listings_for_event_staff_paged', {
-            p_limit: navDbListingsPageSize,
-            p_offset: offset,
-          })
-          if (res.error) {
-            setKommuneFetchError(res.error.message || t('dbRpcFetchErrorHint'))
-            error = acc.length > 0 ? null : res.error
-            data = acc
-            done = true
-            break
-          }
-          const raw = res.data
-          const batch = (Array.isArray(raw) ? raw : raw != null ? [raw] : []) as NavDatabaseListingRow[]
-          acc.push(...batch)
-          if (batch.length < navDbListingsPageSize) {
-            data = acc
-            error = null
-            done = true
-            break
-          }
-          offset += batch.length
-          if (offset >= navDbListingsMaxRows) {
-            data = acc
-            error = null
-            done = true
-          }
-        }
-        if (!done && acc.length > 0 && data.length === 0) {
-          data = acc
-          error = null
-        }
-      } else if (isAuthorized && isKommuneStaffRole(userRole)) {
-        const acc: NavDatabaseListingRow[] = []
-        let offset = 0
-        let done = false
-        while (!done && offset < navDbListingsMaxRows) {
-          const res = await supabase.rpc('get_listings_for_kommune_paged', {
-            p_limit: navDbListingsPageSize,
-            p_offset: offset,
-          })
-          if (res.error) {
-            const msg = res.error.message || ''
-            const missingFn =
-              res.error.code === '42883' ||
-              /function.*does not exist|Could not find the function/i.test(msg)
-            if (missingFn && acc.length === 0) {
-              const legacy = await supabase.rpc('get_listings_for_kommune')
-              if (legacy.error) {
-                setKommuneFetchError(legacy.error.message || t('dbRpcFetchErrorHint'))
-                error = legacy.error
-                data = []
-              } else {
-                const raw = legacy.data
-                data = (Array.isArray(raw) ? raw : raw != null ? [raw] : []) as NavDatabaseListingRow[]
-                error = null
-              }
-            } else {
-              setKommuneFetchError(res.error.message || t('dbRpcFetchErrorHint'))
-              error = acc.length > 0 ? null : res.error
-              data = acc
-            }
-            done = true
-            break
-          }
-          const raw = res.data
-          const batch = (Array.isArray(raw) ? raw : raw != null ? [raw] : []) as NavDatabaseListingRow[]
-          acc.push(...batch)
-          if (batch.length < navDbListingsPageSize) {
-            data = acc
-            error = null
-            done = true
-            break
-          }
-          offset += batch.length
-          if (offset >= navDbListingsMaxRows) {
-            data = acc
-            error = null
-            if (batch.length === navDbListingsPageSize) {
-              logError('[nav/database] listings fetch stopped at row cap', navDbListingsMaxRows)
-            }
-            done = true
-          }
-        }
-        if (!done && acc.length > 0 && data.length === 0) {
-          data = acc
-          error = null
-        }
-      } else {
-        const acc: NavDatabaseListingRow[] = []
-        let from = 0
-        let done = false
-        while (!done && from < navDbListingsMaxRows) {
-          const to = from + navDbListingsPageSize - 1
-          const result = await supabase
-            .from('listings')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .range(from, to)
-          if (result.error) {
-            error = result.error
-            data = acc.length > 0 ? acc : ((result.data || []) as NavDatabaseListingRow[])
-            done = true
-            break
-          }
-          const batch = (result.data || []) as NavDatabaseListingRow[]
-          acc.push(...batch)
-          if (batch.length === 0 || batch.length < navDbListingsPageSize) {
-            data = acc
-            error = null
-            done = true
-            break
-          }
-          from += batch.length
-          if (from >= navDbListingsMaxRows) {
-            data = acc
-            error = null
-            if (batch.length === navDbListingsPageSize) {
-              logError('[nav/database] listings fetch stopped at row cap', navDbListingsMaxRows)
-            }
-            done = true
-          }
-        }
-        if (!done && acc.length > 0 && data.length === 0) {
-          data = acc
-          error = null
-        }
-      }
-
-      if (error) throw error
-      let filtered = data || []
-
-      const afterTerminatedCount = (() => {
-        if (terminatedIds.size > 0) {
-          filtered = filtered.filter((item) => !terminatedIds.has(item.owner_id))
-        }
-        return filtered.length
-      })()
-
-      if (searchTerm) {
-        const q = searchTerm.toLowerCase()
-        filtered = filtered.filter(
-          (item) =>
-            String(item.address ?? '')
-              .toLowerCase()
-              .includes(q) ||
-            String(item.owner_name ?? '')
-              .toLowerCase()
-              .includes(q)
-        )
-      }
-      // Tillatelsesområder håndteres av get_listings_for_kommune_paged (kommune_listing_region_ok i DB)
-      if (filters.city !== 'Alle') {
-        filtered = filtered.filter((item) => item.city === filters.city)
-      }
-      if (filters.type !== 'Alle') {
-        filtered = filtered.filter((item) => item.type === filters.type)
-      }
-      if (filters.minPrice) {
-        const min = parseFloat(filters.minPrice)
-        filtered = filtered.filter((item) => Number(item.price_daily) >= min)
-      }
-      if (filters.maxPrice) {
-        const max = parseFloat(filters.maxPrice)
-        filtered = filtered.filter((item) => Number(item.price_daily) <= max)
-      }
-      if (filters.minBedrooms) {
-        const minB = parseInt(filters.minBedrooms, 10)
-        filtered = filtered.filter((item) => Number(item.bedrooms) >= minB)
-      }
-      if (filters.minSize) {
-        const minS = parseFloat(filters.minSize)
-        filtered = filtered.filter((item) => Number(item.size_sqm) >= minS)
-      }
-      if (filters.minOccupants) {
-        const minO = parseInt(filters.minOccupants, 10)
-        filtered = filtered.filter((item) => Number(item.max_occupants) >= minO)
-      }
-      if (filters.floor !== 'Alle') {
-        filtered = filtered.filter((item) => item.floor_number === filters.floor)
-      }
-      if (filters.furnishing !== 'Alle') {
-        filtered = filtered.filter((item) => item.furnishing === filters.furnishing)
-      }
-      if (filters.accessibility.length > 0) {
-        filtered = filtered.filter((item) => {
-          const acc = item.accessibility
-          return (
-            Array.isArray(acc) &&
-            filters.accessibility.every((a) => (acc as string[]).includes(a))
-          )
-        })
-      }
-
-      if (eventFilterId !== 'Alle') {
-        const { data: eventOptIns } = await supabase
-          .from('listing_event_availability')
-          .select('listing_id')
-          .eq('event_id', eventFilterId)
-          .eq('status', 'active')
-        const eventListingIds = new Set((eventOptIns ?? []).map((r) => r.listing_id))
-        filtered = filtered.filter((item) => eventListingIds.has(item.id))
-      }
-
-      let availMap: Record<string, ListingAvailabilityRow[]> = {}
-      if (filtered.length > 0) {
-        const listingIds = filtered.map((l) => l.id)
-        const { data: availabilityData } = await supabase
-          .from('listing_availability')
-          .select('*')
-          .in('listing_id', listingIds)
-          .order('start_date', { ascending: true })
-
-        availabilityData?.forEach((item) => {
-          if (!availMap[item.listing_id]) availMap[item.listing_id] = []
-          availMap[item.listing_id].push(item)
-        })
-
-        // Liste/tabell: filtrer på status for dagens dato. Kart og tidslinje: alle boliger hentes; status filtreres i UI (mapStatusFilter).
-        if (viewMode === 'table' || viewMode === 'list') {
-          const todayStatus = (lid: string) => getStatusForToday(lid, availMap)
-          if (activeTab === 'Tilgjengelig') {
-            filtered = filtered.filter((l) => {
-              const s = todayStatus(l.id)
-              return s === 'Tilgjengelig'
-            })
-          } else if (activeTab === 'Formidlet') {
-            filtered = filtered.filter((l) => todayStatus(l.id) === 'Formidla')
-          } else if (activeTab === 'Utilgjengelig') {
-            filtered = filtered.filter((l) => todayStatus(l.id) === 'Utilgjengelig')
-          }
-        }
-      }
-
-      filtered.sort((a, b) => {
-        const valA = (a as Record<string, unknown>)[sortField]
-        const valB = (b as Record<string, unknown>)[sortField]
-        const sa = valA == null ? '' : String(valA)
-        const sb = valB == null ? '' : String(valB)
-        const cmp = sa.localeCompare(sb, undefined, { numeric: true })
-        return sortOrder === 'asc' ? cmp : -cmp
-      })
-
-      setListings(filtered)
-      setAvailability(availMap)
-
-      setTabCache((prev) => ({
-        ...prev,
-        [getTabCacheKey()]: { listings: filtered, availability: availMap },
-      }))
-      setInitialLoad(false)
-    } catch (err: unknown) {
-      logError('Error fetching listings:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (!isAuthorized) return
-    if (isEventPortal) {
-      fetchListings()
-      return
-    }
-    // For kommune uten region ennå: vis tom liste (ikke blank skjerm), så vi henter på nytt når region er satt
-    if (isKommuneStaffRole(userRole) && kommuneRegion == null) {
-      setLoading(false)
-      setListings([])
-      setAvailability({})
-      return
-    }
-    fetchListings()
-    // fetchListings leser/oppdaterer tabCache; å liste den som avhengighet gir henteløkke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- synk med activeTab, filtre, region osv. over
-  }, [
-    activeTab,
-    searchTerm,
-    filters,
-    eventFilterId,
-    sortField,
-    sortOrder,
-    viewMode,
-    isAuthorized,
-    userRole,
-    kommuneRegion,
-    isEventPortal,
-  ])
 
   if (!isEventPortal && accessError) {
     return (
@@ -906,20 +561,8 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
     }
   }
 
-  const closeFormidletModal = () => {
-    if (formidletSending) return
-    setFormidletModalListing(null)
-    setFormidletMediationNote('')
-    setFormidletIncludeNoteInOwnerNotif(false)
-  }
-
   const openFormidletModal = (listing: NavDatabaseListingRow) => {
-    const today = new Date().toISOString().slice(0, 10)
     setFormidletModalListing(listing)
-    setFormidletStart(today)
-    setFormidletEnd(today)
-    setFormidletMediationNote('')
-    setFormidletIncludeNoteInOwnerNotif(false)
   }
 
   const openFormidletExtendModal = (listing: NavDatabaseListingRow) => {
@@ -929,222 +572,6 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
     const latest = periods[0]
     if (!latest?.end_date) return
     setFormidletExtendModal({ listing, period: latest })
-    setFormidletExtendEnd(latest.end_date)
-  }
-
-  const handleExtendFormidlet = async () => {
-    if (!formidletExtendModal || !formidletExtendEnd) return
-    const { listing, period } = formidletExtendModal
-    if (!period.id || !period.end_date) return
-    if (listing?.owner_id) {
-      const { data: ownerTerm } = await supabase
-        .from('user_agreements')
-        .select('id')
-        .eq('user_id', listing.owner_id)
-        .eq('is_terminated', true)
-        .maybeSingle()
-      if (ownerTerm) {
-        toast(t('expiredOwnerNoMediationNav'), 'error')
-        return
-      }
-    }
-    if (new Date(formidletExtendEnd) < new Date(String(period.end_date))) {
-      toast(t('dbExtendEndAfterCurrent'), 'error')
-      return
-    }
-    const extendConfirmed = await confirmDialog({
-      title: t('dbExtendButton'),
-      message: t('dbExtendConfirm')
-        .replace('{address}', String(listing.address ?? ''))
-        .replace('{date}', formatDateNo(formidletExtendEnd)),
-    })
-    if (!extendConfirmed) return
-    setFormidletSending(true)
-    try {
-      const { error } = await supabase
-        .from('listing_availability')
-        .update({ end_date: formidletExtendEnd })
-        .eq('id', period.id)
-      if (error) throw error
-      const user = await getAuthUserDeduped()
-      if (listing.owner_id) {
-        await supabase.from('audit_logs').insert([
-          {
-            user_id: listing.owner_id,
-            listing_id: listing.id,
-            action_type: 'KOMMUNE_EXTEND_FORMIDLA',
-            listing_address: listing.address,
-            details: {
-              performed_by_user_id: user?.id,
-              period_id: period.id,
-              new_end: formidletExtendEnd,
-            },
-          },
-        ])
-        await supabase
-          .from('notifications')
-          .insert([
-            {
-              owner_id: listing.owner_id,
-              type: 'HOUSE_FORMIDLET',
-              title: 'Formidlingsperiode forlenget',
-              message: `Kommunen har forlenget formidlingsperioden for ${listing.address} til ${formatDateNo(formidletExtendEnd)}.`,
-              listing_id: listing.id,
-            },
-          ])
-      }
-      setFormidletExtendModal(null)
-      fetchListings(false)
-    } catch (err: unknown) {
-      toast(t('errorPrefix') + navDbErrMessage(err), 'error')
-    } finally {
-      setFormidletSending(false)
-    }
-  }
-
-  const resolveEventIdForListing = async (listingId: string): Promise<string | null> => {
-    if (!isEventPortal) return null
-    if (eventFilterId !== 'Alle') return eventFilterId
-    const { data: staffRows } = await supabase
-      .from('central_event_staff')
-      .select('event_id')
-      .eq('profile_id', (await getAuthUserDeduped())?.id ?? '')
-    const eventIds = (staffRows ?? []).map((r) => r.event_id)
-    if (eventIds.length === 0) return null
-    const { data: optIn } = await supabase
-      .from('listing_event_availability')
-      .select('event_id')
-      .eq('listing_id', listingId)
-      .eq('status', 'active')
-      .in('event_id', eventIds)
-      .limit(1)
-      .maybeSingle()
-    return optIn?.event_id ?? eventIds[0] ?? null
-  }
-
-  const handleMarkAsFormidlet = async () => {
-    if (!formidletModalListing || !formidletStart || !formidletEnd) {
-      toast(t('dbSelectStartEnd'), 'error')
-      return
-    }
-    if (new Date(formidletEnd) < new Date(formidletStart)) {
-      toast(t('endDateAfterStart'), 'error')
-      return
-    }
-    const id = formidletModalListing.id
-    const address = String(formidletModalListing.address ?? '')
-    const listing = formidletModalListing
-    if (listing?.owner_id) {
-      const { data: ownerTerm } = await supabase
-        .from('user_agreements')
-        .select('id')
-        .eq('user_id', listing.owner_id)
-        .eq('is_terminated', true)
-        .maybeSingle()
-      if (ownerTerm) {
-        toast(t('expiredOwnerNoMediationNav'), 'error')
-        return
-      }
-    }
-    const noteTrimmed = formidletMediationNote.trim()
-    const includeNote = !!(formidletIncludeNoteInOwnerNotif && noteTrimmed)
-    const attachSchema = await confirmDialog({
-      title: t('dbTitleAddFormidletPeriod'),
-      message: t('dbMarkFormidletConfirm')
-        .replace('{address}', address)
-        .replace('{start}', formatDateNo(formidletStart))
-        .replace('{end}', formatDateNo(formidletEnd)),
-    })
-    if (!attachSchema) return
-
-    setFormidletSending(true)
-    try {
-      const eventIdForPeriod = isEventPortal ? await resolveEventIdForListing(id) : null
-      const { data: insertedPeriod, error: availError } = await supabase
-        .from('listing_availability')
-        .insert([
-          {
-            listing_id: id,
-            start_date: formidletStart,
-            end_date: formidletEnd,
-            status: 'Formidla',
-            mediation_note: noteTrimmed || null,
-            include_note_in_owner_notification: includeNote,
-            lane: isEventPortal ? 'turisme' : 'sosial',
-            event_id: eventIdForPeriod,
-          },
-        ])
-        .select()
-        .single()
-
-      if (availError) throw availError
-      if (!insertedPeriod) throw new Error('listing_availability insert returned no row')
-
-      // 2. Synk listings-rad med status for i dag (f.eks. kun fremtidig periode → fortsatt tilgjengelig)
-      const mergedAvail = [...(availability[id] || []), insertedPeriod as ListingAvailabilityRow]
-      const rowSync = listingRowFieldsForAvailabilityToday(id, { ...availability, [id]: mergedAvail })
-      const { error } = await supabase.from('listings').update(rowSync).eq('id', id)
-
-      if (error) throw error
-
-      const user = await getAuthUserDeduped()
-      if (listing?.owner_id) {
-        await supabase.from('audit_logs').insert([
-          {
-            user_id: listing.owner_id,
-            listing_id: id,
-            action_type: isEventPortal ? 'EVENT_MARK_FORMIDLA' : 'KOMMUNE_MARK_FORMIDLA',
-            listing_address: address,
-            details: {
-              performed_by_user_id: user?.id,
-              by: isEventPortal ? 'Event-saksbehandler' : 'Kommune-ansatt',
-              event_id: eventIdForPeriod,
-              attached_schema: attachSchema,
-              start_date: formidletStart,
-              end_date: formidletEnd,
-              include_note_in_owner_notification: includeNote,
-              has_mediation_note: !!noteTrimmed,
-            },
-          },
-        ])
-      }
-
-      if (listing?.owner_id) {
-        await supabase
-          .from('listing_tenant_tokens')
-          .upsert([{ listing_id: id }], { onConflict: 'listing_id' })
-        const baseMsg = isEventPortal
-          ? `Event-saksbehandler har markert boligen din i ${address} som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`
-          : `Kommunen har markert boligen din i ${address} som formidlet for perioden ${formatDateNo(formidletStart)}–${formatDateNo(formidletEnd)}. Lever overtakelsesrapport ved overtakelse – klikk for å åpne skjema.`
-        const message = appendMediationNoteToOwnerMessage(baseMsg, noteTrimmed, includeNote)
-        await supabase.from('notifications').insert([
-          {
-            owner_id: listing.owner_id,
-            type: 'HOUSE_FORMIDLET',
-            title: isEventPortal ? 'Bolig formidlet (arrangement)' : 'Bolig formidlet',
-            message,
-            listing_id: id,
-          },
-        ])
-        await notifyLandlordInvoiceBasisIfKonto(supabase, {
-          ownerId: listing.owner_id,
-          listingId: id,
-          address,
-          paymentMethod: listing.payment_method as string | null | undefined,
-        })
-      }
-
-      setAvailability((prev) => ({ ...prev, [id]: mergedAvail }))
-      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, ...rowSync } : l)))
-      setFormidletMediationNote('')
-      setFormidletIncludeNoteInOwnerNotif(false)
-      setFormidletModalListing(null)
-      fetchListings(false) // Synk tab-filter m.m.
-    } catch (err: unknown) {
-      toast(t('errorPrefix') + navDbErrMessage(err), 'error')
-    } finally {
-      setFormidletSending(false)
-    }
   }
 
   const handleRemoveFormidlet = async (id: string, address: string) => {
@@ -1186,9 +613,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
         ])
       }
 
-      setAvailability((prev) => ({ ...prev, [id]: nextAvailRows }))
-      setListings((prev) => prev.map((l) => (l.id === id ? { ...l, ...rowSync } : l)))
-      fetchListings(false)
+      invalidateListings()
     } catch (err: unknown) {
       toast(t('errorPrefix') + navDbErrMessage(err), 'error')
     }
@@ -1678,635 +1103,42 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
           </div>
         ))}
 
-      {showFilters &&
-        (() => {
-          const filtersInner = (
-            <>
-          {(viewMode === 'map' || viewMode === 'timeline') && (
-            <div
-              style={{
-                marginBottom: 'var(--space-6)',
-                paddingBottom: 'var(--space-6)',
-                borderBottom: '1px solid var(--border-subtle)',
-              }}
-            >
-              <label className="label" style={{ display: 'block', marginBottom: 'var(--space-3)' }}>
-                {t('dbMapShowStatuses')}
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-                {(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'] as const).map((status) => {
-                  const statusLabel =
-                    status === 'Tilgjengelig'
-                      ? t('available')
-                      : status === 'Utilgjengelig'
-                        ? t('unavailable')
-                        : t('formidlet')
-                  return (
-                    <label
-                      key={status}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer',
-                        fontSize: '0.9rem',
-                        color: 'var(--text-main)',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={mapStatusFilter.includes(status)}
-                        onChange={() =>
-                          setMapStatusFilter((prev) => {
-                            if (prev.includes(status)) {
-                              if (prev.length <= 1) return prev
-                              return prev.filter((s) => s !== status)
-                            }
-                            return [...prev, status].sort()
-                          })
-                        }
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          accentColor: 'var(--color-accent)',
-                        }}
-                      />
-                      {status === 'Tilgjengelig' && (
-                        <CheckCircle2 size={16} style={{ color: 'var(--color-teal)' }} />
-                      )}
-                      {status === 'Utilgjengelig' && (
-                        <XCircle size={16} style={{ color: '#ef4444' }} />
-                      )}
-                      {status === 'Formidlet' && (
-                        <ShieldCheck size={16} style={{ color: 'var(--color-sky-blue)' }} />
-                      )}
-                      {statusLabel}
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: 'var(--space-6)',
-            }}
-          >
-            {platformFlags.centralEvents ? (
-            <div>
-              <label className="label">{t('dbFilterEvent')}</label>
-              <select
-                className="input"
-                value={eventFilterId}
-                onChange={(e) => setEventFilterId(e.target.value)}
-                style={{ width: '100%' }}
-              >
-                <option value="Alle">{t('dbFilterEventAll')}</option>
-                {publishedEvents.map((ev) => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            ) : null}
-            <div>
-              <label className="label">{t('dbSearch')}</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder={t('dbSearchPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{ paddingLeft: '2.5rem' }}
-                />
-                <Search
-                  size={16}
-                  style={{ position: 'absolute', left: '12px', top: '14px', opacity: 0.5 }}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="label">{t('dbRegion')}</label>
-              <select
-                className="input"
-                value={filters.city}
-                onChange={(e) => setFilters({ ...filters, city: e.target.value })}
-              >
-                <option value="Alle">{t('all')}</option>
-                <option>Narvik</option>
-                <option>Gratangen</option>
-                <option>Evenes</option>
-                <option>Oslo</option>
-                <option>Bergen</option>
-                <option>Trondheim</option>
-                <option>Stavanger</option>
-              </select>
-            </div>
-            <div>
-              <label className="label">{t('dbPropertyType')}</label>
-              <select
-                className="input"
-                value={filters.type}
-                onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-              >
-                <option value="Alle">{t('all')}</option>
-                <option>Enebolig/flermannsbolig</option>
-                <option>Leilighet</option>
-                <option>Hybelleilighet</option>
-                <option>Hybel</option>
-                <option>Bokollektiv</option>
-              </select>
-            </div>
-          </div>
+      <NavDatabaseFilters
+        open={showFilters}
+        isMobile={isMobile}
+        viewMode={viewMode}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        filters={filters}
+        onFiltersChange={setFilters}
+        mapStatusFilter={mapStatusFilter}
+        onMapStatusFilterChange={setMapStatusFilter}
+        eventFilterId={eventFilterId}
+        onEventFilterIdChange={setEventFilterId}
+        publishedEvents={publishedEvents}
+        showCentralEvents={platformFlags.centralEvents}
+        onClose={() => setShowFilters(false)}
+        onReset={() => {
+          setSearchTerm('')
+          setFilters(DEFAULT_NAV_DATABASE_FILTERS)
+        }}
+      />
 
-          <div
-            style={{
-              marginTop: 'var(--space-6)',
-              paddingTop: 'var(--space-6)',
-              borderTop: '1px solid var(--border-subtle)',
-            }}
-          >
-            <button
-              type="button"
-              aria-expanded={showAdvancedFilters}
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-accent)',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontWeight: 600,
-                transition: `color var(--transition-fast) var(--ease-out-soft)`,
-              }}
-            >
-              {showAdvancedFilters ? t('dbAdvancedFiltersHide') : t('dbAdvancedFiltersShow')}
-              <ChevronRight
-                size={16}
-                style={{
-                  transform: showAdvancedFilters ? 'rotate(90deg)' : 'none',
-                  transition: 'transform 0.2s',
-                }}
-              />
-            </button>
+      <FormidletModal
+        listing={formidletModalListing}
+        availability={availability}
+        isEventPortal={isEventPortal}
+        eventFilterId={eventFilterId}
+        onClose={() => setFormidletModalListing(null)}
+        onSuccess={invalidateListings}
+      />
 
-            {showAdvancedFilters && (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: 'var(--space-6)',
-                  marginTop: 'var(--space-6)',
-                }}
-              >
-                <div>
-                  <label className="label">{t('dbPricePerDay')}</label>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                    <input
-                      type="number"
-                      className="input"
-                      placeholder={t('dbFrom')}
-                      value={filters.minPrice}
-                      onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
-                      style={{ marginBottom: 0 }}
-                    />
-                    <input
-                      type="number"
-                      className="input"
-                      placeholder={t('dbTo')}
-                      value={filters.maxPrice}
-                      onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
-                      style={{ marginBottom: 0 }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="label">{t('dbMinBedrooms')}</label>
-                  <input
-                    type="number"
-                    className="input"
-                    placeholder={t('dbPlaceholderEg2')}
-                    value={filters.minBedrooms}
-                    onChange={(e) => setFilters({ ...filters, minBedrooms: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="label">{t('dbMinArea')}</label>
-                  <input
-                    type="number"
-                    className="input"
-                    placeholder={t('dbPlaceholderEg50')}
-                    value={filters.minSize}
-                    onChange={(e) => setFilters({ ...filters, minSize: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="label">{t('dbMinPeople')}</label>
-                  <input
-                    type="number"
-                    className="input"
-                    placeholder={t('dbPlaceholderEg3')}
-                    value={filters.minOccupants}
-                    onChange={(e) => setFilters({ ...filters, minOccupants: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="label">{t('dbFurnishing')}</label>
-                  <select
-                    className="input"
-                    value={filters.furnishing}
-                    onChange={(e) => setFilters({ ...filters, furnishing: e.target.value })}
-                  >
-                    <option value="Alle">{t('all')}</option>
-                    <option>Umøblert</option>
-                    <option>Kun hvitevarer</option>
-                    <option>Fullt møblert</option>
-                    <option>
-                      Fullt møblert og boligen har alt nødvendig inventar for matlaging og
-                      overnatting.
-                    </option>
-                  </select>
-                </div>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label className="label">{t('dbAccessibility')}</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {[
-                      'Alt på ett plan',
-                      'Heis i bygget',
-                      'Terskelfritt',
-                      'Universell utforming',
-                      'Omsorgsboligstandard',
-                    ].map((acc) => (
-                      <button
-                        key={acc}
-                        onClick={() => {
-                          const newAcc = filters.accessibility.includes(acc)
-                            ? filters.accessibility.filter((a) => a !== acc)
-                            : [...filters.accessibility, acc]
-                          setFilters({ ...filters, accessibility: newAcc })
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer',
-                          background: filters.accessibility.includes(acc)
-                            ? 'var(--color-accent)'
-                            : 'var(--bg-app)',
-                          border: `1px solid ${filters.accessibility.includes(acc) ? 'var(--color-accent)' : 'var(--border-subtle)'}`,
-                          color: filters.accessibility.includes(acc)
-                            ? 'var(--text-on-dark)'
-                            : 'var(--text-main)',
-                        }}
-                      >
-                        {acc}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div
-            style={{
-              marginTop: 'var(--space-6)',
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: 'var(--space-4)',
-            }}
-          >
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={() => {
-                setSearchTerm('')
-                setFilters({
-                  city: 'Alle',
-                  type: 'Alle',
-                  minPrice: '',
-                  maxPrice: '',
-                  accessibility: [],
-                  minBedrooms: '',
-                  minSize: '',
-                  minOccupants: '',
-                  floor: 'Alle',
-                  furnishing: 'Alle',
-                })
-              }}
-              style={{ minHeight: 'auto', padding: 'var(--space-2) var(--space-3)' }}
-            >
-              {t('dbResetFilters')}
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => setShowFilters(false)}
-              style={{ padding: '8px 24px' }}
-            >
-              {t('dbDone')}
-            </Button>
-          </div>
-            </>
-          )
-          return isMobile ? (
-            <BottomSheet
-              open={showFilters}
-              title={t('dbFilterOpen')}
-              titleId="db-filters-sheet"
-              closeLabel={t('dbDone')}
-              onClose={() => setShowFilters(false)}
-              zIndex={2100}
-            >
-              {filtersInner}
-            </BottomSheet>
-          ) : (
-            <div
-              className="card card-settings-panel"
-              style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-8)' }}
-            >
-              {filtersInner}
-            </div>
-          )
-        })()}
-
-      {/* Modal: Legg inn formidlet periode */}
-      {formidletModalListing && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2000,
-          }}
-          onClick={() => closeFormidletModal()}
-        >
-          <div
-            className="card"
-            style={{ padding: 'var(--space-8)', maxWidth: '420px', width: '90%' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 'var(--space-6)',
-              }}
-            >
-              <h3 style={{ margin: 0 }}>{t('dbModalAddFormidletTitle')}</h3>
-              <button
-                onClick={() => closeFormidletModal()}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: 4,
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <p
-              style={{
-                marginBottom: 'var(--space-4)',
-                fontSize: '0.95rem',
-                color: 'var(--text-muted)',
-              }}
-            >
-              {formidletModalListing.address}
-            </p>
-            <div style={{ marginBottom: 'var(--space-6)' }}>
-              <label className="label">{t('periodDateRange')}</label>
-              <div className="formidlet-date-range" style={{ marginTop: 'var(--space-2)' }}>
-                <div>
-                  <span
-                    className="text-sm"
-                    style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}
-                  >
-                    {t('from')}
-                  </span>
-                  <DateInput
-                    showCalendar
-                    className="input"
-                    style={{ marginBottom: 0, width: '100%' }}
-                    value={formidletStart}
-                    onChange={setFormidletStart}
-                    max={formidletEnd || undefined}
-                    placeholder={t('dateInputPlaceholder')}
-                    calendarDayTone={(iso) =>
-                      dayAvailabilityToneForIso(iso, availability[formidletModalListing.id] ?? [])
-                    }
-                  />
-                </div>
-                <div>
-                  <span
-                    className="text-sm"
-                    style={{ display: 'block', marginBottom: '4px', opacity: 0.8 }}
-                  >
-                    {t('to')}
-                  </span>
-                  <DateInput
-                    showCalendar
-                    className="input"
-                    style={{ marginBottom: 0, width: '100%' }}
-                    value={formidletEnd}
-                    onChange={setFormidletEnd}
-                    min={formidletStart || undefined}
-                    placeholder={t('dateInputPlaceholder')}
-                    calendarDayTone={(iso) =>
-                      dayAvailabilityToneForIso(iso, availability[formidletModalListing.id] ?? [])
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-            <details
-              style={{
-                fontSize: '0.85rem',
-                marginBottom: 'var(--space-6)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <summary style={{ cursor: 'pointer', userSelect: 'none', color: 'var(--text-main)' }}>
-                {t('mediationNoteOptional')}
-              </summary>
-              <div style={{ marginTop: 'var(--space-3)', display: 'grid', gap: 'var(--space-2)' }}>
-                <textarea
-                  className="input"
-                  rows={2}
-                  maxLength={MAX_MEDIATION_NOTE_IN_NOTIFICATION}
-                  value={formidletMediationNote}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setFormidletMediationNote(v)
-                    if (!v.trim()) setFormidletIncludeNoteInOwnerNotif(false)
-                  }}
-                  placeholder={t('mediationNotePlaceholder')}
-                  style={{
-                    marginBottom: 0,
-                    width: '100%',
-                    resize: 'vertical',
-                    minHeight: '48px',
-                    maxHeight: '120px',
-                    fontSize: '0.9rem',
-                  }}
-                />
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 'var(--space-2)',
-                    cursor: 'pointer',
-                    color: 'var(--text-body)',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={formidletIncludeNoteInOwnerNotif}
-                    onChange={(e) => setFormidletIncludeNoteInOwnerNotif(e.target.checked)}
-                    style={{ marginTop: '2px', width: '18px', height: '18px' }}
-                  />
-                  <span>{t('includeMediationNoteInNotification')}</span>
-                </label>
-              </div>
-            </details>
-            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => closeFormidletModal()}
-                style={{
-                  background: 'none',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-main)',
-                  padding: 'var(--space-3) var(--space-5)',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                }}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                onClick={handleMarkAsFormidlet}
-                disabled={formidletSending}
-                className="button button-success"
-              >
-                {formidletSending ? (
-                  <ShieldCheck size={18} style={{ opacity: 0.5 }} />
-                ) : (
-                  <ShieldCheck size={18} />
-                )}
-                {formidletSending ? ` ${t('dbSavingShort')}` : ` ${t('dbConfirmMediation')}`}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Forleng formidlet periode */}
-      {formidletExtendModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2000,
-          }}
-          onClick={() => !formidletSending && setFormidletExtendModal(null)}
-        >
-          <div
-            className="card"
-            style={{ padding: 'var(--space-8)', maxWidth: '420px', width: '90%' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 'var(--space-6)',
-              }}
-            >
-              <h3 style={{ margin: 0 }}>{t('dbModalExtendTitle')}</h3>
-              <button
-                onClick={() => !formidletSending && setFormidletExtendModal(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: 4,
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <p
-              style={{
-                marginBottom: 'var(--space-4)',
-                fontSize: '0.95rem',
-                color: 'var(--text-muted)',
-              }}
-            >
-              {formidletExtendModal.listing.address}
-            </p>
-            <p style={{ marginBottom: 'var(--space-3)', fontSize: '0.9rem' }}>
-              {t('dbModalExtendCurrent')} {formatDateNo(formidletExtendModal.period.start_date)} –{' '}
-              {formatDateNo(formidletExtendModal.period.end_date)}
-            </p>
-            <div style={{ marginBottom: 'var(--space-6)' }}>
-              <label className="label">{t('dbModalNewEndDate')}</label>
-              <DateInput
-                showCalendar
-                className="input"
-                style={{ marginTop: 'var(--space-2)', width: '100%' }}
-                value={formidletExtendEnd}
-                onChange={setFormidletExtendEnd}
-                min={formidletExtendModal.period.end_date}
-                placeholder={t('dateInputPlaceholder')}
-                calendarDayTone={(iso) =>
-                  dayAvailabilityToneForIso(iso, availability[formidletExtendModal.listing.id] ?? [])
-                }
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => !formidletSending && setFormidletExtendModal(null)}
-                style={{
-                  background: 'none',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-main)',
-                  padding: 'var(--space-3) var(--space-5)',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                }}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                onClick={handleExtendFormidlet}
-                disabled={formidletSending}
-                className="button button-success"
-              >
-                {formidletSending ? ` ${t('dbSavingShort')}` : t('dbExtendButton')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <FormidletExtendModal
+        data={formidletExtendModal}
+        availability={availability}
+        onClose={() => setFormidletExtendModal(null)}
+        onSuccess={invalidateListings}
+      />
 
       <div>
         {loading ? (
@@ -3345,11 +2177,6 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
           .db-table th,
           .db-table td {
             padding: 8px 10px !important;
-          }
-        }
-        @media (max-width: 400px) {
-          .formidlet-date-range {
-            grid-template-columns: 1fr;
           }
         }
       `}</style>

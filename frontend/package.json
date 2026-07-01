@@ -7,6 +7,7 @@
     "build": "next build",
     "build:mobile": "node build-mobile.js",
     "start": "next start",
+    "gen:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "analyze": "cross-env ANALYZE=true next build",
@@ -18,7 +19,9 @@
     "cap:open:android": "npx cap open android",
     "mobile:build": "npm run build:mobile && npm run cap:sync",
     "mobile:ios": "npm run mobile:build && npm run cap:open:ios",
-    "mobile:android": "npm run mobile:build && npm run cap:open:android"
+    "mobile:android": "npm run mobile:build && npm run cap:open:android",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test e2e/smoke.spec.ts"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
@@ -47,6 +50,7 @@
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",
     "@next/bundle-analyzer": "^16.2.3",
+    "@playwright/test": "^1.51.1",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",

@@ -10,5 +10,9 @@ export const QK = {
   notificationsList: ['notifications'] as const,
   navDatabaseListings: ['navDatabase', 'listings'] as const,
   navDatabasePublishedEvents: ['navDatabase', 'publishedEvents'] as const,
+  publishedEvents: ['events', 'published'] as const,
+  eventStaffAccess: ['eventStaff', 'access'] as const,
+  finnListings: ['finn', 'listings'] as const,
+  finnMineBookings: ['finn', 'mine', 'bookings'] as const,
   appUserProfile: ['app'] as const,
 }

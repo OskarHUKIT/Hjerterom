@@ -6,11 +6,10 @@
 export type ListingAvailabilityRow = {
   id?: string
   listing_id?: string
-  start_date?: string
-  end_date?: string
+  start_date: string
+  end_date: string
   status?: string
-  [key: string]: unknown
-}
+} & Record<string, any>
 
 /** Listing som hentes i detaljvisning / nav-database (felt brukt i UI + generiske oppdateringer). */
 export type ListingDetailsRecord = {
@@ -24,10 +23,10 @@ export type ListingDetailsRecord = {
   status?: string
   type?: string
   is_available?: boolean
-  price_daily?: number
-  bedrooms?: number
-  size_sqm?: number
-  max_occupants?: number
+  price_daily?: number | string
+  bedrooms?: number | string
+  size_sqm?: number | string
+  max_occupants?: number | string
   floor_number?: string | number
   furnishing?: string
   accessibility?: string[]
@@ -40,25 +39,28 @@ export type ListingDetailsRecord = {
   map_lng?: number | null
   last_verified?: string | null
   deposit_guarantee?: unknown
-  [key: string]: unknown
-}
+  house_rules_pdf_path?: string | null
+} & Record<string, any>
 
 export type HandoverReportRow = {
   id: string
   approval_status?: string | null
   created_at?: string
-  [key: string]: unknown
-}
+} & Record<string, any>
 
-export type NavNoteRow = Record<string, unknown> & {
+export type NavNoteRow = {
   id?: string
   note_text?: string
   created_at?: string
-}
+} & Record<string, any>
 
-export type MediationReservationRow = Record<string, unknown> & {
+export type MediationReservationRow = {
+  reserved_by?: string
   reserved_by_name?: string
-}
+  expires_at?: string
+  internal_note?: string
+  status?: string
+} & Record<string, any>
 
 /** Rad valgt for «be om endring» i overtakelsesrapport. */
 export type HandoverChangeRequestRow = (Record<string, unknown> & { id: string }) | null

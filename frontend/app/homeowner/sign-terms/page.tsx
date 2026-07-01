@@ -11,7 +11,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '../../lib/supabase'
-import { useToast } from '@/app/components/design-system'
+import { useConfirm, useToast } from '@/app/components/design-system'
 import { useLanguage } from '../../../context/LanguageContext'
 import {
   readPendingFirstListingDraft,
@@ -72,6 +72,7 @@ function SignedAgreementPdfButton({
 function SignTermsContent() {
   const { t, locale: appLocale } = useLanguage()
   const toast = useToast()
+  const confirmDialog = useConfirm()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -87,9 +88,13 @@ function SignTermsContent() {
     pdf_storage_path?: string | null
   } | null>(null)
   const [signedAcceptances, setSignedAcceptances] = useState<SignedTermsCard[]>([])
+  /** Explicit ?doc= request: show signing UI even when base kommune agreement exists. */
+  const [explicitDocMode, setExplicitDocMode] = useState(false)
+  const [explicitDocAlreadySigned, setExplicitDocAlreadySigned] = useState(false)
 
   const fallbackTermsPdfHref = publicDocumentsFileUrl('VilkarsavtaleBoligbanken.pdf')
 
+  const docParam = searchParams.get('doc')?.trim() || ''
   const cityParam = searchParams.get('city')?.trim() || ''
   const returnToRaw = searchParams.get('returnTo')?.trim() || ''
   const safeReturnHref =
@@ -166,17 +171,14 @@ function SignTermsContent() {
 
       const isActiveAgreement = !!ua && !ua.is_terminated
       setIsSigned(isActiveAgreement)
+      setExplicitDocMode(false)
+      setExplicitDocAlreadySigned(false)
 
       let effectiveCity = cityParam
       if (!effectiveCity) {
         effectiveCity = listingRes.data?.city?.trim() || ''
       }
       setSignCity(effectiveCity)
-
-      const docRpc = supabase.rpc('get_terms_document_for_signing', {
-        p_user_id: user.id,
-        p_city: effectiveCity.trim() || null,
-      })
 
       type DocRow = {
         id: string
@@ -198,34 +200,71 @@ function SignTermsContent() {
           }[]
         | null = null
 
-      if (isActiveAgreement) {
-        const [docResult, accResult] = await Promise.all([
-          docRpc,
+      if (docParam) {
+        const [{ data: explicitDoc, error: explicitErr }, { data: explicitAcc }] = await Promise.all([
+          supabase
+            .from('terms_documents')
+            .select('id, title, body, version, pdf_bucket, pdf_storage_path')
+            .eq('id', docParam)
+            .eq('approved_for_utleier_signing', true)
+            .maybeSingle(),
           supabase
             .from('user_terms_acceptances')
-            .select(
-              'id, signed_at, status, terms_documents ( title, version, pdf_bucket, pdf_storage_path, kommune_region )'
-            )
+            .select('id')
             .eq('user_id', user.id)
-            .in('status', ['active', 'superseded'])
-            .order('signed_at', { ascending: false }),
+            .eq('terms_document_id', docParam)
+            .eq('status', 'active')
+            .maybeSingle(),
         ])
-        docRows = docResult.data
-        docErr = docResult.error
-        accRows = accResult.data
+        if (explicitErr) {
+          docErr = explicitErr
+          setTermsDoc(null)
+        } else if (explicitDoc) {
+          setExplicitDocMode(true)
+          if (explicitAcc) {
+            setExplicitDocAlreadySigned(true)
+            setTermsDoc(explicitDoc as DocRow)
+          } else {
+            setTermsDoc(explicitDoc as DocRow)
+          }
+        } else {
+          setTermsDoc(null)
+        }
       } else {
-        const docResult = await docRpc
-        docRows = docResult.data
-        docErr = docResult.error
+        const docRpc = supabase.rpc('get_terms_document_for_signing', {
+          p_user_id: user.id,
+          p_city: effectiveCity.trim() || null,
+        })
+
+        if (isActiveAgreement) {
+          const [docResult, accResult] = await Promise.all([
+            docRpc,
+            supabase
+              .from('user_terms_acceptances')
+              .select(
+                'id, signed_at, status, terms_documents ( title, version, pdf_bucket, pdf_storage_path, kommune_region )'
+              )
+              .eq('user_id', user.id)
+              .in('status', ['active', 'superseded'])
+              .order('signed_at', { ascending: false }),
+          ])
+          docRows = docResult.data
+          docErr = docResult.error
+          accRows = accResult.data
+        } else {
+          const docResult = await docRpc
+          docRows = docResult.data
+          docErr = docResult.error
+        }
+
+        if (!docErr && docRows && Array.isArray(docRows) && docRows[0]) {
+          setTermsDoc(docRows[0] as DocRow)
+        } else {
+          setTermsDoc(null)
+        }
       }
 
-      if (!docErr && docRows && Array.isArray(docRows) && docRows[0]) {
-        setTermsDoc(docRows[0] as DocRow)
-      } else {
-        setTermsDoc(null)
-      }
-
-      if (isActiveAgreement) {
+      if (isActiveAgreement && !docParam) {
         const cards: SignedTermsCard[] = []
         for (const row of accRows || []) {
           const rawTd = row.terms_documents as
@@ -287,7 +326,7 @@ function SignTermsContent() {
       setPageReady(true)
     }
     checkAgreement()
-  }, [router, searchParams, cityParam, t])
+  }, [router, searchParams, cityParam, docParam, t])
 
   useEffect(() => {
     const signedParam = searchParams.get('signed')
@@ -393,6 +432,7 @@ function SignTermsContent() {
         origin: typeof window !== 'undefined' ? window.location.origin : '',
         appLocale,
         ...(signCity.trim() ? { city: signCity.trim() } : {}),
+        ...(termsDoc?.id ? { termsDocumentId: termsDoc.id } : {}),
       }
       const res = await fetch(`${supabaseUrl}/functions/v1/sign-agreement`, {
         method: 'POST',
@@ -447,7 +487,14 @@ function SignTermsContent() {
   }
 
   const handleTerminate = async () => {
-    if (!confirm(t('signTermsTerminateConfirm'))) return
+    if (
+      !(await confirmDialog({
+        title: t('signTermsNavShort'),
+        message: t('signTermsTerminateConfirm'),
+        variant: 'danger',
+      }))
+    )
+      return
 
     setLoading(true)
     try {
@@ -504,7 +551,46 @@ function SignTermsContent() {
     )
   }
 
-  if (isSigned && !termsDoc) {
+  if (explicitDocMode && explicitDocAlreadySigned) {
+    return (
+      <main className="container">
+        <div style={{ maxWidth: '560px', margin: '0 auto' }}>
+          <div style={{ marginBottom: 'var(--space-8)' }}>
+            <Link
+              href={safeReturnHref}
+              className="nav-link"
+              style={{
+                marginLeft: '-1rem',
+                marginBottom: 'var(--space-2)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+              }}
+            >
+              <ArrowLeft size={18} /> {t('signTermsBack')}
+            </Link>
+            <h1 style={{ fontSize: 'var(--fluid-h1-hero)', margin: 0 }}>{t('signedAgreement')}</h1>
+          </div>
+          <div className="card" style={{ padding: 'var(--space-6)' }}>
+            <p style={{ margin: 0, lineHeight: 1.55 }}>
+              {termsDoc
+                ? `${termsDoc.title} · v${termsDoc.version} — ${t('agreementSigned').toLowerCase()}`
+                : t('agreementSigned')}
+            </p>
+            <Link
+              href={safeReturnHref}
+              className="button"
+              style={{ marginTop: 'var(--space-4)', display: 'inline-flex', textDecoration: 'none' }}
+            >
+              {t('signTermsBack')}
+            </Link>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  if (isSigned && !termsDoc && !explicitDocMode) {
     const activeAcceptances = signedAcceptances.filter((x) => x.status === 'active')
     const historicAcceptances = signedAcceptances.filter((x) => x.status === 'superseded')
 
@@ -641,7 +727,7 @@ function SignTermsContent() {
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         <div style={{ marginBottom: 'var(--space-8)' }}>
           <Link
-            href={isSigned ? '/homeowner/manage' : safeReturnHref}
+            href={explicitDocMode ? safeReturnHref : isSigned ? '/homeowner/manage' : safeReturnHref}
             className="nav-link"
             style={{
               marginLeft: '-1rem',
@@ -657,11 +743,13 @@ function SignTermsContent() {
             {t('signTermsPageTitle')}
           </h1>
           <p style={{ fontSize: '1.125rem', opacity: 0.85, lineHeight: 1.55 }}>
-            {isSigned
+            {explicitDocMode
               ? t('signTermsIntroAdditionalSigning')
-              : signCity.trim()
-                ? t('signTermsIntroFirstTimeWithCity').replace('{city}', signCity.trim())
-                : t('signTermsIntroFirstTimeNoCity')}
+              : isSigned
+                ? t('signTermsIntroAdditionalSigning')
+                : signCity.trim()
+                  ? t('signTermsIntroFirstTimeWithCity').replace('{city}', signCity.trim())
+                  : t('signTermsIntroFirstTimeNoCity')}
           </p>
           {isSigned && signCity.trim() ? (
             <p

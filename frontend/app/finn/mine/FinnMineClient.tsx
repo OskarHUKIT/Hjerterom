@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Mail, CalendarCheck, Star } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { PageSkeleton, useToast } from '@/app/components/design-system'
+import { PageSkeleton, useConfirm, useToast } from '@/app/components/design-system'
+import { QK } from '@/app/lib/queries/queryKeys'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
 import { formatDateNo } from '@/app/lib/dateFormat'
 import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
@@ -21,41 +23,65 @@ type BookingRow = {
   listings: { address: string; city: string } | { address: string; city: string }[] | null
 }
 
+type FinnMineBookingsData = {
+  bookings: BookingRow[]
+  reviewedIds: Set<string>
+}
+
+async function fetchFinnMineBookings(uid: string, em: string): Promise<FinnMineBookingsData> {
+  const { data } = await supabase
+    .from('bookings')
+    .select('id, check_in, check_out, status, listing_id, listings(address, city)')
+    .or(`guest_user_id.eq.${uid},guest_email.eq.${em}`)
+    .order('created_at', { ascending: false })
+    .limit(20)
+  const bookings = (data ?? []) as BookingRow[]
+  const ids = bookings.map((b) => b.id)
+  let reviewedIds = new Set<string>()
+  if (ids.length > 0) {
+    const { data: revs } = await supabase
+      .from('booking_reviews')
+      .select('booking_id')
+      .in('booking_id', ids)
+    reviewedIds = new Set((revs ?? []).map((r) => r.booking_id))
+  }
+  return { bookings, reviewedIds }
+}
+
 export default function FinnMineClient() {
   const { t } = useLanguage()
   const toast = useToast()
+  const confirmDialog = useConfirm()
+  const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const highlightId = searchParams.get('booking')
   const [email, setEmail] = useState('')
   const [sending, setSending] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [bookings, setBookings] = useState<BookingRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [authLoading, setAuthLoading] = useState(true)
   const [termsOpen, setTermsOpen] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [reviewBookingId, setReviewBookingId] = useState<string | null>(null)
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewBody, setReviewBody] = useState('')
-  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
   const [expandedBookingId, setExpandedBookingId] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [checkInGuides, setCheckInGuides] = useState<Record<string, string>>({})
 
-  const loadBookings = async (uid: string, em: string) => {
-    const { data } = await supabase
-      .from('bookings')
-      .select('id, check_in, check_out, status, listing_id, listings(address, city)')
-      .or(`guest_user_id.eq.${uid},guest_email.eq.${em}`)
-      .order('created_at', { ascending: false })
-      .limit(20)
-    setBookings((data ?? []) as BookingRow[])
-    const ids = (data ?? []).map((b) => b.id)
-    if (ids.length > 0) {
-      const { data: revs } = await supabase.from('booking_reviews').select('booking_id').in('booking_id', ids)
-      setReviewedIds(new Set((revs ?? []).map((r) => r.booking_id)))
-    }
-  }
+  const {
+    data: bookingsData,
+    isPending: bookingsLoading,
+    refetch: refetchBookings,
+  } = useQuery({
+    queryKey: [...QK.finnMineBookings, userId, userEmail],
+    queryFn: () => fetchFinnMineBookings(userId!, userEmail!),
+    enabled: !!userId && !!userEmail,
+    staleTime: 30_000,
+  })
+
+  const bookings = bookingsData?.bookings ?? []
+  const reviewedIds = bookingsData?.reviewedIds ?? new Set<string>()
 
   useEffect(() => {
     let cancelled = false
@@ -74,19 +100,22 @@ export default function FinnMineClient() {
         })
         if (termsOk === false) setTermsOpen(true)
         await supabase.rpc('link_guest_bookings_on_login')
-        await loadBookings(user.id, user.email)
         if (highlightId) setExpandedBookingId(highlightId)
         if (searchParams.get('paid') === '1') {
           toast(t('finnPaymentConfirmed'), 'success')
-          if (highlightId) await loadBookings(user.id, user.email)
         }
       }
-      setLoading(false)
+      setAuthLoading(false)
     })()
     return () => {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!userId || !userEmail || searchParams.get('paid') !== '1') return
+    void refetchBookings()
+  }, [userId, userEmail, searchParams, refetchBookings])
 
   const acceptGuestTerms = async () => {
     if (!termsAccepted || !userId) return
@@ -129,9 +158,22 @@ export default function FinnMineClient() {
       return
     }
     toast(t('finnReviewThanks'), 'success')
-    setReviewedIds((prev) => new Set(prev).add(bookingId))
+    setReviewedIdsLocal(bookingId)
     setReviewBookingId(null)
     setReviewBody('')
+    void queryClient.invalidateQueries({ queryKey: QK.finnMineBookings })
+  }
+
+  const setReviewedIdsLocal = (bookingId: string) => {
+    queryClient.setQueryData<FinnMineBookingsData>(
+      [...QK.finnMineBookings, userId, userEmail],
+      (prev) => {
+        if (!prev) return prev
+        const next = new Set(prev.reviewedIds)
+        next.add(bookingId)
+        return { ...prev, reviewedIds: next }
+      }
+    )
   }
 
   const sendMagicLink = async (e: React.FormEvent) => {
@@ -163,7 +205,14 @@ export default function FinnMineClient() {
   }
 
   const cancelBooking = async (bookingId: string) => {
-    if (!window.confirm(t('finnCancelBookingConfirm'))) return
+    if (
+      !(await confirmDialog({
+        title: t('finnCancelBooking'),
+        message: t('finnCancelBookingConfirm'),
+        variant: 'danger',
+      }))
+    )
+      return
     setCancellingId(bookingId)
     const { data, error } = await supabase.rpc('guest_cancel_booking', { p_booking_id: bookingId })
     setCancellingId(null)
@@ -172,7 +221,7 @@ export default function FinnMineClient() {
       return
     }
     toast(t('finnCancelBookingDone'), 'success')
-    if (userId && userEmail) void loadBookings(userId, userEmail)
+    void refetchBookings()
   }
 
   const statusLabel = (status: string) => {
@@ -181,7 +230,7 @@ export default function FinnMineClient() {
     return translated === key ? status : translated
   }
 
-  if (loading) return <PageSkeleton minHeight={240} />
+  if (authLoading || (userEmail && bookingsLoading)) return <PageSkeleton minHeight={240} />
 
   return (
     <section>

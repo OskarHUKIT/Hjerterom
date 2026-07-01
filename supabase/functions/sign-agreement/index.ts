@@ -12,6 +12,8 @@ const signAgreementBodySchema = z.object({
   origin: z.string().max(512).optional(),
   city: z.string().max(200).optional(),
   agreementVersion: z.string().max(32).optional(),
+  /** Sign a specific terms document (event/tourism/kommune) instead of first missing. */
+  termsDocumentId: z.string().uuid().optional(),
   /** Boly UI language: drives Signicat Sign API `ui.language` (nb/en; se → nb, since Sign API rejects "no"). */
   appLocale: z.enum(["no", "se", "en"]).optional(),
 })
@@ -65,7 +67,8 @@ serve(async (req) => {
         { status: 400, headers: { ...buildCorsHeaders(req), 'Content-Type': 'application/json' } },
       )
     }
-    const { userId: uid, origin, city: cityRaw, appLocale } = parsedBody.data
+    const { userId: uid, origin, city: cityRaw, appLocale, termsDocumentId: requestedDocId } =
+      parsedBody.data
     userId = uid
     city = cityRaw
     const cityParam = city?.trim() ? `&city=${encodeURIComponent(city.trim())}` : ''
@@ -130,14 +133,50 @@ serve(async (req) => {
     }
 
     currentStep = "Hent dokument å signere"
-    const { data: docId, error: rpcErr } = await supabaseAdmin.rpc(
-      "get_first_missing_terms_document_id_for_user",
-      {
-        p_user_id: userId,
-        p_city: city?.trim() || null,
-      },
-    )
-    if (rpcErr) console.warn("get_first_missing_terms_document_id_for_user:", rpcErr.message)
+    let docId: string | null = requestedDocId?.trim() || null
+    if (docId) {
+      const { data: reqRow } = await supabaseAdmin
+        .from("terms_documents")
+        .select("id, approved_for_utleier_signing")
+        .eq("id", docId)
+        .maybeSingle()
+      if (!reqRow || reqRow.approved_for_utleier_signing !== true) {
+        return new Response(
+          JSON.stringify({
+            error: "Signering ikke tilgjengelig",
+            message:
+              "Dette vilkårsdokumentet finnes ikke eller er ikke godkjent for utleiersignering.",
+          }),
+          { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
+        )
+      }
+      const { data: alreadySigned } = await supabaseAdmin
+        .from("user_terms_acceptances")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("terms_document_id", docId)
+        .eq("status", "active")
+        .maybeSingle()
+      if (alreadySigned) {
+        return new Response(
+          JSON.stringify({
+            error: "Allerede signert",
+            message: "Du har allerede signert dette vilkårsdokumentet.",
+          }),
+          { status: 400, headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } },
+        )
+      }
+    } else {
+      const { data: rpcDocId, error: rpcErr } = await supabaseAdmin.rpc(
+        "get_first_missing_terms_document_id_for_user",
+        {
+          p_user_id: userId,
+          p_city: city?.trim() || null,
+        },
+      )
+      if (rpcErr) console.warn("get_first_missing_terms_document_id_for_user:", rpcErr.message)
+      if (typeof rpcDocId === "string") docId = rpcDocId
+    }
 
     if (!docId || typeof docId !== "string") {
       const kommuneId = await resolveKommuneIdFromCity(supabaseAdmin, city)
