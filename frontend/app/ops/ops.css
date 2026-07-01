@@ -11,6 +11,8 @@
   --ops-text: #f8fafc;
   --ops-text-secondary: #e2e8f0;
   --ops-text-muted: #94a3b8;
+  --ops-accent: #5b7cfa;
+  --ops-accent-soft: rgba(91, 124, 250, 0.16);
 
   --bg-app: var(--ops-bg);
   --bg-card: var(--ops-surface);

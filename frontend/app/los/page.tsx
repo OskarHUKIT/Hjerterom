@@ -296,7 +296,7 @@ export default function LosChatPage() {
         </div>
       )}
 
-      <div className="los-messages" aria-live="polite">
+      <div className="los-messages" role="log" aria-live="polite" aria-relevant="additions">
         {messages.map((m, i) => (
           <div
             key={`${m.at ?? i}-${m.role}`}

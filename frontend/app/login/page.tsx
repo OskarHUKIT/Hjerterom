@@ -7,6 +7,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import Link from 'next/link'
 import { Mail, Lock, UserPlus, LogIn, User, Phone } from 'lucide-react'
 import Logo from '../components/Logo'
+import FieldInput from '../components/design-system/FieldInput'
 import { useLanguage } from '../../context/LanguageContext'
 import { bolyLocaleToSignicatUi } from '../lib/signicatLocale'
 import { getLandlordPostLoginHref } from '../lib/landlordNavGate'
@@ -291,201 +292,77 @@ function LoginPageContent() {
   }
 
   return (
-    <main
-      className="login-page"
-      style={{
-        minHeight: '100svh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--space-6)',
-        paddingLeft: 'max(var(--space-6), env(safe-area-inset-left))',
-        paddingRight: 'max(var(--space-6), env(safe-area-inset-right))',
-        paddingBottom: 'max(var(--space-6), env(safe-area-inset-bottom))',
-        background: 'var(--bg-app)',
-      }}
-    >
-      <div
-        className="card login-card"
-        style={{
-          width: '100%',
-          maxWidth: '420px',
-          padding: 'var(--space-8)',
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
-          <div style={{ display: 'inline-block', marginBottom: 'var(--space-5)' }}>
-            <Logo />
-          </div>
-          <h1
-            style={{
-              fontSize: '1.75rem',
-              fontWeight: 700,
-              marginBottom: 'var(--space-2)',
-              color: 'var(--text-main)',
-            }}
-          >
-            {isSignUp ? t('createAccount') : t('welcomeBack')}
-          </h1>
-          <p style={{ color: 'var(--text-body)', fontSize: '0.95rem', lineHeight: 1.5 }}>
-            {isSignUp ? t('createAccountDesc') : t('loginDesc')}
-          </p>
+    <main className="login-page">
+      <div className="card login-card">
+        <div className="hrt-login-header">
+          <Logo />
+          <h1>{isSignUp ? t('createAccount') : t('welcomeBack')}</h1>
+          <p>{isSignUp ? t('createAccountDesc') : t('loginDesc')}</p>
         </div>
 
-        {message && (
+        {message ? (
           <div
-            style={{
-              padding: 'var(--space-4)',
-              borderRadius: '12px',
-              marginBottom: 'var(--space-6)',
-              background:
-                message.type === 'success' ? 'rgba(45, 212, 191, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-              border: `1px solid ${message.type === 'success' ? 'var(--color-teal)' : '#ef4444'}`,
-              color: message.type === 'success' ? 'var(--color-teal)' : '#ef4444',
-              fontSize: '0.9rem',
-            }}
+            className={`hrt-alert${message.type === 'success' ? ' hrt-alert--success' : ' hrt-alert--error'}`}
+            role="alert"
           >
             {message.text}
           </div>
-        )}
+        ) : null}
 
-        <form onSubmit={handleAuth} style={{ display: 'grid', gap: 'var(--space-5)' }}>
-          {isSignUp && (
+        <form onSubmit={handleAuth} className="hrt-login-form">
+          {isSignUp ? (
             <>
-              <div>
-                <label className="label login-label" htmlFor="login-full-name">
-                  {t('fullName')}
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="login-full-name"
-                    name="full_name"
-                    type="text"
-                    className="input login-input"
-                    placeholder={t('loginPlaceholderFullName')}
-                    required={isSignUp}
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    autoComplete="name"
-                    style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
-                  />
-                  <User
-                    size={18}
-                    style={{
-                      position: 'absolute',
-                      left: '1rem',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'var(--text-muted)',
-                    }}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="label login-label" htmlFor="login-phone">
-                  {t('phone')}
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    id="login-phone"
-                    name="phone"
-                    type="tel"
-                    className="input login-input"
-                    placeholder={t('loginPlaceholderPhone')}
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    autoComplete="tel"
-                    style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
-                  />
-                  <Phone
-                    size={18}
-                    style={{
-                      position: 'absolute',
-                      left: '1rem',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'var(--text-muted)',
-                    }}
-                  />
-                </div>
-              </div>
+              <FieldInput
+                label={t('fullName')}
+                name="full_name"
+                type="text"
+                id="login-full-name"
+                placeholder={t('loginPlaceholderFullName')}
+                required={isSignUp}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                autoComplete="name"
+                icon={<User size={18} />}
+              />
+              <FieldInput
+                label={t('phone')}
+                name="phone"
+                type="tel"
+                id="login-phone"
+                placeholder={t('loginPlaceholderPhone')}
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                autoComplete="tel"
+                icon={<Phone size={18} />}
+              />
             </>
-          )}
-          <div>
-            <label className="label login-label" htmlFor="login-email">
-              {t('email')}
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                id="login-email"
-                name="email"
-                type="email"
-                className="input login-input"
-                placeholder={t('loginPlaceholderEmail')}
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
-              />
-              <Mail
-                size={18}
-                style={{
-                  position: 'absolute',
-                  left: '1rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                }}
-              />
-            </div>
-          </div>
+          ) : null}
+          <FieldInput
+            label={t('email')}
+            name="email"
+            type="email"
+            id="login-email"
+            placeholder={t('loginPlaceholderEmail')}
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            icon={<Mail size={18} />}
+          />
+          <FieldInput
+            label={t('password')}
+            name="password"
+            type="password"
+            id="login-password"
+            placeholder={t('loginPasswordMask')}
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete={isSignUp ? 'new-password' : 'current-password'}
+            icon={<Lock size={18} />}
+          />
 
-          <div>
-            <label className="label login-label" htmlFor="login-password">
-              {t('password')}
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                id="login-password"
-                name="password"
-                type="password"
-                className="input login-input"
-                placeholder={t('loginPasswordMask')}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                style={{ paddingLeft: '2.75rem', marginBottom: 0 }}
-              />
-              <Lock
-                size={18}
-                style={{
-                  position: 'absolute',
-                  left: '1rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                }}
-              />
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: 'var(--space-4)',
-              marginTop: 'var(--space-2)',
-              fontSize: '1.05rem',
-              fontWeight: 600,
-            }}
-          >
+          <Button type="submit" variant="primary" disabled={loading} className="hrt-login-submit">
             {loading ? (
               isSignUp ? (
                 <UserPlus size={20} style={{ opacity: 0.8 }} />
@@ -501,35 +378,24 @@ function LoginPageContent() {
           </Button>
         </form>
 
-        <div style={{ marginTop: 'var(--space-6)', textAlign: 'center', fontSize: '0.95rem' }}>
-          <p style={{ color: 'var(--text-body)' }}>
+        <div className="hrt-login-footer">
+          <p>
             {isSignUp ? t('alreadyHaveAccount') : t('noAccount')}{' '}
             <button
               onClick={() => setIsSignUp(!isSignUp)}
               type="button"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-accent)',
-                fontWeight: 600,
-                cursor: 'pointer',
-                padding: 0,
-                textDecoration: 'underline',
-                textUnderlineOffset: 2,
-              }}
+              className="hrt-link-button"
             >
               {isSignUp ? t('loginHere') : t('signUpHere')}
             </button>
           </p>
         </div>
 
-        {!isSignUp && (
-          <div style={{ marginTop: 'var(--space-4)', textAlign: 'center' }}>
-            <Link href="/login/forgot-password" style={{ fontSize: '0.9rem', color: 'var(--color-accent)' }}>
-              {t('forgotPassword')}
-            </Link>
+        {!isSignUp ? (
+          <div className="hrt-login-forgot">
+            <Link href="/login/forgot-password">{t('forgotPassword')}</Link>
           </div>
-        )}
+        ) : null}
       </div>
     </main>
   )

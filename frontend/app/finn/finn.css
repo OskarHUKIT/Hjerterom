@@ -59,7 +59,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 10px 16px;
+  min-height: var(--touch-target, 44px);
   border-radius: 999px;
   text-decoration: none;
   font-size: 0.9rem;
@@ -361,4 +362,58 @@
   font-weight: 700;
   margin: 0 0 var(--space-4);
   color: var(--finn-text);
+}
+
+/* Mobile-first navigation */
+@media (max-width: 768px) {
+  .finn-header {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    padding-bottom: var(--space-3);
+  }
+
+  .finn-brand-text {
+    font-size: 1rem;
+  }
+
+  .finn-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    flex-wrap: nowrap;
+    justify-content: space-around;
+    gap: 0;
+    padding: var(--space-2) max(var(--space-3), env(safe-area-inset-left))
+      calc(var(--space-2) + env(safe-area-inset-bottom))
+      max(var(--space-3), env(safe-area-inset-right));
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--finn-border);
+    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .finn-nav-link {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: var(--space-2) var(--space-1);
+    min-height: var(--touch-target, 44px);
+    border-radius: var(--hrt-radius-sm, 10px);
+    font-size: 0.72rem;
+  }
+
+  .finn-nav-link span {
+    line-height: 1.2;
+  }
+
+  .finn-main {
+    padding-bottom: calc(var(--space-10) + env(safe-area-inset-bottom));
+  }
+
+  .finn-footer {
+    padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
+  }
 }

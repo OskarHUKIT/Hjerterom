@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
+import { useFocusTrap } from '@/app/lib/useFocusTrap'
 import { Button } from '../ui/Button'
 
 type ConfirmOptions = {
@@ -48,6 +49,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(() => ({ confirm }), [confirm])
+  const trapRef = useFocusTrap(open, () => close(false))
 
   return (
     <ConfirmContext.Provider value={value}>
@@ -57,16 +59,17 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           className="ds-dialog-backdrop"
           role="presentation"
           onClick={() => close(false)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') close(false)
-          }}
         >
           <div
+            ref={trapRef}
             className="ds-dialog card"
             role="dialog"
             aria-modal="true"
             aria-labelledby="ds-confirm-title"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') close(false)
+            }}
           >
             <h2 id="ds-confirm-title" className="ds-dialog-title">
               {options.title}
