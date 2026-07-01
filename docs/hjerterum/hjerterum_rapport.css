@@ -1,0 +1,764 @@
+/* Hjerterum — Visjonsrapport PDF */
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "DM Sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: #1e293b;
+  background: #fff;
+}
+
+/* ─── Pages ─── */
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 22mm 20mm 24mm;
+  page-break-after: always;
+  position: relative;
+  overflow: hidden;
+}
+
+.page:last-child {
+  page-break-after: auto;
+}
+
+/* ─── Cover ─── */
+.cover {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #0c1929;
+  color: #fff;
+}
+
+.cover-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(165deg,
+      rgba(8, 24, 48, 0.92) 0%,
+      rgba(12, 35, 64, 0.88) 40%,
+      rgba(20, 55, 90, 0.85) 100%),
+    radial-gradient(ellipse 80% 60% at 70% 20%, rgba(56, 189, 248, 0.15) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 20% 80%, rgba(45, 212, 191, 0.12) 0%, transparent 50%);
+}
+
+.cover-bg::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(to top, rgba(0,0,0,0.35), transparent);
+}
+
+.cover-content {
+  position: relative;
+  z-index: 1;
+  padding: 28mm 22mm 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cover-kicker {
+  font-size: 8.5pt;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(125, 211, 252, 0.9);
+  margin: 0 0 10mm 0;
+}
+
+.cover-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 52pt;
+  font-weight: 600;
+  line-height: 1.05;
+  margin: 0 0 8mm 0;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.cover-subtitle {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 16pt;
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(226, 232, 240, 0.95);
+  margin: 0 0 10mm 0;
+  font-style: italic;
+}
+
+.cover-rule {
+  width: 48px;
+  height: 3px;
+  background: linear-gradient(90deg, #38bdf8, #2dd4bf);
+  margin-bottom: 10mm;
+  border-radius: 2px;
+}
+
+.cover-lead {
+  font-size: 11.5pt;
+  line-height: 1.65;
+  color: rgba(203, 213, 225, 0.95);
+  max-width: 140mm;
+  margin: 0 0 16mm 0;
+}
+
+.cover-org {
+  font-size: 9pt;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.9);
+  margin: 0;
+}
+
+.cover-footer {
+  position: relative;
+  z-index: 1;
+  padding: 8mm 22mm 14mm;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  font-size: 8.5pt;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+/* ─── TOC ─── */
+.toc-page {
+  padding-top: 26mm;
+}
+
+.section-label {
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0 0 8mm 0;
+}
+
+.toc {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc li {
+  display: flex;
+  align-items: baseline;
+  gap: 5mm;
+  padding: 4mm 0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 12pt;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.toc-num {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 14pt;
+  font-weight: 600;
+  color: #0ea5e9;
+  min-width: 10mm;
+}
+
+/* ─── Typography ─── */
+.chapter-num {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 28pt;
+  font-weight: 600;
+  color: #e0f2fe;
+  line-height: 1;
+  margin: 0 0 2mm 0;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 22pt;
+  font-weight: 600;
+  color: #0c1929;
+  margin: 0 0 6mm 0;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 13pt;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 8mm 0 3mm 0;
+  page-break-after: avoid;
+}
+
+h4 {
+  font-size: 10.5pt;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2mm 0;
+}
+
+p {
+  margin: 0 0 4mm 0;
+}
+
+.lead {
+  font-size: 12pt;
+  line-height: 1.6;
+  color: #334155;
+  margin-bottom: 6mm;
+}
+
+.lead em {
+  font-style: italic;
+  color: #0f172a;
+}
+
+/* ─── Pull quotes ─── */
+.pullquote {
+  margin: 8mm 0;
+  padding: 6mm 8mm;
+  border-left: 4px solid #0ea5e9;
+  background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+  border-radius: 0 6px 6px 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 12pt;
+  font-style: italic;
+  line-height: 1.55;
+  color: #0f172a;
+  page-break-inside: avoid;
+}
+
+.pullquote-light {
+  border-left-color: #2dd4bf;
+  background: linear-gradient(135deg, #f0fdfa 0%, #f8fafc 100%);
+}
+
+.callout {
+  text-align: center;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 14pt;
+  font-weight: 500;
+  font-style: italic;
+  color: #0369a1;
+  padding: 6mm;
+  margin: 6mm 0;
+  background: #f0f9ff;
+  border-radius: 8px;
+  page-break-inside: avoid;
+}
+
+/* ─── Two column cards ─── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5mm;
+  margin: 6mm 0;
+}
+
+.card {
+  padding: 5mm 6mm;
+  border-radius: 8px;
+  page-break-inside: avoid;
+}
+
+.card h3 {
+  margin-top: 0;
+  font-size: 11pt;
+}
+
+.card-social {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+}
+
+.card-tourism {
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+}
+
+.card p {
+  font-size: 9.5pt;
+  margin-bottom: 3mm;
+}
+
+.card p:last-child {
+  margin-bottom: 0;
+}
+
+/* ─── Insight box ─── */
+.insight-box {
+  margin-top: 8mm;
+  padding: 6mm 8mm;
+  background: #0c1929;
+  color: #fff;
+  border-radius: 10px;
+  page-break-inside: avoid;
+}
+
+.insight-label {
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+  margin: 0 0 3mm 0;
+}
+
+.insight-text {
+  font-size: 11pt;
+  line-height: 1.55;
+  margin: 0;
+  color: #e2e8f0;
+}
+
+/* ─── Definition grid ─── */
+.definition-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm;
+  margin: 6mm 0 8mm;
+}
+
+.def-item {
+  padding: 4mm 5mm;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  page-break-inside: avoid;
+}
+
+.def-icon {
+  font-size: 16pt;
+  display: block;
+  margin-bottom: 2mm;
+}
+
+.def-item h4 {
+  margin-bottom: 1.5mm;
+}
+
+.def-item p {
+  font-size: 9pt;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* ─── Flow diagram ─── */
+.flow-diagram {
+  margin: 6mm 0 8mm;
+  page-break-inside: avoid;
+}
+
+.flow-center {
+  text-align: center;
+  padding: 5mm;
+  background: linear-gradient(135deg, #0c1929, #1e3a5f);
+  color: #fff;
+  border-radius: 10px;
+  margin-bottom: 4mm;
+}
+
+.flow-center span {
+  display: block;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #7dd3fc;
+  margin-bottom: 1mm;
+}
+
+.flow-center strong {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 14pt;
+}
+
+.flow-branches {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3mm;
+}
+
+.flow-branch {
+  padding: 4mm;
+  border-radius: 8px;
+  font-size: 9pt;
+  page-break-inside: avoid;
+}
+
+.flow-branch h4 {
+  font-size: 10pt;
+  margin-bottom: 2mm;
+}
+
+.flow-branch p {
+  font-size: 8.5pt;
+  color: #475569;
+  margin-bottom: 2mm;
+  line-height: 1.4;
+}
+
+.flow-via {
+  display: inline-block;
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1mm 2.5mm;
+  border-radius: 4px;
+}
+
+.flow-sosial {
+  background: #f0f9ff;
+  border: 1px solid #7dd3fc;
+}
+.flow-sosial .flow-via { background: #0ea5e9; color: #fff; }
+
+.flow-event {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+}
+.flow-event .flow-via { background: #d97706; color: #fff; }
+
+.flow-tour {
+  background: #f0fdfa;
+  border: 1px solid #5eead4;
+}
+.flow-tour .flow-via { background: #0d9488; color: #fff; }
+
+/* ─── Steps ─── */
+.steps {
+  margin: 4mm 0 0;
+  padding-left: 5mm;
+}
+
+.steps li {
+  margin-bottom: 3.5mm;
+  padding-left: 2mm;
+  font-size: 10pt;
+}
+
+.steps strong {
+  color: #0f172a;
+}
+
+/* ─── Personas ─── */
+.persona-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm;
+  margin-top: 4mm;
+}
+
+.persona {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 4mm 5mm;
+  page-break-inside: avoid;
+  background: #fafafa;
+}
+
+.persona-header {
+  display: flex;
+  align-items: center;
+  gap: 3mm;
+  margin-bottom: 2mm;
+}
+
+.persona-emoji {
+  font-size: 18pt;
+}
+
+.persona h3 {
+  margin: 0;
+  font-size: 12pt;
+}
+
+.persona-quote {
+  font-family: "Fraunces", Georgia, serif;
+  font-style: italic;
+  font-size: 9.5pt;
+  color: #0369a1;
+  margin-bottom: 3mm !important;
+  line-height: 1.45;
+}
+
+.persona ul {
+  margin: 0;
+  padding-left: 4mm;
+  font-size: 8.5pt;
+  color: #475569;
+}
+
+.persona li {
+  margin-bottom: 1.5mm;
+}
+
+/* ─── Mode cards ─── */
+.mode-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm;
+  margin: 6mm 0;
+}
+
+.mode-card {
+  padding: 5mm 6mm;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  page-break-inside: avoid;
+}
+
+.mode-card h4 {
+  color: #0369a1;
+  margin-bottom: 2mm;
+}
+
+.mode-card p {
+  font-size: 9.5pt;
+}
+
+.mode-for {
+  font-size: 8.5pt !important;
+  color: #64748b !important;
+  font-style: italic;
+  margin-bottom: 0 !important;
+}
+
+/* ─── Stats ─── */
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4mm;
+  margin: 6mm 0 8mm;
+}
+
+.stat {
+  text-align: center;
+  padding: 5mm 3mm;
+  background: #0c1929;
+  color: #fff;
+  border-radius: 8px;
+  page-break-inside: avoid;
+}
+
+.stat-value {
+  display: block;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 11pt;
+  font-weight: 600;
+  color: #7dd3fc;
+  margin-bottom: 2mm;
+}
+
+.stat-label {
+  font-size: 8pt;
+  line-height: 1.4;
+  color: #cbd5e1;
+}
+
+/* ─── Los layers ─── */
+.los-layers {
+  margin: 6mm 0 8mm;
+}
+
+.los-layer {
+  display: flex;
+  gap: 5mm;
+  align-items: flex-start;
+  padding: 4mm 0;
+  border-bottom: 1px solid #e2e8f0;
+  page-break-inside: avoid;
+}
+
+.los-layer:last-child {
+  border-bottom: none;
+}
+
+.los-num {
+  flex-shrink: 0;
+  width: 9mm;
+  height: 9mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0ea5e9, #2dd4bf);
+  color: #fff;
+  font-weight: 700;
+  font-size: 11pt;
+  border-radius: 50%;
+}
+
+.los-layer h4 {
+  margin: 0 0 1mm 0;
+}
+
+.los-layer p {
+  font-size: 9.5pt;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ─── Potential grid ─── */
+.potential-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4mm;
+  margin: 6mm 0;
+}
+
+.potential-item {
+  padding: 4mm 5mm;
+  border-radius: 8px;
+  page-break-inside: avoid;
+}
+
+.potential-item:nth-child(1) { background: #f0f9ff; border: 1px solid #bae6fd; }
+.potential-item:nth-child(2) { background: #fefce8; border: 1px solid #fde047; }
+.potential-item:nth-child(3) { background: #f0fdfa; border: 1px solid #99f6e4; }
+
+.potential-item h4 {
+  margin-bottom: 3mm;
+  font-size: 10.5pt;
+}
+
+.potential-item ul {
+  margin: 0;
+  padding-left: 4mm;
+  font-size: 8.5pt;
+  color: #475569;
+}
+
+.potential-item li {
+  margin-bottom: 1.5mm;
+}
+
+.scenario-box {
+  margin-top: 6mm;
+  padding: 6mm 8mm;
+  background: linear-gradient(135deg, #f8fafc, #f0f9ff);
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  page-break-inside: avoid;
+}
+
+.scenario-box h4 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 11pt;
+  color: #0369a1;
+  margin-bottom: 3mm;
+}
+
+.scenario-box p {
+  font-size: 10pt;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ─── Closing ─── */
+.closing {
+  display: flex;
+  flex-direction: column;
+}
+
+.vision-list {
+  margin: 4mm 0 8mm;
+  padding: 0;
+  list-style: none;
+}
+
+.vision-list li {
+  padding: 3mm 0 3mm 6mm;
+  border-left: 3px solid #0ea5e9;
+  margin-bottom: 2mm;
+  font-size: 10.5pt;
+  background: #f8fafc;
+  padding-left: 5mm;
+}
+
+.closing-statement {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  padding: 10mm 0;
+  page-break-inside: avoid;
+}
+
+.closing-big {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 20pt;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #0c1929;
+  margin: 0 0 6mm 0;
+}
+
+.closing-big em {
+  font-style: italic;
+  color: #0369a1;
+}
+
+.closing-sub {
+  font-size: 11pt;
+  line-height: 1.7;
+  color: #64748b;
+  margin: 0;
+}
+
+.closing-meta {
+  margin-top: auto;
+  padding-top: 8mm;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.closing-meta p {
+  font-size: 9pt;
+  color: #64748b;
+  margin-bottom: 2mm;
+}
+
+.closing-note {
+  font-size: 7.5pt !important;
+  color: #94a3b8 !important;
+  max-width: 150mm;
+  margin: 4mm auto 0 !important;
+  line-height: 1.45;
+}
+
+/* Avoid orphans */
+h2, h3, h4 {
+  page-break-after: avoid;
+}
+
+p, li {
+  orphans: 3;
+  widows: 3;
+}

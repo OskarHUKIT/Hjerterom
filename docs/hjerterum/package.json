@@ -1,0 +1,11 @@
+{
+  "name": "hjerterum-rapport",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:pdf": "node build_pdf.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "^24.42.0"
+  }
+}
