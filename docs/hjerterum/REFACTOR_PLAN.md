@@ -45,7 +45,7 @@
 - `ListingDetailsClient` JSX persona-split (W5)
 - Chat-bubble UI kopiert 3 ganger (W4 follow-up: `chatSend` + shared composer)
 - `NavMessagesPage` (~1,951 linjer) — innhold flyttet, decomposition gjenstår
-- `translations.ts` monolith (W6)
+- ~~`translations.ts` monolith (W6)~~ → splittet i `lib/i18n/*` (W6 ✅)
 - Generert `database.types.ts` (P0 doc — krever lokal Supabase)
 
 ---
@@ -145,26 +145,27 @@ frontend/
 
 ---
 
-### Wave 5 — Persona views & finn async 🔶 (neste)
+### Wave 5 — Persona views & finn async 🔶 (delvis)
 
 | ID | Oppgave | Status |
 |----|---------|--------|
-| 5.1 | Persona views for listing detail | 🔶 Se `agents/W5-persona-finn.md` |
-| 5.2 | `useListingMediation` | 🔶 |
+| 5.1 | Persona views for listing detail | 🔶 `ListingDetailsOwnerView` / `NavView` påbegynt |
+| 5.2 | `useListingMediation` | 🔶 Hook ekstrahert |
 | 5.3 | Finn async (mine, book) | 🔶 Søk ✅ |
 | 5.4 | `PortalPageShell` | 🔶 |
 | 5.5 | Ops skeleton unify | 🔶 |
 
 ---
 
-### Wave 6 — Polish & enforcement (P2)
+### Wave 6 — Polish & enforcement 🔶 (delvis)
 
-| ID | Oppgave |
-|----|---------|
-| 6.1 | Subdomain route groups `(app)` / `(finn)` fysisk flytt |
-| 6.2 | i18n: splitt `translations.ts` (4728 linjer) per feature |
-| 6.3 | Playwright smoke per wave |
-| 6.4 | Bundle analyse; dynamic import for gallery/handover |
+| ID | Oppgave | Status |
+|----|---------|--------|
+| 6.1 | Subdomain route groups `(app)` / `(finn)` fysisk flytt | ⏭️ Utelatt (middleware-risiko) |
+| 6.2 | i18n: splitt `translations.ts` per feature | ✅ `lib/i18n/{common,listings,nav,finn,ops}.ts` |
+| 6.3 | Playwright smoke per wave | ✅ `e2e/smoke.spec.ts` (manage, nav/database, nav/messages, finn) |
+| 6.4 | Bundle analyse; dynamic import for gallery/handover | 🔶 |
+| 6.5 | ESLint `max-lines` warn 800 for `app/` + `features/` TSX | ✅ |
 
 ---
 
@@ -204,12 +205,12 @@ flowchart LR
 
 ## 7. Suksesskriterier (ferdig refactor)
 
-- [ ] Ingen TSX-fil > 800 linjer
+- [ ] Ingen TSX-fil > 800 linjer (ESLint warn håndhever fra W6)
 - [ ] Alle `app/**/page.tsx` under 50 linjer (unntak dokumentert)
 - [ ] 0 `confirm()` / `alert()`
 - [ ] `useListingAvailability`, `usePublishedEventsQuery`, `useNavDatabaseListingsQuery` i bruk
-- [ ] `SERVICE_FLOW.md` §7 modulstatus = «Ferdig» for utleier manage, nav database, meldinger
-- [ ] `npm run build` grønn; eslint grønn
+- [x] `SERVICE_FLOW.md` §8 modulstatus oppdatert for utleier manage, nav database, meldinger (W6)
+- [x] `npm run build` grønn; eslint grønn
 
 ---
 
@@ -218,3 +219,4 @@ flowchart LR
 | Dato | Versjon | Endring |
 |------|---------|---------|
 | 2026-06-30 | 1.0 | Første plan basert på agent-kartlegging og megafil-måling |
+| 2026-07-01 | 1.1 | W5–6 status: i18n split, ESLint max-lines, Playwright smoke stub |

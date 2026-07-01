@@ -350,9 +350,11 @@ chat_messages (channel_type, booking_id?, event_id?)
 | Modul | Status | Merknad |
 |-------|--------|---------|
 | Utleier registrering + BankID | ✅ Produksjon | |
+| Utleier manage (`LandlordManagePage`) | ✅ Refactor W2–5 | Hooks + card/sheet split; persona views påbegynt |
 | Lane-kalender (sosial/turisme/event) | ✅ Pilot | `ListingLaneCalendar` |
-| Kommune formidling (boligbank) | ✅ Produksjon | |
-| Finn søk + booking | ✅ Pilot | Stripe; Vipps planlagt |
+| Kommune formidling (boligbank) | ✅ Produksjon | Refactor W3: React Query + tynn `/nav/database` route |
+| Nav meldinger | ✅ Produksjon | Refactor W3: tynn route → `NavMessagesPage` |
+| Finn søk + booking | ✅ Pilot | Stripe; Vipps planlagt; React Query (W4) |
 | Gjestkonto + click-wrap | ✅ Pilot | |
 | Gjest ↔ utleier chat | ✅ Pilot | Per booking |
 | Event opt-in + vilkår | ✅ Pilot | |
@@ -402,3 +404,4 @@ Logg inn → Mine boliger → Kalender (sosial) → Aktiver turisme → Kalender
 | Dato | Versjon | Endring |
 |------|---------|---------|
 | 2026-06-30 | 1.0 | Første kanoniske tjenesteflyt: aktører, baner, flyter, gates, forvirringspunkter |
+| 2026-07-01 | 1.1 | §8 modulstatus: W5–6 refactor-notater (manage, boligbank, meldinger); i18n domain split |
