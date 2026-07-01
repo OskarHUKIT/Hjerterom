@@ -24,6 +24,7 @@ function makePinDivIcon(fill: string, stroke: string): L.DivIcon {
 const pinTilgjengelig = makePinDivIcon('#14b8a6', '#0f766e')
 const pinFormidlet = makePinDivIcon('#0ea5e9', '#0369a1')
 const pinUtilgjengelig = makePinDivIcon('#ef4444', '#b91c1c')
+const pinUmarkert = makePinDivIcon('#94a3b8', '#64748b')
 
 interface MapViewProps {
   listings: any[]
@@ -74,7 +75,9 @@ export default function MapView({
             ? pinFormidlet
             : statusToday === 'Utilgjengelig'
               ? pinUtilgjengelig
-              : pinTilgjengelig
+              : statusToday === 'Ikke markert'
+                ? pinUmarkert
+                : pinTilgjengelig
         const marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map)
 
         // DOM-API (textContent) — unngår XSS dersom adresse/pris noen gang skulle være upålitelig

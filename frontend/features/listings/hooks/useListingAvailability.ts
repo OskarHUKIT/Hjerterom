@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
-import type { ListingLane } from '@/features/listings/types/lanes'
 import { checkAvailabilityConflict } from '@/features/listings/lib/availabilityConflict'
 
 export type ListingAvailabilityPeriod = {
@@ -19,7 +18,6 @@ type AddPeriodInput = {
   start: string
   end: string
   status: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'
-  lane?: ListingLane
 }
 
 type UseListingAvailabilityOptions = {
@@ -39,14 +37,14 @@ export function useListingAvailability(
 
   const addPeriod = useCallback(
     async (input: AddPeriodInput) => {
-      const { listingId, start, end, status, lane = 'sosial' } = input
-      const effectiveLane = status === 'Formidla' ? 'sosial' : lane
+      const { listingId, start, end, status } = input
+      const effectiveLane = status === 'Formidla' ? 'sosial' : 'shared'
       if (!start || !end) return { ok: false as const, reason: 'missing_dates' as const }
       if (new Date(end) < new Date(start)) {
         return { ok: false as const, reason: 'end_before_start' as const }
       }
 
-      const conflict = await checkAvailabilityConflict(listingId, start, end)
+      const conflict = await checkAvailabilityConflict(listingId, start, end, null, status)
       if (!conflict.ok) {
         options.onConflict?.(conflict.reason ?? '')
         return { ok: false as const, reason: 'conflict' as const }
@@ -82,7 +80,7 @@ export function useListingAvailability(
         setBusy(false)
       }
     },
-    [availability, options, setAvailability]
+    [options, setAvailability]
   )
 
   const deletePeriod = useCallback(

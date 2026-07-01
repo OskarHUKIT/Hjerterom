@@ -18,7 +18,7 @@ export function isListingPaintLane(value: string): value is ListingPaintLane {
 
 export type AvailabilityConflictResult = {
   ok: boolean
-  reason?: 'invalid_range' | 'overlap'
+  reason?: 'invalid_range' | 'overlap' | 'formidla_overlap'
   conflict?: {
     id: string
     start_date: string

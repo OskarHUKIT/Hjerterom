@@ -1,10 +1,20 @@
 /**
- * Status for en bolig på en gitt kalenderdag ut fra listing_availability.
- * Brukes i kart, tabell/tidslinje-filter m.m. — samme prioritering som kartnåler.
- * Ingen periode som dekker dagen = Tilgjengelig (samme som utleier «ingen status i dag»).
+ * Day-level availability for listings — shared open/closed + exclusive Formidla.
+ * No covering period for open/closed = Ikke markert (not implicitly available).
  */
 
-export type ListingDayAvailabilityStatus = 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig'
+export type ListingDayAvailabilityStatus =
+  | 'Formidla'
+  | 'Utilgjengelig'
+  | 'Tilgjengelig'
+  | 'Ikke markert'
+
+export type AvailabilityPeriodRow = {
+  start_date?: string | null
+  end_date?: string | null
+  status?: string | null
+  lane?: string | null
+}
 
 /** YYYY-MM-DD fra DB-verdi (dato eller ISO-streng). */
 export function ymdFromDb(value: unknown): string {
@@ -22,26 +32,36 @@ export function todayYmdLocal(): string {
   return `${y}-${m}-${day}`
 }
 
-export function listingAvailabilityStatusForDay(
+export function periodsCoveringDay(
   listingId: string,
-  availMap: Record<string, { start_date?: string | null; end_date?: string | null; status?: string | null }[]>,
+  availMap: Record<string, AvailabilityPeriodRow[]>,
   dayYmd: string
-): ListingDayAvailabilityStatus {
-  const periods = (availMap[listingId] || []).filter((p) => {
+): AvailabilityPeriodRow[] {
+  return (availMap[listingId] || []).filter((p) => {
     const sd = ymdFromDb(p.start_date)
     const ed = ymdFromDb(p.end_date)
     if (!sd || !ed) return false
     return sd <= dayYmd && ed >= dayYmd
   })
-  if (periods.length === 0) return 'Tilgjengelig'
+}
+
+/** Priority: Formidla > Utilgjengelig > Tilgjengelig > Ikke markert */
+export function listingAvailabilityStatusForDay(
+  listingId: string,
+  availMap: Record<string, AvailabilityPeriodRow[]>,
+  dayYmd: string
+): ListingDayAvailabilityStatus {
+  const periods = periodsCoveringDay(listingId, availMap, dayYmd)
+  if (periods.length === 0) return 'Ikke markert'
   if (periods.some((p) => p.status === 'Formidla')) return 'Formidla'
   if (periods.some((p) => p.status === 'Utilgjengelig')) return 'Utilgjengelig'
-  return 'Tilgjengelig'
+  if (periods.some((p) => p.status === 'Tilgjengelig' || !p.status)) return 'Tilgjengelig'
+  return 'Ikke markert'
 }
 
 export function listingAvailabilityStatusToday(
   listingId: string,
-  availMap: Record<string, { start_date?: string | null; end_date?: string | null; status?: string | null }[]>
+  availMap: Record<string, AvailabilityPeriodRow[]>
 ): ListingDayAvailabilityStatus {
   return listingAvailabilityStatusForDay(listingId, availMap, todayYmdLocal())
 }
@@ -77,13 +97,24 @@ export function formidlaPeriodIdsOverlappingToday(
   return formidlaPeriodIdsOverlappingDay(listingId, availMap, todayYmdLocal())
 }
 
+/** Landlord-owned open/closed periods (excludes Formidla). */
+export function landlordOpenClosePeriods<T extends AvailabilityPeriodRow & { id?: string }>(
+  periods: T[]
+): T[] {
+  return periods.filter((p) => p.status === 'Tilgjengelig' || p.status === 'Utilgjengelig')
+}
+
 /** Verdier for `listings.status` / `is_available` som samsvarer med perioder som dekker i dag. */
 export function listingRowFieldsForAvailabilityToday(
   listingId: string,
-  availMap: Record<string, { start_date?: string | null; end_date?: string | null; status?: string | null }[]>
-): { status: 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig'; is_available: boolean } {
+  availMap: Record<string, AvailabilityPeriodRow[]>
+): {
+  status: 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | 'Ikke markert'
+  is_available: boolean
+} {
   const s = listingAvailabilityStatusToday(listingId, availMap)
   if (s === 'Formidla') return { status: 'Formidla', is_available: false }
   if (s === 'Utilgjengelig') return { status: 'Utilgjengelig', is_available: false }
-  return { status: 'Tilgjengelig', is_available: true }
+  if (s === 'Tilgjengelig') return { status: 'Tilgjengelig', is_available: true }
+  return { status: 'Ikke markert', is_available: false }
 }

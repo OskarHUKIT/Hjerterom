@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ShieldCheck, Eye, CalendarPlus, RotateCcw } from 'lucide-react'
 import type { NavDatabaseListingRow, ListingAvailabilityRow } from '@/app/lib/listingUiTypes'
+import type { ListingDayAvailabilityStatus } from '@/app/lib/listingAvailabilityStatusToday'
 import type { NavDbColumn } from '@/features/mediation/lib/navDatabaseColumns'
 import type { TranslationKey } from '@/lib/translations'
 
@@ -12,18 +13,18 @@ export type NavDatabaseMobileListViewProps = {
   availability: Record<string, ListingAvailabilityRow[]>
   visibleColumns: string[]
   allColumns: NavDbColumn[]
-  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'
+  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
   kommuneCanEdit: boolean
   translateValue: (
     colId: string,
     value: unknown,
     listing: NavDatabaseListingRow,
-    statusForToday?: 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null
+    statusForToday?: ListingDayAvailabilityStatus | null
   ) => React.ReactNode
   getStatusForToday: (
     listingId: string,
     availMap: Record<string, ListingAvailabilityRow[]>
-  ) => 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null
+  ) => ListingDayAvailabilityStatus
   prefetchListingDetail: (id: string) => void
   openFormidletModal: (listing: NavDatabaseListingRow) => void
   openFormidletExtendModal: (listing: NavDatabaseListingRow) => void

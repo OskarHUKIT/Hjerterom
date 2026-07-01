@@ -28,7 +28,7 @@ import { useListingEventCalendarData } from '@/features/listings/hooks/useListin
 import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
 import LandlordStripeConnect from '@/features/bookings/components/LandlordStripeConnect'
 import { useListingAvailability } from '@/features/listings/hooks/useListingAvailability'
-import type { ListingEventOptInPeriod, ListingLane } from '@/features/listings/types/lanes'
+import type { ListingEventOptInPeriod } from '@/features/listings/types/lanes'
 import { buttonClassName } from '@/app/components/ui/Button'
 import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import { usePlatformMode } from '@/context/PlatformModeContext'
@@ -274,8 +274,7 @@ export default function HomeownerManage() {
     listingId: string,
     startDate: string,
     endDate: string,
-    status: string = 'Tilgjengelig',
-    lane: ListingLane = 'sosial'
+    status: string = 'Tilgjengelig'
   ) => {
     availabilityErrorContextRef.current = 'add'
     const result = await addPeriod({
@@ -283,7 +282,6 @@ export default function HomeownerManage() {
       start: startDate,
       end: endDate,
       status: status as 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla',
-      lane,
     })
     if (!result.ok) return
 
@@ -315,6 +313,7 @@ export default function HomeownerManage() {
   const filteredListings = myListings.filter((l) => {
     if (filter === 'Alle') return true
     const s = listingAvailabilityStatusToday(l.id, availability)
+    if (filter === 'Ikke markert') return s === 'Ikke markert'
     if (filter === 'Tilgjengelig') return s === 'Tilgjengelig'
     return s === filter
   })

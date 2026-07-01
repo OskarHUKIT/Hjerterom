@@ -76,7 +76,7 @@ export function useListingMediation({
     const ymd = (d: Date) => d.toISOString().slice(0, 10)
     const day = ymd(date)
     const hits = availability.filter((p) => day >= p.start_date && day <= p.end_date)
-    if (hits.length === 0) return null
+    if (hits.length === 0) return 'Ikke markert'
     if (hits.some((h) => h.status === 'Formidla')) return 'Formidla'
     if (hits.length > 1) {
       const statuses = new Set(hits.map((h) => h.status))

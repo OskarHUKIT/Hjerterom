@@ -39,7 +39,7 @@ export type FetchNavDatabaseListingsParams = {
   sortField: string
   sortOrder: 'asc' | 'desc'
   viewMode: NavDbViewMode
-  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'
+  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
   rpcErrorHint: string
 }
 
@@ -280,6 +280,9 @@ function applyTabStatusFilter(
   const todayStatus = (lid: string) => listingAvailabilityStatusToday(lid, availMap)
   if (params.activeTab === 'Tilgjengelig') {
     return filtered.filter((l) => todayStatus(l.id) === 'Tilgjengelig')
+  }
+  if (params.activeTab === 'Ikke markert') {
+    return filtered.filter((l) => todayStatus(l.id) === 'Ikke markert')
   }
   if (params.activeTab === 'Formidlet') {
     return filtered.filter((l) => todayStatus(l.id) === 'Formidla')

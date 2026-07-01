@@ -21,7 +21,7 @@ import ListingCoHostsPanel from '@/features/listings/components/ListingCoHostsPa
 import ListingEventOptIn from '@/features/listings/components/ListingEventOptIn'
 import LandlordAvailabilityHub from '@/features/listings/components/LandlordAvailabilityHub'
 import ListingAvailabilityOverview from '@/features/listings/components/ListingAvailabilityOverview'
-import type { ListingEventOptInPeriod, ListingLane } from '@/features/listings/types/lanes'
+import type { ListingEventOptInPeriod } from '@/features/listings/types/lanes'
 import { type Ref } from 'react'
 
 export type ManagePanel = 'calendar' | 'events' | 'tourism'
@@ -60,8 +60,7 @@ type LandlordListingCardProps = {
     listingId: string,
     startDate: string,
     endDate: string,
-    status?: string,
-    lane?: ListingLane
+    status?: string
   ) => Promise<void>
   onDeletePeriod: (periodId: string, listingId: string) => Promise<void>
   onRefreshEvents: () => Promise<void>
@@ -245,6 +244,7 @@ export default function LandlordListingCard({
             </p>
             {todaySt !== 'Formidla' ? (
               <ListingAvailabilityOverview
+                listingId={listing.id}
                 periods={availability[listing.id] ?? []}
                 eventOptIns={eventOptIns}
                 tourismEnabled={Boolean(listing.tourism_enabled)}

@@ -2,21 +2,16 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Compass } from 'lucide-react'
+import { Building2, Compass, CalendarDays } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
-import { getAuthUserDeduped, supabase } from '@/app/lib/supabase'
-import ListingLaneCalendar from '@/features/listings/components/ListingLaneCalendar'
+import SharedAvailabilityCalendar from '@/features/listings/components/SharedAvailabilityCalendar'
 import LanePeriodBadge from '@/features/listings/components/LanePeriodBadge'
-import AvailabilityLaneSelect from '@/features/listings/components/AvailabilityLaneSelect'
-import { DateInput } from '@/app/components/DateInput'
 import { formatDateNo } from '@/app/lib/dateFormat'
-import { dayAvailabilityToneForIso } from '@/app/lib/listingDayAvailabilityTone'
-import type { ListingLane, ListingPaintLane } from '@/features/listings/types/lanes'
 import {
-  eventsOverlappingRange,
-  normalizeSelection,
-} from '@/features/listings/lib/laneCalendarModel'
+  landlordOpenClosePeriods,
+  listingAvailabilityStatusToday,
+} from '@/app/lib/listingAvailabilityStatusToday'
 import type { ListingEventOptInPeriod } from '@/features/listings/types/lanes'
 
 type PeriodRow = {
@@ -26,6 +21,8 @@ type PeriodRow = {
   status: string
   lane?: string | null
 }
+
+export type LandlordAvailabilityMode = 'sosial' | 'turisme' | 'arrangement'
 
 type Props = {
   listing: {
@@ -41,8 +38,7 @@ type Props = {
     listingId: string,
     start: string,
     end: string,
-    status: string,
-    lane: ListingLane
+    status: string
   ) => Promise<void>
   onDeletePeriod: (periodId: string, listingId: string) => void
   onRefreshEvents: () => Promise<void>
@@ -53,81 +49,33 @@ export default function LandlordAvailabilityHub({
   listing,
   periods,
   eventOptIns,
-  allPublishedEvents,
   showTourism,
   showEvents,
   onAddPeriod,
   onDeletePeriod,
-  onRefreshEvents,
   onOpenTourismSettings,
 }: Props) {
   const { t } = useLanguage()
   const toast = useToast()
-  const [paintLane, setPaintLane] = useState<ListingPaintLane>('sosial')
+  const [mode, setMode] = useState<LandlordAvailabilityMode>('sosial')
   const [paintStatus, setPaintStatus] = useState<'Tilgjengelig' | 'Utilgjengelig'>('Tilgjengelig')
   const [selStart, setSelStart] = useState<string | null>(null)
   const [selEnd, setSelEnd] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
-  const [manualOpen, setManualOpen] = useState(false)
-  const [manual, setManual] = useState({
-    start: '',
-    end: '',
-    status: 'Tilgjengelig',
-    lane: 'sosial' as ListingLane,
-  })
 
   const tourismEnabled = Boolean(listing.tourism_enabled)
+  const openClosePeriods = landlordOpenClosePeriods(periods)
+  const todayStatus = listingAvailabilityStatusToday(listing.id, { [listing.id]: periods })
 
-  const applySelection = async () => {
-    if (!selStart || !selEnd) return
-    const { start, end } = normalizeSelection(selStart, selEnd)
+  const applySharedPeriod = async (
+    start: string,
+    end: string,
+    status: 'Tilgjengelig' | 'Utilgjengelig'
+  ) => {
     setApplying(true)
     try {
-      if (paintLane === 'event') {
-        const overlapping = eventsOverlappingRange(allPublishedEvents, start, end)
-        if (overlapping.length === 0) {
-          toast(t('laneCalendarNoEventInRange'), 'error')
-          return
-        }
-        if (overlapping.length > 1) {
-          toast(t('laneCalendarMultipleEvents'), 'error')
-          return
-        }
-        const event = overlapping[0]
-        const user = await getAuthUserDeduped()
-        if (user?.id) {
-          const { data: termsOk } = await supabase.rpc('landlord_has_event_terms_signed', {
-            p_user_id: user.id,
-            p_event_id: event.event_id,
-          })
-          if (termsOk === false) {
-            toast(t('eventOptInTermsRequired'), 'error')
-            return
-          }
-        }
-        const { error } = await supabase.from('listing_event_availability').upsert(
-          [
-            {
-              listing_id: listing.id,
-              event_id: event.event_id,
-              available_from: event.start_date,
-              available_to: event.end_date,
-              status: 'active',
-            },
-          ],
-          { onConflict: 'listing_id,event_id' }
-        )
-        if (error) throw error
-        await onRefreshEvents()
-        toast(t('eventOptInSuccess'), 'success')
-      } else {
-        if (paintLane === 'turisme' && !tourismEnabled) {
-          toast(t('tourismEnabledRequired'), 'error')
-          return
-        }
-        await onAddPeriod(listing.id, start, end, paintStatus, paintLane)
-        toast(t('laneCalendarApplied'), 'success')
-      }
+      await onAddPeriod(listing.id, start, end, status)
+      toast(t('sharedCalendarSaved'), 'success')
       setSelStart(null)
       setSelEnd(null)
     } catch (err: unknown) {
@@ -137,161 +85,175 @@ export default function LandlordAvailabilityHub({
     }
   }
 
+  const modes = (
+    [
+      { id: 'sosial' as const, label: t('availModeSocial'), icon: Building2, show: true },
+      { id: 'turisme' as const, label: t('availModeTourism'), icon: Compass, show: showTourism },
+      { id: 'arrangement' as const, label: t('availModeEvent'), icon: CalendarDays, show: showEvents },
+    ] as const
+  ).filter((m) => m.show)
+
   return (
     <div className="landlord-availability-hub">
-      {showTourism && !tourismEnabled ? (
-        <div className="landlord-tourism-enable-banner">
-          <div className="landlord-tourism-enable-banner-text">
-            <Compass size={20} aria-hidden />
-            <div>
-              <strong>{t('tourismEnableBannerTitle')}</strong>
-              <p>{t('tourismEnableBannerBody')}</p>
-            </div>
-          </div>
-          <button type="button" className="button button-accent" onClick={onOpenTourismSettings}>
-            {t('tourismEnableBannerCta')}
+      <div className="avail-mode-tabs" role="tablist" aria-label={t('availModeTabsAria')}>
+        {modes.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={mode === id}
+            className={`avail-mode-tab${mode === id ? ' avail-mode-tab--active' : ''}`}
+            onClick={() => setMode(id)}
+          >
+            <Icon size={20} aria-hidden />
+            <span>{label}</span>
           </button>
+        ))}
+      </div>
+
+      <div
+        className={`avail-today-banner avail-today-banner--${todayStatus === 'Ikke markert' ? 'unmarked' : todayStatus === 'Tilgjengelig' ? 'open' : todayStatus === 'Utilgjengelig' ? 'closed' : 'mediated'}`}
+        role="status"
+      >
+        <strong>{t('availTodayLabel')}</strong>
+        <span>
+          {todayStatus === 'Ikke markert'
+            ? t('availabilityUnmarked')
+            : todayStatus === 'Formidla'
+              ? t('formidlet')
+              : todayStatus === 'Utilgjengelig'
+                ? t('unavailable')
+                : t('available')}
+        </span>
+      </div>
+
+      {mode === 'sosial' ? (
+        <div className="avail-mode-panel">
+          <p className="avail-mode-desc">{t('availModeSocialDesc')}</p>
+          <SharedAvailabilityCalendar
+            periods={periods}
+            eventOptIns={eventOptIns}
+            paintStatus={paintStatus}
+            onPaintStatusChange={setPaintStatus}
+            selectionStart={selStart}
+            selectionEnd={selEnd}
+            onSelectionChange={(s, e) => {
+              setSelStart(s)
+              setSelEnd(e)
+            }}
+            onApply={applySharedPeriod}
+            applying={applying}
+          />
         </div>
       ) : null}
 
-      <ListingLaneCalendar
-        periods={periods.map((p) => ({
-          id: p.id,
-          start_date: p.start_date,
-          end_date: p.end_date,
-          status: p.status,
-          lane: p.lane,
-        }))}
-        eventOptIns={eventOptIns}
-        tourismEnabled={tourismEnabled}
-        showTourism={showTourism}
-        showEvents={showEvents}
-        paintLane={paintLane}
-        onPaintLaneChange={setPaintLane}
-        paintStatus={paintStatus}
-        onPaintStatusChange={setPaintStatus}
-        selectionStart={selStart}
-        selectionEnd={selEnd}
-        onSelectionChange={(start, end) => {
-          setSelStart(start)
-          setSelEnd(end)
-        }}
-        onApply={() => void applySelection()}
-        applying={applying}
-      />
+      {mode === 'turisme' ? (
+        <div className="avail-mode-panel">
+          {!tourismEnabled ? (
+            <div className="landlord-tourism-enable-banner">
+              <div className="landlord-tourism-enable-banner-text">
+                <Compass size={20} aria-hidden />
+                <div>
+                  <strong>{t('tourismEnableBannerTitle')}</strong>
+                  <p>{t('tourismEnableBannerBody')}</p>
+                </div>
+              </div>
+              <button type="button" className="button button-accent" onClick={onOpenTourismSettings}>
+                {t('tourismEnableBannerCta')}
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="avail-mode-desc">{t('availModeTourismDesc')}</p>
+              <SharedAvailabilityCalendar
+                periods={periods}
+                eventOptIns={eventOptIns}
+                paintStatus={paintStatus}
+                onPaintStatusChange={setPaintStatus}
+                selectionStart={selStart}
+                selectionEnd={selEnd}
+                onSelectionChange={(s, e) => {
+                  setSelStart(s)
+                  setSelEnd(e)
+                }}
+                onApply={applySharedPeriod}
+                applying={applying}
+              />
+            </>
+          )}
+        </div>
+      ) : null}
+
+      {mode === 'arrangement' ? (
+        <div className="avail-mode-panel">
+          <p className="avail-mode-desc">{t('availModeEventDesc')}</p>
+          {eventOptIns.length > 0 ? (
+            <ul className="avail-event-optin-list">
+              {eventOptIns.map((e) => (
+                <li key={e.event_id}>
+                  <strong>{e.event_name}</strong>
+                  <span>
+                    {formatDateNo(e.start_date)} – {formatDateNo(e.end_date)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="landlord-period-empty">{t('availModeEventEmpty')}</p>
+          )}
+          <p className="landlord-events-calendar-note">
+            {t('availModeEventCta')}{' '}
+            <Link href={`/homeowner/manage?listing=${listing.id}&panel=events`} className="nav-link">
+              {t('managePanelEvents')}
+            </Link>
+          </p>
+        </div>
+      ) : null}
 
       <div className="landlord-period-list">
-        <h5 className="landlord-period-list-title">{t('availablePeriods')}</h5>
-        {periods.length > 0 ? (
+        <h5 className="landlord-period-list-title">{t('sharedPeriodListTitle')}</h5>
+        {openClosePeriods.length > 0 ? (
           <ul className="landlord-period-list-items">
-            {periods.map((p) => (
+            {openClosePeriods.map((p) => (
               <li key={p.id} className="hm-period-item landlord-period-list-row">
                 <span className="hm-period-dates">
                   {formatDateNo(p.start_date)} – {formatDateNo(p.end_date)}
                 </span>
-                <LanePeriodBadge lane={p.lane} status={p.status} />
-                {p.status !== 'Formidla' ? (
-                  <button
-                    type="button"
-                    className="landlord-period-delete"
-                    onClick={() => onDeletePeriod(p.id, listing.id)}
-                    title={t('manageDeletePeriodTitle')}
-                  >
-                    ×
-                  </button>
-                ) : (
-                  <span className="landlord-period-kommune-note">{t('formidlaKommuneOnly')}</span>
-                )}
+                <LanePeriodBadge lane="shared" status={p.status ?? 'Tilgjengelig'} />
+                <button
+                  type="button"
+                  className="landlord-period-delete"
+                  onClick={() => onDeletePeriod(String(p.id), listing.id)}
+                  title={t('manageDeletePeriodTitle')}
+                >
+                  ×
+                </button>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="landlord-period-empty">{t('noPeriods')}</p>
+          <p className="landlord-period-empty">{t('sharedPeriodListEmpty')}</p>
         )}
+
+        {periods.some((p) => p.status === 'Formidla') ? (
+          <div className="avail-formidla-block">
+            <h6>{t('availFormidlaTitle')}</h6>
+            <ul className="landlord-period-list-items">
+              {periods
+                .filter((p) => p.status === 'Formidla')
+                .map((p) => (
+                  <li key={p.id} className="hm-period-item landlord-period-list-row">
+                    <span className="hm-period-dates">
+                      {formatDateNo(p.start_date)} – {formatDateNo(p.end_date)}
+                    </span>
+                    <LanePeriodBadge lane="sosial" status="Formidla" />
+                    <span className="landlord-period-kommune-note">{t('formidlaKommuneOnly')}</span>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
-
-      <details
-        className="landlord-manual-period"
-        open={manualOpen}
-        onToggle={(e) => setManualOpen((e.target as HTMLDetailsElement).open)}
-      >
-        <summary>{t('laneManualPeriodSummary')}</summary>
-        <div className="hm-add-period-row landlord-manual-period-form">
-          {showTourism && tourismEnabled ? (
-            <div style={{ flex: '1 1 100%', minWidth: 160 }}>
-              <AvailabilityLaneSelect
-                id={`lane-manual-${listing.id}`}
-                value={manual.lane}
-                onChange={(lane) => setManual({ ...manual, lane })}
-              />
-            </div>
-          ) : null}
-          <div style={{ flex: 1 }}>
-            <label className="label" style={{ fontSize: '0.7rem' }}>
-              {t('status')}
-            </label>
-            <select
-              className="input"
-              style={{ marginBottom: 0, fontSize: '0.85rem' }}
-              value={manual.status}
-              onChange={(e) => setManual({ ...manual, status: e.target.value })}
-            >
-              <option value="Tilgjengelig">{t('available')}</option>
-              <option value="Utilgjengelig">{t('unavailable')}</option>
-            </select>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label className="label" style={{ fontSize: '0.7rem' }}>
-              {t('fromDate')}
-            </label>
-            <DateInput
-              showCalendar
-              className="input"
-              style={{ marginBottom: 0, fontSize: '0.85rem' }}
-              value={manual.start}
-              onChange={(v) => setManual({ ...manual, start: v })}
-              max={manual.end || undefined}
-              placeholder={t('dateInputPlaceholder')}
-              calendarDayTone={(iso) => dayAvailabilityToneForIso(iso, periods)}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label className="label" style={{ fontSize: '0.7rem' }}>
-              {t('toDate')}
-            </label>
-            <DateInput
-              showCalendar
-              className="input"
-              style={{ marginBottom: 0, fontSize: '0.85rem' }}
-              value={manual.end}
-              onChange={(v) => setManual({ ...manual, end: v })}
-              min={manual.start || undefined}
-              placeholder={t('dateInputPlaceholder')}
-              calendarDayTone={(iso) => dayAvailabilityToneForIso(iso, periods)}
-            />
-          </div>
-          <button
-            type="button"
-            className="button"
-            onClick={() => {
-              void onAddPeriod(listing.id, manual.start, manual.end, manual.status, manual.lane).then(
-                () => setManual({ start: '', end: '', status: 'Tilgjengelig', lane: 'sosial' })
-              )
-            }}
-          >
-            {t('add')}
-          </button>
-        </div>
-      </details>
-
-      {showEvents ? (
-        <p className="landlord-events-calendar-note">
-          {t('laneCalendarEventListHint')}{' '}
-          <Link href={`/homeowner/manage?listing=${listing.id}&panel=events`} className="nav-link">
-            {t('managePanelEvents')}
-          </Link>
-        </p>
-      ) : null}
     </div>
   )
 }
