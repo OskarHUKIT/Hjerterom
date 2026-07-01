@@ -314,7 +314,7 @@ Per-kommune: `digital_los_enabled`, `tourism_enabled`.
 | L-5 | Accept/reject tourism booking requests | P0 | Done |
 | L-6 | Stripe Connect onboarding for tourism payouts | P0 | Done |
 | L-7 | Onboarding path when kommune not subscribed (tourism/events only) | P1 | **Not built** |
-| L-8 | Unified calendar showing all lanes | P1 | Partial |
+| L-8 | Unified calendar showing all lanes | P1 | **Done** — `LandlordAvailabilityHub` + lane calendar |
 | L-9 | Co-host / delegation | P2 | Not started |
 
 ### 9.2 Caseworker (social)
@@ -326,14 +326,14 @@ Per-kommune: `digital_los_enabled`, `tourism_enabled`.
 | S-3 | Message landlords | P0 | Done |
 | S-4 | Manage terms documents | P0 | Done |
 | S-5 | Los inbox — view/assign handoffs | P1 | Done (gated) |
-| S-6 | Formidla triggers date hold (first-book-wins) | P0 | **Not built** |
+| S-6 | Formidla triggers date hold (first-book-wins) | P0 | **Done** — `20260701220000_hjerterum_first_book_wins.sql` |
 
 ### 9.3 Guest (Finn)
 
 | ID | Requirement | Priority | Status |
 |----|-------------|----------|--------|
 | G-1 | Search by city + dates | P0 | Done |
-| G-2 | Guest account (magic link) | P0 | Done |
+| G-2 | Guest account (email / magic link) | P0 | **Done** — `/finn/login` email+password; auth required for booking |
 | G-3 | Booking request + Stripe checkout | P0 | Done |
 | G-4 | Vipps checkout (parallel) | P1 | Routes exist; env-gated |
 | G-5 | Guest ↔ landlord messaging per booking | P0 | Partial |
@@ -483,7 +483,7 @@ Per-kommune: `digital_los_enabled`, `tourism_enabled`.
 | Finn / tourism | ~55% |
 | Stripe bookings | ~60% |
 | Digital Los scaffold | ~50% (research-gated) |
-| First-book-wins commit logic | ~0% (specified, not built) |
+| First-book-wins commit logic | ~85% (DB triggers + tourism assert; UI error keys) |
 
 ### 15.4 Glossary
 

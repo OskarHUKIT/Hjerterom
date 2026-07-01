@@ -205,12 +205,20 @@ flowchart LR
 
 ## 7. Suksesskriterier (ferdig refactor)
 
-- [ ] Ingen TSX-fil > 800 linjer (ESLint warn håndhever fra W6)
-- [ ] Alle `app/**/page.tsx` under 50 linjer (unntak dokumentert)
-- [ ] 0 `confirm()` / `alert()`
-- [ ] `useListingAvailability`, `usePublishedEventsQuery`, `useNavDatabaseListingsQuery` i bruk
+- [ ] Ingen TSX-fil > 800 linjer (ESLint warn håndhever fra W6) — **gjenstår:** `ListingDetailsClient`, `NavDatabasePage`, `NavMessagesPage`, `ListingDetailsNavView`
+- [x] Alle `app/**/page.tsx` under 50 linjer (unntak dokumentert)
+- [x] 0 `confirm()` / `alert()`
+- [x] `useListingAvailability`, `usePublishedEventsQuery`, `useNavDatabaseListingsQuery` i bruk
 - [x] `SERVICE_FLOW.md` §8 modulstatus oppdatert for utleier manage, nav database, meldinger (W6)
-- [x] `npm run build` grønn; eslint grønn
+- [x] `npm run build` grønn; eslint grønn (warnings på megasider)
+
+### Wave 7 (anbefalt neste)
+| ID | Oppgave | Mål |
+|----|---------|-----|
+| 7.1 | `NavDatabasePage` timeline/map → egne komponenter | < 800 linjer |
+| 7.2 | `NavMessagesPage` thread list + realtime hooks | < 800 linjer |
+| 7.3 | `ListingDetailsClient` gallery/handover sections | < 800 linjer |
+| 7.4 | `useAuthGate` / `useTermsGate` unified | Færre dupliserte gates |
 
 ---
 
