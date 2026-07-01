@@ -1,0 +1,60 @@
+HJERTERUM UX/UI AUDIT RESULTS
+================================
+Date: 2026-07-01T15:33:22.947Z
+Target: https://hjerterom-phi.vercel.app
+Auditor: /ux-ui-audit (Playwright e2e/ux-ui-audit.spec.ts)
+
+Test accounts (documented in docs/hjerterum/DEMO_NARVIK_OFOTEN.md):
+  Password: Ofoten2026! for all @demo.ofoten.no accounts
+  ops@demo.ofoten.no — platform operator
+  tina.olsen@demo.ofoten.no — kommune admin
+  lars.moen@demo.ofoten.no — kommune saksbehandler
+  tommy.hakonsen@demo.ofoten.no — utleier (5 boliger)
+  emma.becker@demo.ofoten.no — leietaker (Finn)
+
+Summary
+-------
+PASS: 24
+WARN: 2
+FAIL: 1
+INFO: 3
+
+Findings
+--------
+[PASS] Theme: Home loads with data-theme="dark" (Boly dark default)
+[FAIL] i18n: Skip link shows raw key "skipToMain" — missing no/se/en translation keys
+[PASS] Routes: / → HTTP 200
+[PASS] Routes: /finn → HTTP 200
+[PASS] Routes: /los → HTTP 200
+[PASS] Routes: /login → HTTP 200
+[PASS] Routes: /finn/login → HTTP 200
+[PASS] Routes: /personvern → HTTP 200
+[PASS] Routes: /brukervilkar → HTTP 200
+[PASS] Finn: Finn loads dark by default
+[INFO] Finn: Body background: rgb(2, 6, 23) (token --bg-app #020617)
+[PASS] Finn: Language selector (no/se/en) visible on Finn
+[PASS] Finn: Theme toggle works on Finn: dark → light
+[PASS] Mobile: Finn — no horizontal scroll at 375px
+[PASS] Los: Los loads dark by default
+[PASS] Los: Theme toggle visible on Los
+[PASS] Auth/Ops: Ops login OK → /homeowner/register (landlord onboarding gate before /ops home)
+[PASS] Ops: /ops accessible after ops@demo.ofoten.no login
+[PASS] Ops: /ops/platform loads for ops account
+[INFO] Ops: /ops/platform heading: Drift
+[PASS] Auth/Kommune: Kommune admin login OK → /nav/database/
+[PASS] Nav: /nav/database accessible for kommune admin
+[PASS] Nav: /nav/los-inbox accessible
+[PASS] Auth/Utleier: Utleier login → /homeowner/manage
+[INFO] Homeowner: Manage page heading: Velkommen til Boly
+[PASS] Auth/Leietaker: Leietaker Finn login → /finn/mine
+[PASS] Finn: /finn/mine accessible for leietaker
+[WARN] Nav: Theme toggle not found in Boly App header at 1280px (may be in mobile menu / bottom nav)
+[WARN] i18n: Locale selector with se option not found on /nav/database at desktop width
+
+Recommended follow-ups (from failures/warnings)
+----------------------------------------------
+- [FAIL] i18n: Add skipToMain keys in lib/i18n (no/se/en) — SkipLink.tsx renders raw key on all pages
+- [WARN] Nav: Verify theme toggle discoverability on /nav/* at desktop (PRD §15.3)
+- [WARN] i18n: Verify Sámi locale switcher visibility on Boly App /nav routes
+
+Audit criteria: docs/hjerterum/UI_UX_GOVERNANCE.md §6.2, .cursor/skills/hjerterum-ui/SKILL.md
