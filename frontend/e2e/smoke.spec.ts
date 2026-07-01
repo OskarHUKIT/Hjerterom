@@ -11,6 +11,9 @@ const SMOKE_ROUTES = [
   { path: '/nav/database', label: 'nav database' },
   { path: '/nav/messages', label: 'nav messages' },
   { path: '/finn', label: 'finn search' },
+  { path: '/finn/vilkar', label: 'finn terms' },
+  { path: '/los', label: 'los search' },
+  { path: '/los/personvern', label: 'los privacy' },
 ] as const
 
 for (const route of SMOKE_ROUTES) {

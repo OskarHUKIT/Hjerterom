@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { appOrigin, getStripe } from '@/app/lib/stripeServer'
 import { checkRateLimit, clientIpFromRequest } from '@/app/lib/rateLimit'
 import { logPlatformEvent } from '@/app/lib/platformEvents'
+import { bookingPaymentSplit } from '@/app/lib/bookingPaymentSettlement'
 import { platformApplicationFeeCents } from '@/app/lib/platformFee'
 import { createAuthedServerClient } from '@/app/lib/supabaseServer'
 
@@ -86,10 +87,15 @@ export async function POST(request: Request) {
   }
 
   const platformFee = platformApplicationFeeCents(amountCents)
+  const { landlordPayoutCents } = bookingPaymentSplit(amountCents)
 
   await supabase
     .from('bookings')
-    .update({ platform_fee_cents: platformFee, updated_at: new Date().toISOString() })
+    .update({
+      platform_fee_cents: platformFee,
+      landlord_payout_cents: landlordPayoutCents,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', bookingId)
 
   const origin = appOrigin()

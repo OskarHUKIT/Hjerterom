@@ -3,6 +3,7 @@ import { appOrigin } from '@/app/lib/stripeServer'
 import { checkRateLimit, clientIpFromRequest } from '@/app/lib/rateLimit'
 import { getVippsConfig, vippsCreatePayment } from '@/app/lib/vippsServer'
 import { createAuthedServerClient } from '@/app/lib/supabaseServer'
+import { bookingPaymentSplit } from '@/app/lib/bookingPaymentSettlement'
 import { platformApplicationFeeCents } from '@/app/lib/platformFee'
 
 export const runtime = 'nodejs'
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
   const reference = `hr-${bookingId}`
   const origin = appOrigin()
   const platformFee = platformApplicationFeeCents(amountCents)
+  const { landlordPayoutCents } = bookingPaymentSplit(amountCents)
 
   try {
     const { redirectUrl, paymentId } = await vippsCreatePayment(cfg, {
@@ -92,6 +94,7 @@ export async function POST(request: Request) {
         payment_provider: 'vipps',
         vipps_order_id: paymentId,
         platform_fee_cents: platformFee,
+        landlord_payout_cents: landlordPayoutCents,
         updated_at: new Date().toISOString(),
       })
       .eq('id', bookingId)

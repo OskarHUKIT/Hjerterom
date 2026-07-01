@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { getStripe } from '@/app/lib/stripeServer'
+import { bookingPaidUpdateFields } from '@/app/lib/bookingPaymentSettlement'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -98,12 +99,22 @@ export async function POST(request: Request) {
     const session = event.data.object as { metadata?: { booking_id?: string }; payment_intent?: string | null }
     const bookingId = session.metadata?.booking_id
     if (bookingId) {
+      const { data: booking } = await admin
+        .from('bookings')
+        .select('amount_cents, platform_fee_cents')
+        .eq('id', bookingId)
+        .maybeSingle()
+      const amountCents = (booking?.amount_cents as number | null) ?? 0
+      const paidFields = bookingPaidUpdateFields(
+        amountCents,
+        'stripe',
+        booking?.platform_fee_cents as number | null | undefined
+      )
       await admin
         .from('bookings')
         .update({
-          status: 'paid',
+          ...paidFields,
           payment_intent_id: typeof session.payment_intent === 'string' ? session.payment_intent : null,
-          updated_at: new Date().toISOString(),
         })
         .eq('id', bookingId)
       await queueBookingReceipt(admin, bookingId)
@@ -114,9 +125,23 @@ export async function POST(request: Request) {
     const pi = event.data.object as { id: string; metadata?: { booking_id?: string } }
     const bookingId = pi.metadata?.booking_id
     if (bookingId) {
+      const { data: booking } = await admin
+        .from('bookings')
+        .select('amount_cents, platform_fee_cents')
+        .eq('id', bookingId)
+        .maybeSingle()
+      const amountCents = (booking?.amount_cents as number | null) ?? 0
+      const paidFields = bookingPaidUpdateFields(
+        amountCents,
+        'stripe',
+        booking?.platform_fee_cents as number | null | undefined
+      )
       await admin
         .from('bookings')
-        .update({ status: 'paid', payment_intent_id: pi.id, updated_at: new Date().toISOString() })
+        .update({
+          ...paidFields,
+          payment_intent_id: pi.id,
+        })
         .eq('id', bookingId)
       await queueBookingReceipt(admin, bookingId)
     }

@@ -48,7 +48,8 @@ import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
 import { getOverviewBackLink } from '@/app/lib/overviewBackNav'
 import { useQueryClient } from '@tanstack/react-query'
 import { QK } from '@/app/lib/queries/queryKeys'
-import { useKommuneNavAccess } from '@/app/hooks/useKommuneNavAccess'
+import { useNavDatabaseAccess } from '@/features/mediation/hooks/useNavDatabaseAccess'
+import type { NavDatabasePortalMode } from '@/features/mediation/types/navDatabasePortal'
 import {
   formidlaPeriodIdsOverlappingToday,
   listingAvailabilityStatusToday,
@@ -73,7 +74,6 @@ import { getNavDbColumns } from '@/features/mediation/lib/navDatabaseColumns'
 import { useNavDatabasePublishedEvents } from '@/features/mediation/hooks/useNavDatabasePublishedEvents'
 import { useNavDatabaseListingsQuery } from '@/features/mediation/hooks/useNavDatabaseListingsQuery'
 import { usePlatformMode } from '@/context/PlatformModeContext'
-import { useEventStaffAccess } from '@/features/auth/hooks/useEventStaffAccess'
 import { useNavDatabaseTranslate } from '@/features/mediation/hooks/useNavDatabaseTranslate'
 import NavDatabaseColumnSettings from '@/features/mediation/components/NavDatabaseColumnSettings'
 import NavDatabaseMobileListView from '@/features/mediation/components/NavDatabaseMobileListView'
@@ -90,14 +90,23 @@ const MapView = dynamic(() => import('@/app/components/MapView'), {
   loading: () => <div className="card" style={{ height: '500px' }} />,
 })
 
-export type NavDatabasePortalMode = 'kommune' | 'event'
+export type { NavDatabasePortalMode } from '@/features/mediation/types/navDatabasePortal'
 
 type NavDatabasePageProps = {
   portalMode?: NavDatabasePortalMode
 }
 
 export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabasePageProps) {
-  const isEventPortal = portalMode === 'event'
+  const {
+    isEventPortal,
+    userRole,
+    kommuneCanEdit,
+    kommuneRegion,
+    isAuthorized,
+    accessError,
+    accessQueryError,
+    refetchAccess,
+  } = useNavDatabaseAccess(portalMode)
   const { t, locale } = useLanguage()
   const toast = useToast()
   const confirmDialog = useConfirm()
@@ -126,53 +135,6 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
     const q = next.toString()
     void router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false })
   }, [router, pathname, searchParams])
-
-  const {
-    data: access,
-    isPending: accessPending,
-    isError: accessError,
-    error: accessQueryError,
-    refetch: refetchKommuneAccess,
-  } = useKommuneNavAccess({ redirectUnauthenticated: !isEventPortal })
-
-  const {
-    data: eventAccess,
-    isPending: eventAccessPending,
-  } = useEventStaffAccess({
-    enabled: isEventPortal,
-    loginRedirect: '/nav/event/database',
-  })
-
-  const userRole = isEventPortal
-    ? eventAccess?.kind === 'ok'
-      ? eventAccess.userRole
-      : null
-    : access?.kind === 'ok'
-      ? access.userRole
-      : null
-  const kommuneCanEdit = isEventPortal
-    ? true
-    : access?.kind === 'ok'
-      ? access.kommuneCanEdit
-      : true
-  const kommuneRegion = isEventPortal ? 'event' : access?.kind === 'ok' ? access.kommuneRegion : null
-  const isAuthorized: boolean | null = isEventPortal
-    ? eventAccessPending || !eventAccess
-      ? null
-      : eventAccess.kind === 'ok'
-        ? true
-        : eventAccess.kind === 'forbidden'
-          ? false
-          : null
-    : accessPending || access === undefined
-      ? null
-      : access.kind === 'unauthenticated'
-        ? null
-        : access.kind === 'ok'
-          ? true
-          : access.kind === 'forbidden'
-            ? false
-            : null
 
   const [searchTerm, setSearchTerm] = useState('')
   // ... rest of state ...
@@ -441,7 +403,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
       <main className="container" style={{ padding: 'var(--space-8)' }}>
         <div className="card" style={{ padding: 'var(--space-6)', maxWidth: 480, margin: '0 auto' }}>
           <p style={{ marginBottom: 'var(--space-4)' }}>{navDbErrMessage(accessQueryError)}</p>
-          <Button type="button" variant="primary" onClick={() => void refetchKommuneAccess()}>
+          <Button type="button" variant="primary" onClick={() => void refetchAccess()}>
             {t('retryLoad')}
           </Button>
         </div>

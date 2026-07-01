@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getVippsConfig, vippsGetPayment } from '@/app/lib/vippsServer'
+import { bookingPaidUpdateFields } from '@/app/lib/bookingPaymentSettlement'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,12 +49,24 @@ export async function POST(request: Request) {
   }
 
   if (shouldMarkPaid) {
+    const { data: booking } = await admin
+      .from('bookings')
+      .select('amount_cents, platform_fee_cents')
+      .eq('id', bookingId)
+      .maybeSingle()
+
+    const amountCents = (booking?.amount_cents as number | null) ?? 0
+    const paidFields = bookingPaidUpdateFields(
+      amountCents,
+      'vipps',
+      booking?.platform_fee_cents as number | null | undefined
+    )
+
     await admin
       .from('bookings')
       .update({
-        status: 'paid',
-        payment_provider: 'vipps',
-        updated_at: new Date().toISOString(),
+        ...paidFields,
+        vipps_order_id: reference,
       })
       .eq('id', bookingId)
       .in('status', ['accepted', 'pending'])
