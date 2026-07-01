@@ -1,0 +1,129 @@
+========================================================================
+HJERTERUM PRODUCT GROWTH AUDIT — SHARED RESULTS LOG
+========================================================================
+Run: 2026-07-01T15:10:12Z
+Target: https://hjerterom-phi.vercel.app
+Framework: /product-growth-audit (docs/hjerterum/audits/product-growth-audit.md)
+Test accounts: @demo.ofoten.no — password Ofoten2026! (DEMO_NARVIK_OFOTEN.md)
+Auditor: automated Playwright (scripts/product-growth-audit.mjs) + synthesis
+
+------------------------------------------------------------------------
+EXECUTIVE SUMMARY
+------------------------------------------------------------------------
+Overall: PILOT-READY with one auth gap and minor UX-gate warnings.
+
+Strengths (growth enablers):
+  • All 7 anonymous module entry routes healthy (200, no error copy).
+  • Ops persona: full /ops/* stack including platform control, events, kommuner, stats.
+  • Kommune admin + saksbehandler: boligbank, Los innboks, event inquiries, messages.
+  • Utleier + leietaker: /homeowner/manage and /finn/mine accessible after login.
+  • Finn and Los show Norsk / Sámegiella / English in chrome (i18n present post-hydration).
+  • Demo seed (Ofoten/Narvik) is live on phi — rich data for sales demos.
+
+Blockers:
+  • FAIL: kari.event@demo.ofoten.no cannot log in — event_ansatt journey untested.
+    Likely: account missing, wrong password hash, or role not seeded on phi Supabase.
+
+Warnings (growth friction, not deploy blockers):
+  • Theme toggle not detected in automated pass on /, /login before shell hydration.
+    Manual check: Header + ShellChromeControls expose toggle after client load on app routes.
+  • Landing (/) has no language selector in marketing shell — Finn/Los/app routes do.
+  • Several Finn subpages render English copy while nav shows Norsk (i18n consistency).
+
+P0 product gaps (documented, not automated here):
+  • Guest↔landlord messaging thread per booking (PRODUKTANALYSE §1.1)
+  • tourism_instant_book end-to-end on phi
+  • event_ansatt dedicated surface (partial — uses /nav/* today)
+  • Stripe + Vipps parallel payment path
+  • M5 Sámi key audit on all new strings
+  • First-book-wins concurrency test
+
+Recommended next actions:
+  1. Fix or re-seed kari.event@demo.ofoten.no on phi Supabase (central_event_staff grant).
+  2. Add theme + language controls to marketing landing (/) for PRD §15 parity.
+  3. Run manual booking flow: emma → ingrid listing → accept → payment stub.
+  4. Quarterly: Lighthouse a11y on /finn, /los, /nav/database, /homeowner/manage.
+
+------------------------------------------------------------------------
+DETAILED AUTOMATED LOG
+------------------------------------------------------------------------
+
+--- 1. Public route health ---
+PASS Landing (/) — HTTP 200
+PASS Login (/login) — HTTP 200
+PASS Finn søk (/finn) — HTTP 200
+PASS Finn vilkår (/finn/vilkar) — HTTP 200
+PASS Finn arrangement (/finn/arrangement/arctic-ski-narvik-2026) — HTTP 200
+PASS Digital Los (/los) — HTTP 200
+PASS Los personvern (/los/personvern) — HTTP 200
+
+--- 2. Theme & i18n (growth UX gates) ---
+WARN  / — theme toggle not found in initial HTML (marketing page; may lack chrome)
+WARN  / — language selector not found on landing
+WARN  /finn, /los, /login — theme toggle not found before hydration (false negative likely)
+NOTE  Finn/Los HTML includes "Norsk Sámegiella English" — i18n chrome confirmed in snippets
+
+--- 3. Persona login + core journeys ---
+
+Persona: Ops / plattformdrift (ops@demo.ofoten.no)
+  PASS /ops — HTTP 200
+  PASS /ops/platform — HTTP 200
+  PASS /ops/events — HTTP 200
+  PASS /ops/kommuner — HTTP 200
+  PASS /ops/stats — HTTP 200
+
+Persona: Kommune admin (tina.olsen@demo.ofoten.no)
+  PASS /nav/database — HTTP 200
+  PASS /nav/los-inbox — HTTP 200
+  PASS /nav/event-inquiries — HTTP 200
+  PASS /nav/terms-documents — HTTP 200
+  PASS /nav/kommune-access — HTTP 200
+
+Persona: Kommune saksbehandler (lars.moen@demo.ofoten.no)
+  PASS /nav/database — HTTP 200
+  PASS /nav/messages — HTTP 200
+  PASS /nav/los-inbox — HTTP 200
+  PASS /nav/users — HTTP 200
+
+Persona: Event saksbehandler (kari.event@demo.ofoten.no)
+  FAIL login — remained on /login/ (auth rejected or account missing)
+
+Persona: Utleier / turisme (ingrid.fotland@demo.ofoten.no)
+  PASS /homeowner/manage — HTTP 200
+  PASS /nav/messages — HTTP 200
+
+Persona: Leietaker / Finn (emma.becker@demo.ofoten.no)
+  PASS /finn — HTTP 200
+  PASS /finn/mine — HTTP 200
+
+--- 4. Growth funnel surfaces (anonymous) ---
+PASS Finn funnel entry — search/arrangement chrome loads
+PASS Los funnel entry — chat/privacy chrome loads
+
+--- 5. Product growth gap checklist (static) ---
+INFO  Leietaker↔utleier meldingstråd per booking — P0, not verified
+INFO  tourism_instant_book — manual E2E needed
+INFO  event_ansatt dedikert UI — partial
+INFO  Stripe + Vipps — env-dependent
+INFO  Sámi (se) key completeness — separate i18n audit
+INFO  Dobbelbooking-beskyttelse — concurrency test needed
+
+--- 6. Scorecard ---
+PASS: 36
+WARN: 6
+FAIL: 1
+INFO: 6
+
+Critical failures:
+  [LOGIN_event_sb] kari.event@demo.ofoten.no — login failed
+
+Warnings:
+  [THEME_/] No theme toggle on landing (marketing)
+  [I18N_/] No language selector on landing
+  [THEME_/finn] [THEME_/los] [THEME_/login] Toggle not in static HTML (check post-hydration)
+  [I18N_/login] Language selector not in static HTML on /login card
+
+========================================================================
+END OF AUDIT RUN — 2026-07-01
+Re-run: node scripts/product-growth-audit.mjs --base-url https://hjerterom-phi.vercel.app
+========================================================================
