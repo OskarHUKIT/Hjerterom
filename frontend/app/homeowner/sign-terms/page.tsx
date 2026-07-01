@@ -11,7 +11,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '../../lib/supabase'
-import { useToast } from '@/app/components/design-system'
+import { useConfirm, useToast } from '@/app/components/design-system'
 import { useLanguage } from '../../../context/LanguageContext'
 import {
   readPendingFirstListingDraft,
@@ -72,6 +72,7 @@ function SignedAgreementPdfButton({
 function SignTermsContent() {
   const { t, locale: appLocale } = useLanguage()
   const toast = useToast()
+  const confirmDialog = useConfirm()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -486,7 +487,14 @@ function SignTermsContent() {
   }
 
   const handleTerminate = async () => {
-    if (!confirm(t('signTermsTerminateConfirm'))) return
+    if (
+      !(await confirmDialog({
+        title: t('signTermsNavShort'),
+        message: t('signTermsTerminateConfirm'),
+        variant: 'danger',
+      }))
+    )
+      return
 
     setLoading(true)
     try {

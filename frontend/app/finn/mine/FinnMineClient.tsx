@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { Mail, CalendarCheck, Star } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { PageSkeleton, useToast } from '@/app/components/design-system'
+import { PageSkeleton, useConfirm, useToast } from '@/app/components/design-system'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
 import { formatDateNo } from '@/app/lib/dateFormat'
 import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
@@ -24,6 +24,7 @@ type BookingRow = {
 export default function FinnMineClient() {
   const { t } = useLanguage()
   const toast = useToast()
+  const confirmDialog = useConfirm()
   const searchParams = useSearchParams()
   const highlightId = searchParams.get('booking')
   const [email, setEmail] = useState('')
@@ -163,7 +164,14 @@ export default function FinnMineClient() {
   }
 
   const cancelBooking = async (bookingId: string) => {
-    if (!window.confirm(t('finnCancelBookingConfirm'))) return
+    if (
+      !(await confirmDialog({
+        title: t('finnCancelBooking'),
+        message: t('finnCancelBookingConfirm'),
+        variant: 'danger',
+      }))
+    )
+      return
     setCancellingId(bookingId)
     const { data, error } = await supabase.rpc('guest_cancel_booking', { p_booking_id: bookingId })
     setCancellingId(null)

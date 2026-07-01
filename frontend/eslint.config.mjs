@@ -77,7 +77,7 @@ const eslintConfig = [
   {
     files: ['app/**/*.{ts,tsx}', 'features/**/*.{ts,tsx}'],
     rules: {
-      'no-alert': 'warn',
+      'no-alert': 'error',
     },
   },
 ]

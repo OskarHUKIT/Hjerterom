@@ -8,7 +8,7 @@ import Link from 'next/link'
 import type { User as AuthUser } from '@supabase/supabase-js'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { devWarn, logError } from '@/app/lib/appLogger'
-import { useToast } from '@/app/components/design-system'
+import { useConfirm, useToast } from '@/app/components/design-system'
 import PageSkeleton from '@/app/components/design-system/PageSkeleton'
 import { useLanguage } from '@/context/LanguageContext'
 import {
@@ -116,6 +116,7 @@ export default function ListingDetailsClient() {
   const searchParams = useSearchParams()
   const { t } = useLanguage()
   const toast = useToast()
+  const confirmDialog = useConfirm()
   const viewMode = searchParams.get('view') // 'nav' eller 'owner'
   const isNavView = viewMode === 'nav'
 
@@ -560,7 +561,14 @@ export default function ListingDetailsClient() {
       toast(t('expiredOwnerNoMediationNav'), 'error')
       return
     }
-    if (!confirm(`Vil du fjerne formidlingen for "${listing.address}"?`)) return
+    if (
+      !(await confirmDialog({
+        title: t('dbTitleRemoveMediation'),
+        message: t('dbRemoveFormidletConfirm').replace('{address}', listing.address),
+        variant: 'danger',
+      }))
+    )
+      return
     const prevListing = listing
     const prevAvailability = availability
     const periodIds = formidlaPeriodIdsOverlappingToday(String(id), { [String(id)]: availability })
@@ -603,7 +611,14 @@ export default function ListingDetailsClient() {
       toast(t('expiredOwnerNoMediationNav'), 'error')
       return
     }
-    if (!confirm(t('generateNewLinkConfirm'))) return
+    if (
+      !(await confirmDialog({
+        title: t('listingNewLink'),
+        message: t('generateNewLinkConfirm'),
+        variant: 'danger',
+      }))
+    )
+      return
     setTenantLinkRegenerating(true)
     try {
       const newToken = crypto.randomUUID()
