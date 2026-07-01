@@ -30,9 +30,9 @@ export type NavDatabaseFiltersProps = {
   onSearchTermChange: (value: string) => void
   filters: NavDatabaseFiltersState
   onFiltersChange: (filters: NavDatabaseFiltersState) => void
-  mapStatusFilter: Array<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'>
+  mapStatusFilter: Array<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'>
   onMapStatusFilterChange: Dispatch<
-    SetStateAction<Array<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'>>
+    SetStateAction<Array<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'>>
   >
   eventFilterId: string
   onEventFilterIdChange: (value: string) => void
@@ -74,13 +74,15 @@ function FiltersContent({
             {t('dbMapShowStatuses')}
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-            {(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'] as const).map((status) => {
+            {(['Tilgjengelig', 'Ikke markert', 'Utilgjengelig', 'Formidlet'] as const).map((status) => {
               const statusLabel =
                 status === 'Tilgjengelig'
                   ? t('available')
-                  : status === 'Utilgjengelig'
-                    ? t('unavailable')
-                    : t('formidlet')
+                  : status === 'Ikke markert'
+                    ? t('availabilityUnmarked')
+                    : status === 'Utilgjengelig'
+                      ? t('unavailable')
+                      : t('formidlet')
               return (
                 <label
                   key={status}

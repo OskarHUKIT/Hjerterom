@@ -11,6 +11,7 @@ import {
   Calendar,
   Settings,
   List,
+  CircleDashed,
 } from 'lucide-react'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import type { TranslationKey } from '@/lib/translations'
@@ -21,11 +22,11 @@ export type NavDatabasePageToolbarProps = {
   overviewBack: { href: string; label: string } | null
   viewMode: NavDbViewMode
   userRole: string | null
-  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'
+  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
   showFilters: boolean
   showColumnSettings: boolean
   onViewModeChange: (mode: NavDbViewMode) => void
-  onActiveTabChange: (tab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet') => void
+  onActiveTabChange: (tab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert') => void
   onShowFiltersChange: (open: boolean) => void
   onShowColumnSettingsChange: (open: boolean) => void
   onClearFocusListingFromUrl: () => void
@@ -241,13 +242,15 @@ export default function NavDatabasePageToolbar({
           }}
         >
           {viewMode === 'map' ? null : viewMode !== 'timeline' ? (
-            (['Tilgjengelig', 'Utilgjengelig', 'Formidlet'] as const).map((tab) => {
+            (['Tilgjengelig', 'Ikke markert', 'Utilgjengelig', 'Formidlet'] as const).map((tab) => {
               const tabLabel =
                 tab === 'Tilgjengelig'
                   ? t('available')
-                  : tab === 'Utilgjengelig'
-                    ? t('unavailable')
-                    : t('formidlet')
+                  : tab === 'Ikke markert'
+                    ? t('availabilityUnmarked')
+                    : tab === 'Utilgjengelig'
+                      ? t('unavailable')
+                      : t('formidlet')
               const iconOnly = isKommuneStaffRole(userRole) && isMobile
               return (
                 <button
@@ -280,6 +283,13 @@ export default function NavDatabasePageToolbar({
                     <CheckCircle2
                       size={iconOnly ? 22 : 16}
                       style={{ color: activeTab === tab ? 'var(--color-teal)' : undefined }}
+                      aria-hidden
+                    />
+                  )}
+                  {tab === 'Ikke markert' && (
+                    <CircleDashed
+                      size={iconOnly ? 22 : 16}
+                      style={{ color: activeTab === tab ? 'var(--text-muted)' : undefined }}
                       aria-hidden
                     />
                   )}

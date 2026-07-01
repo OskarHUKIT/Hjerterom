@@ -139,9 +139,9 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
   const [searchTerm, setSearchTerm] = useState('')
   // ... rest of state ...
 
-  const [activeTab, setActiveTab] = useState<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'>(
-    'Tilgjengelig'
-  )
+  const [activeTab, setActiveTab] = useState<
+    'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
+  >('Tilgjengelig')
   const [viewMode, setViewMode] = useState<NavDbViewMode>(() => {
     if (typeof window === 'undefined') return 'timeline'
     return new URLSearchParams(window.location.search).get('focusListing')?.trim() ? 'map' : 'timeline'
@@ -174,8 +174,8 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
   ])
   /** Kart og tidslinje: filtrer synlige boliger etter dagens status (velges i filterpanelet). */
   const [mapStatusFilter, setMapStatusFilter] = useState<
-    ('Tilgjengelig' | 'Utilgjengelig' | 'Formidlet')[]
-  >(['Tilgjengelig', 'Utilgjengelig', 'Formidlet'])
+    ('Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert')[]
+  >(['Tilgjengelig', 'Ikke markert', 'Utilgjengelig', 'Formidlet'])
   const [eventFilterId, setEventFilterId] = useState('Alle')
   const publishedEventsQuery = useNavDatabasePublishedEvents(
     platformFlags.centralEvents ? userRole : null
@@ -379,22 +379,26 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
     void queryClient.invalidateQueries({ queryKey: QK.navDatabaseListings })
   }, [queryClient])
 
-  /** Status for dagens dato (lokal tid, normaliserte datoer). Null = ingen periode dekker i dag → i filter vises som tilgjengelig. */
+  /** Status for dagens dato (lokal tid). Ikke markert når ingen periode dekker i dag. */
   const getStatusForToday = listingAvailabilityStatusToday
 
-  const effectiveMapTimelineStatusFilter: Array<'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'> =
+  const effectiveMapTimelineStatusFilter: Array<
+    'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
+  > =
     mapStatusFilter.length > 0
       ? mapStatusFilter
-      : ['Tilgjengelig', 'Utilgjengelig', 'Formidlet']
+      : ['Tilgjengelig', 'Ikke markert', 'Utilgjengelig', 'Formidlet']
 
   const listingMatchesMapTimelineStatusFilter = (lid: string) => {
     const s = getStatusForToday(lid, availability)
-    const status: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' =
+    const status: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert' =
       s === 'Formidla'
         ? 'Formidlet'
         : s === 'Utilgjengelig'
           ? 'Utilgjengelig'
-          : 'Tilgjengelig'
+          : s === 'Ikke markert'
+            ? 'Ikke markert'
+            : 'Tilgjengelig'
     return effectiveMapTimelineStatusFilter.includes(status)
   }
 

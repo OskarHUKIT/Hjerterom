@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import type { ListingAvailabilityRow, NavDatabaseListingRow } from '@/app/lib/listingUiTypes'
+import type { ListingDayAvailabilityStatus } from '@/app/lib/listingAvailabilityStatusToday'
 import type { NavDbColumn } from '@/features/mediation/lib/navDatabaseColumns'
 import type { ReactNode } from 'react'
 
@@ -20,19 +21,19 @@ type NavDatabaseTableViewProps = {
   availability: Record<string, ListingAvailabilityRow[]>
   visibleColumnIds: string[]
   allColumns: NavDbColumn[]
-  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet'
+  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
   kommuneCanEdit: boolean
   isMobile: boolean
   translateValue: (
     id: string,
     val: unknown,
     listing?: NavDatabaseListingRow,
-    statusForToday?: 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null
+    statusForToday?: ListingDayAvailabilityStatus | null
   ) => ReactNode
   getStatusForToday: (
     lid: string,
     avail: Record<string, ListingAvailabilityRow[]>
-  ) => 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null
+  ) => ListingDayAvailabilityStatus
   toggleSort: (field: string) => void
   prefetchListingDetail: (id: string) => void
   openFormidletModal: (listing: NavDatabaseListingRow) => void

@@ -3150,3 +3150,343 @@ body.mobile-bottom-nav-active .ds-toast-region {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/* ─── Shared availability calendar (utleier) ─── */
+.avail-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.avail-mode-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--touch-target);
+  padding: var(--space-3);
+  border-radius: 14px;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.avail-mode-tab--active {
+  border-color: var(--color-royal-blue);
+  background: color-mix(in srgb, var(--color-royal-blue) 12%, var(--bg-surface));
+  color: var(--text-main);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.avail-today-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: 12px;
+  margin-bottom: var(--space-4);
+  font-size: 0.9rem;
+}
+
+.avail-today-banner--open {
+  background: color-mix(in srgb, var(--color-teal) 14%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, var(--color-teal) 35%, transparent);
+}
+
+.avail-today-banner--closed {
+  background: color-mix(in srgb, #ef4444 10%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
+}
+
+.avail-today-banner--unmarked {
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-medium);
+  color: var(--text-muted);
+}
+
+.avail-today-banner--mediated {
+  background: color-mix(in srgb, var(--color-sky-blue) 14%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, var(--color-sky-blue) 30%, transparent);
+}
+
+.avail-mode-desc {
+  margin: 0 0 var(--space-4);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.shared-avail-calendar {
+  padding: var(--space-4);
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+}
+
+.shared-avail-calendar-header {
+  margin-bottom: var(--space-4);
+}
+
+.shared-avail-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.shared-avail-title-row h4 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.shared-avail-lead {
+  margin: var(--space-2) 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.shared-avail-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.shared-avail-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.shared-avail-toggle {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.shared-avail-toggle-btn {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: 999px;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shared-avail-toggle-btn--active.shared-avail-toggle-btn--open {
+  background: color-mix(in srgb, var(--color-teal) 22%, var(--bg-surface));
+  border-color: var(--color-teal);
+  color: var(--text-main);
+}
+
+.shared-avail-toggle-btn--active.shared-avail-toggle-btn--closed {
+  background: color-mix(in srgb, #ef4444 15%, var(--bg-surface));
+  border-color: #ef4444;
+  color: var(--text-main);
+}
+
+.shared-avail-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.shared-avail-preset {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: 999px;
+  border: 1px dashed var(--border-medium);
+  background: transparent;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.shared-avail-preset:hover {
+  border-color: var(--color-royal-blue);
+  color: var(--text-main);
+}
+
+.shared-avail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.shared-avail-nav-btn {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--bg-surface);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text-main);
+}
+
+.shared-avail-month {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.shared-avail-weekdays,
+.shared-avail-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.shared-avail-weekday {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.shared-avail-cell {
+  position: relative;
+  min-height: 44px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-main);
+}
+
+.shared-avail-cell--pad {
+  border: none;
+  background: transparent !important;
+  cursor: default;
+}
+
+.shared-avail-cell--today {
+  box-shadow: inset 0 0 0 2px var(--color-royal-blue);
+}
+
+.shared-avail-cell--past {
+  opacity: 0.55;
+}
+
+.shared-avail-cell--unmarked {
+  border-style: dashed;
+}
+
+.shared-avail-cell--selected {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.shared-avail-event-dot {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #a855f7;
+}
+
+.shared-avail-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.shared-avail-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shared-avail-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.shared-avail-legend-swatch--open {
+  background: color-mix(in srgb, var(--color-teal) 40%, transparent);
+}
+
+.shared-avail-legend-swatch--closed {
+  background: color-mix(in srgb, #ef4444 35%, transparent);
+}
+
+.shared-avail-legend-swatch--unmarked {
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-medium);
+}
+
+.shared-avail-legend-swatch--mediated {
+  background: color-mix(in srgb, var(--color-sky-blue) 40%, transparent);
+}
+
+.shared-avail-apply-bar {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.shared-avail-selection-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.shared-avail-apply-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.shared-avail-hint {
+  margin: var(--space-3) 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.avail-formidla-block {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.avail-formidla-block h6 {
+  margin: 0 0 var(--space-2);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.listing-lane-chip--unmarked {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.lane-period-badge--shared .lane-period-badge-lane {
+  color: var(--color-teal);
+}

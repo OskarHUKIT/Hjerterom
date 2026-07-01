@@ -7,6 +7,7 @@ import NavDatabaseTimelineColorHelp from '@/features/mediation/components/NavDat
 import { formatDateNo } from '@/app/lib/dateFormat'
 import { useLanguage } from '@/context/LanguageContext'
 import type { NavDatabaseListingRow, ListingAvailabilityRow } from '@/app/lib/listingUiTypes'
+import type { ListingDayAvailabilityStatus } from '@/app/lib/listingAvailabilityStatusToday'
 import type { NavDbColumn } from '@/features/mediation/lib/navDatabaseColumns'
 import type { TranslationKey } from '@/lib/translations'
 
@@ -25,12 +26,12 @@ export type NavDatabaseTimelineViewProps = {
     colId: string,
     value: unknown,
     listing: NavDatabaseListingRow,
-    statusForToday?: 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null
+    statusForToday?: ListingDayAvailabilityStatus | null
   ) => React.ReactNode
   getStatusForToday: (
     listingId: string,
     availMap: Record<string, ListingAvailabilityRow[]>
-  ) => 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | null
+  ) => ListingDayAvailabilityStatus
   prefetchListingDetail: (id: string) => void
   t: (key: TranslationKey) => string
 }

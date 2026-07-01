@@ -2,16 +2,16 @@
 
 import { Building2, CalendarDays, Palmtree } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
+import {
+  listingAvailabilityStatusToday,
+  type AvailabilityPeriodRow,
+} from '@/app/lib/listingAvailabilityStatusToday'
 import type { ListingEventOptInPeriod } from '@/features/listings/types/lanes'
 
-type PeriodRow = {
-  start_date: string
-  end_date: string
-  status: string
-  lane?: string | null
-}
+type PeriodRow = AvailabilityPeriodRow & { id?: string }
 
 type Props = {
+  listingId: string
   periods: PeriodRow[]
   eventOptIns: ListingEventOptInPeriod[]
   tourismEnabled: boolean
@@ -19,31 +19,8 @@ type Props = {
   showEvents: boolean
 }
 
-function hasActiveLaneToday(
-  periods: PeriodRow[],
-  eventOptIns: ListingEventOptInPeriod[],
-  lane: 'sosial' | 'turisme' | 'event'
-): boolean {
-  const today = new Date().toISOString().slice(0, 10)
-  if (lane === 'event') {
-    return eventOptIns.some(
-      (e) =>
-        e.status === 'active' &&
-        String(e.start_date).slice(0, 10) <= today &&
-        String(e.end_date).slice(0, 10) >= today
-    )
-  }
-  return periods.some((p) => {
-    const sd = String(p.start_date).slice(0, 10)
-    const ed = String(p.end_date).slice(0, 10)
-    if (sd > today || ed < today) return false
-    if (p.status !== 'Tilgjengelig' && p.status !== 'Formidla') return false
-    if (lane === 'turisme') return p.lane === 'turisme'
-    return !p.lane || p.lane === 'sosial'
-  })
-}
-
 export default function ListingAvailabilityOverview({
+  listingId,
   periods,
   eventOptIns,
   tourismEnabled,
@@ -51,17 +28,26 @@ export default function ListingAvailabilityOverview({
   showEvents,
 }: Props) {
   const { t } = useLanguage()
-  const sosial = hasActiveLaneToday(periods, eventOptIns, 'sosial')
-  const turisme = tourismEnabled && hasActiveLaneToday(periods, eventOptIns, 'turisme')
-  const event = showEvents && hasActiveLaneToday(periods, eventOptIns, 'event')
+  const todayStatus = listingAvailabilityStatusToday(listingId, { [listingId]: periods })
+  const today = new Date().toISOString().slice(0, 10)
+
+  const sosialOpen =
+    todayStatus === 'Tilgjengelig' || todayStatus === 'Formidla'
+  const turismeOpen = tourismEnabled && todayStatus === 'Tilgjengelig'
+  const event = showEvents && eventOptIns.some(
+    (e) =>
+      e.status === 'active' &&
+      String(e.start_date).slice(0, 10) <= today &&
+      String(e.end_date).slice(0, 10) >= today
+  )
 
   const chips = [
-    { id: 'sosial', label: t('laneSosial'), icon: Building2, active: sosial, show: true },
+    { id: 'sosial', label: t('laneSosial'), icon: Building2, active: sosialOpen, show: true },
     {
       id: 'turisme',
       label: t('laneTourism'),
       icon: Palmtree,
-      active: turisme,
+      active: turismeOpen,
       show: showTourism,
       muted: showTourism && !tourismEnabled,
     },
@@ -79,20 +65,15 @@ export default function ListingAvailabilityOverview({
       {chips.map(({ id, label, icon: Icon, active, muted }) => (
         <span
           key={id}
-          className={[
-            'listing-lane-overview-chip',
-            `listing-lane-overview-chip--${id}`,
-            active ? 'listing-lane-overview-chip--active' : '',
-            muted ? 'listing-lane-overview-chip--muted' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
+          className={`listing-lane-chip${active ? ' listing-lane-chip--active' : ''}${muted ? ' listing-lane-chip--muted' : ''}`}
         >
-          <Icon size={13} aria-hidden />
-          <span>{label}</span>
-          {active ? <span className="listing-lane-overview-dot" aria-hidden /> : null}
+          <Icon size={14} aria-hidden />
+          {label}
         </span>
       ))}
+      {todayStatus === 'Ikke markert' ? (
+        <span className="listing-lane-chip listing-lane-chip--unmarked">{t('availabilityUnmarked')}</span>
+      ) : null}
     </div>
   )
 }

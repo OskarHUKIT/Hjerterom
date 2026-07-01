@@ -3,7 +3,12 @@
 import { type Ref } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
 
-export type ManageListingFilter = 'Alle' | 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'
+export type ManageListingFilter =
+  | 'Alle'
+  | 'Tilgjengelig'
+  | 'Utilgjengelig'
+  | 'Formidla'
+  | 'Ikke markert'
 
 type LandlordManageFiltersProps = {
   filter: ManageListingFilter
@@ -22,6 +27,14 @@ export default function LandlordManageFilters({
 }: LandlordManageFiltersProps) {
   const { t } = useLanguage()
 
+  const filterLabel = (f: ManageListingFilter) => {
+    if (f === 'Alle') return t('all')
+    if (f === 'Formidla') return t('formidlet')
+    if (f === 'Ikke markert') return t('availabilityUnmarked')
+    if (f === 'Tilgjengelig') return t('available')
+    return t('unavailable')
+  }
+
   return (
     <>
       <div
@@ -39,7 +52,9 @@ export default function LandlordManageFilters({
         }}
       >
         <div className="hm-filters-buttons">
-          {(['Alle', 'Tilgjengelig', 'Utilgjengelig', 'Formidla'] as const).map((f) => (
+          {(
+            ['Alle', 'Tilgjengelig', 'Ikke markert', 'Utilgjengelig', 'Formidla'] as const
+          ).map((f) => (
             <button
               key={f}
               type="button"
@@ -61,13 +76,7 @@ export default function LandlordManageFilters({
                 boxShadow: filter === f ? '0 1px 4px rgba(59, 130, 246, 0.3)' : 'none',
               }}
             >
-              {f === 'Alle'
-                ? t('all')
-                : f === 'Formidla'
-                  ? t('formidlet')
-                  : f === 'Tilgjengelig'
-                    ? t('available')
-                    : t('unavailable')}
+              {filterLabel(f)}
             </button>
           ))}
         </div>
@@ -78,17 +87,11 @@ export default function LandlordManageFilters({
 
       {filter !== 'Alle' && (
         <p
-          role="status"
-          aria-live="polite"
-          className="text-sm"
           style={{
-            margin: '0 0 var(--space-4)',
-            padding: 'var(--space-3) var(--space-4)',
-            borderRadius: 10,
-            background: 'rgba(59, 130, 246, 0.08)',
-            border: '1px solid rgba(59, 130, 246, 0.22)',
-            color: 'var(--text-main)',
-            lineHeight: 1.5,
+            fontSize: '0.8rem',
+            color: 'var(--text-muted)',
+            marginTop: '-0.5rem',
+            marginBottom: 'var(--space-4)',
           }}
         >
           {t('manageFilterActiveHint')}

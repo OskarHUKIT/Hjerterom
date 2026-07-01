@@ -1,7 +1,6 @@
 'use client'
 
 import { useLanguage } from '@/context/LanguageContext'
-import type { ListingLane } from '@/features/listings/types/lanes'
 
 type Props = {
   lane?: string | null
@@ -11,8 +10,9 @@ type Props = {
 
 export default function LanePeriodBadge({ lane, status, compact }: Props) {
   const { t } = useLanguage()
-  const resolvedLane: ListingLane | 'formidla' =
-    status === 'Formidla' ? 'formidla' : lane === 'turisme' ? 'turisme' : 'sosial'
+  const isShared = lane === 'shared' || status === 'Tilgjengelig' || status === 'Utilgjengelig'
+  const resolvedLane =
+    status === 'Formidla' ? 'formidla' : lane === 'turisme' ? 'turisme' : isShared ? 'shared' : 'sosial'
 
   const statusLabel =
     status === 'Formidla'
@@ -26,7 +26,9 @@ export default function LanePeriodBadge({ lane, status, compact }: Props) {
       ? t('laneSosial')
       : resolvedLane === 'turisme'
         ? t('laneTourism')
-        : t('laneSosial')
+        : resolvedLane === 'shared'
+          ? t('sharedPeriodBadge')
+          : t('laneSosial')
 
   const statusModifier =
     status === 'Utilgjengelig' ? 'unavailable' : status === 'Formidla' ? 'mediated' : 'available'

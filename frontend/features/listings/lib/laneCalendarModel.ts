@@ -48,15 +48,9 @@ function layersForDay(
 
 function detectConflict(layers: LaneDayLayer[]): boolean {
   if (layers.length <= 1) return false
+  const hasFormidla = layers.some((l) => l.status === 'Formidla')
   const hasUnavailable = layers.some((l) => l.status === 'Utilgjengelig')
-  const hasAvailable = layers.some(
-    (l) => l.status === 'Tilgjengelig' || l.status === 'Formidla' || l.lane === 'event'
-  )
-  const lanes = new Set(layers.filter((l) => l.lane !== 'formidla').map((l) => l.lane))
-  if (hasUnavailable && hasAvailable) return true
-  if (lanes.size > 1 && layers.some((l) => l.lane === 'sosial' && l.status !== 'Formidla')) {
-    return true
-  }
+  if (hasFormidla && hasUnavailable) return true
   return false
 }
 
