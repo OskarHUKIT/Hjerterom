@@ -1,13 +1,11 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import type { User as AuthUser } from '@supabase/supabase-js'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
-import { devWarn, logError } from '@/app/lib/appLogger'
 import { useConfirm, useToast } from '@/app/components/design-system'
 import PageSkeleton from '@/app/components/design-system/PageSkeleton'
 import { useLanguage } from '@/context/LanguageContext'
@@ -67,8 +65,6 @@ import {
   MAX_MEDIATION_NOTE_IN_NOTIFICATION,
 } from '@/app/lib/formidletNotification'
 import { notifyLandlordInvoiceBasisIfKonto } from '@/app/lib/invoiceBasisNotify'
-import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
-import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '@/app/lib/storagePublicUrl'
 import {
   getHouseRulesPublicUrl,
@@ -108,6 +104,8 @@ import {
   listingHasFormidlaPeriod,
   listingDetailsErrMessage as errMessage,
 } from '@/features/listings/lib/listingDetailsUtils'
+import { useListingDetailsQuery } from '@/features/listings/hooks/useListingDetailsQuery'
+import type { ListingAvailabilityRow } from '@/app/lib/listingUiTypes'
 
 export default function ListingDetailsClient() {
   const { id: idParam } = useParams()
@@ -120,36 +118,43 @@ export default function ListingDetailsClient() {
   const viewMode = searchParams.get('view') // 'nav' eller 'owner'
   const isNavView = viewMode === 'nav'
 
-  const [listing, setListing] = useState<any>(null)
-  const [availability, setAvailability] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [navNotes, setNavNotes] = useState<any[]>([])
+  const {
+    listing,
+    setListing,
+    availability,
+    setAvailability,
+    loading,
+    navNotes,
+    setNavNotes,
+    currentUser,
+    handoverReports,
+    setHandoverReports,
+    hasActiveAgreement,
+    regionAccessDenied,
+    kommuneCanEdit,
+    viewerIsKommuneStaff,
+    viewerIsEventStaff,
+    ownerAgreementTerminated,
+    tenantReportToken,
+    setTenantReportToken,
+    mediationReservation,
+    loadMediationReservation,
+  } = useListingDetailsQuery({ id, isNavView, router })
+
   const [newNote, setNewNote] = useState('')
   const [copyFeedback, setCopyFeedback] = useState(false)
-  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
-  const [handoverReports, setHandoverReports] = useState<any[]>([])
   const [showHandoverForm, setShowHandoverForm] = useState(false)
-  const [tenantReportToken, setTenantReportToken] = useState<string | null>(null)
   const [tenantLinkRegenerating, setTenantLinkRegenerating] = useState(false)
-  const [hasActiveAgreement, setHasActiveAgreement] = useState(false)
   const [reportTimeFilter, setReportTimeFilter] = useState<'all' | '7d' | '30d'>('all')
   const [reportTimeFilterOpen, setReportTimeFilterOpen] = useState(false)
   const [expandedReportId, setExpandedReportId] = useState<string | null>(null)
   const [requestChangeReport, setRequestChangeReport] = useState<any | null>(null)
   const [requestChangeComment, setRequestChangeComment] = useState('')
   const [requestChangeSending, setRequestChangeSending] = useState(false)
-  const [regionAccessDenied, setRegionAccessDenied] = useState(false)
   const [showNavNotes, setShowNavNotes] = useState(false)
-  const [kommuneCanEdit, setKommuneCanEdit] = useState(false)
-  /** True når innlogget bruker er kommune (for meldingslenke til utleier utenfor nav-visning). */
-  const [viewerIsKommuneStaff, setViewerIsKommuneStaff] = useState(false)
-  const [viewerIsEventStaff, setViewerIsEventStaff] = useState(false)
-  /** Utleierens user_agreements.is_terminated – blokkerer formidling og melding i Nav-visning */
-  const [ownerAgreementTerminated, setOwnerAgreementTerminated] = useState(false)
-  const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{
-    id: string
-    status: string
-  } | null>(null)
+  const [pendingDeletePeriod, setPendingDeletePeriod] = useState<ListingAvailabilityRow | null>(
+    null
+  )
 
   // Gallery state
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -165,9 +170,6 @@ export default function ListingDetailsClient() {
   const [formidletMediationNote, setFormidletMediationNote] = useState('')
   const [formidletIncludeNoteInNotification, setFormidletIncludeNoteInNotification] =
     useState(false)
-  const [mediationReservation, setMediationReservation] = useState<
-    (Record<string, any> & { reserved_by_name?: string }) | null
-  >(null)
   const [reservationNote, setReservationNote] = useState('')
   const [reservationLoading, setReservationLoading] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(() => {
@@ -332,25 +334,6 @@ export default function ListingDetailsClient() {
     }
   }
 
-  const loadMediationReservation = useCallback(async () => {
-    if (!id || !isNavView) return
-    await supabase.rpc('expire_stale_mediation_reservations')
-    const { data: resRow } = await supabase
-      .from('listing_mediation_reservations')
-      .select('*')
-      .eq('listing_id', id)
-      .eq('status', 'active')
-      .maybeSingle()
-    if (!resRow) {
-      setMediationReservation(null)
-      return
-    }
-    const { data: n } = await supabase.rpc('get_user_display_name', {
-      p_user_id: resRow.reserved_by,
-    })
-    setMediationReservation({ ...resRow, reserved_by_name: typeof n === 'string' ? n : '…' })
-  }, [id, isNavView])
-
   const handleReserveMediation = async () => {
     if (!listing || !isNavView || !kommuneCanEdit) return
     if (ownerAgreementTerminated) {
@@ -498,7 +481,7 @@ export default function ListingDetailsClient() {
         await notifyLandlordInvoiceBasisIfKonto(supabase, {
           ownerId: listing.owner_id,
           listingId: String(id),
-          address: listing.address,
+          address: listing.address ?? '',
           paymentMethod: listing.payment_method,
         })
       }
@@ -530,7 +513,7 @@ export default function ListingDetailsClient() {
     return hits[0]?.status ?? null
   }
 
-  const handleRemovePeriod = async (period: { id: string; status: string }) => {
+  const handleRemovePeriod = async (period: ListingAvailabilityRow) => {
     if (isNavView && ownerAgreementTerminated) {
       toast(t('expiredOwnerNoMediationNav'), 'error')
       return
@@ -564,7 +547,7 @@ export default function ListingDetailsClient() {
     if (
       !(await confirmDialog({
         title: t('dbTitleRemoveMediation'),
-        message: t('dbRemoveFormidletConfirm').replace('{address}', listing.address),
+        message: t('dbRemoveFormidletConfirm').replace('{address}', listing.address ?? ''),
         variant: 'danger',
       }))
     )
@@ -633,176 +616,6 @@ export default function ListingDetailsClient() {
       setTenantLinkRegenerating(false)
     }
   }
-
-  useEffect(() => {
-    setRegionAccessDenied(false)
-    async function fetchData() {
-      setOwnerAgreementTerminated(false)
-      try {
-        const user = await getAuthUserDeduped()
-        setCurrentUser(user)
-
-        let navViewerRole: string | null = null
-
-        if (user) {
-          if (isNavView) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role, kommune_can_edit')
-              .eq('id', user.id)
-              .maybeSingle()
-            const role = user.user_metadata?.role || profile?.role
-            navViewerRole = role ?? null
-            const isKommune = isKommuneStaffRole(role)
-            const isEvent = isEventStaffRole(role)
-            setViewerIsKommuneStaff(isKommune)
-            setViewerIsEventStaff(isEvent)
-            setKommuneCanEdit(
-              isEvent
-                ? true
-                : profile?.role === 'kommune_admin' || profile?.kommune_can_edit !== false
-            )
-            if (!isKommune && !isEvent) {
-              router.push(`/listings/${id}?view=owner`)
-              return
-            }
-          } else {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', user.id)
-              .maybeSingle()
-            const role = user.user_metadata?.role || profile?.role
-            setViewerIsKommuneStaff(isKommuneStaffRole(role))
-          }
-        } else {
-          setViewerIsKommuneStaff(false)
-        }
-
-        const listingPromise =
-          isNavView && user
-            ? isEventStaffRole(navViewerRole)
-              ? supabase.rpc('get_listing_by_id_for_event_staff', { p_listing_id: id })
-              : supabase.rpc('get_listing_by_id_for_kommune', { p_listing_id: id })
-            : supabase.from('listings').select('*').eq('id', id).single()
-
-        const agreementPromise = user
-          ? supabase
-              .from('user_agreements')
-              .select('*')
-              .eq('user_id', user.id)
-              .eq('is_terminated', false)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null })
-
-        const [listingRes, agreementRes] = await Promise.all([listingPromise, agreementPromise])
-
-        let data: any = null
-        let error: any = null
-        if (isNavView && user) {
-          error = listingRes.error
-          const rows = (listingRes.data as any[]) || []
-          data = rows[0] ?? null
-        } else {
-          data = listingRes.data
-          error = listingRes.error
-        }
-        if (error) throw error
-        setHasActiveAgreement(!!agreementRes.data)
-        setListing(data)
-
-        if (isNavView && user && !data) {
-          setRegionAccessDenied(true)
-        }
-
-        const ownerId = data?.owner_id
-        const ownerTermPromise = ownerId
-          ? supabase
-              .from('user_agreements')
-              .select('id')
-              .eq('user_id', ownerId)
-              .eq('is_terminated', true)
-              .maybeSingle()
-          : Promise.resolve({ data: null })
-
-        const availabilityPromise = supabase
-          .from('listing_availability')
-          .select('*')
-          .eq('listing_id', id)
-          .order('start_date', { ascending: true })
-
-        const reportsPromise = supabase
-          .from('handover_reports')
-          .select('*')
-          .eq('listing_id', id)
-          .order('created_at', { ascending: false })
-
-        const notesPromise =
-          user && isNavView
-            ? supabase
-                .from('nav_notes')
-                .select('*')
-                .eq('listing_id', id)
-                .order('created_at', { ascending: false })
-            : Promise.resolve({ data: null })
-
-        const [ownerTermRes, availRes, reportsRes, notesRes] = await Promise.all([
-          ownerTermPromise,
-          availabilityPromise,
-          reportsPromise,
-          notesPromise,
-        ])
-
-        const ownerTerm = !!ownerTermRes.data
-        setOwnerAgreementTerminated(ownerTerm)
-        const availData = availRes.data || []
-        setAvailability(availData)
-        setHandoverReports(reportsRes.data || [])
-
-        if (user && isNavView) {
-          setNavNotes(notesRes.data || [])
-          if (!ownerTerm) await loadMediationReservation()
-          else setMediationReservation(null)
-        }
-
-        // Fetch or create tenant report token only for kommune (lenken vises bare for kommuneansatte)
-        // Merk: «formidlet» = status Formidla ELLER minst én Formidla-periode (ikke bare «i dag» i perioden),
-        // ellers mangler lenke ved avvik mellom dato/tidssone eller når perioden ble lagt inn.
-        const isFormidlet =
-          data?.status === 'Formidla' ||
-          listingHasFormidlaPeriod(availData as { status?: string }[] | null | undefined)
-        if (user && isNavView && isFormidlet && !ownerTerm) {
-          let tokenData = await supabase
-            .from('listing_tenant_tokens')
-            .select('token')
-            .eq('listing_id', id)
-            .maybeSingle()
-          if (tokenData.error)
-            devWarn('[listing_tenant_tokens] select:', tokenData.error.message)
-          if (!tokenData.data?.token) {
-            const up = await supabase
-              .from('listing_tenant_tokens')
-              .upsert([{ listing_id: id }], { onConflict: 'listing_id' })
-            if (up.error) devWarn('[listing_tenant_tokens] upsert:', up.error.message)
-            tokenData = await supabase
-              .from('listing_tenant_tokens')
-              .select('token')
-              .eq('listing_id', id)
-              .maybeSingle()
-          }
-          setTenantReportToken(tokenData.data?.token || null)
-        } else {
-          setTenantReportToken(null)
-        }
-      } catch (err) {
-        logError('Error fetching listing:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (id) fetchData()
-  }, [id, isNavView, loadMediationReservation, router])
 
   /** App Router / klientnavigasjon scroller ikke alltid til #anker (f.eks. varsel «Åpne fakturagrunnlag»). */
   useEffect(() => {
@@ -1114,7 +927,9 @@ export default function ListingDetailsClient() {
     const now = Date.now()
     const cut =
       reportTimeFilter === '7d' ? now - 7 * 24 * 60 * 60 * 1000 : now - 30 * 24 * 60 * 60 * 1000
-    return handoverReports.filter((r) => new Date(r.created_at).getTime() >= cut)
+    return handoverReports.filter(
+      (r) => r.created_at && new Date(r.created_at).getTime() >= cut
+    )
   })()
 
   if (loading) {
@@ -1669,7 +1484,7 @@ export default function ListingDetailsClient() {
                     className="listing-metric-value"
                     style={{ fontWeight: 700, color: 'var(--text-main)' }}
                   >
-                    {translateType(listing.type)}
+                    {translateType(listing.type ?? '')}
                   </div>
                 )}
                 <div style={{ fontSize: '0.7rem', opacity: 0.6, color: 'var(--text-muted)' }}>
@@ -1987,7 +1802,7 @@ export default function ListingDetailsClient() {
                               key={acc}
                               onClick={() => {
                                 const newAcc = isActive
-                                  ? listing.accessibility.filter((a: string) => a !== acc)
+                                  ? listing.accessibility?.filter((a: string) => a !== acc) ?? []
                                   : [...(listing.accessibility || []), acc]
                                 setListing({ ...listing, accessibility: newAcc })
                                 handleUpdateField('accessibility', newAcc)
