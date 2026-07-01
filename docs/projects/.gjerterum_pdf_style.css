@@ -1,0 +1,126 @@
+@page {
+  size: A4;
+  margin: 20mm 16mm 22mm 16mm;
+}
+
+html, body {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.48;
+  color: #1a1a1a;
+  background: #ffffff;
+}
+
+body { margin: 0; padding: 0; }
+
+h1 {
+  font-size: 21pt;
+  font-weight: 700;
+  margin: 0 0 8pt 0;
+  color: #0a2540;
+  border-bottom: 3px solid #0a2540;
+  padding-bottom: 8pt;
+  page-break-after: avoid;
+}
+
+h1 + p em {
+  display: block;
+  font-size: 11pt;
+  color: #475569;
+  font-style: italic;
+  margin-bottom: 12pt;
+}
+
+h2 {
+  font-size: 14.5pt;
+  font-weight: 700;
+  color: #0a2540;
+  margin-top: 20pt;
+  margin-bottom: 8pt;
+  padding-bottom: 4pt;
+  border-bottom: 1px solid #cbd5e1;
+  page-break-after: avoid;
+}
+
+h3 {
+  font-size: 12pt;
+  font-weight: 700;
+  color: #0a2540;
+  margin-top: 14pt;
+  margin-bottom: 6pt;
+  page-break-after: avoid;
+}
+
+p { margin: 0 0 7pt 0; }
+
+blockquote {
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #0a2540;
+  background: #f8fafc;
+  padding: 10pt 14pt;
+  margin: 12pt 0 16pt 0;
+  border-radius: 3px;
+  font-size: 10pt;
+  color: #1e293b;
+  page-break-inside: avoid;
+}
+
+blockquote p { margin: 0 0 4pt 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10pt 0 14pt 0;
+  font-size: 9.5pt;
+  page-break-inside: avoid;
+}
+
+th, td {
+  border: 1px solid #cbd5e1;
+  padding: 6pt 8pt;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #0a2540;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+tr:nth-child(even) td { background: #f8fafc; }
+
+pre, code {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 8.5pt;
+}
+
+pre {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 10pt;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  page-break-inside: avoid;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #cbd5e1;
+  margin: 16pt 0;
+}
+
+ul, ol { margin: 6pt 0 10pt 0; padding-left: 18pt; }
+li { margin-bottom: 4pt; }
+
+strong { color: #0f172a; }
+
+em { color: #475569; }
+
+main { max-width: 100%; }
+
+@media print {
+  h2, h3 { page-break-after: avoid; }
+  table, blockquote, pre { page-break-inside: avoid; }
+}
