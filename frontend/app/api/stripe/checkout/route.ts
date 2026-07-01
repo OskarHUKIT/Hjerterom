@@ -1,30 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { appOrigin, getStripe } from '@/app/lib/stripeServer'
 import { checkRateLimit, clientIpFromRequest } from '@/app/lib/rateLimit'
 import { logPlatformEvent } from '@/app/lib/platformEvents'
+import { createAuthedServerClient } from '@/app/lib/supabaseServer'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-async function supabaseAuthed() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return { userId: null as string | null, email: null as string | null }
-  const cookieStore = await cookies()
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll() {},
-    },
-  })
-  const { data } = await supabase.auth.getUser()
-  return { userId: data.user?.id ?? null, email: data.user?.email ?? null }
-}
 
 /** Create Stripe Checkout Session for an accepted booking. */
 export async function POST(request: Request) {
@@ -55,16 +36,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'bookingId required' }, { status: 400 })
   }
 
-  const { userId, email } = await supabaseAuthed()
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) {
+  const authed = await createAuthedServerClient()
+  if (!authed) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 })
   }
-
-  const supabase = createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+  const { supabase, userId, email } = authed
 
   const { data: booking, error } = await supabase
     .from('bookings')

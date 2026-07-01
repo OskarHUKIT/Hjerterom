@@ -2,7 +2,7 @@
 
 > **Formål:** Gjøre hele kodebasen enklere, raskere å endre, og konsistent med `SERVICE_FLOW.md` og `UTVIKLINGSPLAN.md`.  
 > **Versjon:** 1.0 · 2026-06-30  
-> **Relatert:** `SERVICE_FLOW.md`, `ARCHITECTURE.md`, `UTVIKLINGSPLAN.md` §3 (målarkitektur)
+> **Relatert:** `SERVICE_FLOW.md`, `ARCHITECTURE.md`, `UTVIKLINGSPLAN.md` §3 (målarkitektur), **`agents/README.md`** (smart-zone agent briefs per wave)
 
 ---
 

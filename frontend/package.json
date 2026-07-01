@@ -7,6 +7,7 @@
     "build": "next build",
     "build:mobile": "node build-mobile.js",
     "start": "next start",
+    "gen:types": "supabase gen types typescript --local > lib/supabase/database.types.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "analyze": "cross-env ANALYZE=true next build",
