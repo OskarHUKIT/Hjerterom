@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
 import FeaturePortalGate from '@/app/components/FeaturePortalGate'
+import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
 
 export default function LosShell({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage()
@@ -20,9 +21,12 @@ export default function LosShell({ children }: { children: React.ReactNode }) {
           <h1>{t('losTitle')}</h1>
           <p>{t('losSubtitle')}</p>
         </div>
-        <Link href="/" style={{ color: 'var(--los-accent)', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>
-          {t('losExit')}
-        </Link>
+        <div className="los-header-actions">
+          <ShellChromeControls compact />
+          <Link href="/" className="los-exit-link">
+            {t('losExit')}
+          </Link>
+        </div>
       </header>
       <main className="los-main">
         <FeaturePortalGate feature="los">{children}</FeaturePortalGate>

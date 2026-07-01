@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Mail, CalendarCheck, Star } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { PageSkeleton, useConfirm, useToast } from '@/app/components/design-system'
+import { PageSkeleton, PortalPageShell, useConfirm, useToast } from '@/app/components/design-system'
 import { QK } from '@/app/lib/queries/queryKeys'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
 import { formatDateNo } from '@/app/lib/dateFormat'
@@ -207,9 +207,10 @@ export default function FinnMineClient() {
     return translated === key ? status : translated
   }
 
-  if (authLoading || (userEmail && bookingsLoading)) return <PageSkeleton minHeight={240} />
+  const pageLoading = authLoading || (!!userEmail && bookingsLoading)
 
   return (
+    <PortalPageShell loading={pageLoading} loadingFallback={<PageSkeleton minHeight={240} />}>
     <section>
       {termsOpen ? (
         <div
@@ -380,5 +381,6 @@ export default function FinnMineClient() {
         </>
       )}
     </section>
+    </PortalPageShell>
   )
 }

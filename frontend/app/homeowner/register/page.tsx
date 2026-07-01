@@ -36,6 +36,7 @@ import {
 import { savePendingFirstListingDraft } from '../lib/pendingFirstListing'
 import { getRegisterBackHref } from '../../lib/appHubNav'
 import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
+import { isKommuneSocialActiveForCity } from '../../lib/kommuneSocialSubscription'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
@@ -51,6 +52,7 @@ export default function HomeownerRegister() {
   const [houseRulesFile, setHouseRulesFile] = useState<File | null>(null)
   const [hasSignedTerms, setHasSignedTerms] = useState<boolean | null>(null)
   const [backHref, setBackHref] = useState('/')
+  const [socialKommuneActive, setSocialKommuneActive] = useState<boolean | null>(null)
 
   const [formData, setFormData] = useState({
     owner_name: '',
@@ -127,6 +129,21 @@ export default function HomeownerRegister() {
     }
     checkTerms()
   }, [router])
+
+  useEffect(() => {
+    const city = formData.city?.trim()
+    if (!city) {
+      setSocialKommuneActive(null)
+      return
+    }
+    let cancelled = false
+    void isKommuneSocialActiveForCity(supabase, city).then((active) => {
+      if (!cancelled) setSocialKommuneActive(active)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [formData.city])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -363,17 +380,23 @@ export default function HomeownerRegister() {
         .maybeSingle()
 
       if (!isFirstListing) {
-        const { data: termsOk, error: termsErr } = await supabase.rpc('listing_publish_terms_ok', {
-          p_city: formData.city?.trim() || '',
-        })
-        if (termsErr) throw termsErr
-        if (!termsOk) {
-          toast(t('termsMissingForRegion'), 'error')
-          router.push(
-            `/homeowner/sign-terms?city=${encodeURIComponent(formData.city?.trim() || '')}&returnTo=${encodeURIComponent('/homeowner/register')}`
-          )
-          setLoading(false)
-          return
+        const socialActive = await isKommuneSocialActiveForCity(
+          supabase,
+          formData.city?.trim() || ''
+        )
+        if (socialActive) {
+          const { data: termsOk, error: termsErr } = await supabase.rpc('listing_publish_terms_ok', {
+            p_city: formData.city?.trim() || '',
+          })
+          if (termsErr) throw termsErr
+          if (!termsOk) {
+            toast(t('termsMissingForRegion'), 'error')
+            router.push(
+              `/homeowner/sign-terms?city=${encodeURIComponent(formData.city?.trim() || '')}&returnTo=${encodeURIComponent('/homeowner/register')}`
+            )
+            setLoading(false)
+            return
+          }
         }
       }
 
@@ -428,7 +451,9 @@ export default function HomeownerRegister() {
           : {}),
       }
 
-      if (isFirstListing && !agreementRow) {
+      const socialActive = await isKommuneSocialActiveForCity(supabase, formData.city?.trim() || '')
+
+      if (isFirstListing && !agreementRow && socialActive) {
         savePendingFirstListingDraft(listingRow as unknown as Record<string, unknown>)
         const cityQ = encodeURIComponent(formData.city?.trim() || '')
         const returnTo = encodeURIComponent('/homeowner/register')
@@ -496,27 +521,32 @@ export default function HomeownerRegister() {
         },
       ])
 
-      // Varsle kun kommune – ikke utleier som registrerte
-      const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'En utleier'
-      const { data: kommuneProfiles } = await supabase
-        .from('profiles')
-        .select('id')
-        .in('role', ['kommune_ansatt', 'kommune_admin'])
-      const eventId = crypto.randomUUID()
-      const rows = (kommuneProfiles || []).map((p: { id: string }) => ({
-        listing_id: listingId,
-        owner_id: p.id,
-        type: 'NEW_LISTING',
-        title: 'Ny bolig registrert',
-        message: `${userName} har registrert en ny bolig i ${formData.city}: ${formData.address}`,
-        municipality: formData.city,
-        event_id: eventId,
-      }))
-      if (rows.length > 0) {
-        await supabase.from('notifications').insert(rows)
+      // Notify kommune staff only when social mediation is active for this city (PRD §6.2 L-7)
+      if (socialActive) {
+        const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'En utleier'
+        const { data: kommuneProfiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .in('role', ['kommune_ansatt', 'kommune_admin'])
+        const eventId = crypto.randomUUID()
+        const rows = (kommuneProfiles || []).map((p: { id: string }) => ({
+          listing_id: listingId,
+          owner_id: p.id,
+          type: 'NEW_LISTING',
+          title: t('landlordNewListingNotificationTitle'),
+          message: t('landlordNewListingNotificationBody')
+            .replace('{city}', formData.city)
+            .replace('{address}', formData.address)
+            .replace('{name}', userName),
+          municipality: formData.city,
+          event_id: eventId,
+        }))
+        if (rows.length > 0) {
+          await supabase.from('notifications').insert(rows)
+        }
       }
 
-      toast(t('registerSuccess'), 'success')
+      toast(socialActive ? t('registerSuccess') : t('registerSuccessTourismOnly'), 'success')
 
       const { data: agreementAfter } = await supabase
         .from('user_agreements')
@@ -527,7 +557,7 @@ export default function HomeownerRegister() {
 
       const cityQ = encodeURIComponent(formData.city?.trim() || '')
       const returnTo = encodeURIComponent('/homeowner/manage')
-      if (!agreementAfter) {
+      if (!agreementAfter && socialActive) {
         router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}`)
         return
       }
@@ -566,6 +596,21 @@ export default function HomeownerRegister() {
         </Link>
         <h1 style={{ fontSize: 'var(--fluid-h1-hero)' }}>{t('regTitle')}</h1>
         <p style={{ maxWidth: '700px', opacity: 0.8 }}>{t('regLead')}</p>
+        {socialKommuneActive === false && (
+          <div
+            className="card"
+            role="status"
+            style={{
+              marginTop: 'var(--space-4)',
+              maxWidth: '700px',
+              padding: 'var(--space-4)',
+              borderLeft: '4px solid var(--color-accent)',
+            }}
+          >
+            <strong>{t('landlordNonSubscribedTitle')}</strong>
+            <p style={{ margin: 'var(--space-2) 0 0', lineHeight: 1.55 }}>{t('landlordNonSubscribedBody')}</p>
+          </div>
+        )}
       </div>
 
       <form

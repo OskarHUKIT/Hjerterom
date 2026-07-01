@@ -235,6 +235,13 @@ export const listingsTranslations = {
     dateOnOrAfter: "Etter eller lik {date}",
     dateOnOrBefore: "Før eller lik {date}",
     registerSuccess: "Bolig registrert!",
+    registerSuccessTourismOnly:
+      "Bolig registrert! Din kommune er ikke tilknyttet sosial formidling — du kan aktivere turisme og arrangement.",
+    landlordNonSubscribedTitle: "Kommunen din har ikke sosial formidling",
+    landlordNonSubscribedBody:
+      "Din kommune er ikke tilknyttet sosial formidling — du kan aktivere turisme og arrangement når du er klar.",
+    landlordNewListingNotificationTitle: "Ny bolig registrert",
+    landlordNewListingNotificationBody: "{name} har registrert en ny bolig i {city}: {address}",
     signTermsListingAfterSignError: "Kunne ikke fullføre boligregistrering etter signering: ",
     signTermsStartError: "Feil ved start av signering: ",
     signTermsStartErrorFailedFetchHint:
@@ -645,6 +652,13 @@ export const listingsTranslations = {
     dateOnOrAfter: "Maŋŋel dahje seammá {date}",
     dateOnOrBefore: "Ovdal dahje seammá {date}",
     registerSuccess: "Dávir registrerejuvvon!",
+    registerSuccessTourismOnly:
+      "Dávir registrerejuvvon! Du kommuvdna ii leat mielde sosiála formidlingas — sáhtát aktiveret turisma ja arrangement.",
+    landlordNonSubscribedTitle: "Du kommuvdna ii leat mielde sosiála formidlingas",
+    landlordNonSubscribedBody:
+      "Du kommuvdna ii leat mielde sosiála formidlingas — sáhtát aktiveret turisma ja arrangement go leat geargan.",
+    landlordNewListingNotificationTitle: "Ođđa dávir registrerejuvvon",
+    landlordNewListingNotificationBody: "{name} lea registreren ođđa dávvira {city}: {address}",
     signTermsListingAfterSignError: "Ii sáhttán loahppat dávvirregistrerema maŋŋil almmu: ",
     signTermsStartError: "Háhkka álggahetti almmu: ",
     signTermsStartErrorFailedFetchHint:
@@ -1049,6 +1063,13 @@ export const listingsTranslations = {
     dateOnOrAfter: "On or after {date}",
     dateOnOrBefore: "On or before {date}",
     registerSuccess: "Property registered!",
+    registerSuccessTourismOnly:
+      "Property registered! Your municipality is not connected to social mediation — you can enable tourism and events.",
+    landlordNonSubscribedTitle: "Your municipality has no social mediation",
+    landlordNonSubscribedBody:
+      "Your municipality is not connected to social mediation — you can enable tourism and events when ready.",
+    landlordNewListingNotificationTitle: "New property registered",
+    landlordNewListingNotificationBody: "{name} registered a new property in {city}: {address}",
     signTermsListingAfterSignError: "Could not finish listing registration after signing: ",
     signTermsStartError: "Could not start signing: ",
     signTermsStartErrorFailedFetchHint:

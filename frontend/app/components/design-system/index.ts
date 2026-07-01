@@ -1,6 +1,7 @@
 export { default as EmptyState } from './EmptyState'
 export { default as PageSkeleton } from './PageSkeleton'
 export { default as PortalPageShell } from './PortalPageShell'
+export { default as ShellChromeControls } from './ShellChromeControls'
 export { default as ComingSoonPlaceholder } from './ComingSoonPlaceholder'
 export { default as SkipLink } from './SkipLink'
 export { default as Modal } from './Modal'

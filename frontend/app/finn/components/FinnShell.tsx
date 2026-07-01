@@ -8,6 +8,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import type { Locale } from '@/lib/translations'
 import Logo from '@/app/components/Logo'
 import FeaturePortalGate from '@/app/components/FeaturePortalGate'
+import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
 
 const FINN_LOCALE_KEY = 'hjerterum-finn-locale'
 
@@ -42,17 +43,9 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
     }
   }, [locale, setLocale])
 
-  /** Consumer portal is always light — avoids dark-theme token bleed from app shell. */
   useEffect(() => {
-    const root = document.documentElement
-    const prevTheme = root.getAttribute('data-theme')
-    root.setAttribute('data-finn-shell', 'true')
-    root.setAttribute('data-theme', 'light')
-    return () => {
-      root.removeAttribute('data-finn-shell')
-      if (prevTheme) root.setAttribute('data-theme', prevTheme)
-      else root.setAttribute('data-theme', 'dark')
-    }
+    document.documentElement.setAttribute('data-finn-shell', 'true')
+    return () => document.documentElement.removeAttribute('data-finn-shell')
   }, [])
 
   return (
@@ -62,6 +55,7 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
           <Logo />
           <span className="finn-brand-text">{t('finnBrand')}</span>
         </Link>
+        <ShellChromeControls compact className="finn-chrome-controls" />
         <nav className="finn-nav" aria-label={t('finnMainNav')}>
           {FINN_NAV.map(({ href, labelKey, icon: Icon }) => {
             const active = isFinnActive(pathname, href)

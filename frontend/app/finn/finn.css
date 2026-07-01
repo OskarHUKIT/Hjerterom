@@ -1,21 +1,26 @@
-/* Finn consumer portal — always light, high contrast (independent of app dark theme) */
+/* Finn portal — Boly theme tokens (PRD §15.8 M3; dark default, light opt-in) */
 
 .finn-shell {
-  --finn-bg: #f8fafc;
-  --finn-bg-elevated: #ffffff;
-  --finn-bg-muted: #f1f5f9;
-  --finn-text: #0f172a;
-  --finn-text-secondary: #475569;
-  --finn-text-muted: #64748b;
-  --finn-border: rgba(148, 163, 184, 0.35);
-  --finn-accent: #2563eb;
-  --finn-accent-soft: rgba(37, 99, 235, 0.1);
-  --finn-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  --finn-bg: var(--bg-app);
+  --finn-bg-elevated: var(--bg-card);
+  --finn-bg-muted: color-mix(in srgb, var(--bg-card) 85%, var(--text-muted) 15%);
+  --finn-text: var(--text-main);
+  --finn-text-secondary: var(--text-body);
+  --finn-text-muted: var(--text-muted);
+  --finn-border: var(--border-subtle);
+  --finn-accent: var(--color-accent);
+  --finn-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --finn-shadow: var(--shadow-md);
 
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #eff6ff 0%, var(--finn-bg) 45%, #ffffff 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-card) 90%, var(--color-accent) 10%) 0%,
+    var(--finn-bg) 45%,
+    var(--finn-bg) 100%
+  );
   color: var(--finn-text);
 }
 
@@ -28,7 +33,7 @@
   padding: var(--space-4) max(var(--space-4), env(safe-area-inset-left))
     var(--space-4) max(var(--space-4), env(safe-area-inset-right));
   border-bottom: 1px solid var(--finn-border);
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--finn-bg-elevated) 92%, transparent);
   backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
@@ -78,7 +83,7 @@
 .finn-nav-link--active {
   background: var(--finn-accent-soft);
   color: var(--finn-accent);
-  border-color: rgba(37, 99, 235, 0.25);
+  border-color: color-mix(in srgb, var(--finn-accent) 25%, transparent);
 }
 
 .finn-main {
@@ -179,7 +184,7 @@
   overflow: hidden;
   background: var(--finn-bg-elevated);
   border: 1px solid var(--finn-border);
-  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--finn-text) 5%, transparent);
   transition: transform 0.15s, box-shadow 0.15s;
   text-decoration: none;
   color: var(--finn-text);
@@ -189,12 +194,16 @@
 
 .finn-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.1);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--finn-text) 10%, transparent);
 }
 
 .finn-card-image {
   aspect-ratio: 4 / 3;
-  background: linear-gradient(135deg, #dbeafe, #e0f2fe);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--finn-accent) 20%, var(--finn-bg-elevated)),
+    color-mix(in srgb, var(--color-accent) 12%, var(--finn-bg-muted))
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -298,7 +307,7 @@
   outline-offset: 1px;
 }
 
-/* Design-system components inside Finn — force readable light theme */
+/* Design-system components inside Finn inherit theme tokens */
 .finn-shell .ds-empty.card {
   background: var(--finn-bg-elevated);
   border: 1px solid var(--finn-border);
@@ -364,12 +373,23 @@
   color: var(--finn-text);
 }
 
+.finn-chrome-controls {
+  margin-left: auto;
+}
+
 /* Mobile-first navigation */
 @media (max-width: 768px) {
   .finn-header {
     flex-direction: row;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     padding-bottom: var(--space-3);
+  }
+
+  .finn-chrome-controls {
+    order: 3;
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
   }
 
   .finn-brand-text {
@@ -388,10 +408,10 @@
     padding: var(--space-2) max(var(--space-3), env(safe-area-inset-left))
       calc(var(--space-2) + env(safe-area-inset-bottom))
       max(var(--space-3), env(safe-area-inset-right));
-    background: rgba(255, 255, 255, 0.96);
+    background: color-mix(in srgb, var(--finn-bg-elevated) 96%, transparent);
     backdrop-filter: blur(12px);
     border-top: 1px solid var(--finn-border);
-    box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 -4px 24px color-mix(in srgb, var(--finn-text) 6%, transparent);
   }
 
   .finn-nav-link {
