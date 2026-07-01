@@ -46,6 +46,7 @@ import LandlordListingCard, {
   type ManagePanel,
 } from '@/features/listings/components/manage/LandlordListingCard'
 import LandlordListingActionSheet from '@/features/listings/components/manage/LandlordListingActionSheet'
+import LandlordNonSubscribedBanner from '@/features/listings/components/LandlordNonSubscribedBanner'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
@@ -413,8 +414,11 @@ export default function HomeownerManage() {
     )
   }
 
+  const primaryListingCity = myListings[0]?.city ?? null
+
   return (
     <main className="container hm-manage-page">
+      <LandlordNonSubscribedBanner city={primaryListingCity} />
       <PwaInstallPromptDialog
         open={pendingPwaBeforeOverview}
         onDismiss={(remember) => {

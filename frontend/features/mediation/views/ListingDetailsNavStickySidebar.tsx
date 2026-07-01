@@ -52,7 +52,7 @@ export function ListingDetailsNavStickySidebar({
                     color: 'var(--text-muted)',
                   }}
                 >
-                  Døgnpris
+                  {t('regDailyPrice')}
                 </div>
                 <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)' }}>
                   {listing.price_daily},-
@@ -64,7 +64,7 @@ export function ListingDetailsNavStickySidebar({
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span className="text-sm opacity-70" style={{ color: 'var(--text-muted)' }}>
-                    Ukespris:
+                    {t('regWeeklyPrice')}:
                   </span>
                   <span className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>
                     {listing.price_weekly},-
@@ -72,7 +72,7 @@ export function ListingDetailsNavStickySidebar({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span className="text-sm opacity-70" style={{ color: 'var(--text-muted)' }}>
-                    Månedsleie (korttid):
+                    {t('regMonthlyShort')}:
                   </span>
                   <span className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>
                     {listing.price_monthly_short},-
@@ -87,7 +87,7 @@ export function ListingDetailsNavStickySidebar({
                   }}
                 >
                   <span className="text-sm opacity-70" style={{ color: 'var(--text-muted)' }}>
-                    Langtidsleie (per mnd):
+                    {t('regMonthlyLong')}:
                   </span>
                   <span className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>
                     {listing.price_monthly_long},-
@@ -95,7 +95,7 @@ export function ListingDetailsNavStickySidebar({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span className="text-sm opacity-70" style={{ color: 'var(--text-muted)' }}>
-                    Depositum:
+                    {t('placeholderDeposit')}:
                   </span>
                   <span className="text-sm font-bold" style={{ color: 'var(--text-main)' }}>
                     {listing.deposit_amount},-

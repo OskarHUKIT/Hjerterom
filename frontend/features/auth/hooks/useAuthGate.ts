@@ -5,6 +5,12 @@ import { useKommuneNavAccess } from '@/app/hooks/useKommuneNavAccess'
 import { useOpsAccess } from '@/app/hooks/useOpsAccess'
 import { useChatUserBootstrap } from '@/app/hooks/useChatUserBootstrap'
 import { useEventStaffAccess } from '@/features/auth/hooks/useEventStaffAccess'
+import type { UseQueryResult } from '@tanstack/react-query'
+import type { KommuneNavAccess } from '@/app/lib/queries/kommuneNavAccess'
+import type { OpsAccess } from '@/app/lib/queries/opsAccess'
+import type { EventStaffAccess } from '@/app/lib/queries/eventStaffAccess'
+import type { LandlordNavGateResult } from '@/app/lib/queries/landlordNavGateQuery'
+import type { ChatUserBootstrap } from '@/app/lib/queries/chatUserBootstrap'
 
 export type AuthGateMode = 'landlord-nav' | 'kommune' | 'ops' | 'event-staff' | 'chat'
 
@@ -13,12 +19,27 @@ type OpsGateOptions = NonNullable<Parameters<typeof useOpsAccess>[0]>
 type EventStaffGateOptions = Parameters<typeof useEventStaffAccess>[0]
 
 export type UseAuthGateOptions =
-  | ({ mode: 'landlord-nav' } & Record<string, never>)
+  | { mode: 'landlord-nav' }
   | ({ mode: 'kommune' } & KommuneGateOptions)
   | ({ mode: 'ops' } & OpsGateOptions)
   | ({ mode: 'event-staff' } & EventStaffGateOptions)
-  | ({ mode: 'chat' } & Record<string, never>)
+  | { mode: 'chat' }
 
+export function useAuthGate(
+  options: { mode: 'landlord-nav' }
+): UseQueryResult<LandlordNavGateResult, Error>
+export function useAuthGate(
+  options: { mode: 'kommune' } & KommuneGateOptions
+): UseQueryResult<KommuneNavAccess, Error>
+export function useAuthGate(
+  options: { mode: 'ops' } & OpsGateOptions
+): UseQueryResult<OpsAccess, Error>
+export function useAuthGate(
+  options: { mode: 'event-staff' } & EventStaffGateOptions
+): UseQueryResult<EventStaffAccess, Error>
+export function useAuthGate(
+  options: { mode: 'chat' }
+): UseQueryResult<ChatUserBootstrap, Error>
 /**
  * Unified auth gate entry point (W4 brief). Delegates to per-surface hooks with `enabled` guards.
  */
@@ -28,12 +49,14 @@ export function useAuthGate(options: UseAuthGateOptions) {
   const kommune = useKommuneNavAccess({
     ...(mode === 'kommune' ? options : {}),
     enabled: mode === 'kommune',
-    redirectUnauthenticated: mode === 'kommune' ? options.redirectUnauthenticated : false,
+    redirectUnauthenticated:
+      mode === 'kommune' ? (options as KommuneGateOptions).redirectUnauthenticated : false,
   })
   const ops = useOpsAccess({
     ...(mode === 'ops' ? options : {}),
     enabled: mode === 'ops',
-    redirectUnauthenticated: mode === 'ops' ? options.redirectUnauthenticated : false,
+    redirectUnauthenticated:
+      mode === 'ops' ? (options as OpsGateOptions).redirectUnauthenticated : false,
   })
   const eventStaff = useEventStaffAccess({
     ...(mode === 'event-staff' ? options : { enabled: false }),

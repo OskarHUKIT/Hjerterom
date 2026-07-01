@@ -18,7 +18,7 @@ import {
 import { useMemo, useState } from 'react'
 import { useLanguage } from '../../../context/LanguageContext'
 import { usePlatformMode } from '../../../context/PlatformModeContext'
-import { useOpsAccess } from '../../hooks/useOpsAccess'
+import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 import BottomSheet from '../../components/BottomSheet'
 import OpsMobileNav from './OpsMobileNav'
 import { OpsPageSkeleton } from './OpsSkeleton'
@@ -57,7 +57,7 @@ function currentPageLabel(pathname: string, items: NavItem[], t: ReturnType<type
 export default function OpsShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t } = useLanguage()
-  const access = useOpsAccess()
+  const access = useAuthGate({ mode: 'ops' })
   const { flags } = usePlatformMode()
   const [menuOpen, setMenuOpen] = useState(false)
 

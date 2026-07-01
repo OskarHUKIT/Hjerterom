@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { CalendarDays, Map as MapIcon, MessageSquare } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
-import { useEventStaffAccess } from '@/features/auth/hooks/useEventStaffAccess'
+import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 
 const NAV = [
   { href: '/nav/event/database', icon: MapIcon, labelKey: 'eventNavDatabase' as const },
@@ -16,7 +16,8 @@ const NAV = [
 export default function EventStaffLayout({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage()
   const pathname = usePathname()
-  const { data: access, isPending } = useEventStaffAccess({
+  const { data: access, isPending } = useAuthGate({
+    mode: 'event-staff',
     loginRedirect: '/nav/event',
     redirectForbidden: true,
   })

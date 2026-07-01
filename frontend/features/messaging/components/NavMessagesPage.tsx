@@ -21,7 +21,7 @@ import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '@/app/lib/landlordOnboarding'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import { usePlatformMode } from '@/context/PlatformModeContext'
-import { useChatUserBootstrap } from '@/app/hooks/useChatUserBootstrap'
+import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 import ChatComposer, { MAX_IMAGES_PER_MESSAGE } from '@/features/messaging/components/ChatComposer'
 import ChatMessageBubble from '@/features/messaging/components/ChatMessageBubble'
 import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
@@ -57,7 +57,7 @@ export default function NavMessagesPage() {
   const withBookingId = searchParams.get('booking')
   const withEventId = searchParams.get('event')
 
-  const chatBoot = useChatUserBootstrap()
+  const chatBoot = useAuthGate({ mode: 'chat' })
   const bootOk = chatBoot.data?.kind === 'ok' ? chatBoot.data : null
   const currentUser = bootOk?.user ?? null
   const role = bootOk?.role ?? null

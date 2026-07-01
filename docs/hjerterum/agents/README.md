@@ -16,17 +16,17 @@ Each file below is a **self-contained packet** for a fresh agent context window.
 
 | Brief | Status | Est. diff | Depends on |
 |-------|--------|-----------|------------|
-| [P0-payment-types.md](./P0-payment-types.md) | Ready | ~200 lines | — |
+| [P0-payment-types.md](./P0-payment-types.md) | ✅ Done | ~200 lines | — |
 | [W1-foundation.md](./W1-foundation.md) | ✅ Done (PR #21) | ~400 lines | — |
-| [W2-listings-manage.md](./W2-listings-manage.md) | Ready | ~600 lines | W1 |
-| [W2-listings-details-query.md](./W2-listings-details-query.md) | Ready | ~400 lines | W1 |
+| [W2-listings-manage.md](./W2-listings-manage.md) | ✅ Done | ~600 lines | W1 |
+| [W2-listings-details-query.md](./W2-listings-details-query.md) | ✅ Done | ~400 lines | W1 |
 | [W2-manage-ui-splits.md](./W2-manage-ui-splits.md) | ✅ Done | ~500 lines | W2a |
 | [W3-messaging-thin.md](./W3-messaging-thin.md) | ✅ Done | ~50 lines move | W1 |
 | [W3-nav-database-query.md](./W3-nav-database-query.md) | ✅ Done | ~800 lines | W1 |
 | [W3-nav-ui-splits.md](./W3-nav-ui-splits.md) | ✅ Done | ~850 lines | W3b |
 | [W4-shared-data-layer.md](./W4-shared-data-layer.md) | ✅ Done | ~500 lines | W2, W3 |
 | [W4-chat-ui.md](./W4-chat-ui.md) | ✅ Done | ~400 lines | W3a |
-| [W5-persona-finn.md](./W5-persona-finn.md) | ✅ Done (partial JSX) | ~700 lines | W4 |
+| [W5-persona-finn.md](./W5-persona-finn.md) | ✅ Done | ~700 lines | W4 |
 | [W6-route-groups-i18n.md](./W6-route-groups-i18n.md) | ✅ Done (scoped) | i18n+eslint+e2e | W5 |
 
 ## Smoke checklist (all waves)

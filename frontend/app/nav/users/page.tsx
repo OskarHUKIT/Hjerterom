@@ -31,7 +31,7 @@ import {
   kommuneNavUsesAccountsLabel,
 } from '../../lib/kommuneRoles'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
-import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
+import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 
 function NavUsersContent() {
   const { t } = useLanguage()
@@ -39,7 +39,7 @@ function NavUsersContent() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const pathname = usePathname()
-  const kommuneAccess = useKommuneNavAccess()
+  const kommuneAccess = useAuthGate({ mode: 'kommune' })
   const searchParams = useSearchParams()
   const userId = searchParams.get('id')
   const [users, setUsers] = useState<any[]>([])

@@ -10,7 +10,7 @@ import { useToast } from '@/app/components/design-system'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import { channelBadgeEmoji } from '@/app/lib/messageChannelLabels'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
-import { useEventStaffAccess } from '@/features/auth/hooks/useEventStaffAccess'
+import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 import ChatComposer from '@/features/messaging/components/ChatComposer'
 import ChatMessageBubble from '@/features/messaging/components/ChatMessageBubble'
 import MessageQuickRepliesPanel from '@/features/messaging/components/MessageQuickRepliesPanel'
@@ -38,7 +38,8 @@ export default function EventCaseworkerMessagesPage() {
   const { t } = useLanguage()
   const toast = useToast()
   const searchParams = useSearchParams()
-  const { data: access, isPending: accessPending } = useEventStaffAccess({
+  const { data: access, isPending: accessPending } = useAuthGate({
+    mode: 'event-staff',
     loginRedirect: '/nav/event/messages',
     redirectForbidden: true,
   })

@@ -85,6 +85,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Landlord has not connected Stripe yet' }, { status: 503 })
   }
 
+  const platformFee = platformApplicationFeeCents(amountCents)
+
+  await supabase
+    .from('bookings')
+    .update({ platform_fee_cents: platformFee, updated_at: new Date().toISOString() })
+    .eq('id', bookingId)
+
   const origin = appOrigin()
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',

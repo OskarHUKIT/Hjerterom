@@ -240,6 +240,7 @@ export const listingsTranslations = {
     landlordNonSubscribedTitle: "Kommunen din har ikke sosial formidling",
     landlordNonSubscribedBody:
       "Din kommune er ikke tilknyttet sosial formidling — du kan aktivere turisme og arrangement når du er klar.",
+    landlordNonSubscribedTourismCta: "Gå til avtaler for turisme og arrangement",
     landlordNewListingNotificationTitle: "Ny bolig registrert",
     landlordNewListingNotificationBody: "{name} har registrert en ny bolig i {city}: {address}",
     signTermsListingAfterSignError: "Kunne ikke fullføre boligregistrering etter signering: ",
@@ -657,6 +658,7 @@ export const listingsTranslations = {
     landlordNonSubscribedTitle: "Du kommuvdna ii leat mielde sosiála formidlingas",
     landlordNonSubscribedBody:
       "Du kommuvdna ii leat mielde sosiála formidlingas — sáhtát aktiveret turisma ja arrangement go leat geargan.",
+    landlordNonSubscribedTourismCta: "Mana turisma- ja arrangement-eavttuide",
     landlordNewListingNotificationTitle: "Ođđa dávir registrerejuvvon",
     landlordNewListingNotificationBody: "{name} lea registreren ođđa dávvira {city}: {address}",
     signTermsListingAfterSignError: "Ii sáhttán loahppat dávvirregistrerema maŋŋil almmu: ",
@@ -1068,6 +1070,7 @@ export const listingsTranslations = {
     landlordNonSubscribedTitle: "Your municipality has no social mediation",
     landlordNonSubscribedBody:
       "Your municipality is not connected to social mediation — you can enable tourism and events when ready.",
+    landlordNonSubscribedTourismCta: "Go to tourism and event agreements",
     landlordNewListingNotificationTitle: "New property registered",
     landlordNewListingNotificationBody: "{name} registered a new property in {city}: {address}",
     signTermsListingAfterSignError: "Could not finish listing registration after signing: ",

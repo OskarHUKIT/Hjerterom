@@ -27,7 +27,7 @@ import { formatDateTimeNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
-import { useLandlordNavGateQuery } from '../../hooks/useLandlordNavGateQuery'
+import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 import type { NotificationsListPayload } from '../../lib/queries/notificationsListQuery'
 import {
   fetchNotificationsList,
@@ -52,7 +52,7 @@ export default function NavNotifications() {
   const toast = useToast()
   const pathname = usePathname()
   const queryClient = useQueryClient()
-  const gateQ = useLandlordNavGateQuery()
+  const gateQ = useAuthGate({ mode: 'landlord-nav' })
   const gateReady = gateQ.data?.kind === 'ready'
   const gateData = gateQ.data
   const roleFromGate =

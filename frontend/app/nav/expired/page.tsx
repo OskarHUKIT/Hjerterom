@@ -10,7 +10,7 @@ import { useLanguage } from '../../../context/LanguageContext'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { Button } from '../../components/ui/Button'
-import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
+import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 import { logError } from '@/app/lib/appLogger'
 
 const REGION_LISTINGS_PAGE = 800
@@ -47,7 +47,7 @@ export default function NavExpired() {
     isError: accessError,
     error: accessQueryError,
     refetch: refetchKommuneAccess,
-  } = useKommuneNavAccess()
+  } = useAuthGate({ mode: 'kommune' })
 
   const isAuthorized: boolean | null =
     accessPending || access === undefined

@@ -23,6 +23,7 @@ import type { TranslationKey } from '../../../lib/translations'
 import { logError } from '@/app/lib/appLogger'
 import { publicDocumentsFileUrl } from '../../lib/storagePublicUrl'
 import { isBankIdAutoAcceptEnabled } from '../../lib/bankidAutoAccept'
+import { isKommuneSocialActiveForCity } from '../../lib/kommuneSocialSubscription'
 
 type SignedTermsCard = {
   id: string
@@ -179,6 +180,14 @@ function SignTermsContent() {
         effectiveCity = listingRes.data?.city?.trim() || ''
       }
       setSignCity(effectiveCity)
+
+      if (!docParam && effectiveCity.trim()) {
+        const socialActive = await isKommuneSocialActiveForCity(supabase, effectiveCity)
+        if (!socialActive && !isActiveAgreement) {
+          router.replace('/homeowner/manage')
+          return
+        }
+      }
 
       type DocRow = {
         id: string
