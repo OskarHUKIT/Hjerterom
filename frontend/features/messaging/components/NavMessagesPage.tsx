@@ -7,12 +7,9 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   MessageSquare,
-  Send,
   ArrowLeft,
   User,
   ChevronRight,
-  ImagePlus,
-  X,
   Users,
   MessageCircle,
   Home,
@@ -26,20 +23,21 @@ import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { channelBadgeEmoji } from '@/app/lib/messageChannelLabels'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '@/app/lib/landlordOnboarding'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
-import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import { useChatUserBootstrap } from '@/app/hooks/useChatUserBootstrap'
+import ChatComposer, { MAX_IMAGES_PER_MESSAGE } from '@/features/messaging/components/ChatComposer'
+import ChatMessageBubble from '@/features/messaging/components/ChatMessageBubble'
 import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
 import MessageQuickRepliesPanel from '@/features/messaging/components/MessageQuickRepliesPanel'
+import {
+  sendEventCaseworkerBroadcast,
+  sendSocialCaseworkerMessage,
+} from '@/features/messaging/lib/chatSend'
 import { fetchDisplayNamesBatch } from '@/features/messaging/hooks/useDisplayNamesBatch'
 
 const LandlordOnboardingModal = dynamic(() => import('@/app/components/LandlordOnboardingModal'), {
   ssr: false,
 })
-
-const CHAT_IMAGES_BUCKET = 'chat-images'
-const MAX_IMAGES_PER_MESSAGE = 4
-const MAX_FILE_SIZE_MB = 5
 
 type ConversationRow = {
   userId: string
@@ -82,7 +80,6 @@ export default function NavMessagesPage() {
   const withAreaId = searchParams.get('area')
   const withBookingId = searchParams.get('booking')
   const withEventId = searchParams.get('event')
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const chatBoot = useChatUserBootstrap()
   const bootOk = chatBoot.data?.kind === 'ok' ? chatBoot.data : null
@@ -584,25 +581,14 @@ export default function NavMessagesPage() {
     el.scrollTop = el.scrollHeight
   }, [messages, currentUser, withUserId, isKommune, isMobile])
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : []
-    e.target.value = ''
-    const valid = files.filter((f) => {
-      if (!f.type.startsWith('image/')) return false
-      if (f.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-        toast(`«${f.name}» er for stor. Maks ${MAX_FILE_SIZE_MB} MB.`, 'error')
-        return false
-      }
-      return true
-    })
+  const handleImageSelect = (valid: File[]) => {
     const total = pendingImages.length + valid.length
     if (total > MAX_IMAGES_PER_MESSAGE) {
       setPendingImages((prev) => prev.concat(valid.slice(0, MAX_IMAGES_PER_MESSAGE - prev.length)))
       setImagePreviews((prev) => {
         const next = [...prev]
         valid.slice(0, MAX_IMAGES_PER_MESSAGE - pendingImages.length).forEach((f) => {
-          const url = URL.createObjectURL(f)
-          next.push(url)
+          next.push(URL.createObjectURL(f))
         })
         return next
       })
@@ -628,27 +614,13 @@ export default function NavMessagesPage() {
     if (!isKommune && withEventId) {
       setSending(true)
       try {
-        const { error } = await supabase.from('chat_messages').insert({
-          sender_id: currentUser.id,
-          receiver_id: null,
+        const row = await sendEventCaseworkerBroadcast({
+          senderId: currentUser.id,
+          eventId: withEventId,
           content: content || '',
-          event_id: withEventId,
-          channel_type: 'event_caseworker',
         })
-        if (error) throw error
         setNewMessage('')
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            sender_id: currentUser.id,
-            receiver_id: null,
-            content: content || '',
-            image_urls: [],
-            created_at: new Date().toISOString(),
-            is_read: false,
-          },
-        ])
+        setMessages((prev) => [...prev, row])
       } catch (err: unknown) {
         toast(t('errSend') + (err instanceof Error ? err.message : String(err)))
       } finally {
@@ -667,77 +639,32 @@ export default function NavMessagesPage() {
     } else if (effectiveReceiver) {
       notifyUserIds = [effectiveReceiver]
     }
+    const imagesToSend = [...pendingImages]
     try {
-      let imageUrls: string[] = []
-      if (pendingImages.length > 0) {
-        for (const file of pendingImages) {
-          const ext = file.name.split('.').pop() || 'jpg'
-          const path = `${currentUser.id}/${crypto.randomUUID()}.${ext}`
-          const { error: uploadError } = await supabase.storage
-            .from(CHAT_IMAGES_BUCKET)
-            .upload(path, file, { contentType: file.type, upsert: false })
-          if (uploadError) throw uploadError
-          const { data: urlData } = supabase.storage.from(CHAT_IMAGES_BUCKET).getPublicUrl(path)
-          imageUrls.push(urlData.publicUrl)
-        }
+      const senderName =
+        currentUser.user_metadata?.full_name ||
+        currentUser.email?.split('@')[0] ||
+        (isKommune ? 'Kommune' : 'En utleier')
+      const row = await sendSocialCaseworkerMessage({
+        senderId: currentUser.id,
+        senderName,
+        content: content || '',
+        serviceAreaId: activeServiceAreaId,
+        receiverId: effectiveReceiver,
+        notifyUserIds,
+        pendingImages: imagesToSend,
+      })
+      setNewMessage('')
+      if (imagesToSend.length > 0) {
         setPendingImages([])
         setImagePreviews((prev) => {
           prev.forEach(URL.revokeObjectURL)
           return []
         })
       }
-
-      const { data: inserted, error } = await supabase
-        .from('chat_messages')
-        .insert({
-          sender_id: currentUser.id,
-          receiver_id: effectiveReceiver ?? null,
-          content: content || '',
-          image_urls: imageUrls,
-          service_area_id: activeServiceAreaId,
-          channel_type: 'social_caseworker',
-        })
-        .select('id, created_at')
-        .maybeSingle()
-      if (error) throw error
-      setNewMessage('')
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: inserted?.id ?? crypto.randomUUID(),
-          sender_id: currentUser.id,
-          receiver_id: effectiveReceiver ?? null,
-          content: content || '',
-          image_urls: imageUrls.length > 0 ? imageUrls : [],
-          created_at: inserted?.created_at ?? new Date().toISOString(),
-          is_read: false,
-        },
-      ])
-
-      const senderName =
-        currentUser.user_metadata?.full_name ||
-        currentUser.email?.split('@')[0] ||
-        (isKommune ? 'Kommune' : 'En utleier')
-      const text = content.trim()
-      const msgBody =
-        text.length > 0
-          ? `${senderName}:\n\n${text}${imageUrls.length > 0 ? '\n\n(Bilde vedlagt)' : ''}`
-          : imageUrls.length > 0
-            ? `${senderName} sendte et bilde.`
-            : `${senderName} har sendt deg en melding.`
-      const uniqNotify = [...new Set(notifyUserIds)]
-      for (const oid of uniqNotify) {
-        await supabase.from('notifications').insert({
-          owner_id: oid,
-          type: 'NEW_MESSAGE',
-          title: `Ny melding fra ${senderName}`,
-          message: msgBody,
-          status: 'unread',
-          related_user_id: currentUser.id,
-        })
-      }
-    } catch (err: any) {
-      toast(t('errSend') + (err?.message || String(err)))
+      setMessages((prev) => [...prev, row])
+    } catch (err: unknown) {
+      toast(t('errSend') + (err instanceof Error ? err.message : String(err)))
     } finally {
       setSending(false)
     }
@@ -1718,214 +1645,40 @@ export default function NavMessagesPage() {
                   gap: 'var(--space-3)',
                 }}
               >
-                {messages.map((m) => {
-                  const isMe = m.sender_id === bootOk.user.id
-                  const urls = (m.image_urls || []).filter(Boolean)
-                  const senderCaption = senderLabelForMessage(m)
-                  return (
-                    <div
-                      key={m.id}
-                      style={{
-                        alignSelf: isMe ? 'flex-end' : 'flex-start',
-                        maxWidth: compactMobileChat ? '92%' : '85%',
-                        padding: 'var(--space-3) var(--space-4)',
-                        borderRadius: '12px',
-                        background: isMe ? 'var(--color-royal-blue)' : 'rgba(255,255,255,0.06)',
-                        border: isMe ? 'none' : '1px solid var(--border-subtle)',
-                      }}
-                    >
-                      {senderCaption ? (
-                        <div
-                          style={{
-                            fontSize: '0.65rem',
-                            fontWeight: 600,
-                            opacity: 0.72,
-                            marginBottom: 6,
-                            letterSpacing: '0.02em',
-                          }}
-                        >
-                          {senderCaption}
-                        </div>
-                      ) : null}
-                      {urls.length > 0 && (
-                        <div
-                          style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: '6px',
-                            marginBottom: m.content ? '8px' : 0,
-                          }}
-                        >
-                          {urls.map((url: string, i: number) => (
-                            <a
-                              key={i}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                position: 'relative',
-                                display: 'block',
-                                borderRadius: '8px',
-                                overflow: 'hidden',
-                                width: '200px',
-                                height: '200px',
-                                maxWidth: '100%',
-                              }}
-                            >
-                              <OptimizedPublicStorageImage
-                                variant="fill"
-                                src={url}
-                                alt=""
-                                sizes="200px"
-                                style={{ objectFit: 'cover' }}
-                              />
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                      {m.content ? (
-                        <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{m.content}</p>
-                      ) : null}
-                      <div style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '4px' }}>
-                        {formatMessageTimestamp(m.created_at)}
-                      </div>
-                    </div>
-                  )
-                })}
+                {messages.map((m) => (
+                  <ChatMessageBubble
+                    key={m.id}
+                    message={m}
+                    isMine={m.sender_id === bootOk.user.id}
+                    variant="nav"
+                    formatTimestamp={formatMessageTimestamp}
+                    senderCaption={senderLabelForMessage(m)}
+                    compactMobile={compactMobileChat}
+                  />
+                ))}
               </div>
-              <div
-                className="messages-thread-composer"
-                style={{
-                  padding: 'var(--space-4)',
-                  paddingBottom:
-                    'calc(var(--space-4) + var(--mobile-bottom-nav-total, 0px))',
-                  borderTop: '1px solid var(--border-subtle)',
-                  flexShrink: 0,
-                  background: 'var(--bg-card)',
-                }}
-              >
-                {imagePreviews.length > 0 && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '8px',
-                      marginBottom: 'var(--space-3)',
-                    }}
-                  >
-                    {imagePreviews.map((url, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          position: 'relative',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          width: '64px',
-                          height: '64px',
-                        }}
-                      >
-                        <OptimizedPublicStorageImage
-                          variant="fixed"
-                          src={url}
-                          alt=""
-                          width={64}
-                          height={64}
-                          sizes="64px"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removePendingImage(i)}
-                          aria-label={t('messagesRemoveImageAria')}
-                          style={{
-                            position: 'absolute',
-                            top: 2,
-                            right: 2,
-                            width: 22,
-                            height: 22,
-                            borderRadius: '50%',
-                            background: 'rgba(0,0,0,0.6)',
-                            border: 'none',
-                            color: 'white',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: 0,
-                          }}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {!inputDisabled && bootOk?.user?.id ? (
-                  <MessageQuickRepliesPanel
-                    userId={bootOk.user.id}
-                    channelType="social_caseworker"
-                    onInsert={(text) => setNewMessage((prev) => (prev.trim() ? `${prev}\n${text}` : text))}
-                  />
-                ) : null}
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end' }}>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    multiple
-                    onChange={handleImageSelect}
-                    style={{ display: 'none' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    title={t('messagesAddImagesTitle')}
-                    aria-label={t('messagesAddImagesTitle')}
-                    disabled={inputDisabled || pendingImages.length >= MAX_IMAGES_PER_MESSAGE}
-                    style={{
-                      flexShrink: 0,
-                      width: 44,
-                      height: 44,
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-subtle)',
-                      background: 'var(--bg-subtle)',
-                      color: 'var(--text-main)',
-                      cursor: inputDisabled ? 'not-allowed' : 'pointer',
-                      opacity: inputDisabled ? 0.5 : 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <ImagePlus size={22} />
-                  </button>
-                  <input
-                    className="input"
-                    placeholder={t('messagesPlaceholder')}
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' &&
-                      !e.shiftKey &&
-                      !inputDisabled &&
-                      (e.preventDefault(), sendMessage())
-                    }
-                    disabled={inputDisabled}
-                    style={{ flex: 1, marginBottom: 0, opacity: inputDisabled ? 0.6 : 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={sendMessage}
-                    disabled={inputDisabled || (!newMessage.trim() && pendingImages.length === 0)}
-                    className="button"
-                    aria-label={t('messagesSendAria')}
-                    title={t('messagesSendAria')}
-                    style={{ padding: 'var(--space-3) var(--space-5)' }}
-                  >
-                    {sending ? <Send size={18} style={{ opacity: 0.5 }} /> : <Send size={18} />}
-                  </button>
-                </div>
-              </div>
+              <ChatComposer
+                variant="nav"
+                value={newMessage}
+                onChange={setNewMessage}
+                onSend={() => void sendMessage()}
+                disabled={inputDisabled}
+                sending={sending}
+                imagePreviews={imagePreviews}
+                onImageSelect={handleImageSelect}
+                onRemovePendingImage={removePendingImage}
+                quickRepliesSlot={
+                  !inputDisabled && bootOk?.user?.id ? (
+                    <MessageQuickRepliesPanel
+                      userId={bootOk.user.id}
+                      channelType="social_caseworker"
+                      onInsert={(text) =>
+                        setNewMessage((prev) => (prev.trim() ? `${prev}\n${text}` : text))
+                      }
+                    />
+                  ) : null
+                }
+              />
             </>
             )
           ) : (

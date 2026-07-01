@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
-import { Button } from '@/app/components/ui/Button'
 import { channelBadgeEmoji } from '@/app/lib/messageChannelLabels'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
+import ChatComposer from '@/features/messaging/components/ChatComposer'
+import ChatMessageBubble from '@/features/messaging/components/ChatMessageBubble'
 import MessageQuickRepliesPanel from '@/features/messaging/components/MessageQuickRepliesPanel'
+import { sendGuestBookingMessage } from '@/features/messaging/lib/chatSend'
 
 type Msg = {
   id: string
@@ -81,19 +83,16 @@ export default function GuestBookingChatPanel({ bookingId, compact }: Props) {
     const text = input.trim()
     if (!text) return
     setBusy(true)
-    const { data, error } = await supabase.rpc('send_booking_message', {
-      p_booking_id: bookingId,
-      p_content: text,
-    })
+    const result = await sendGuestBookingMessage({ bookingId, content: text })
     setBusy(false)
-    if (error || data?.ok === false) {
-      const code = String(data?.error ?? error?.message ?? '')
+    if (!result.ok) {
+      const code = result.error
       const msg =
         code === 'no_receiver'
           ? t('bookingChatNoReceiver')
           : code === 'forbidden'
             ? t('bookingChatForbidden')
-            : error?.message ?? t('errSaveListing')
+            : code || t('errSaveListing')
       toast(msg, 'error')
       return
     }
@@ -129,56 +128,37 @@ export default function GuestBookingChatPanel({ bookingId, compact }: Props) {
           {messages.length === 0 ? (
             <p style={{ opacity: 0.6, fontSize: '0.85rem', margin: 0 }}>{t('bookingChatEmpty')}</p>
           ) : (
-            messages.map((m) => {
-              const mine = m.sender_id === userId
-              return (
-                <div
-                  key={m.id}
-                  style={{
-                    alignSelf: mine ? 'flex-end' : 'flex-start',
-                    maxWidth: '85%',
-                    padding: '8px 12px',
-                    borderRadius: 12,
-                    background: mine ? 'rgba(59, 130, 246, 0.15)' : 'rgba(0,0,0,0.05)',
-                    fontSize: '0.88rem',
-                  }}
-                >
-                  <div>{m.content}</div>
-                  <div style={{ fontSize: '0.72rem', opacity: 0.55, marginTop: 4 }}>
-                    {formatDateTimeNo(m.created_at)}
-                  </div>
-                </div>
-              )
-            })
+            messages.map((m) => (
+              <ChatMessageBubble
+                key={m.id}
+                message={m}
+                isMine={m.sender_id === userId}
+                variant="guest"
+                formatTimestamp={formatDateTimeNo}
+              />
+            ))
           )}
           <div ref={bottomRef} />
         </div>
       )}
-      {userId ? (
-        <MessageQuickRepliesPanel
-          userId={userId}
-          channelType="guest_booking"
-          onInsert={(text) => setInput((prev) => (prev.trim() ? `${prev}\n${text}` : text))}
-        />
-      ) : null}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={t('finnInquiryMessage')}
-          disabled={busy}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              void send()
-            }
-          }}
-          style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)' }}
-        />
-        <Button type="button" variant="accent" disabled={busy || !input.trim()} onClick={() => void send()}>
-          {t('losSend')}
-        </Button>
-      </div>
+      <ChatComposer
+        variant="inline"
+        value={input}
+        onChange={setInput}
+        onSend={() => void send()}
+        disabled={busy}
+        sending={busy}
+        style={{ padding: 0, borderTop: 'none' }}
+        quickRepliesSlot={
+          userId ? (
+            <MessageQuickRepliesPanel
+              userId={userId}
+              channelType="guest_booking"
+              onInsert={(text) => setInput((prev) => (prev.trim() ? `${prev}\n${text}` : text))}
+            />
+          ) : null
+        }
+      />
     </div>
   )
 }

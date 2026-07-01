@@ -3,16 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, Send } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
-import { Button } from '@/app/components/ui/Button'
 import { channelBadgeEmoji } from '@/app/lib/messageChannelLabels'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
 import { useEventStaffAccess } from '@/features/auth/hooks/useEventStaffAccess'
+import ChatComposer from '@/features/messaging/components/ChatComposer'
+import ChatMessageBubble from '@/features/messaging/components/ChatMessageBubble'
 import MessageQuickRepliesPanel from '@/features/messaging/components/MessageQuickRepliesPanel'
+import { sendEventCaseworkerDirect } from '@/features/messaging/lib/chatSend'
 import { fetchDisplayNamesBatch } from '@/features/messaging/hooks/useDisplayNamesBatch'
 
 type ThreadRow = {
@@ -98,7 +100,7 @@ export default function EventCaseworkerMessagesPage() {
       const nameById = await fetchDisplayNamesBatch(ids, t('landlordLabel'))
       setSenderLabels(Object.fromEntries(nameById))
     }
-  }, [withLandlordId, withEventId, toast])
+  }, [withLandlordId, withEventId, toast, t])
 
   useEffect(() => {
     if (!ready) return
@@ -134,20 +136,12 @@ export default function EventCaseworkerMessagesPage() {
     if (!text || !userId || !withLandlordId || !withEventId) return
     setSending(true)
     try {
-      const { error } = await supabase.from('chat_messages').insert({
-        sender_id: userId,
-        receiver_id: withLandlordId,
-        event_id: withEventId,
-        channel_type: 'event_caseworker',
+      await sendEventCaseworkerDirect({
+        senderId: userId,
+        receiverId: withLandlordId,
+        eventId: withEventId,
         content: text,
-      })
-      if (error) throw error
-      await supabase.from('notifications').insert({
-        owner_id: withLandlordId,
-        type: 'NEW_MESSAGE',
-        title: `${channelBadgeEmoji('event_caseworker')} ${t('msgChannelEvent')}`,
-        message: text.slice(0, 200),
-        status: 'unread',
+        notificationTitle: `${channelBadgeEmoji('event_caseworker')} ${t('msgChannelEvent')}`,
       })
       setInput('')
       await loadMessages()
@@ -236,54 +230,37 @@ export default function EventCaseworkerMessagesPage() {
               {messages.map((m) => {
                 const mine = m.sender_id === userId
                 return (
-                  <div
+                  <ChatMessageBubble
                     key={m.id}
-                    style={{
-                      alignSelf: mine ? 'flex-end' : 'flex-start',
-                      maxWidth: '85%',
-                      padding: '8px 12px',
-                      borderRadius: 12,
-                      background: mine ? 'rgba(168, 85, 247, 0.15)' : 'rgba(0,0,0,0.05)',
-                    }}
-                  >
-                    {!mine ? (
-                      <div style={{ fontSize: '0.72rem', fontWeight: 600, opacity: 0.65, marginBottom: 4 }}>
-                        {senderLabels[m.sender_id] || t('landlordLabel')}
-                      </div>
-                    ) : null}
-                    <div>{m.content}</div>
-                    <div style={{ fontSize: '0.72rem', opacity: 0.5, marginTop: 4 }}>
-                      {formatDateTimeNo(m.created_at)}
-                    </div>
-                  </div>
+                    message={m}
+                    isMine={mine}
+                    variant="event_staff"
+                    formatTimestamp={formatDateTimeNo}
+                    senderCaption={
+                      !mine ? senderLabels[m.sender_id] || t('landlordLabel') : undefined
+                    }
+                  />
                 )
               })}
               <div ref={bottomRef} />
             </div>
-            {userId ? (
-              <MessageQuickRepliesPanel
-                userId={userId}
-                channelType="event_caseworker"
-                onInsert={(text) => setInput((prev) => (prev.trim() ? `${prev}\n${text}` : text))}
-              />
-            ) : null}
-            <div style={{ padding: 12, borderTop: '1px solid var(--border-subtle)', display: 'flex', gap: 8 }}>
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={t('finnInquiryMessage')}
-                style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.12)' }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    void send()
-                  }
-                }}
-              />
-              <Button type="button" variant="accent" disabled={sending || !input.trim()} onClick={() => void send()}>
-                <Send size={16} aria-hidden /> {t('losSend')}
-              </Button>
-            </div>
+            <ChatComposer
+              variant="inline"
+              value={input}
+              onChange={setInput}
+              onSend={() => void send()}
+              sending={sending}
+              showSendIcon
+              quickRepliesSlot={
+                userId ? (
+                  <MessageQuickRepliesPanel
+                    userId={userId}
+                    channelType="event_caseworker"
+                    onInsert={(text) => setInput((prev) => (prev.trim() ? `${prev}\n${text}` : text))}
+                  />
+                ) : null
+              }
+            />
           </>
         )}
       </section>
