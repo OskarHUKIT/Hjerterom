@@ -40,3 +40,5 @@ See `UTVIKLINGSPLAN.md` for full roadmap.
 **`SERVICE_FLOW.md`** — redigerbar oversikt over hele økosystemet: aktører, tre baner (sosial/turisme/event), steg-for-steg-flyter, gates og typiske forvirringspunkter. Oppdater ved produktendringer.
 
 **`REFACTOR_PLAN.md`** — bølgeplan for full refactor: megasite-splits, felles hooks, agent-arbeidsflyt og suksesskriterier.
+
+**`agents/README.md`** — self-contained agent briefs per wave (smart zone packets for fresh context windows).
