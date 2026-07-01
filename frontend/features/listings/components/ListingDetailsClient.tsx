@@ -120,6 +120,7 @@ import {
 import { useListingDetailsQuery } from '@/features/listings/hooks/useListingDetailsQuery'
 import { useListingDetailsOwnerActions } from '@/features/listings/hooks/useListingDetailsOwnerActions'
 import { useTermsGate } from '@/features/auth/hooks/useTermsGate'
+import { getAppHubHref } from '@/app/lib/appHubNav'
 import ListingDetailsAddressSection from '@/features/listings/components/ListingDetailsAddressSection'
 import ListingDetailsPropertySection from '@/features/listings/components/ListingDetailsPropertySection'
 import ListingDetailsAvailabilitySection from '@/features/listings/components/ListingDetailsAvailabilitySection'
@@ -155,6 +156,7 @@ export default function ListingDetailsClient() {
     kommuneCanEdit,
     viewerIsKommuneStaff,
     viewerIsEventStaff,
+    viewerRole,
     ownerAgreementTerminated,
     tenantReportToken,
     setTenantReportToken,
@@ -393,7 +395,7 @@ export default function ListingDetailsClient() {
               ? viewerIsEventStaff
                 ? '/nav/event/database'
                 : '/nav/database'
-              : '/homeowner/manage'
+              : getAppHubHref(viewerRole)
           }
           className="nav-link listing-details-back-link"
           style={{
@@ -402,7 +404,12 @@ export default function ListingDetailsClient() {
             gap: 'var(--space-2)',
           }}
         >
-          <ArrowLeft size={18} /> {isNavView ? t('backToHousingBank') : t('backToMyProperties')}
+          <ArrowLeft size={18} />{' '}
+          {isNavView
+            ? t('backToHousingBank')
+            : viewerRole === 'leietaker'
+              ? t('finnNavMine')
+              : t('backToMyProperties')}
         </Link>
       </div>
 

@@ -42,6 +42,7 @@ export function useListingDetailsQuery({ id, isNavView, router }: UseListingDeta
   const [kommuneCanEdit, setKommuneCanEdit] = useState(false)
   const [viewerIsKommuneStaff, setViewerIsKommuneStaff] = useState(false)
   const [viewerIsEventStaff, setViewerIsEventStaff] = useState(false)
+  const [viewerRole, setViewerRole] = useState<string | null>(null)
   const [ownerAgreementTerminated, setOwnerAgreementTerminated] = useState(false)
   const [tenantReportToken, setTenantReportToken] = useState<string | null>(null)
   const [mediationReservation, setMediationReservation] = useState<MediationReservationRow | null>(
@@ -89,6 +90,7 @@ export function useListingDetailsQuery({ id, isNavView, router }: UseListingDeta
               .maybeSingle()
             const role = user.user_metadata?.role || profile?.role
             navViewerRole = role ?? null
+            setViewerRole(role ?? null)
             const isKommune = isKommuneStaffRole(role)
             const isEvent = isEventStaffRole(role)
             setViewerIsKommuneStaff(isKommune)
@@ -109,10 +111,12 @@ export function useListingDetailsQuery({ id, isNavView, router }: UseListingDeta
               .eq('id', user.id)
               .maybeSingle()
             const role = user.user_metadata?.role || profile?.role
+            setViewerRole(role ?? null)
             setViewerIsKommuneStaff(isKommuneStaffRole(role))
           }
         } else {
           setViewerIsKommuneStaff(false)
+          setViewerRole(null)
         }
 
         const listingPromise =
@@ -254,6 +258,7 @@ export function useListingDetailsQuery({ id, isNavView, router }: UseListingDeta
     kommuneCanEdit,
     viewerIsKommuneStaff,
     viewerIsEventStaff,
+    viewerRole,
     ownerAgreementTerminated,
     tenantReportToken,
     setTenantReportToken,

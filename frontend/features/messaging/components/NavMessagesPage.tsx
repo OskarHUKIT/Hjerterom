@@ -366,11 +366,13 @@ export default function NavMessagesPage() {
   }
 
   const backHref =
-    isKommune && withUserId
+    landlordMobileChatOnly || (kommuneMobileChatOnly && !!withUserId)
       ? '/nav/messages'
-      : isKommune
-        ? '/nav/database'
-        : '/homeowner/manage'
+      : isKommune && withUserId
+        ? '/nav/messages'
+        : isKommune
+          ? '/nav/database'
+          : '/homeowner/manage'
 
   const contactPickerQuery = messagesContactSearch.trim().toLowerCase()
   const filteredLandlordsForPicker = contactPickerQuery

@@ -216,7 +216,7 @@ export default function EventCaseworkerMessagesPage() {
                 gap: 8,
               }}
             >
-              <Link href="/nav/event/database" style={{ color: 'inherit' }} aria-label={t('back')}>
+              <Link href="/nav/event/messages" style={{ color: 'inherit' }} aria-label={t('back')}>
                 <ArrowLeft size={18} />
               </Link>
               <div>
