@@ -12,14 +12,14 @@ Each file below is a **self-contained packet** for a fresh agent context window.
 6. **Verify:** Run `cd frontend && npm run build` before commit.
 7. **Commit:** Use prefix `refactor(wave-N):` or `fix(p0):` from the brief.
 
-## Wave index
+## Refactor wave index (W1–W7 complete)
 
 | Brief | Status | Est. diff | Depends on |
 |-------|--------|-----------|------------|
-| [P0-payment-types.md](./P0-payment-types.md) | Ready | ~200 lines | — |
+| [P0-payment-types.md](./P0-payment-types.md) | ✅ Mostly done | ~200 lines | — (types gen needs local Supabase) |
 | [W1-foundation.md](./W1-foundation.md) | ✅ Done (PR #21) | ~400 lines | — |
-| [W2-listings-manage.md](./W2-listings-manage.md) | Ready | ~600 lines | W1 |
-| [W2-listings-details-query.md](./W2-listings-details-query.md) | Ready | ~400 lines | W1 |
+| [W2-listings-manage.md](./W2-listings-manage.md) | ✅ Done | ~600 lines | W1 |
+| [W2-listings-details-query.md](./W2-listings-details-query.md) | ✅ Done | ~400 lines | W1 |
 | [W2-manage-ui-splits.md](./W2-manage-ui-splits.md) | ✅ Done | ~500 lines | W2a |
 | [W3-messaging-thin.md](./W3-messaging-thin.md) | ✅ Done | ~50 lines move | W1 |
 | [W3-nav-database-query.md](./W3-nav-database-query.md) | ✅ Done | ~800 lines | W1 |
@@ -28,6 +28,18 @@ Each file below is a **self-contained packet** for a fresh agent context window.
 | [W4-chat-ui.md](./W4-chat-ui.md) | ✅ Done | ~400 lines | W3a |
 | [W5-persona-finn.md](./W5-persona-finn.md) | ✅ Done (partial JSX) | ~700 lines | W4 |
 | [W6-route-groups-i18n.md](./W6-route-groups-i18n.md) | ✅ Done (scoped) | i18n+eslint+e2e | W5 |
+
+## PRD Atlas (§15.8 + L-7) — see [ATLAS.md](../ATLAS.md)
+
+| Brief | Status | Depends on |
+|-------|--------|------------|
+| [M1-theme-persistence.md](./M1-theme-persistence.md) | 🔶 In progress | — |
+| [M2-shell-chrome.md](./M2-shell-chrome.md) | 🔶 In progress | M1 |
+| [M3-finn-css.md](./M3-finn-css.md) | 🔶 In progress | M1, M2 |
+| [M4-los-css.md](./M4-los-css.md) | 🔶 In progress | M1 |
+| [M5-sami-audit.md](./M5-sami-audit.md) | Ready | M2–M4 |
+| [M6-light-cleanup.md](./M6-light-cleanup.md) | Ready | M3–M5 |
+| [L7-kommune-onboarding.md](./L7-kommune-onboarding.md) | 🔶 In progress | M1 |
 
 ## Smoke checklist (all waves)
 

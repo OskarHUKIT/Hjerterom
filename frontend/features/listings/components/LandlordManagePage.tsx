@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
+import { isKommuneSocialSubscribed } from '@/app/lib/kommuneSocialEligibility'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '@/app/lib/landlordOnboarding'
 import LandlordOnboardingModal from '@/app/components/LandlordOnboardingModal'
 import {
@@ -107,6 +108,7 @@ export default function HomeownerManage() {
   const listingPanelRef = useRef<HTMLDivElement>(null)
   const [isMobileLayout, setIsMobileLayout] = useState(false)
   const [actionSheetListingId, setActionSheetListingId] = useState<string | null>(null)
+  const [kommuneSocialUnavailable, setKommuneSocialUnavailable] = useState(false)
 
   const calendarListingId = openPanel?.panel === 'calendar' ? openPanel.listingId : null
   const {
@@ -123,6 +125,21 @@ export default function HomeownerManage() {
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
   }, [])
+
+  useEffect(() => {
+    const city = myListings[0]?.city
+    if (!city?.trim()) {
+      setKommuneSocialUnavailable(false)
+      return
+    }
+    let cancelled = false
+    void isKommuneSocialSubscribed(supabase, city).then((eligible) => {
+      if (!cancelled) setKommuneSocialUnavailable(!eligible)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [myListings])
 
   const scrollFiltersIntoViewMobile = useCallback(() => {
     if (typeof window === 'undefined' || window.innerWidth > 768) return
@@ -415,6 +432,24 @@ export default function HomeownerManage() {
 
   return (
     <main className="container hm-manage-page">
+      {kommuneSocialUnavailable && (
+        <div
+          className="landlord-kommune-not-subscribed-banner card"
+          role="status"
+          style={{
+            marginBottom: 'var(--space-4)',
+            padding: 'var(--space-4)',
+            borderLeft: '4px solid var(--color-royal-blue)',
+          }}
+        >
+          <p style={{ margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>
+            {t('landlordKommuneNotSubscribedTitle')}
+          </p>
+          <p style={{ margin: 'var(--space-2) 0 0', color: 'var(--text-body)', lineHeight: 1.55 }}>
+            {t('landlordKommuneNotSubscribedBody')}
+          </p>
+        </div>
+      )}
       <PwaInstallPromptDialog
         open={pendingPwaBeforeOverview}
         onDismiss={(remember) => {

@@ -21,7 +21,8 @@
     "mobile:ios": "npm run mobile:build && npm run cap:open:ios",
     "mobile:android": "npm run mobile:build && npm run cap:open:android",
     "test:e2e": "playwright test",
-    "test:e2e:smoke": "playwright test e2e/smoke.spec.ts"
+    "test:e2e:smoke": "playwright test e2e/smoke.spec.ts",
+    "i18n:audit": "node scripts/i18n-audit.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",

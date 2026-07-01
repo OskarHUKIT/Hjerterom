@@ -283,6 +283,9 @@ export const listingsTranslations = {
     regGeocodeFailed: "Geokoding feilet. Prøv igjen senere.",
     regSaveNoIdError:
       "Lagring fullført, men kunne ikke hente ID for den nye boligen. Sjekk at du har tilgang til å opprette boliger.",
+    landlordKommuneNotSubscribedTitle: "Din kommune er ikke tilknyttet sosial formidling",
+    landlordKommuneNotSubscribedBody:
+      "Du kan registrere bolig og aktivere turisme og arrangement. Sosial boligbank krever at kommunen er Boly-kunde.",
     regAddressPickAria: "Flere treff for adressen",
     regGeocodeMultiHelp:
       "Flere mulige steder ble funnet. Velg det som stemmer med boligen — posisjon på kart settes etter valg.",
@@ -692,6 +695,9 @@ export const listingsTranslations = {
     regGeocodeFailed: "Geokoding ii lihkahuvvon. Geahčal fas maŋŋil.",
     regSaveNoIdError:
       "Vurkejuvvon, muhto ii sáhttán oažžut ID ođđa dávvira. Geahčal ahte dus lea oktavuohta ráhkadit dáviraid.",
+    landlordKommuneNotSubscribedTitle: "Du kommune ii leat čatnon sosiálaš formidlerii",
+    landlordKommuneNotSubscribedBody:
+      "Sáhtát registreret dávvira ja aktiveret turisma ja arrangementa. Sosiála boligbank gáibida ahte gielda lea Boly-áššehas.",
     regAddressPickAria: "Máŋga deavstta čujuhussii",
     regGeocodeMultiHelp:
       "Máŋga vejolaš báikki gávdnojit. Vállje dan mii heive dávvirii — posišuvdna kártas biddjo válljema maŋŋil.",
@@ -1096,6 +1102,9 @@ export const listingsTranslations = {
     regGeocodeFailed: "Geocoding failed. Please try again later.",
     regSaveNoIdError:
       "Save completed, but the new listing ID could not be retrieved. Check that you have permission to create listings.",
+    landlordKommuneNotSubscribedTitle: "Your municipality is not on social mediation",
+    landlordKommuneNotSubscribedBody:
+      "You can register a listing and enable tourism and events. Social boligbank requires an active Boly municipality subscription.",
     regAddressPickAria: "Multiple matches for the address",
     regGeocodeMultiHelp:
       "Several possible locations were found. Choose the one that matches the property — the map position is set after you choose.",

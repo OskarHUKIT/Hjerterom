@@ -1,36 +1,59 @@
-/* Digital Los — calm, accessible chat-first UI (light, youth-friendly) */
+/* Digital Los — Boly theme tokens via [data-theme] (PRD §15.8 M4) */
 
 .los-shell {
-  --los-bg: #f8fafc;
-  --los-bg-panel: #ffffff;
-  --los-text: #0f172a;
-  --los-text-muted: #64748b;
-  --los-accent: #0d9488;
-  --los-accent-soft: rgba(13, 148, 136, 0.12);
-  --los-user-bubble: #e0f2fe;
-  --los-user-text: #0c4a6e;
-  --los-bot-bubble: #f0fdf4;
-  --los-bot-border: rgba(13, 148, 136, 0.25);
+  --los-bg: var(--bg-app);
+  --los-bg-panel: var(--bg-card);
+  --los-text: var(--text-main);
+  --los-text-muted: var(--text-muted);
+  --los-accent: var(--color-dark-teal);
+  --los-accent-soft: color-mix(in srgb, var(--color-dark-teal) 16%, transparent);
+  --los-user-bubble: color-mix(in srgb, var(--color-royal-blue) 22%, var(--bg-card));
+  --los-user-text: var(--text-main);
+  --los-bot-bubble: color-mix(in srgb, var(--color-dark-teal) 10%, var(--bg-card));
+  --los-bot-border: var(--border-subtle);
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #eff6ff 0%, var(--los-bg) 40%, #ffffff 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-card) 70%, var(--color-dark-teal)) 0%,
+    var(--los-bg) 40%,
+    var(--los-bg) 100%
+  );
   color: var(--los-text);
 }
 
 .los-header {
   padding: var(--space-4) max(var(--space-4), env(safe-area-inset-left))
     var(--space-4) max(var(--space-4), env(safe-area-inset-right));
-  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--bg-card) 92%, transparent);
   backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 40;
+}
+
+.los-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.los-exit-link {
+  color: var(--los-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  min-height: var(--touch-target-sm);
+  display: inline-flex;
+  align-items: center;
 }
 
 .los-header h1 {
@@ -95,8 +118,8 @@
   display: flex;
   gap: var(--space-2);
   padding: var(--space-3) 0 calc(var(--space-3) + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(255, 255, 255, 0.6);
+  border-top: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-card) 75%, transparent);
 }
 
 .los-input-row input {
@@ -104,7 +127,7 @@
   min-height: var(--touch-target, 44px);
   padding: 10px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid var(--border-subtle);
   background: var(--los-bg-panel);
   color: var(--los-text);
   font: inherit;
@@ -160,8 +183,8 @@
   text-align: center;
   font-size: 0.85rem;
   color: var(--los-text-muted);
-  background: rgba(255, 255, 255, 0.85);
-  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .los-footer a {

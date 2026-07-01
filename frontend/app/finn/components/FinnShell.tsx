@@ -1,15 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { CalendarDays, Compass, User } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
-import type { Locale } from '@/lib/translations'
 import Logo from '@/app/components/Logo'
 import FeaturePortalGate from '@/app/components/FeaturePortalGate'
-
-const FINN_LOCALE_KEY = 'hjerterum-finn-locale'
+import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
 
 const FINN_NAV = [
   { href: '/finn', labelKey: 'finnNavSearch', icon: Compass },
@@ -25,35 +22,7 @@ function isFinnActive(pathname: string | null, href: string): boolean {
 
 export default function FinnShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { t, locale, setLocale } = useLanguage()
-
-  /** Tourist portal defaults to English when no preference is stored. */
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(FINN_LOCALE_KEY)
-      if (stored === 'no' || stored === 'en' || stored === 'se') {
-        if (stored !== locale) setLocale(stored as Locale)
-        return
-      }
-      if (locale !== 'en') setLocale('en')
-      localStorage.setItem(FINN_LOCALE_KEY, 'en')
-    } catch {
-      /* ignore */
-    }
-  }, [locale, setLocale])
-
-  /** Consumer portal is always light — avoids dark-theme token bleed from app shell. */
-  useEffect(() => {
-    const root = document.documentElement
-    const prevTheme = root.getAttribute('data-theme')
-    root.setAttribute('data-finn-shell', 'true')
-    root.setAttribute('data-theme', 'light')
-    return () => {
-      root.removeAttribute('data-finn-shell')
-      if (prevTheme) root.setAttribute('data-theme', prevTheme)
-      else root.setAttribute('data-theme', 'dark')
-    }
-  }, [])
+  const { t } = useLanguage()
 
   return (
     <div className="finn-shell">
@@ -62,22 +31,25 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
           <Logo />
           <span className="finn-brand-text">{t('finnBrand')}</span>
         </Link>
-        <nav className="finn-nav" aria-label={t('finnMainNav')}>
-          {FINN_NAV.map(({ href, labelKey, icon: Icon }) => {
-            const active = isFinnActive(pathname, href)
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`finn-nav-link${active ? ' finn-nav-link--active' : ''}`}
-                aria-current={active ? 'page' : undefined}
-              >
-                <Icon size={18} aria-hidden />
-                <span>{t(labelKey)}</span>
-              </Link>
-            )
-          })}
-        </nav>
+        <div className="finn-header-end">
+          <ShellChromeControls compact className="finn-header-chrome" />
+          <nav className="finn-nav" aria-label={t('finnMainNav')}>
+            {FINN_NAV.map(({ href, labelKey, icon: Icon }) => {
+              const active = isFinnActive(pathname, href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`finn-nav-link${active ? ' finn-nav-link--active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <Icon size={18} aria-hidden />
+                  <span>{t(labelKey)}</span>
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
       </header>
       <main className="finn-main">
         <FeaturePortalGate feature="finn">{children}</FeaturePortalGate>

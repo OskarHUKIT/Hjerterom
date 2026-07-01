@@ -34,6 +34,7 @@ import {
   type GeocodeHit,
 } from '../../lib/geocoding'
 import { savePendingFirstListingDraft } from '../lib/pendingFirstListing'
+import { isKommuneSocialSubscribed } from '../../lib/kommuneSocialEligibility'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
@@ -356,17 +357,20 @@ export default function HomeownerRegister() {
         .maybeSingle()
 
       if (!isFirstListing) {
-        const { data: termsOk, error: termsErr } = await supabase.rpc('listing_publish_terms_ok', {
-          p_city: formData.city?.trim() || '',
-        })
-        if (termsErr) throw termsErr
-        if (!termsOk) {
-          toast(t('termsMissingForRegion'), 'error')
-          router.push(
-            `/homeowner/sign-terms?city=${encodeURIComponent(formData.city?.trim() || '')}&returnTo=${encodeURIComponent('/homeowner/register')}`
-          )
-          setLoading(false)
-          return
+        const socialEligible = await isKommuneSocialSubscribed(supabase, formData.city)
+        if (socialEligible) {
+          const { data: termsOk, error: termsErr } = await supabase.rpc('listing_publish_terms_ok', {
+            p_city: formData.city?.trim() || '',
+          })
+          if (termsErr) throw termsErr
+          if (!termsOk) {
+            toast(t('termsMissingForRegion'), 'error')
+            router.push(
+              `/homeowner/sign-terms?city=${encodeURIComponent(formData.city?.trim() || '')}&returnTo=${encodeURIComponent('/homeowner/register')}`
+            )
+            setLoading(false)
+            return
+          }
         }
       }
 
@@ -422,12 +426,15 @@ export default function HomeownerRegister() {
       }
 
       if (isFirstListing && !agreementRow) {
-        savePendingFirstListingDraft(listingRow as unknown as Record<string, unknown>)
-        const cityQ = encodeURIComponent(formData.city?.trim() || '')
-        const returnTo = encodeURIComponent('/homeowner/register')
-        router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}&pendingListing=1`)
-        setLoading(false)
-        return
+        const socialEligible = await isKommuneSocialSubscribed(supabase, formData.city)
+        if (socialEligible) {
+          savePendingFirstListingDraft(listingRow as unknown as Record<string, unknown>)
+          const cityQ = encodeURIComponent(formData.city?.trim() || '')
+          const returnTo = encodeURIComponent('/homeowner/register')
+          router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}&pendingListing=1`)
+          setLoading(false)
+          return
+        }
       }
 
       const { data, error } = await supabase

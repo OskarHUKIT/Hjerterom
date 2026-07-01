@@ -541,6 +541,26 @@ export default function Header() {
               <option value="en">{t('english')}</option>
             </select>
           </div>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? t('lightMode') : t('darkMode')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 'var(--touch-target-sm)',
+              minHeight: 'var(--touch-target-sm)',
+              padding: '0 10px',
+              borderRadius: 8,
+              background: 'var(--bg-app)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-main)',
+              cursor: 'pointer',
+            }}
+          >
+            {theme === 'dark' ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
+          </button>
           {!hideGuestLoginButtonInHeader && (
             <Link
               href="/login"

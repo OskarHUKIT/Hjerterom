@@ -313,7 +313,7 @@ Per-kommune: `digital_los_enabled`, `tourism_enabled`.
 | L-4 | Opt in listings to central events with date window | P0 | Done |
 | L-5 | Accept/reject tourism booking requests | P0 | Done |
 | L-6 | Stripe Connect onboarding for tourism payouts | P0 | Done |
-| L-7 | Onboarding path when kommune not subscribed (tourism/events only) | P1 | **Not built** |
+| L-7 | Onboarding path when kommune not subscribed (tourism/events only) | P1 | **Done** — RPC + register/manage banner |
 | L-8 | Unified calendar showing all lanes | P1 | **Done** — `LandlordAvailabilityHub` + lane calendar |
 | L-9 | Co-host / delegation | P2 | Not started |
 
@@ -473,8 +473,8 @@ Per-kommune: `digital_los_enabled`, `tourism_enabled`.
 | Hjerterum v2 accent rollout to `/homeowner` + `/nav` shell | Product / design | After landing + login validated |
 | Visual regression tooling (Chromatic vs Playwright screenshots) | Engineering | Before tourism GA |
 | Design system Storybook (or equivalent) | Engineering | Post-pilot — optional |
-| **`profiles.preferred_theme`** (cross-device theme for logged-in users) | Engineering | §15.2 — alongside existing per-user localStorage |
-| **Retire `finn.css` / `los.css` always-light** | Engineering | §15.8 migration — target before tourism GA |
+| **`profiles.preferred_theme`** (cross-device theme for logged-in users) | Engineering | ✅ M1 migration + ThemeContext sync |
+| **Retire `finn.css` / `los.css` always-light** | Engineering | 🔶 M3/M4 token migration shipped; M6 cleanup pending |
 
 **Removed from open decisions (locked July 2026 — see §15.11):** theme behaviour, Sámi parity scope, dark default on Finn/Los, supported locales (NO / Sámi / EN only).
 
@@ -570,17 +570,17 @@ Hjerterum has route **contexts** (social app, tourism, youth, ops) — not separ
 | UX-4 | Toast/Confirm — zero native dialogs | P0 | Done |
 | UX-5 | Hjerterum v2 landing + portal cards + login | P1 | Partial |
 | UX-6 | Consistent header/footer via `SiteChrome` or module shell with same controls | P0 | Partial |
-| UX-7 | Finn uses Boly theme system — **not** always-light `finn.css` | P0 | **Not met** — migration required |
-| UX-8 | Los uses Boly theme system — **not** always-light `los.css` | P0 | **Not met** — migration required |
+| UX-7 | Finn uses Boly theme system — **not** always-light `finn.css` | P0 | **Done** — token migration M3 |
+| UX-8 | Los uses Boly theme system — **not** always-light `los.css` | P0 | **Done** — token migration M4 |
 | UX-9 | Ops extends Boly tokens; dark + light | P0 | Done (~95%) |
 | UX-10 | Hjerterum rebrand in logo, PWA, footer | P1 | In progress |
 | UX-11 | Persona-split listing detail views | P1 | Partial |
 | UX-12 | Inline form validation + accessible errors | P1 | Partial |
 | UX-13 | Skeleton loading on all React Query views | P1 | Partial |
 | UX-14 | Visual regression suite | P2 | Smoke only |
-| UX-15 | Theme toggle on all surfaces; guest localStorage; logged-in cross-session | P0 | **Not met** |
-| UX-16 | **Sámi on everything** — full `se` coverage; ship gate | P0 | **Not met** — audit required |
-| UX-17 | Language selector on Finn, Los, and all shells | P0 | **Partial** |
+| UX-15 | Theme toggle on all surfaces; guest localStorage; logged-in cross-session | P0 | **Done** — M1 + shell chrome |
+| UX-16 | **Sámi on everything** — full `se` coverage; ship gate | P0 | **Partial** — M5 audit script; quality pass pending |
+| UX-17 | Language selector on Finn, Los, and all shells | P0 | **Done** — M2 ShellChromeControls |
 
 ### 15.6 Component catalogue (mandatory reuse)
 

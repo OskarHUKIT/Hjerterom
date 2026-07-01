@@ -110,7 +110,12 @@ export async function getLandlordPostLoginHref(
   ])
 
   if (signedBefore && city) {
-    return signTermsHref(city)
+    const { isKommuneSocialSubscribed } = await import('./kommuneSocialEligibility')
+    const socialEligible = await isKommuneSocialSubscribed(supabase, city)
+    if (socialEligible) {
+      return signTermsHref(city)
+    }
+    return '/homeowner/manage'
   }
 
   return '/homeowner/register'
