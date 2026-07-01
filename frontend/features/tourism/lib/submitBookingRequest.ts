@@ -20,6 +20,7 @@ export type BookingRequestResult =
 const BOOKING_ERROR_KEYS: Record<string, TranslationKey> = {
   auth_required: 'finnBookingErrorAuthRequired',
   email_mismatch: 'finnBookingErrorEmailMismatch',
+  dates_formidla_conflict: 'finnBookingErrorDatesFormidlaConflict',
   dates_unavailable: 'finnBookingErrorDatesUnavailable',
   dates_conflict: 'finnBookingErrorDatesConflict',
   event_not_bookable: 'finnBookingErrorEventNotBookable',
