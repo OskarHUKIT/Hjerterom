@@ -18,7 +18,6 @@ import {
   CalendarDays,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
-import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '@/app/lib/landlordOnboarding'
 import LandlordOnboardingModal from '@/app/components/LandlordOnboardingModal'
 import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
@@ -26,7 +25,6 @@ import {
   PwaInstallPromptDialog,
   PWA_PROMPT_DISMISSED_KEY,
   PWA_PROMPT_MANAGE_SESSION_KEY,
-  shouldShowPwaPrompt,
 } from '@/app/components/PWAInstallPrompt'
 import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
@@ -47,20 +45,59 @@ import type { ListingEventOptInPeriod, ListingLane } from '@/features/listings/t
 type ManagePanel = 'calendar' | 'events' | 'tourism'
 import { buttonClassName } from '@/app/components/ui/Button'
 import { publicContactInfoFormPdfUrl, publicDocumentsFileUrl } from '@/app/lib/storagePublicUrl'
-import { getLandlordPostLoginHref } from '@/app/lib/landlordNavGate'
-import { logError } from '@/app/lib/appLogger'
 import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import { shouldShowManageFullScreenSpinner } from '@/features/listings/lib/landlordManagePageGate'
+import { useLandlordManageBootstrap } from '@/features/listings/hooks/useLandlordManageBootstrap'
+import {
+  useLandlordListingsQuery,
+  type ListingsOnboardingCallbacks,
+} from '@/features/listings/hooks/useLandlordListingsQuery'
+import ConfirmDeleteDialog from '@/features/listings/components/ConfirmDeleteDialog'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
   const toast = useToast()
   const { flags: platformFlags } = usePlatformMode()
   const router = useRouter()
-  const [myListings, setMyListings] = useState<any[]>([])
-  const [availability, setAvailability] = useState<Record<string, any[]>>({})
-  const [loading, setLoading] = useState(true)
+  const [showOverviewIntro, setShowOverviewIntro] = useState(false)
+  const [showMineBoligerIntro, setShowMineBoligerIntro] = useState(false)
+  const onboardingRef = useRef<ListingsOnboardingCallbacks | null>(null)
+  const {
+    myListings,
+    setMyListings,
+    availability,
+    setAvailability,
+    eventOptInsByListing,
+    setEventOptInsByListing,
+    loading,
+    setLoading,
+    fetchError,
+    setFetchError,
+    refetch: fetchData,
+  } = useLandlordListingsQuery({
+    router,
+    centralEvents: platformFlags.centralEvents,
+    onboardingRef,
+  })
+  const {
+    pageGate,
+    pendingPwaAfterWelcome,
+    pendingPwaBeforeOverview,
+    setPendingPwaBeforeOverview,
+    dismissLandlordWelcome,
+    dismissPwaAfterWelcome,
+  } = useLandlordManageBootstrap({
+    refetch: fetchData,
+    loading,
+    setLoading,
+    setFetchError,
+  })
+  onboardingRef.current = {
+    setPendingPwaBeforeOverview,
+    setShowOverviewIntro,
+    setShowMineBoligerIntro,
+  }
   const [filter, setFilter] = useState<'Alle' | 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla'>(
     'Alle'
   )
@@ -75,24 +112,11 @@ export default function HomeownerManage() {
     id: string
     address: string
   } | null>(null)
-  const [pageGate, setPageGate] = useState<'init' | 'welcome' | 'ready'>('init')
-  const [showOverviewIntro, setShowOverviewIntro] = useState(false)
-  const [showMineBoligerIntro, setShowMineBoligerIntro] = useState(false)
-  /** PWA etter at velkomst-modalet er lukket (samme økt som første gang på siden). */
-  const [pendingPwaAfterWelcome, setPendingPwaAfterWelcome] = useState(false)
-  const [pendingPwaBeforeOverview, setPendingPwaBeforeOverview] = useState(false)
-  /** Nettverk/Supabase-timeout eller feil fra fetchData */
-  const [fetchError, setFetchError] = useState<'timeout' | string | null>(null)
-  const pageGateRef = useRef(pageGate)
-  pageGateRef.current = pageGate
   const availabilityErrorContextRef = useRef<'add' | 'delete'>('add')
   const filtersRowRef = useRef<HTMLDivElement>(null)
   const listingPanelRef = useRef<HTMLDivElement>(null)
   const [isMobileLayout, setIsMobileLayout] = useState(false)
   const [actionSheetListingId, setActionSheetListingId] = useState<string | null>(null)
-  const [eventOptInsByListing, setEventOptInsByListing] = useState<
-    Record<string, ListingEventOptInPeriod[]>
-  >({})
 
   const calendarListingId =
     openPanel?.panel === 'calendar' ? openPanel.listingId : null
@@ -147,152 +171,6 @@ export default function HomeownerManage() {
     },
   })
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    setFetchError(null)
-    try {
-      const user = await getAuthUserDeduped()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle()
-      if (isKommuneStaffRole(profile?.role)) {
-        router.replace('/nav/database')
-        return
-      }
-
-      const gateHref = await getLandlordPostLoginHref(supabase, user.id, user.email, {
-        reuseProfileRole: profile?.role ?? null,
-      })
-      if (gateHref !== '/homeowner/manage') {
-        router.replace(gateHref)
-        return
-      }
-
-      // Fetch listings
-      const { data: listingsData, error: listingsError } = await supabase
-        .from('listings')
-        .select('*')
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (listingsError) throw listingsError
-      setMyListings(listingsData || [])
-
-      // Fetch availability for all these listings
-      if (listingsData && listingsData.length > 0) {
-        const listingIds = listingsData.map((l) => l.id)
-        const { data: availabilityData } = await supabase
-          .from('listing_availability')
-          .select('*')
-          .in('listing_id', listingIds)
-          .order('start_date', { ascending: true })
-
-        const availMap: Record<string, any[]> = {}
-        availabilityData?.forEach((item) => {
-          if (!availMap[item.listing_id]) availMap[item.listing_id] = []
-          availMap[item.listing_id].push(item)
-        })
-        setAvailability(availMap)
-      }
-
-      if (listingsData && listingsData.length > 0 && platformFlags.centralEvents) {
-        const listingIds = listingsData.map((l) => l.id)
-        const [{ data: published }, { data: optIns }] = await Promise.all([
-          supabase
-            .from('central_events')
-            .select('id, name, start_date, end_date')
-            .eq('status', 'published'),
-          supabase
-            .from('listing_event_availability')
-            .select('listing_id, event_id, status, available_from, available_to')
-            .in('listing_id', listingIds)
-            .eq('status', 'active'),
-        ])
-        const eventMeta = new Map((published ?? []).map((e) => [e.id, e]))
-        const byListing: Record<string, ListingEventOptInPeriod[]> = {}
-        ;(optIns ?? []).forEach((row) => {
-          const meta = eventMeta.get(row.event_id)
-          if (!meta) return
-          if (!byListing[row.listing_id]) byListing[row.listing_id] = []
-          byListing[row.listing_id].push({
-            event_id: row.event_id,
-            event_name: meta.name,
-            start_date: meta.start_date,
-            end_date: meta.end_date,
-            status: 'active',
-          })
-        })
-        setEventOptInsByListing(byListing)
-      } else {
-        setEventOptInsByListing({})
-      }
-
-      if (typeof window !== 'undefined') {
-        const uid = user.id
-        const ovKey = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.overview, uid)
-        const mineKey = landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.mineBoliger, uid)
-        if (!localStorage.getItem(ovKey)) {
-          let managePwaDone = false
-          try {
-            managePwaDone = sessionStorage.getItem(PWA_PROMPT_MANAGE_SESSION_KEY) === '1'
-          } catch {
-            managePwaDone = false
-          }
-          if (shouldShowPwaPrompt() && !managePwaDone) {
-            setPendingPwaBeforeOverview(true)
-          } else {
-            setShowOverviewIntro(true)
-          }
-        } else if (!localStorage.getItem(mineKey) && (listingsData || []).length > 0) {
-          setShowMineBoligerIntro(true)
-        }
-      }
-    } catch (err: any) {
-      logError('Unexpected error:', err)
-      setFetchError(err?.message || 'error')
-    } finally {
-      setLoading(false)
-    }
-  }, [router, platformFlags.centralEvents])
-
-  const dismissLandlordWelcome = async () => {
-    const user = await getAuthUserDeduped()
-    if (user && typeof window !== 'undefined') {
-      localStorage.setItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.welcome, user.id), '1')
-    }
-    let managePwaDone = false
-    try {
-      managePwaDone = sessionStorage.getItem(PWA_PROMPT_MANAGE_SESSION_KEY) === '1'
-    } catch {
-      managePwaDone = false
-    }
-    if (shouldShowPwaPrompt() && !managePwaDone) {
-      setPendingPwaAfterWelcome(true)
-      return
-    }
-    setPageGate('ready')
-    await fetchData()
-  }
-
-  const dismissPwaAfterWelcome = (remember: boolean) => {
-    try {
-      if (remember) localStorage.setItem(PWA_PROMPT_DISMISSED_KEY, '1')
-      sessionStorage.setItem(PWA_PROMPT_MANAGE_SESSION_KEY, '1')
-    } catch {
-      /* ignore */
-    }
-    setPendingPwaAfterWelcome(false)
-    setPageGate('ready')
-    void fetchData()
-  }
-
   const dismissOverviewIntro = async () => {
     const user = await getAuthUserDeduped()
     if (user && typeof window !== 'undefined') {
@@ -317,93 +195,6 @@ export default function HomeownerManage() {
     }
     setShowMineBoligerIntro(false)
   }
-
-  useEffect(() => {
-    let cancelled = false
-    /** Må være > auth-timeout i supabase.ts (22s) og gi tid til trege spørringer. */
-    const STUCK_MS = 60000
-    const stuckTimer = window.setTimeout(() => {
-      if (cancelled) return
-      // Ikke vis feil mens velkomst-modal er åpen (bruker kan bruke >20s der).
-      if (pageGateRef.current === 'welcome') return
-      setPageGate((g) => (g === 'init' ? 'ready' : g))
-      setFetchError('timeout')
-      setLoading(false)
-    }, STUCK_MS)
-
-    async function bootstrap() {
-      let user: Awaited<ReturnType<typeof getAuthUserDeduped>>
-      try {
-        user = await getAuthUserDeduped()
-      } catch (e: unknown) {
-        if (cancelled) return
-        logError(e)
-        setFetchError(e instanceof Error ? e.message : 'error')
-        setPageGate('ready')
-        setLoading(false)
-        return
-      }
-      if (!user) {
-        if (!cancelled) {
-          setLoading(false)
-          router.push('/login')
-        }
-        return
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle()
-      if (isKommuneStaffRole(profile?.role)) {
-        if (!cancelled) {
-          setLoading(false)
-          router.replace('/nav/database')
-        }
-        return
-      }
-      const gateHref = await getLandlordPostLoginHref(supabase, user.id, user.email, {
-        reuseProfileRole: profile?.role ?? null,
-      })
-      if (gateHref !== '/homeowner/manage') {
-        if (!cancelled) {
-          setLoading(false)
-          router.replace(gateHref)
-        }
-        return
-      }
-      const dismissed =
-        typeof window !== 'undefined' &&
-        localStorage.getItem(landlordOnboardingKey(LANDLORD_ONBOARDING_PREFIX.welcome, user.id))
-      if (!dismissed) {
-        if (!cancelled) {
-          setPageGate('welcome')
-          setLoading(false)
-        }
-        return
-      }
-      if (!cancelled) setPageGate('ready')
-      await fetchData()
-    }
-
-    void bootstrap().finally(() => {
-      if (!cancelled) window.clearTimeout(stuckTimer)
-    })
-
-    return () => {
-      cancelled = true
-      window.clearTimeout(stuckTimer)
-    }
-  }, [fetchData, router])
-
-  useEffect(() => {
-    if (pageGate !== 'ready' || !loading) return
-    const id = window.setTimeout(() => {
-      setFetchError('timeout')
-      setLoading(false)
-    }, 60000)
-    return () => clearTimeout(id)
-  }, [loading, pageGate])
 
   useEffect(() => {
     if (typeof window === 'undefined' || myListings.length === 0) return
@@ -451,7 +242,7 @@ export default function HomeownerManage() {
 
   const setStatus = async (id: string, newStatus: 'Tilgjengelig' | 'Utilgjengelig') => {
     const listing = myListings.find((l) => l.id === id)
-    const todayStatus = getEffectiveStatus(listing)
+    const todayStatus = listingAvailabilityStatusToday(listing.id, availability)
     if (todayStatus === 'Formidla') {
       toast(t('formidletByKommune'), 'error')
       return
@@ -499,7 +290,7 @@ export default function HomeownerManage() {
     if (!pendingDeleteListing) return
     const { id, address } = pendingDeleteListing
     const listingRow = myListings.find((l) => l.id === id)
-    if (listingRow && getEffectiveStatus(listingRow) === 'Formidla') {
+    if (listingRow && listingAvailabilityStatusToday(listingRow.id, availability) === 'Formidla') {
       toast(t('ownerCannotEditListingWhenFormidlet'), 'error')
       setPendingDeleteListing(null)
       return
@@ -574,18 +365,13 @@ export default function HomeownerManage() {
     }
   }
 
-  /** Status for dagens dato (lokal) ut fra perioder — ikke «noen gang formidlet». */
-  const getEffectiveStatus = (listing: any): 'Formidla' | 'Tilgjengelig' | 'Utilgjengelig' => {
-    return listingAvailabilityStatusToday(listing.id, availability)
-  }
-
-  const isTodayAvailableOrUnset = (listing: any) => {
-    return getEffectiveStatus(listing) === 'Tilgjengelig'
+  const isTodayAvailableOrUnset = (listing: { id: string }) => {
+    return listingAvailabilityStatusToday(listing.id, availability) === 'Tilgjengelig'
   }
 
   const filteredListings = myListings.filter((l) => {
     if (filter === 'Alle') return true
-    const s = getEffectiveStatus(l)
+    const s = listingAvailabilityStatusToday(l.id, availability)
     if (filter === 'Tilgjengelig') return s === 'Tilgjengelig'
     return s === filter
   })
@@ -811,113 +597,17 @@ export default function HomeownerManage() {
         </ul>
       </LandlordOnboardingModal>
 
-      {pendingDeleteListing && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-delete-listing-title"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 10000,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 'var(--space-4)',
-          }}
-          onClick={() => setPendingDeleteListing(null)}
-        >
-          <div
-            className="card"
-            style={{
-              maxWidth: 440,
-              padding: 'var(--space-6)',
-              boxShadow: 'var(--shadow-lg, 0 10px 40px rgba(0,0,0,0.2))',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p
-              id="confirm-delete-listing-title"
-              style={{ margin: '0 0 var(--space-4)', fontSize: '1rem', lineHeight: 1.5 }}
-            >
-              {t('confirmDeleteListing').replace('{address}', pendingDeleteListing.address)}
-            </p>
-            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                className="button"
-                style={{ background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}
-                onClick={() => setPendingDeleteListing(null)}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="button"
-                className="button"
-                style={{ background: '#dc2626', color: 'white', border: 'none' }}
-                onClick={() => void executeDeleteListing()}
-              >
-                {t('delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {pendingDeletePeriod && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-remove-title"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 'var(--space-4)',
-          }}
-          onClick={() => setPendingDeletePeriod(null)}
-        >
-          <div
-            className="card"
-            style={{
-              maxWidth: 400,
-              padding: 'var(--space-6)',
-              boxShadow: 'var(--shadow-lg, 0 10px 40px rgba(0,0,0,0.2))',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p id="confirm-remove-title" style={{ margin: '0 0 var(--space-4)', fontSize: '1rem' }}>
-              {t('confirmRemovePeriod')}
-            </p>
-            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                className="button"
-                style={{ background: 'var(--bg-app)', border: '1px solid var(--border-subtle)' }}
-                onClick={() => setPendingDeletePeriod(null)}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="button"
-                className="button"
-                style={{ background: '#dc2626', color: 'white', border: 'none' }}
-                onClick={() =>
-                  pendingDeletePeriod &&
-                  deleteAvailability(pendingDeletePeriod.id, pendingDeletePeriod.listingId)
-                }
-              >
-                {t('remove')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDeleteDialog
+        pendingDeleteListing={pendingDeleteListing}
+        onCancelListing={() => setPendingDeleteListing(null)}
+        onConfirmListing={() => void executeDeleteListing()}
+        pendingDeletePeriod={pendingDeletePeriod}
+        onCancelPeriod={() => setPendingDeletePeriod(null)}
+        onConfirmPeriod={() =>
+          pendingDeletePeriod &&
+          void deleteAvailability(pendingDeletePeriod.id, pendingDeletePeriod.listingId)
+        }
+      />
 
       <div
         className="hm-header-row"
@@ -1143,7 +833,7 @@ export default function HomeownerManage() {
               </div>
             ) : filteredListings.length > 0 ? (
               filteredListings.map((listing) => {
-                const todaySt = getEffectiveStatus(listing)
+                const todaySt = listingAvailabilityStatusToday(listing.id, availability)
                 return (
                 <div
                   key={listing.id}
@@ -1281,7 +971,7 @@ export default function HomeownerManage() {
                             ? `${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`
                             : `${translateType(listing.type)} • ${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`}
                         </p>
-                        {getEffectiveStatus(listing) !== 'Formidla' ? (
+                        {listingAvailabilityStatusToday(listing.id, availability) !== 'Formidla' ? (
                           <ListingAvailabilityOverview
                             periods={availability[listing.id] ?? []}
                             eventOptIns={eventOptInsByListing[listing.id] ?? []}
@@ -1315,7 +1005,7 @@ export default function HomeownerManage() {
                         </button>
                       ) : (
                         <>
-                          {getEffectiveStatus(listing) !== 'Formidla' && (
+                          {listingAvailabilityStatusToday(listing.id, availability) !== 'Formidla' && (
                             <>
                               <div
                                 className="hm-status-actions"
@@ -1344,7 +1034,7 @@ export default function HomeownerManage() {
                                   >
                                     {t('manageRentalNav')}
                                   </button>
-                                ) : getEffectiveStatus(listing) === 'Utilgjengelig' ? (
+                                ) : listingAvailabilityStatusToday(listing.id, availability) === 'Utilgjengelig' ? (
                                   <button
                                     type="button"
                                     onClick={() => openPeriodCalendar(listing.id, 'Tilgjengelig')}
@@ -1411,7 +1101,7 @@ export default function HomeownerManage() {
                               />
                             </>
                           )}
-                            {getEffectiveStatus(listing) !== 'Formidla' && (
+                            {listingAvailabilityStatusToday(listing.id, availability) !== 'Formidla' && (
                             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                             <button
                               type="button"
@@ -1482,7 +1172,7 @@ export default function HomeownerManage() {
                     </div>
                   </div>
 
-                  {getEffectiveStatus(listing) !== 'Formidla' ? (
+                  {listingAvailabilityStatusToday(listing.id, availability) !== 'Formidla' ? (
                     <div
                       onClick={(e) => e.stopPropagation()}
                       style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}
@@ -1539,7 +1229,7 @@ export default function HomeownerManage() {
                     </div>
                   ) : null}
 
-                  {getEffectiveStatus(listing) === 'Formidla' && !isMobileLayout && (
+                  {listingAvailabilityStatusToday(listing.id, availability) === 'Formidla' && !isMobileLayout && (
                     <div
                       onClick={(e) => e.stopPropagation()}
                       style={{
@@ -1726,7 +1416,7 @@ export default function HomeownerManage() {
           zIndex={2200}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {getEffectiveStatus(actionSheetListing) === 'Formidla' && (
+            {listingAvailabilityStatusToday(actionSheetListing.id, availability) === 'Formidla' && (
               <>
                 <a
                   href={publicContactInfoFormPdfUrl()}
@@ -1772,7 +1462,7 @@ export default function HomeownerManage() {
                 </Link>
               </>
             )}
-            {getEffectiveStatus(actionSheetListing) !== 'Formidla' && (
+            {listingAvailabilityStatusToday(actionSheetListing.id, availability) !== 'Formidla' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                 {isTodayAvailableOrUnset(actionSheetListing) ? (
                   <button
@@ -1795,7 +1485,7 @@ export default function HomeownerManage() {
                   >
                     {t('manageRentalNav')}
                   </button>
-                ) : getEffectiveStatus(actionSheetListing) === 'Utilgjengelig' ? (
+                ) : listingAvailabilityStatusToday(actionSheetListing.id, availability) === 'Utilgjengelig' ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -1862,7 +1552,7 @@ export default function HomeownerManage() {
                 )}
               </div>
             )}
-            {getEffectiveStatus(actionSheetListing) !== 'Formidla' &&
+            {listingAvailabilityStatusToday(actionSheetListing.id, availability) !== 'Formidla' &&
               (platformFlags.centralEvents || platformFlags.tourism) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                   {platformFlags.centralEvents ? (
@@ -1928,7 +1618,7 @@ export default function HomeownerManage() {
                   </button>
                 </div>
               )}
-            {getEffectiveStatus(actionSheetListing) !== 'Formidla' && (
+            {listingAvailabilityStatusToday(actionSheetListing.id, availability) !== 'Formidla' && (
               <>
                 <button
                   type="button"
@@ -1976,7 +1666,7 @@ export default function HomeownerManage() {
                 </button>
               </>
             )}
-            {getEffectiveStatus(actionSheetListing) === 'Formidla' && (
+            {listingAvailabilityStatusToday(actionSheetListing.id, availability) === 'Formidla' && (
               <button
                 type="button"
                 className="button button-secondary"
