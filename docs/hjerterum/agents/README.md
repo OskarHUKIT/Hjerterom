@@ -6,10 +6,11 @@ Each file below is a **self-contained packet** for a fresh agent context window.
 
 1. Read **`docs/hjerterum/SERVICE_FLOW.md`** § relevant to your wave (lanes, gates).
 2. Read **`docs/hjerterum/REFACTOR_PLAN.md`** for global constraints (no file >800 lines, thin routes).
-3. **Scope lock:** Only touch files listed in the brief. No drive-by refactors.
-4. **Parity:** Behavior must stay identical unless the brief says otherwise.
-5. **Verify:** Run `cd frontend && npm run build` before commit.
-6. **Commit:** Use prefix `refactor(wave-N):` or `fix(p0):` from the brief.
+3. For UI work: **`docs/hjerterum/DESIGN_SYSTEM.md`**, **`docs/hjerterum/PRD.md` §15**, **`docs/hjerterum/UI_UX_GOVERNANCE.md`**.
+4. **Scope lock:** Only touch files listed in the brief. No drive-by refactors.
+5. **Parity:** Behavior must stay identical unless the brief says otherwise.
+6. **Verify:** Run `cd frontend && npm run build` before commit.
+7. **Commit:** Use prefix `refactor(wave-N):` or `fix(p0):` from the brief.
 
 ## Wave index
 

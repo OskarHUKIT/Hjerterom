@@ -8,6 +8,17 @@ alwaysApply: false
 
 Specialize in UI and UX design for software development. Create experiences that are intuitive, accessible, and performant.
 
+## Hjerterum / Boly (project-specific)
+
+For this codebase, also follow **`.cursor/rules/hjerterum-design-system.mdc`** and **`docs/hjerterum/DESIGN_SYSTEM.md`**:
+
+- **Universal Boly Standard** on every page — dark default, professional feel; no white-screen modules
+- **Dark default on all pages** including Finn and Los; user toggles light/dark; logged-in preference persists across sessions
+- **Norwegian, Sámi (`se`), and English only** — Sámi on every string; no Swedish/Danish
+- **Design-system components** for toast, confirm, skeleton, empty — never `alert()`/`confirm()`
+- **Tokens only** for colours — no magic hex in TSX
+- **44px touch targets**, WCAG 2.1 AA in both themes
+
 ## Visual Design
 
 - Establish a clear **visual hierarchy** to guide attention.
