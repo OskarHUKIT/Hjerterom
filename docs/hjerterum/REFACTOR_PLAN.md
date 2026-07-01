@@ -29,25 +29,24 @@
 
 **Frontend:** ~119k LOC TypeScript/TSX (ekskl. node_modules).
 
-**Megasider (refactor-kritisk):**
+**Megasider (refactor-kritisk — oppdatert etter wave 1–4):**
 
-| Fil | Linjer | % av listings/nav cluster |
-|-----|--------|---------------------------|
-| `features/listings/components/ListingDetailsClient.tsx` | ~4,952 | Eier listing + nav + formidling + gallery |
-| `features/mediation/components/NavDatabasePage.tsx` | ~3,358 | Boligbank (kommune + event) |
-| `features/listings/components/LandlordManagePage.tsx` | ~2,040 | Utleier dashboard |
-| `app/nav/messages/page.tsx` | ~2,001 | Unified inbox |
+| Fil | Baseline | Nå | Endring |
+|-----|----------|-----|---------|
+| `ListingDetailsClient.tsx` | ~4,952 | ~4,782 | Query hook extractet; JSX-split gjenstår (W5) |
+| `NavDatabasePage.tsx` | ~3,358 | ~3,031 | React Query listings; timeline/filter gjenstår |
+| `LandlordManagePage.tsx` | ~2,040 | ~1,695 | Bootstrap + listings hooks + ConfirmDeleteDialog |
+| `app/nav/messages/page.tsx` | ~2,001 | **19** | ✅ Tynn re-export → `NavMessagesPage.tsx` |
 
-**Allerede godt faktored:** lane calendar (`ListingLaneCalendar`, `LandlordAvailabilityHub`), ops events, finn route shells, design-system toast.
+**Allerede godt faktored:** lane calendar, ops events, finn React Query, `usePublishedEventsQuery`, `useEventStaffAccess`, design-system toast/confirm.
 
-**Teknisk gjeld (prioritert):**
+**Teknisk gjeld (gjenstår):**
 
-- `useListingAvailability` finnes men brukes ikke
-- Event-fetch duplisert 4 steder
-- `parseKommuneRegions` duplisert i mediation
-- Chat-bubble UI kopiert 3 ganger
-- 4 gjenværende native `confirm()` (resten er toast)
-- Inkonsistent loading (`PageSkeleton` vs `LoadingPlaceholder` vs ren tekst)
+- `ListingDetailsClient` JSX persona-split (W5)
+- Chat-bubble UI kopiert 3 ganger (W4 follow-up: `chatSend` + shared composer)
+- `NavMessagesPage` (~1,951 linjer) — innhold flyttet, decomposition gjenstår
+- `translations.ts` monolith (W6)
+- Generert `database.types.ts` (P0 doc — krever lokal Supabase)
 
 ---
 
@@ -96,76 +95,65 @@ frontend/
 
 ---
 
-### Wave 1 — Foundation & quick wins (P0)
+### Wave 1 — Foundation & quick wins ✅
 
 **Mål:** Felles primitives og umiddelbar reduksjon av duplikat uten store flytt.
 
-| ID | Oppgave | Filer | Akseptanse |
-|----|---------|-------|------------|
-| 1.1 | Wire `useListingAvailability` i manage | `LandlordManagePage.tsx` | Inline CRUD fjernet |
-| 1.2 | Fjern duplikat `parseKommuneRegions` | `NavDatabasePage.tsx` | Importer fra `app/lib/kommuneRegions` |
-| 1.3 | `useConfirm` for alle native `confirm()` | 4 call sites | 0 `confirm()` i frontend |
-| 1.4 | `useDisplayNamesBatch` hook | messaging | Dedup i messages + event messages |
-| 1.5 | `useAsyncQuery` hook | `app/hooks/` | Pilot: 1 finn-side |
-| 1.6 | ESLint: `no-alert`, `no-restricted-globals` for confirm | `eslint.config` | CI feiler på nye alerts |
-
-**Estimat:** Lav risiko, ~400–800 linjer netto reduksjon.
+| ID | Oppgave | Status |
+|----|---------|--------|
+| 1.1–1.6 | Se `agents/W1-foundation.md` | ✅ |
 
 ---
 
-### Wave 2 — Megasite decomposition: listings (P0)
+### Wave 2 — Megasite decomposition: listings ✅ (delvis)
 
-**Mål:** `LandlordManagePage` og start på `ListingDetailsClient`.
-
-| ID | Oppgave | Ny struktur |
-|----|---------|-------------|
-| 2.1 | `useLandlordManageBootstrap` | pageGate, welcome, PWA, onboarding |
-| 2.2 | `useLandlordListingsQuery` | Erstatt `fetchData` med React Query |
-| 2.3 | Split manage UI | `LandlordListingCard`, `LandlordListingActionSheet`, `ConfirmDeleteDialog` |
-| 2.4 | `usePublishedEventsQuery` | Feed calendar, opt-in, task cards |
-| 2.5 | `useListingDetailsQuery` | Ekstraher 170-linje useEffect |
-| 2.6 | `ListingGallerySection` + `ListingNavStickySidebar` | Første to JSX-splits fra details |
-
-**Mål-linjetall:** Manage ~200 linjer shell; Details ~800 linjer shell etter wave 2.
+| ID | Oppgave | Status |
+|----|---------|--------|
+| 2.1 | `useLandlordManageBootstrap` | ✅ |
+| 2.2 | `useLandlordListingsQuery` | ✅ |
+| 2.3 | `ConfirmDeleteDialog`; card/sheet split | 🔶 Dialog ✅; card/sheet → W2b brief |
+| 2.4 | `usePublishedEventsQuery` | ✅ (W4) |
+| 2.5 | `useListingDetailsQuery` | ✅ |
+| 2.6 | Gallery + nav sidebar JSX splits | 🔶 W5 |
 
 ---
 
-### Wave 3 — Megasite decomposition: nav + messaging (P0)
+### Wave 3 — Megasite decomposition: nav + messaging ✅ (delvis)
 
-| ID | Oppgave | Ny struktur |
-|----|---------|-------------|
-| 3.1 | Thin route: `NavMessagesPage` | `app/nav/messages/page.tsx` → re-export |
-| 3.2 | `ChatMessageBubble` + `ChatComposer` | Delt av 3 chat-flater |
-| 3.3 | `useEventStaffAccess` | Erstatt 3 inline auth effects |
-| 3.4 | `useNavDatabaseListingsQuery` (ekte) | Flytt `fetchListings` fra megasite |
-| 3.5 | `FormidletModal` / `FormidletExtendModal` | Ekstraher fra NavDatabasePage |
-| 3.6 | `NavDatabaseTimeline` + `NavDatabaseFilters` | JSX-splits |
-
-**Mål-linjetall:** NavDatabasePage ~600 linjer shell; messages route ~15 linjer.
+| ID | Oppgave | Status |
+|----|---------|--------|
+| 3.1 | Thin route: `NavMessagesPage` | ✅ (19 linjer route) |
+| 3.2 | `ChatMessageBubble` + `ChatComposer` | 🔶 W4 follow-up |
+| 3.3 | `useEventStaffAccess` | ✅ |
+| 3.4 | `useNavDatabaseListingsQuery` | ✅ |
+| 3.5 | Formidlet modals | 🔶 Neste agent-brief |
+| 3.6 | Timeline + filters JSX | 🔶 Neste agent-brief |
 
 ---
 
-### Wave 4 — Shared data layer & gates (P1)
+### Wave 4 — Shared data layer & gates ✅ (delvis)
 
-| ID | Oppgave |
-|----|---------|
-| 4.1 | Sentral `QK` (query keys) modul |
-| 4.2 | `useAuthGate({ mode })` — landlord / kommune / chat / ops / event |
-| 4.3 | `useTermsGate(scope: 'event' \| 'tourism')` |
-| 4.4 | `chatSend.ts` — insert + notify per channel |
-| 4.5 | Invalidation bridge: manage mutations → nav database cache |
+| ID | Oppgave | Status |
+|----|---------|--------|
+| 4.1 | Sentral `QK` | ✅ utvidet (finn, events, eventStaff) |
+| 4.2 | `useAuthGate` unified | 🔶 `useEventStaffAccess` ✅; rest gjenstår |
+| 4.3 | `useTermsGate` | 🔶 W5 |
+| 4.4 | `chatSend.ts` | 🔶 W4b brief |
+| 4.5 | Invalidation bridge | 🔶 Delvis (nav database invalidate) |
+| — | `usePublishedEventsQuery` | ✅ |
+| — | Slett `useAsyncQuery`; finn → React Query | ✅ |
 
 ---
 
-### Wave 5 — Persona views & finn async (P1)
+### Wave 5 — Persona views & finn async 🔶 (neste)
 
-| ID | Oppgave |
-|----|---------|
-| 5.1 | `ListingDetailsOwnerView` / `ListingDetailsNavView` |
-| 5.2 | Flytt formidling-logikk til `features/mediation/hooks/useListingMediation` |
-| 5.3 | `useAsyncQuery` på alle finn-sider |
-| 5.4 | `PortalPageShell` — unified loading per subdomain |
-| 5.5 | Ops skeleton → wrap design-system `PageSkeleton` |
+| ID | Oppgave | Status |
+|----|---------|--------|
+| 5.1 | Persona views for listing detail | 🔶 Se `agents/W5-persona-finn.md` |
+| 5.2 | `useListingMediation` | 🔶 |
+| 5.3 | Finn async (mine, book) | 🔶 Søk ✅ |
+| 5.4 | `PortalPageShell` | 🔶 |
+| 5.5 | Ops skeleton unify | 🔶 |
 
 ---
 
@@ -199,13 +187,7 @@ flowchart LR
   REVIEW --> PR[PR per wave]
 ```
 
-**Agent-instruks (mal):**
-
-1. Les `SERVICE_FLOW.md` § relevant bane
-2. Kun endre filer i tildelt wave-ID
-3. Kjør `npm run build` i `frontend/`
-4. Oppdater modulstatus i `SERVICE_FLOW.md` §7 hvis UX endres
-5. Commit med prefix `refactor(wave-N):`
+**Agent-instruks (mal):** Se **`docs/hjerterum/agents/README.md`** — hver wave har egen brief-fil for smart-zone context windows.
 
 ---
 
