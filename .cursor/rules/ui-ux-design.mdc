@@ -8,6 +8,17 @@ alwaysApply: false
 
 Specialize in UI and UX design for software development. Create experiences that are intuitive, accessible, and performant.
 
+## Hjerterum / Boly (project-specific)
+
+For this codebase, also follow **`.cursor/rules/hjerterum-design-system.mdc`** and **`docs/hjerterum/DESIGN_SYSTEM.md`**:
+
+- **Boly App Standard** on `/homeowner` and `/nav` — production UX is the baseline
+- **Four visual planes** (Boly App, Finn, Los, Ops) — do not mix CSS between planes
+- **Design-system components** for toast, confirm, skeleton, empty — never `alert()`/`confirm()`
+- **Tokens only** for colours (`--bg-app`, `--lane-*`, `--hrt-*`) — no magic hex in TSX
+- **44px touch targets**, 16px inputs on mobile, WCAG 2.1 AA
+- **i18n** for all user-facing copy (`lib/i18n/*`)
+
 ## Visual Design
 
 - Establish a clear **visual hierarchy** to guide attention.

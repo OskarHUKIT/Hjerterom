@@ -1,0 +1,76 @@
+---
+description: Hjerterum/Boly design system — visual planes, tokens, components, Boly App Standard, lane semantics, and PR UI requirements
+globs: frontend/**/*
+alwaysApply: false
+---
+
+# Hjerterum / Boly Design System
+
+**Canonical docs:** `docs/hjerterum/DESIGN_SYSTEM.md`, `docs/hjerterum/PRD.md` §15, `docs/hjerterum/UI_UX_GOVERNANCE.md`
+
+## Boly App Standard (non-negotiable on `/homeowner` + `/nav`)
+
+Production social flows are the UX baseline. Preserve:
+- Professional dark UI via `globals.css` tokens
+- 8px spacing grid (`--space-*`)
+- DM Sans body; Fraunces only for display/hero
+- Global classes: `.button`, `.button-accent`, `.card`, `.input`, `.container`
+- Design-system: Toast, ConfirmDialog, PageSkeleton, EmptyState, Modal, FieldInput
+- **Never** `alert()` or `confirm()`
+- WCAG 2.1 AA; 44px touch targets; 16px+ inputs on mobile
+- i18n via `lib/i18n/*` — no hard-coded user-facing strings
+
+## Four visual planes — do not cross-contaminate
+
+| Plane | CSS | Theme |
+|-------|-----|-------|
+| Boly App (`/homeowner`, `/nav`) | `globals.css` + phased `hjerterum-v2.css` | Dark default + light toggle |
+| Finn (`/finn`) | `finn/finn.css` | Always light |
+| Los (`/los`) | `los/los.css` | Always light |
+| Ops (`/ops`) | `ops/ops.css` | Dark admin |
+
+Do not import Finn/Los CSS into app routes. Lane calendar colours are shared via `--lane-*` tokens and `laneCalendarStyles.ts`.
+
+## Tokens — no magic numbers
+
+- Colours: CSS variables only (`--bg-app`, `--text-main`, `--color-accent`, `--hrt-*`, `--lane-*`)
+- No inline `style={{ color: '#...' }}` for brand colours in TSX
+- Spacing: `--space-*` in CSS; avoid arbitrary pixel margins in components
+- Motion: `--transition-*`; honour `prefers-reduced-motion`
+
+## Component selection order
+
+1. `app/components/design-system/*`
+2. `app/ops/components/*` (data-dense admin patterns)
+3. `features/*/components/*`
+4. Global CSS classes
+5. New component — only if necessary; promote to design-system if used twice
+
+## Required patterns
+
+| Situation | Use |
+|-----------|-----|
+| Async page load | `PageSkeleton` or route `loading.tsx` |
+| Empty list | `EmptyState` with next action |
+| Success/error feedback | `useToast()` |
+| Destructive confirm | `useConfirm()` |
+| Mobile tables | `overflow-x: auto` wrapper + min-width |
+| Forms | `FieldInput` or `.input` + `.label` + accessible errors |
+| Skip nav | `SkipLink` on marketing/app shell |
+
+## Tailwind
+
+Preflight is **disabled**. Prefer global CSS classes + tokens. If using Tailwind, use `boly-*` mapped utilities — no arbitrary colour values.
+
+## Before finishing UI work
+
+- [ ] Correct visual plane
+- [ ] 320px viewport — no unintended horizontal scroll
+- [ ] Light + dark if touching Boly App styles
+- [ ] i18n keys for new copy
+- [ ] No alert/confirm
+- [ ] Touch targets ≥44px
+
+## Hjerterum v2 brand rollout
+
+`hjerterum-v2.css` may override accent (`--hrt-primary`) on marketing/login/shell — do not change spacing grid, typography scale, or interaction patterns without PRD update.

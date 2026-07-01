@@ -57,8 +57,12 @@ project.xcworkspace
 
 # IDE
 .cursor/*
+!.cursor/rules
 !.cursor/rules/
 !.cursor/rules/**
+!.cursor/skills
+!.cursor/skills/
+!.cursor/skills/**
 .vscode/
 .idea/
 *.swp
