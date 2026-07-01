@@ -148,9 +148,9 @@ begin
   v_kari := public._demo_seed_auth_user('kari.event@demo.ofoten.no', v_pw, 'Kari Nordgård', 'event_ansatt');
 
   -- Gjester
-  v_emma := public._demo_seed_auth_user('emma.becker@demo.ofoten.no', v_pw, 'Emma Becker', 'homeowner');
-  v_pierre := public._demo_seed_auth_user('pierre.martin@demo.ofoten.no', v_pw, 'Pierre Martin', 'homeowner');
-  v_ole := public._demo_seed_auth_user('ole.nordmann@demo.ofoten.no', v_pw, 'Ole Nordmann', 'homeowner');
+  v_emma := public._demo_seed_auth_user('emma.becker@demo.ofoten.no', v_pw, 'Emma Becker', 'leietaker');
+  v_pierre := public._demo_seed_auth_user('pierre.martin@demo.ofoten.no', v_pw, 'Pierre Martin', 'leietaker');
+  v_ole := public._demo_seed_auth_user('ole.nordmann@demo.ofoten.no', v_pw, 'Ole Nordmann', 'leietaker');
 
   -- Utleiere (bulk)
   for u in

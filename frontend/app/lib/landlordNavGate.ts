@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { parseKommuneRegions } from './kommuneRegions'
 import { isKommuneStaffRole } from './kommuneRoles'
 import { isEventStaffRole } from './eventStaffRoles'
+import { isLeietakerRole } from './guestRoles'
 
 const RT = encodeURIComponent('/homeowner/manage')
 
@@ -93,6 +94,7 @@ export async function getLandlordPostLoginHref(
   const role = profile?.role
   if (isKommuneStaffRole(role)) return '/nav/database'
   if (isEventStaffRole(role)) return '/nav/event/database'
+  if (isLeietakerRole(role)) return '/finn/mine'
 
   if (ua?.is_terminated && ua?.terminated_by_kommune) {
     return '/homeowner/kommune-terminated'

@@ -55,8 +55,6 @@ export default function FinnMineClient() {
   const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const highlightId = searchParams.get('booking')
-  const [email, setEmail] = useState('')
-  const [sending, setSending] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -176,27 +174,6 @@ export default function FinnMineClient() {
     )
   }
 
-  const sendMagicLink = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const trimmed = email.trim()
-    if (!trimmed) {
-      toast(t('finnInquiryRequired'), 'error')
-      return
-    }
-    setSending(true)
-    const redirectTo = `${window.location.origin}/auth/callback?next=/finn/mine`
-    const { error } = await supabase.auth.signInWithOtp({
-      email: trimmed,
-      options: { emailRedirectTo: redirectTo },
-    })
-    setSending(false)
-    if (error) {
-      toast(error.message, 'error')
-      return
-    }
-    toast(t('finnMagicLinkSent'), 'success')
-  }
-
   const loadCheckInGuide = async (bookingId: string) => {
     const { data } = await supabase.rpc('get_booking_check_in_guide', { p_booking_id: bookingId })
     if (typeof data === 'string' && data.trim()) {
@@ -268,23 +245,16 @@ export default function FinnMineClient() {
         <div className="finn-card" style={{ maxWidth: 480, padding: 'var(--space-6)' }}>
           <Mail size={32} style={{ color: 'var(--finn-accent)', marginBottom: 'var(--space-3)' }} aria-hidden />
           <p style={{ lineHeight: 1.6, margin: '0 0 var(--space-4)', color: 'var(--finn-text-secondary)' }}>
-            {t('finnMineMagicLinkLead')}
+            {t('finnGuestAccountRequired')}
           </p>
-          <form onSubmit={(e) => void sendMagicLink(e)} className="finn-inquiry-form" style={{ marginTop: 0 }}>
-            <label>
-              {t('finnInquiryEmail')}
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
-            <Button type="submit" variant="accent" disabled={sending}>
-              {t('finnMineMagicLinkCta')}
-            </Button>
-          </form>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <Link href="/finn/login?redirect=/finn/mine" className={buttonClassName('accent')}>
+              {t('finnMineLoginCta')}
+            </Link>
+            <Link href="/finn/login?redirect=/finn/mine&signup=1" className={buttonClassName('secondary')}>
+              {t('finnLoginCreateAccount')}
+            </Link>
+          </div>
         </div>
       ) : (
         <>
