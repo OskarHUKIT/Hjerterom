@@ -574,8 +574,46 @@ a.ds-property-card:hover {
   margin-bottom: var(--space-3);
 }
 
-@media (max-width: 768px) {
-  .finn-map-toggle {
-    display: inline-flex;
-  }
+
+/* Identity verification dialog (ruixen.ui/identity-verification-dialog → Boly tokens) */
+.ds-identity-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
+
+.ds-identity-dialog__body {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--text-body);
+}
+
+.ds-identity-dialog__bankid {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-royal-blue) 10%, transparent);
+  font-size: 0.875rem;
+  color: var(--text-body);
+}
+
+.ds-identity-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.ds-identity-dialog__auto-accept {
+  width: 100%;
+}
+
+.ds-identity-dialog__auto-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+

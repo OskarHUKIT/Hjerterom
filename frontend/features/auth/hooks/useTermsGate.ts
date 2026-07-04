@@ -1,20 +1,21 @@
 'use client'
 
 import { useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
+import { useSignTermsIdentityGate } from '@/features/auth/hooks/useSignTermsIdentityGate'
 import type { TranslationKey } from '@/lib/translations'
+import { buildSignTermsHref } from '@/features/auth/lib/signTermsNavigation'
 
 export function signTermsHref(city: string, returnTo: string): string {
-  return `/homeowner/sign-terms?city=${encodeURIComponent((city || '').trim())}&returnTo=${encodeURIComponent(returnTo)}`
+  return buildSignTermsHref({ city, returnTo })
 }
 
 /** Unified gate for landlord actions that require an active signed agreement. */
 export function useTermsGate() {
-  const router = useRouter()
   const { t } = useLanguage()
   const toast = useToast()
+  const { requestSignTerms, SignTermsIdentityDialog } = useSignTermsIdentityGate()
 
   const requireActiveAgreement = useCallback(
     (
@@ -27,11 +28,11 @@ export function useTermsGate() {
       if (!options?.silent) {
         toast(t(options?.messageKey ?? 'signAgreementToEdit'), 'error')
       }
-      router.push(signTermsHref(city, returnTo))
+      requestSignTerms(signTermsHref(city, returnTo))
       return false
     },
-    [router, t, toast]
+    [requestSignTerms, t, toast]
   )
 
-  return { requireActiveAgreement, signTermsHref }
+  return { requireActiveAgreement, signTermsHref, SignTermsIdentityDialog }
 }

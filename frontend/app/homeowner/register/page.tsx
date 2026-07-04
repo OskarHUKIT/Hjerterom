@@ -42,6 +42,8 @@ import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 import PageSkeleton from '../../components/design-system/PageSkeleton'
 import { Stepper, FileUploadZone } from '@/app/components/design-system'
+import { useSignTermsIdentityGate } from '@/features/auth/hooks/useSignTermsIdentityGate'
+import { buildSignTermsHref } from '@/features/auth/lib/signTermsNavigation'
 import { Button } from '@/app/components/ui/Button'
 import './register.css'
 
@@ -49,6 +51,7 @@ export default function HomeownerRegister() {
   const { t } = useLanguage()
   const toast = useToast()
   const router = useRouter()
+  const { requestSignTerms, SignTermsIdentityDialog } = useSignTermsIdentityGate()
   const [loading, setLoading] = useState(false)
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
@@ -391,8 +394,11 @@ export default function HomeownerRegister() {
           if (termsErr) throw termsErr
           if (!termsOk) {
             toast(t('termsMissingForRegion'), 'error')
-            router.push(
-              `/homeowner/sign-terms?city=${encodeURIComponent(formData.city?.trim() || '')}&returnTo=${encodeURIComponent('/homeowner/register')}`
+            requestSignTerms(
+              buildSignTermsHref({
+                city: formData.city?.trim() || '',
+                returnTo: '/homeowner/register',
+              })
             )
             setLoading(false)
             return
@@ -455,9 +461,13 @@ export default function HomeownerRegister() {
 
       if (isFirstListing && !agreementRow && socialActive) {
         savePendingFirstListingDraft(listingRow as unknown as Record<string, unknown>)
-        const cityQ = encodeURIComponent(formData.city?.trim() || '')
-        const returnTo = encodeURIComponent('/homeowner/register')
-        router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}&pendingListing=1`)
+        requestSignTerms(
+          buildSignTermsHref({
+            city: formData.city?.trim() || '',
+            returnTo: '/homeowner/register',
+            pendingListing: true,
+          })
+        )
         setLoading(false)
         return
       }
@@ -555,10 +565,13 @@ export default function HomeownerRegister() {
         .eq('is_terminated', false)
         .maybeSingle()
 
-      const cityQ = encodeURIComponent(formData.city?.trim() || '')
-      const returnTo = encodeURIComponent('/homeowner/manage')
       if (!agreementAfter && socialActive) {
-        router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}`)
+        requestSignTerms(
+          buildSignTermsHref({
+            city: formData.city?.trim() || '',
+            returnTo: '/homeowner/manage',
+          })
+        )
         return
       }
 
@@ -1234,6 +1247,7 @@ export default function HomeownerRegister() {
           </div>
         </div>
       </form>
+      <SignTermsIdentityDialog />
     </main>
   )
 }

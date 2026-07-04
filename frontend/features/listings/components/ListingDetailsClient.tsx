@@ -133,7 +133,7 @@ export default function ListingDetailsClient() {
   const { t } = useLanguage()
   const toast = useToast()
   const confirmDialog = useConfirm()
-  const { requireActiveAgreement } = useTermsGate()
+  const { requireActiveAgreement, SignTermsIdentityDialog } = useTermsGate()
   const viewMode = searchParams.get('view') // 'nav' eller 'owner'
   const isNavView = viewMode === 'nav'
 
@@ -279,6 +279,7 @@ export default function ListingDetailsClient() {
     confirmDialog,
     toast,
     t,
+    requireActiveAgreement,
   })
 
   const notFoundHref = isNavView ? '/nav/database' : currentUser ? '/homeowner/manage' : '/'
@@ -322,6 +323,7 @@ export default function ListingDetailsClient() {
   if (!listing) return null
 
   return (
+    <>
     <main className="container listing-details-main">
       {pendingDeletePeriod && (
         <div
@@ -580,5 +582,7 @@ export default function ListingDetailsClient() {
           />
 
     </main>
+    <SignTermsIdentityDialog />
+    </>
   )
 }

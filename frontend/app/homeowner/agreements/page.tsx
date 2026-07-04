@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { FileText, ShieldCheck } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { PageSkeleton } from '@/app/components/design-system'
-import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
+import SignTermsLink from '@/app/components/design-system/SignTermsLink'
+import { buildSignTermsHref } from '@/features/auth/lib/signTermsNavigation'
 
 type AgreementRow = {
   id: string
@@ -111,8 +111,8 @@ export default function LandlordAgreementsPage() {
                   </span>
                 </div>
                 {!row.signed ? (
-                  <Link
-                    href={`/homeowner/sign-terms?doc=${row.id}`}
+                  <SignTermsLink
+                    href={buildSignTermsHref({ doc: row.id })}
                     className="button button-accent"
                     style={{
                       marginTop: 12,
@@ -124,7 +124,7 @@ export default function LandlordAgreementsPage() {
                   >
                     <FileText size={18} aria-hidden />
                     {t('agreementSignCta')}
-                  </Link>
+                  </SignTermsLink>
                 ) : null}
               </li>
             )

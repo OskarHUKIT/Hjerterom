@@ -842,35 +842,6 @@ function SignTermsContent() {
             {loading ? <Lock size={20} style={{ opacity: 0.7 }} /> : <ShieldCheck size={20} />}
             {loading ? 'Signerer med BankID...' : 'Signer med BankID'}
           </button>
-
-          {isBankIdAutoAcceptEnabled() ? (
-            <button
-              type="button"
-              onClick={() => void handleAutoAccept()}
-              disabled={!canProceedToSign || loading}
-              className="button button-secondary"
-              style={{
-                width: '100%',
-                marginTop: 'var(--space-3)',
-                padding: 'var(--space-4)',
-                fontSize: '0.95rem',
-              }}
-            >
-              {t('signTermsAutoAccept')}
-            </button>
-          ) : null}
-          {isBankIdAutoAcceptEnabled() ? (
-            <p
-              style={{
-                marginTop: 'var(--space-2)',
-                fontSize: '0.8rem',
-                color: 'var(--text-muted)',
-                textAlign: 'center',
-              }}
-            >
-              {t('signTermsAutoAcceptHint')}
-            </p>
-          ) : null}
         </div>
 
         <div
@@ -894,10 +865,20 @@ function SignTermsContent() {
           setIdentityDialogOpen(false)
           void handleSign()
         }}
-        title={t('signTermsIdentityDialogTitle')}
-        body={t('signTermsIdentityDialogBody')}
-        confirmLabel={t('signTermsIdentityDialogConfirm')}
-        cancelLabel={t('signTermsIdentityDialogCancel')}
+        onAutoAccept={
+          isBankIdAutoAcceptEnabled() && canProceedToSign
+            ? () => {
+                setIdentityDialogOpen(false)
+                void handleAutoAccept()
+              }
+            : undefined
+        }
+        autoAcceptLabel={t('signTermsAutoAccept')}
+        autoAcceptHint={t('signTermsAutoAcceptHint')}
+        title={t('identityDialogTitle')}
+        body={t('identityDialogBody')}
+        confirmLabel={t('identityDialogContinue')}
+        cancelLabel={t('cancel')}
         busy={loading}
       />
     </main>
