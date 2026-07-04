@@ -6,6 +6,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import { supabase } from '@/app/lib/supabase'
 import { Button } from '@/app/components/ui/Button'
 import { useToast } from '@/app/components/design-system'
+import '@/features/listings/landlord-manage.css'
 
 type CoHostRow = {
   id: string
@@ -62,43 +63,31 @@ export default function ListingCoHostsPanel({ listingId }: Props) {
   }
 
   return (
-    <section className="card" style={{ marginTop: 'var(--space-4)', padding: 'var(--space-4)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+    <section className="card listing-subpanel">
+      <div className="listing-subpanel-head">
         <Users size={20} aria-hidden />
-        <h3 style={{ margin: 0 }}>{t('cohostTitle')}</h3>
+        <h3>{t('cohostTitle')}</h3>
       </div>
-      <p className="text-sm" style={{ color: 'var(--text-muted)', margin: '0 0 var(--space-3)' }}>
-        {t('cohostLead')}
-      </p>
+      <p className="text-sm listing-subpanel-lead">{t('cohostLead')}</p>
       {rows.length > 0 ? (
-        <ul style={{ margin: '0 0 var(--space-3)', padding: 0, listStyle: 'none' }}>
+        <ul className="listing-subpanel-list listing-subpanel-list--flat">
           {rows.map((r) => (
-            <li
-              key={r.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '8px 0',
-                borderBottom: '1px solid var(--border-subtle)',
-              }}
-            >
+            <li key={r.id} className="listing-subpanel-list-item listing-subpanel-list-item--compact">
               <span>{r.display_name?.trim() || r.email || r.cohost_user_id.slice(0, 8)}</span>
-              <button type="button" onClick={() => void remove(r.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <button type="button" onClick={() => void remove(r.id)} className="listing-remove-btn">
                 {t('delete')}
               </button>
             </li>
           ))}
         </ul>
       ) : null}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="listing-inline-form">
         <input
           className="input"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder={t('cohostEmailPlaceholder')}
-          style={{ flex: 1, minWidth: 200, marginBottom: 0 }}
         />
         <Button type="button" variant="secondary" disabled={busy} onClick={() => void addCoHost()}>
           {t('cohostAdd')}

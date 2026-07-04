@@ -2480,6 +2480,37 @@ body {
   font-size: 1.05rem;
 }
 
+.ds-tourism-lead {
+  color: var(--text-muted);
+  margin: 0 0 var(--space-4);
+}
+
+.ds-tourism-terms-note {
+  margin: 0 0 var(--space-4);
+  line-height: 1.5;
+}
+
+.ds-field-block {
+  margin-top: var(--space-4);
+}
+
+.ds-check-row--spaced {
+  margin-top: var(--space-3);
+}
+
+.ds-tourism-hint {
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+.ds-form-footer {
+  margin-top: var(--space-4);
+}
+
+.ds-tourism-terms-link {
+  font-weight: 600;
+}
+
 body.mobile-bottom-nav-active .ds-toast-region {
   bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
@@ -2699,6 +2730,8 @@ body.mobile-bottom-nav-active .ds-toast-region {
   padding: 4px 2px;
   color: var(--text-main);
   transition: transform 0.12s var(--ease-out-soft), box-shadow 0.12s;
+  background: var(--lane-cell-bg, transparent);
+  box-shadow: var(--lane-cell-shadow, none);
 }
 
 .lane-calendar-cell--pad {
@@ -2862,6 +2895,7 @@ body.mobile-bottom-nav-active .ds-toast-region {
   height: 20px;
   border-radius: 6px;
   flex-shrink: 0;
+  background: var(--swatch-bg, var(--border-subtle));
 }
 
 .lane-calendar-apply-actions {
@@ -3338,6 +3372,7 @@ body.mobile-bottom-nav-active .ds-toast-region {
   font-weight: 600;
   cursor: pointer;
   color: var(--text-main);
+  background: var(--shared-cell-bg, transparent);
 }
 
 .shared-avail-cell--pad {

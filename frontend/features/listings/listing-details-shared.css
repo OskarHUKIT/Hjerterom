@@ -13,6 +13,10 @@
   padding: var(--space-4);
 }
 
+.listing-expired-banner--spaced {
+  margin-bottom: var(--space-6);
+}
+
 .listing-details-back-link {
   display: inline-flex;
   align-items: center;
@@ -122,6 +126,13 @@
   margin: 0 auto;
 }
 
+.listing-state-panel--centered {
+  text-align: center;
+  padding: var(--space-10);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
 .listing-state-title {
   color: var(--text-main);
 }
@@ -149,6 +160,13 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.listing-download-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
 }
 
 .listing-expired-banner p {
@@ -190,6 +208,14 @@
   border-radius: var(--hrt-radius-lg, 20px);
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
+}
+
+.listing-chunk-placeholder[data-min-height='96'] {
+  min-height: 96px;
+}
+
+.listing-chunk-placeholder[data-min-height='140'] {
+  min-height: 140px;
 }
 
 .listing-image-gallery {

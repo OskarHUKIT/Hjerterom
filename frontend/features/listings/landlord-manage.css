@@ -544,3 +544,161 @@
   color: white;
   border: none;
 }
+
+/* Listing sub-panels (cohost, events, tasks) */
+.listing-subpanel {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+}
+
+.listing-subpanel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.listing-subpanel-head h3,
+.listing-subpanel-head h4 {
+  margin: 0;
+}
+
+.listing-subpanel-lead {
+  color: var(--text-muted);
+  margin: 0 0 var(--space-3);
+}
+
+.listing-subpanel-lead--empty {
+  margin: 0;
+}
+
+.listing-subpanel-list {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.listing-subpanel-list--flat {
+  gap: 0;
+}
+
+.listing-subpanel-list-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.listing-subpanel-list-item--compact {
+  padding: 8px 0;
+}
+
+.listing-subpanel-row-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.listing-subpanel-row-meta {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.listing-subpanel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.listing-text-link {
+  font-weight: 600;
+}
+
+.listing-remove-btn {
+  color: #ef4444;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.listing-inline-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.listing-inline-form .input {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 0;
+}
+
+.hm-event-tasks {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.hm-event-task-card {
+  padding: var(--space-5);
+}
+
+.hm-event-task-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.hm-event-task-icon {
+  color: var(--color-royal-blue);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.hm-event-task-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.hm-event-task-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.hm-event-task-desc {
+  margin: 6px 0 12px;
+  font-size: 0.9rem;
+  color: var(--text-body);
+  line-height: 1.5;
+}
+
+.hm-event-task-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hm-event-task-link {
+  text-decoration: none;
+}
+
+.hm-banner-spaced {
+  margin-bottom: var(--space-4);
+}
+
+.hm-banner-body {
+  margin: var(--space-2) 0 var(--space-3);
+  line-height: 1.55;
+}
+
+.hm-banner-cta {
+  text-decoration: none;
+}

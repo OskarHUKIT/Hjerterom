@@ -133,16 +133,13 @@ export default function ListingTourismSettings({
         <Compass size={22} aria-hidden />
         <h3 id={`tourism-${listingId}`}>{t('tourismSettingsTitle')}</h3>
       </div>
-      <p className="text-sm" style={{ color: 'var(--text-muted)', margin: '0 0 var(--space-4)' }}>
-        {t('tourismEnabledDesc')}
-      </p>
+      <p className="text-sm ds-tourism-lead">{t('tourismEnabledDesc')}</p>
       {!tourismTermsSigned && tourismTermsDocId ? (
-        <p className="text-sm" style={{ margin: '0 0 var(--space-4)', lineHeight: 1.5 }}>
+        <p className="text-sm ds-tourism-terms-note">
           {t('tourismTermsRequired')}{' '}
           <Link
             href={`/homeowner/sign-terms?doc=${tourismTermsDocId}&returnTo=${encodeURIComponent(`/homeowner/manage?listing=${listingId}&panel=tourism`)}`}
-            className="nav-link"
-            style={{ fontWeight: 600 }}
+            className="nav-link ds-tourism-terms-link"
           >
             {t('eventOptInSignTermsCta')}
           </Link>
@@ -158,7 +155,7 @@ export default function ListingTourismSettings({
       </label>
       {enabled ? (
         <>
-          <div style={{ marginTop: 'var(--space-4)' }}>
+          <div className="ds-field-block">
             <label className="label" htmlFor={`tourism-price-${listingId}`}>
               {t('tourismNightlyPrice')}
             </label>
@@ -173,7 +170,7 @@ export default function ListingTourismSettings({
               placeholder="850"
             />
           </div>
-          <label className="ds-check-row" style={{ marginTop: 'var(--space-3)' }}>
+          <label className="ds-check-row ds-check-row--spaced">
             <input
               type="checkbox"
               checked={instantBook}
@@ -181,10 +178,8 @@ export default function ListingTourismSettings({
             />
             <span>{t('tourismInstantBook')}</span>
           </label>
-          <p className="text-sm" style={{ color: 'var(--text-muted)', margin: '4px 0 0' }}>
-            {t('tourismInstantBookDesc')}
-          </p>
-          <div style={{ marginTop: 'var(--space-4)' }}>
+          <p className="text-sm ds-tourism-hint">{t('tourismInstantBookDesc')}</p>
+          <div className="ds-field-block">
             <label className="label" htmlFor={`tourism-cancel-${listingId}`}>
               {t('tourismCancellationPolicy')}
             </label>
@@ -199,7 +194,7 @@ export default function ListingTourismSettings({
               <option value="strict">{t('finnCancellation_strict')}</option>
             </select>
           </div>
-          <div style={{ marginTop: 'var(--space-4)' }}>
+          <div className="ds-field-block">
             <label className="label" htmlFor={`tourism-checkin-${listingId}`}>
               {t('checkInGuideTitle')}
             </label>
@@ -214,7 +209,7 @@ export default function ListingTourismSettings({
           </div>
         </>
       ) : null}
-      <div style={{ marginTop: 'var(--space-4)' }}>
+      <div className="ds-form-footer">
         <Button type="button" variant="accent" disabled={saving} onClick={() => void save()}>
           {saving ? t('loadingPleaseWait') : t('saveTourismSettings')}
         </Button>

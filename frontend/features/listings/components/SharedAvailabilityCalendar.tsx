@@ -231,7 +231,7 @@ export default function SharedAvailabilityCalendar({
                 ]
                   .filter(Boolean)
                   .join(' ')}
-                style={{ background: cellBackground(cell, paintStatus) }}
+                style={{ '--shared-cell-bg': cellBackground(cell, paintStatus) } as React.CSSProperties}
                 title={hint}
                 aria-label={`${cell.iso}, ${hint}`}
                 aria-selected={cell.inSelection}

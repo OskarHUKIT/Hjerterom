@@ -92,7 +92,7 @@ function DeferredChunkPlaceholder({ minHeight }: { minHeight: number }) {
       role="status"
       aria-busy="true"
       className="listing-chunk-placeholder"
-      style={{ minHeight }}
+      data-min-height={String(minHeight)}
     />
   )
 }
@@ -288,10 +288,10 @@ export default function ListingDetailsClient() {
     if (!listing) {
       if (isNavView && currentUser) {
         return { error: (
-          <div style={{ textAlign: 'center', padding: 'var(--space-10)', maxWidth: '480px', margin: '0 auto' }}>
-            <h2 style={{ color: 'var(--text-main)', marginBottom: 'var(--space-3)' }}>{t('noAccessThisListing')}</h2>
-            <p style={{ color: 'var(--text-body)', marginBottom: 'var(--space-6)' }}>{t('listingNavEmptyListingBody')}</p>
-            <Link href={notFoundHref} className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <div className="listing-state-panel listing-state-panel--centered">
+            <h2 className="listing-state-title listing-state-title--spaced">{t('noAccessThisListing')}</h2>
+            <p className="listing-state-body listing-state-body--spaced">{t('listingNavEmptyListingBody')}</p>
+            <Link href={notFoundHref} className="button listing-state-back-link">
               <ArrowLeft size={18} /> {notFoundLabel}
             </Link>
           </div>
@@ -376,7 +376,7 @@ export default function ListingDetailsClient() {
       </div>
 
       {isNavView && ownerAgreementTerminated && (
-        <div className="card hrt-callout hrt-callout--warning listing-expired-banner" style={{ marginBottom: 'var(--space-6)' }}>
+        <div className="card hrt-callout hrt-callout--warning listing-expired-banner listing-expired-banner--spaced">
           <p>{t('expiredOwnerNoMediationNav')}</p>
         </div>
       )}
@@ -478,13 +478,7 @@ export default function ListingDetailsClient() {
               download
               target="_blank"
               rel="noopener noreferrer"
-              className="button listing-full-width-mobile-cta"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                textDecoration: 'none',
-              }}
+              className="button listing-full-width-mobile-cta listing-download-cta"
             >
               <FileText size={18} /> {t('downloadContactInfoPdf')}
             </a>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { isKommuneSocialActiveForCity } from '@/app/lib/kommuneSocialSubscription'
+import '@/features/listings/landlord-manage.css'
 
 type LandlordNonSubscribedBannerProps = {
   city?: string | null
@@ -36,15 +37,12 @@ export default function LandlordNonSubscribedBanner({ city }: LandlordNonSubscri
 
   return (
     <div
-      className="card hrt-callout hrt-callout--accent"
+      className="card hrt-callout hrt-callout--accent hm-banner-spaced"
       role="status"
-      style={{ marginBottom: 'var(--space-4)' }}
     >
       <strong>{t('landlordNonSubscribedTitle')}</strong>
-      <p style={{ margin: 'var(--space-2) 0 var(--space-3)', lineHeight: 1.55 }}>
-        {t('landlordNonSubscribedBody')}
-      </p>
-      <Link href="/homeowner/agreements" className="button button-accent" style={{ textDecoration: 'none' }}>
+      <p className="hm-banner-body">{t('landlordNonSubscribedBody')}</p>
+      <Link href="/homeowner/agreements" className="button button-accent hm-banner-cta">
         {t('landlordNonSubscribedTourismCta')}
       </Link>
     </div>
