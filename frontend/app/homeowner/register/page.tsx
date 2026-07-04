@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   Phone,
   User,
+  CalendarDays,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
@@ -43,12 +44,16 @@ import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 import PageSkeleton from '../../components/design-system/PageSkeleton'
 import { Stepper, FileUploadZone } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
+import SharedAvailabilityCalendar from '@/features/listings/components/SharedAvailabilityCalendar'
+import { usePlatformMode } from '@/context/PlatformModeContext'
+import { Compass } from 'lucide-react'
 import './register.css'
 
 export default function HomeownerRegister() {
   const { t } = useLanguage()
   const toast = useToast()
   const router = useRouter()
+  const { flags: platformFlags } = usePlatformMode()
   const [loading, setLoading] = useState(false)
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
@@ -57,6 +62,14 @@ export default function HomeownerRegister() {
   const [backHref, setBackHref] = useState('/')
   const [socialKommuneActive, setSocialKommuneActive] = useState<boolean | null>(null)
   const [registerStep, setRegisterStep] = useState(0)
+  const [draftPeriods, setDraftPeriods] = useState<
+    { start: string; end: string; status: 'Tilgjengelig' | 'Utilgjengelig' }[]
+  >([])
+  const [availPaintStatus, setAvailPaintStatus] = useState<'Tilgjengelig' | 'Utilgjengelig'>(
+    'Tilgjengelig'
+  )
+  const [availSelStart, setAvailSelStart] = useState<string | null>(null)
+  const [availSelEnd, setAvailSelEnd] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     owner_name: '',
@@ -87,6 +100,7 @@ export default function HomeownerRegister() {
     longitude: null as number | null,
     has_insurance: false,
     payment_method: 'faktura' as 'faktura' | 'konto',
+    tourism_enabled: false,
   })
   const formRef = useRef(formData)
   formRef.current = formData
@@ -428,9 +442,10 @@ export default function HomeownerRegister() {
           : null
       const floorNumber = formData.floor_detail?.length ? formData.floor_detail.join(', ') : ''
 
-      const { has_insurance: _skip, ...listingFields } = formData
+      const { has_insurance: _skip, tourism_enabled, ...listingFields } = formData
       const listingRow = {
         ...listingFields,
+        tourism_enabled: Boolean(tourism_enabled),
         deposit_guarantee: longTermOn ? formData.deposit_guarantee : [],
         floor_number: floorNumber,
         image_url: imageUrls[0] ?? null,
@@ -505,6 +520,20 @@ export default function HomeownerRegister() {
         }
       }
 
+      if (draftPeriods.length > 0) {
+        const rows = draftPeriods.map((p) => ({
+          listing_id: listingId,
+          start_date: p.start,
+          end_date: p.end,
+          status: p.status,
+          lane: 'shared',
+        }))
+        const { error: availErr } = await supabase.from('listing_availability').insert(rows)
+        if (availErr) {
+          logError('register draft availability', availErr)
+        }
+      }
+
       // Logg handling inkl. viktige bekreftelser (forsikring akseptert ved publisering)
       await supabase.from('audit_logs').insert([
         {
@@ -562,7 +591,7 @@ export default function HomeownerRegister() {
         return
       }
 
-      router.push('/homeowner/manage')
+      router.push(`/homeowner/listings/${listingId}`)
     } catch (err: any) {
       const message =
         err?.message ??
@@ -595,10 +624,10 @@ export default function HomeownerRegister() {
         <Stepper
           currentStep={registerStep}
           steps={[
-            { id: 'contact', label: t('regStepContact') },
-            { id: 'details', label: t('regStepDetails') },
-            { id: 'price', label: t('regStepPrice') },
-            { id: 'photos', label: t('regStepPhotos') },
+            { id: 'bolig', label: t('regStepBolig') },
+            { id: 'lanes', label: t('regStepLanes') },
+            { id: 'availability', label: t('regStepAvailability') },
+            { id: 'agreements', label: t('regStepAgreements') },
           ]}
         />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
@@ -806,7 +835,7 @@ export default function HomeownerRegister() {
             </section>
 
             {/* Section 2: Boligdetaljer */}
-            <section className="form-section" hidden={registerStep !== 1}>
+            <section className="form-section" hidden={registerStep !== 0}>
               <h3 className="form-section-heading">
                 <Building size={20} /> {t('regDetailsSection')}
               </h3>
@@ -980,7 +1009,7 @@ export default function HomeownerRegister() {
           </div>
 
           <div className="register-form-sidebar">
-            <section className="form-section" hidden={registerStep !== 2}>
+            <section className="form-section" hidden={registerStep !== 0}>
               <h3 className="form-section-heading">
                 <Tag size={20} /> {t('regPriceSection')}
               </h3>
@@ -1129,7 +1158,7 @@ export default function HomeownerRegister() {
             </section>
 
             {/* Section 4: Bilder & Annet */}
-            <section className="form-section" hidden={registerStep !== 3}>
+            <section className="form-section" hidden={registerStep !== 0}>
               <h3 className="form-section-heading">
                 <Camera size={20} /> {t('regImagesSection')}
               </h3>
@@ -1205,10 +1234,72 @@ export default function HomeownerRegister() {
                 />
               </div>
             </section>
+
+            <section className="form-section" hidden={registerStep !== 1}>
+              <h3 className="form-section-heading">
+                <Compass size={20} /> {t('regLanesSection')}
+              </h3>
+              {socialKommuneActive !== false ? (
+                <p className="text-sm register-lanes-hint">{t('regLanesSocialHint')}</p>
+              ) : null}
+              {platformFlags.tourism ? (
+                <div className="register-lanes-tourism card">
+                  <p className="text-sm">{t('regLanesTourismHint')}</p>
+                  <label className="register-lanes-toggle">
+                    <input
+                      type="checkbox"
+                      checked={formData.tourism_enabled}
+                      onChange={(e) =>
+                        setFormData({ ...formData, tourism_enabled: e.target.checked })
+                      }
+                    />
+                    {t('regLanesTourismEnable')}
+                  </label>
+                </div>
+              ) : null}
+            </section>
+
+            <section className="form-section" hidden={registerStep !== 2}>
+              <h3 className="form-section-heading">
+                <CalendarDays size={20} /> {t('regAvailabilitySection')}
+              </h3>
+              <p className="text-sm register-availability-lead">{t('regAvailabilityLead')}</p>
+              <SharedAvailabilityCalendar
+                periods={draftPeriods.map((p, i) => ({
+                  id: String(i),
+                  start_date: p.start,
+                  end_date: p.end,
+                  status: p.status,
+                  lane: 'shared',
+                }))}
+                eventOptIns={[]}
+                paintStatus={availPaintStatus}
+                onPaintStatusChange={setAvailPaintStatus}
+                selectionStart={availSelStart}
+                selectionEnd={availSelEnd}
+                onSelectionChange={(s, e) => {
+                  setAvailSelStart(s)
+                  setAvailSelEnd(e)
+                }}
+                onApply={(start, end, status) => {
+                  setDraftPeriods((prev) => [...prev, { start, end, status }])
+                  setAvailSelStart(null)
+                  setAvailSelEnd(null)
+                  toast(t('sharedCalendarSaved'), 'success')
+                }}
+              />
+            </section>
+
+            <section className="form-section" hidden={registerStep !== 3}>
+              <h3 className="form-section-heading">
+                <ShieldCheck size={20} /> {t('regAgreementsSection')}
+              </h3>
+              <p className="text-sm">{t('regAgreementsLead')}</p>
+            </section>
           </div>
         </div>
 
-        <div className="register-form-footer">
+        <div className="register-form-footer" hidden={registerStep !== 3}>
           <label className="register-insurance-label">
             <input
               type="checkbox"

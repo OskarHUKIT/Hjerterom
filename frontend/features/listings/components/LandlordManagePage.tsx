@@ -22,15 +22,11 @@ import {
 } from '@/app/components/PWAInstallPrompt'
 import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
-import { EmptyState, useToast } from '@/app/components/design-system'
+import { EmptyState } from '@/app/components/design-system'
 import EventTaskCards from '@/features/listings/components/EventTaskCards'
-import { useListingEventCalendarData } from '@/features/listings/hooks/useListingEventCalendarData'
 import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
 import LandlordStripeConnect from '@/features/bookings/components/LandlordStripeConnect'
-import { useListingAvailability } from '@/features/listings/hooks/useListingAvailability'
-import type { ListingEventOptInPeriod } from '@/features/listings/types/lanes'
 import { buttonClassName } from '@/app/components/ui/Button'
-import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import { shouldShowManageFullScreenSpinner } from '@/features/listings/lib/landlordManagePageGate'
 import { useLandlordManageBootstrap } from '@/features/listings/hooks/useLandlordManageBootstrap'
@@ -38,20 +34,16 @@ import {
   useLandlordListingsQuery,
   type ListingsOnboardingCallbacks,
 } from '@/features/listings/hooks/useLandlordListingsQuery'
-import ConfirmDeleteDialog from '@/features/listings/components/ConfirmDeleteDialog'
 import LandlordManageFilters, {
   type ManageListingFilter,
 } from '@/features/listings/components/manage/LandlordManageFilters'
-import LandlordListingCard, {
-  type ManagePanel,
-} from '@/features/listings/components/manage/LandlordListingCard'
-import LandlordListingActionSheet from '@/features/listings/components/manage/LandlordListingActionSheet'
+import LandlordListingCard from '@/features/listings/components/manage/LandlordListingCard'
 import LandlordNonSubscribedBanner from '@/features/listings/components/LandlordNonSubscribedBanner'
+import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import '@/features/listings/landlord-manage.css'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
-  const toast = useToast()
   const { flags: platformFlags } = usePlatformMode()
   const router = useRouter()
   const [showOverviewIntro, setShowOverviewIntro] = useState(false)
@@ -59,11 +51,8 @@ export default function HomeownerManage() {
   const onboardingRef = useRef<ListingsOnboardingCallbacks | null>(null)
   const {
     myListings,
-    setMyListings,
     availability,
-    setAvailability,
     eventOptInsByListing,
-    setEventOptInsByListing,
     loading,
     setLoading,
     fetchError,
@@ -93,29 +82,8 @@ export default function HomeownerManage() {
     setShowMineBoligerIntro,
   }
   const [filter, setFilter] = useState<ManageListingFilter>('Alle')
-  const [openPanel, setOpenPanel] = useState<{ listingId: string; panel: ManagePanel } | null>(
-    null
-  )
-  const [pendingDeletePeriod, setPendingDeletePeriod] = useState<{
-    id: string
-    listingId: string
-  } | null>(null)
-  const [pendingDeleteListing, setPendingDeleteListing] = useState<{
-    id: string
-    address: string
-  } | null>(null)
-  const availabilityErrorContextRef = useRef<'add' | 'delete'>('add')
   const filtersRowRef = useRef<HTMLDivElement>(null)
-  const listingPanelRef = useRef<HTMLDivElement>(null)
   const [isMobileLayout, setIsMobileLayout] = useState(false)
-  const [actionSheetListingId, setActionSheetListingId] = useState<string | null>(null)
-
-  const calendarListingId = openPanel?.panel === 'calendar' ? openPanel.listingId : null
-  const {
-    activeOptIns: eventCalendarOptIns,
-    allPublished: allPublishedEvents,
-    refresh: refreshEventCalendar,
-  } = useListingEventCalendarData(calendarListingId)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -132,35 +100,6 @@ export default function HomeownerManage() {
       filtersRowRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     })
   }, [])
-
-  const scrollListingPanelIntoView = useCallback(() => {
-    requestAnimationFrame(() => {
-      listingPanelRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-    })
-  }, [])
-
-  const openListingPanel = useCallback(
-    (listingId: string, panel: ManagePanel) => {
-      setOpenPanel({ listingId, panel })
-      scrollListingPanelIntoView()
-    },
-    [scrollListingPanelIntoView]
-  )
-
-  const openPeriodCalendar = (listingId: string, _status: 'Tilgjengelig' | 'Utilgjengelig') => {
-    openListingPanel(listingId, 'calendar')
-  }
-
-  const { addPeriod, deletePeriod } = useListingAvailability(availability, setAvailability, {
-    onConflict: () => toast(t('availabilityConflict'), 'error'),
-    onError: (message) => {
-      if (availabilityErrorContextRef.current === 'delete') {
-        toast(t('errDeletePeriod') + message, 'error')
-      } else {
-        toast('Feil ved lagring av periode: ' + message, 'error')
-      }
-    },
-  })
 
   const dismissOverviewIntro = async () => {
     const user = await getAuthUserDeduped()
@@ -187,130 +126,6 @@ export default function HomeownerManage() {
     setShowMineBoligerIntro(false)
   }
 
-  useEffect(() => {
-    if (typeof window === 'undefined' || myListings.length === 0) return
-    const params = new URLSearchParams(window.location.search)
-    const listingId = params.get('listing')?.trim() || ''
-    const panelRaw = params.get('panel')?.trim() || ''
-    const panel = (panelRaw === 'periods' ? 'calendar' : panelRaw) as ManagePanel | ''
-    if (!listingId || !panel || !['calendar', 'events', 'tourism'].includes(panel)) return
-    if (!myListings.some((l) => l.id === listingId)) return
-    setOpenPanel({ listingId, panel })
-    scrollListingPanelIntoView()
-  }, [myListings, scrollListingPanelIntoView])
-
-  const refreshListingEventOptIns = useCallback(
-    async (listingId: string) => {
-      if (!platformFlags.centralEvents) return
-      const [{ data: published }, { data: optIns }] = await Promise.all([
-        supabase
-          .from('central_events')
-          .select('id, name, start_date, end_date')
-          .eq('status', 'published'),
-        supabase
-          .from('listing_event_availability')
-          .select('listing_id, event_id, status')
-          .eq('listing_id', listingId)
-          .eq('status', 'active'),
-      ])
-      const eventMeta = new Map((published ?? []).map((e) => [e.id, e]))
-      const rows: ListingEventOptInPeriod[] = []
-      ;(optIns ?? []).forEach((row) => {
-        const meta = eventMeta.get(row.event_id)
-        if (!meta) return
-        rows.push({
-          event_id: row.event_id,
-          event_name: meta.name,
-          start_date: meta.start_date,
-          end_date: meta.end_date,
-          status: 'active',
-        })
-      })
-      setEventOptInsByListing((prev) => ({ ...prev, [listingId]: rows }))
-    },
-    [platformFlags.centralEvents, setEventOptInsByListing]
-  )
-
-  const executeDeleteListing = async () => {
-    if (!pendingDeleteListing) return
-    const { id, address } = pendingDeleteListing
-    const listingRow = myListings.find((l) => l.id === id)
-    if (listingRow && listingAvailabilityStatusToday(listingRow.id, availability) === 'Formidla') {
-      toast(t('ownerCannotEditListingWhenFormidlet'), 'error')
-      setPendingDeleteListing(null)
-      return
-    }
-
-    const prevListings = myListings
-    setMyListings((prev) => prev.filter((item) => item.id !== id))
-
-    try {
-      const { error } = await supabase.from('listings').delete().eq('id', id)
-
-      if (error) throw error
-
-      const user = await getAuthUserDeduped()
-      await supabase.from('audit_logs').insert([
-        {
-          user_id: user?.id,
-          action_type: 'DELETE_LISTING',
-          listing_address: address,
-          details: { address },
-        },
-      ])
-
-      setAvailability((prev) => {
-        const next = { ...prev }
-        delete next[id]
-        return next
-      })
-      setPendingDeleteListing(null)
-    } catch (err: any) {
-      setMyListings(prevListings)
-      toast(t('errDeleteGeneric') + err.message, 'error')
-    }
-  }
-
-  const addAvailability = async (
-    listingId: string,
-    startDate: string,
-    endDate: string,
-    status: string = 'Tilgjengelig'
-  ) => {
-    availabilityErrorContextRef.current = 'add'
-    const result = await addPeriod({
-      listingId,
-      start: startDate,
-      end: endDate,
-      status: status as 'Tilgjengelig' | 'Utilgjengelig' | 'Formidla',
-    })
-    if (!result.ok) return
-
-    if (status === 'Tilgjengelig' || status === 'Utilgjengelig') {
-      await supabase
-        .from('listings')
-        .update({ status, is_available: status === 'Tilgjengelig' })
-        .eq('id', listingId)
-      setMyListings((prev) =>
-        prev.map((l) =>
-          l.id === listingId ? { ...l, status, is_available: status === 'Tilgjengelig' } : l
-        )
-      )
-    }
-  }
-
-  const deleteAvailability = async (id: string, listingId: string) => {
-    availabilityErrorContextRef.current = 'delete'
-    const result = await deletePeriod(id, listingId)
-    if (result.ok) {
-      setPendingDeletePeriod(null)
-    }
-  }
-
-  const isTodayAvailableOrUnset = (listing: { id: string }) => {
-    return listingAvailabilityStatusToday(listing.id, availability) === 'Tilgjengelig'
-  }
-
   const filteredListings = myListings.filter((l) => {
     if (filter === 'Alle') return true
     const s = listingAvailabilityStatusToday(l.id, availability)
@@ -318,10 +133,6 @@ export default function HomeownerManage() {
     if (filter === 'Tilgjengelig') return s === 'Tilgjengelig'
     return s === filter
   })
-
-  const actionSheetListing = actionSheetListingId
-    ? myListings.find((l) => l.id === actionSheetListingId) ?? null
-    : null
 
   if (shouldShowManageFullScreenSpinner(pageGate, loading, fetchError)) {
     return (
@@ -431,18 +242,6 @@ export default function HomeownerManage() {
         </ul>
       </LandlordOnboardingModal>
 
-      <ConfirmDeleteDialog
-        pendingDeleteListing={pendingDeleteListing}
-        onCancelListing={() => setPendingDeleteListing(null)}
-        onConfirmListing={() => void executeDeleteListing()}
-        pendingDeletePeriod={pendingDeletePeriod}
-        onCancelPeriod={() => setPendingDeletePeriod(null)}
-        onConfirmPeriod={() =>
-          pendingDeletePeriod &&
-          void deleteAvailability(pendingDeletePeriod.id, pendingDeletePeriod.listingId)
-        }
-      />
-
       <div className="hm-header-row">
         <div>
           <h1 className="hm-page-title">{t('myProperties')}</h1>
@@ -515,30 +314,9 @@ export default function HomeownerManage() {
                   listing={listing}
                   availability={availability}
                   eventOptIns={eventOptInsByListing[listing.id] ?? []}
-                  openPanel={openPanel}
                   isMobileLayout={isMobileLayout}
                   centralEvents={platformFlags.centralEvents}
                   tourism={platformFlags.tourism}
-                  eventCalendarOptIns={eventCalendarOptIns}
-                  allPublishedEvents={allPublishedEvents}
-                  listingPanelRef={listingPanelRef}
-                  isTodayAvailableOrUnset={isTodayAvailableOrUnset}
-                  onOpenActionSheet={setActionSheetListingId}
-                  onOpenListingPanel={openListingPanel}
-                  onClosePanel={() => setOpenPanel(null)}
-                  onOpenPeriodCalendar={openPeriodCalendar}
-                  onPendingDeleteListing={setPendingDeleteListing}
-                  onListingUpdated={(listingId, patch) =>
-                    setMyListings((prev) =>
-                      prev.map((l) => (l.id === listingId ? { ...l, ...patch } : l))
-                    )
-                  }
-                  onAddPeriod={addAvailability}
-                  onDeletePeriod={deleteAvailability}
-                  onRefreshEvents={async () => {
-                    await refreshEventCalendar()
-                    await refreshListingEventOptIns(listing.id)
-                  }}
                 />
               ))
             ) : (
@@ -554,21 +332,6 @@ export default function HomeownerManage() {
           </div>
         </div>
       </div>
-
-      {actionSheetListing && (
-        <LandlordListingActionSheet
-          listing={actionSheetListing}
-          open={!!actionSheetListingId}
-          availability={availability}
-          centralEvents={platformFlags.centralEvents}
-          tourism={platformFlags.tourism}
-          isTodayAvailableOrUnset={isTodayAvailableOrUnset}
-          onClose={() => setActionSheetListingId(null)}
-          onOpenPeriodCalendar={openPeriodCalendar}
-          onOpenListingPanel={openListingPanel}
-          onPendingDeleteListing={setPendingDeleteListing}
-        />
-      )}
     </main>
   )
 }

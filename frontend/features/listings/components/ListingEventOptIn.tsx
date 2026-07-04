@@ -128,7 +128,7 @@ export default function ListingEventOptIn({ listingId }: Props) {
 
   if (isLoading) return null
 
-  const returnTo = `/homeowner/manage?listing=${listingId}&panel=events`
+  const returnTo = `/homeowner/listings/${listingId}?section=events`
 
   return (
     <section className="card listing-subpanel">

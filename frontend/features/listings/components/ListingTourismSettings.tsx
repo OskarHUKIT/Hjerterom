@@ -138,7 +138,7 @@ export default function ListingTourismSettings({
         <p className="text-sm ds-tourism-terms-note">
           {t('tourismTermsRequired')}{' '}
           <Link
-            href={`/homeowner/sign-terms?doc=${tourismTermsDocId}&returnTo=${encodeURIComponent(`/homeowner/manage?listing=${listingId}&panel=tourism`)}`}
+            href={`/homeowner/sign-terms?doc=${tourismTermsDocId}&returnTo=${encodeURIComponent(`/homeowner/listings/${listingId}?section=tourism`)}`}
             className="nav-link ds-tourism-terms-link"
           >
             {t('eventOptInSignTermsCta')}

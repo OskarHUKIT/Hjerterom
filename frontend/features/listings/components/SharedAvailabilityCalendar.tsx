@@ -32,13 +32,13 @@ function cellBackground(cell: SharedDayCell, paintStatus: 'Tilgjengelig' | 'Util
   if (cell.inSelection) {
     return paintStatus === 'Tilgjengelig'
       ? 'color-mix(in srgb, var(--color-teal) 35%, transparent)'
-      : 'color-mix(in srgb, #ef4444 30%, transparent)'
+      : 'color-mix(in srgb, var(--lane-sosial-unavailable-bg) 85%, transparent)'
   }
   switch (cell.status) {
     case 'Tilgjengelig':
       return 'color-mix(in srgb, var(--color-teal) 22%, var(--bg-surface))'
     case 'Utilgjengelig':
-      return 'color-mix(in srgb, #ef4444 18%, var(--bg-surface))'
+      return 'color-mix(in srgb, var(--lane-sosial-unavailable-bg) 75%, var(--bg-surface))'
     case 'Formidla':
       return 'color-mix(in srgb, var(--color-sky-blue) 28%, var(--bg-surface))'
     default:

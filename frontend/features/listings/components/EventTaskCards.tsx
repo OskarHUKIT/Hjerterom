@@ -31,7 +31,7 @@ export default function EventTaskCards({ listingIds }: Props) {
 
   const targetListingId = listingIds[0]
   const manageHref = targetListingId
-    ? `/homeowner/manage?listing=${targetListingId}&panel=calendar`
+    ? `/homeowner/listings/${targetListingId}`
     : '/homeowner/manage'
 
   return (
