@@ -908,16 +908,15 @@ p {
 
 /* Footer Styles */
 .footer {
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--bg-card);
   border-top: 1px solid var(--border-subtle);
-  backdrop-filter: blur(16px);
   width: 100%;
   flex-shrink: 0;
 }
 
 [data-theme='light'] .footer {
-  background: rgba(255, 255, 255, 0.95);
-  border-top-color: rgba(15, 23, 42, 0.1);
+  background: var(--bg-card);
+  border-top-color: var(--border-subtle);
 }
 
 [data-theme='light'] .footer h3 {

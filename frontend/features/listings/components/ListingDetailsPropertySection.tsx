@@ -27,23 +27,10 @@ export default function ListingDetailsPropertySection(props: ListingDetailsPrope
   return (
     <>
 {/* 2. Boliginformasjon (type, størrelse, boliginfo, inkludert, beskrivelse) */}
-<section className="card listing-detail-card" style={{ padding: 'var(--space-8)' }}>
-  <div
-    className="listing-metrics-row"
-    style={{
-      display: 'grid',
-      gap: 'var(--space-4)',
-      padding: 'var(--space-6) 0',
-      borderTop: '1px solid var(--border-subtle)',
-      borderBottom: '1px solid var(--border-subtle)',
-      marginBottom: 'var(--space-6)',
-    }}
-  >
-    <div className="listing-metric-cell" style={{ textAlign: 'center' }}>
-      <Building
-        size={20}
-        style={{ color: 'var(--color-royal-blue)', marginBottom: '4px' }}
-      />
+<section className="card listing-detail-card listing-detail-card--lg">
+  <div className="listing-metrics-row">
+    <div className="listing-metric-cell">
+      <Building size={20} className="listing-metric-icon" />
       {canOwnerEditListingDetail ? (
         <select
           value={listing.type}

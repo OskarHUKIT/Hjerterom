@@ -1,0 +1,485 @@
+/* Homeowner register listing — shared form layout (PRD §15, design tokens) */
+
+.register-page-header {
+  margin-bottom: var(--space-8);
+}
+
+.register-back-link {
+  margin-left: -1rem;
+  margin-bottom: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.register-title {
+  font-size: var(--fluid-h1-hero);
+}
+
+.register-lead {
+  max-width: 700px;
+  color: var(--text-body);
+}
+
+.register-callout {
+  margin-top: var(--space-4);
+  max-width: 700px;
+}
+
+.register-callout p {
+  margin: var(--space-2) 0 0;
+  line-height: 1.55;
+}
+
+.register-form {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.register-form-columns {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.register-form-main-col {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.register-form-sidebar {
+  display: grid;
+  gap: var(--space-6);
+  position: sticky;
+  top: 20px;
+}
+
+.form-section-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  color: var(--color-accent);
+}
+
+.form-subpanel {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--text-muted) 8%);
+  border-radius: var(--hrt-radius-md, 12px);
+  border: 1px solid var(--border-subtle);
+}
+
+.form-subpanel .label {
+  display: block;
+  margin-bottom: var(--space-3);
+}
+
+.form-radio-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.form-radio-label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  cursor: pointer;
+  color: var(--text-body);
+}
+
+.form-radio-label input {
+  margin-top: 4px;
+}
+
+.form-hint {
+  margin: var(--space-3) 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.form-field-block {
+  margin-top: var(--space-4);
+}
+
+.form-field-block--lg {
+  margin-top: var(--space-6);
+}
+
+.form-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.form-geocode-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.form-geocode-status {
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+.form-geocode-ok {
+  font-size: 0.7rem;
+  color: var(--color-teal);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.form-geocode-btn {
+  font-size: 0.75rem;
+  padding: 6px 10px;
+  border-radius: var(--hrt-radius-sm, 8px);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-card);
+  color: var(--text-main);
+  cursor: pointer;
+  font-weight: 500;
+  min-height: var(--touch-target-sm);
+}
+
+.form-address-wrap {
+  position: relative;
+}
+
+.form-address-hint {
+  font-size: 0.7rem;
+  opacity: 0.75;
+  display: block;
+  margin-top: 4px;
+}
+
+.form-warning {
+  font-size: 0.8rem;
+  color: var(--color-warning, #b45309);
+  margin-top: var(--space-2);
+  margin-bottom: 0;
+}
+
+.form-warning--tight {
+  margin-top: 6px;
+}
+
+.form-address-list {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--hrt-radius-sm, 8px);
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.form-address-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-height: var(--touch-target-sm);
+}
+
+.form-address-option:last-child {
+  border-bottom: none;
+}
+
+.form-address-option:hover {
+  background: var(--hrt-primary-soft, color-mix(in srgb, var(--color-accent) 10%, transparent));
+}
+
+.form-candidate-group {
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--hrt-radius-sm, 8px);
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--bg-card) 94%, var(--text-muted) 6%);
+}
+
+.form-candidate-help {
+  font-size: 0.85rem;
+  margin-bottom: var(--space-3);
+  color: var(--text-body);
+}
+
+.form-candidate-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.form-candidate-btn {
+  text-align: left;
+  padding: var(--space-3);
+  border-radius: var(--hrt-radius-sm, 8px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-app);
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-height: var(--touch-target-sm);
+}
+
+.form-candidate-btn:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--border-subtle));
+}
+
+.floor-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.form-chip {
+  padding: var(--space-2);
+  background: var(--bg-app);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--hrt-radius-sm, 8px);
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-main);
+  min-height: var(--touch-target-sm);
+}
+
+.form-chip--selected {
+  background: var(--color-royal-blue);
+  border-color: var(--color-royal-blue);
+  color: var(--text-on-dark);
+}
+
+.form-check-stack {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.form-check-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--bg-card) 90%, var(--text-muted) 10%);
+  border-radius: var(--hrt-radius-sm, 8px);
+  cursor: pointer;
+  min-height: var(--touch-target-sm);
+}
+
+.form-check-row span {
+  font-size: 0.9rem;
+}
+
+.form-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.form-pill {
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-app);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text-main);
+  min-height: var(--touch-target-sm);
+}
+
+.form-pill--selected {
+  background: var(--color-teal);
+  border-color: var(--color-teal);
+  color: #042f2e;
+}
+
+[data-theme='light'] .form-pill--selected {
+  color: #ffffff;
+}
+
+.form-deposit-grid {
+  margin-top: var(--space-6);
+}
+
+.form-grid-spaced {
+  margin-top: var(--space-6);
+}
+
+.image-previews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.image-preview-item {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--hrt-radius-md, 12px);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.image-preview-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  min-width: var(--touch-target-sm);
+  min-height: var(--touch-target-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-upload-btn {
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.register-house-rules-panel {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--hrt-radius-md, 12px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+}
+
+.register-house-rules-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.register-house-rules-heading svg {
+  color: var(--color-accent);
+}
+
+.register-house-rules-hint {
+  margin: var(--space-2) 0 var(--space-3);
+  opacity: 0.85;
+}
+
+.register-file-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.register-file-name {
+  color: var(--text-body);
+}
+
+.register-file-clear {
+  margin-left: 8px;
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  text-decoration: underline;
+  min-height: var(--touch-target-sm);
+  padding: var(--space-1) var(--space-2);
+}
+
+.register-form-footer {
+  margin-top: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  background: var(--bg-card);
+  border-radius: var(--hrt-radius-lg, 18px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: sticky;
+  bottom: 20px;
+  z-index: 10;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+}
+
+.register-insurance-label {
+  display: flex;
+  gap: 12px;
+  cursor: pointer;
+  align-items: flex-start;
+  color: var(--text-main);
+}
+
+.register-insurance-checkbox {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--color-royal-blue);
+}
+
+.register-insurance-copy {
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.register-insurance-title {
+  font-weight: 700;
+  display: block;
+  color: var(--text-main);
+}
+
+.register-insurance-body {
+  color: var(--text-body);
+  margin-top: 4px;
+  display: block;
+}
+
+.register-submit-btn {
+  padding: var(--space-4) var(--space-10);
+  font-size: 1.125rem;
+  border-radius: var(--hrt-radius-md, 14px);
+}
+
+.form-textarea-tall {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+}
+
+.register-upload-dropzone {
+  border: 2px dashed var(--border-medium);
+  padding: var(--space-6);
+  text-align: center;
+  border-radius: var(--hrt-radius-lg, 16px);
+  background: var(--bg-app);
+}
+
+.physical-access-info-list {
+  padding-left: 1.2rem;
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.form-check-row span {
+  font-size: 0.85rem;
+}
