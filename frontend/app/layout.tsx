@@ -5,6 +5,7 @@ import SiteChrome from './components/SiteChrome'
 import PushSubscription from './components/PushSubscription'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import { Providers } from './providers'
+import { APP_NAME } from '../lib/brand'
 
 const fontSans = DM_Sans({
   subsets: ['latin'],
@@ -24,18 +25,17 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#3b82f6',
+  themeColor: '#e07a5f',
   viewportFit: 'cover',
   userScalable: true,
-  // Prevent unwanted zoom on input focus (iOS)
   interactiveWidget: 'resizes-content',
 }
 
 export const metadata: Metadata = {
-  title: 'Boly',
-  description: 'Boly – formidling av bolig mellom kommune og private utleiere',
+  title: APP_NAME,
+  description: `${APP_NAME} – formidling av bolig mellom kommune og private utleiere i Nord-Norge`,
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, title: 'Boly' },
+  appleWebApp: { capable: true, title: APP_NAME },
   icons: {
     icon: [{ url: '/BolyMobilIcon.png', sizes: '1024x1024', type: 'image/png' }],
     apple: '/BolyMobilIcon.png',

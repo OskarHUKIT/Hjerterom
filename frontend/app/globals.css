@@ -1,37 +1,36 @@
-/* Professional Dark Design System with Northern Scenery */
+/* Hjerterum — warm Nordic design system */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Styrer OS/nettleser (skjema, native select-lister) slik at lys/mørk matcher app-tema */
   color-scheme: dark;
-  /* Mobile breakpoints (use in media queries) */
   --bp-sm: 480px;
   --bp-md: 768px;
   --bp-lg: 1024px;
   --bp-xl: 1280px;
 
-  /* Touch-friendly sizing */
   --touch-target: 44px;
   --touch-target-sm: 44px;
 
-  /* Core Colors — Option B: blå-forward; teal = suksess / formidling */
-  --color-dark-navy: #0f172a;
-  --color-royal-blue: #3b82f6;
-  --color-muted-blue: #60a5fa;
-  --color-sky-blue: #7dd3fc;
-  --color-teal: #2dd4bf;
+  /* Brand: heart-warm primary, aurora secondary, teal for success/mediation */
+  --color-dark-navy: #0c1220;
+  --color-heart: #e07a5f;
+  --color-heart-hover: #c96a52;
+  --color-heart-soft: rgba(224, 122, 95, 0.14);
+  --color-royal-blue: #5b8def;
+  --color-muted-blue: #7eb3ff;
+  --color-sky-blue: #93c5fd;
+  --color-teal: #3dd9c4;
   --color-dark-teal: #0d9488;
-  /* Sekundær interaksjon (outline/CTA #2) */
-  --color-blue-cta-secondary: #38bdf8;
-  --color-blue-cta-secondary-hover: #0ea5e9;
+  --color-blue-cta-secondary: #5b8def;
+  --color-blue-cta-secondary-hover: #4a7ae0;
 
-  /* Neutral Palette - Dark Mode */
-  --bg-app: #020617;
-  --bg-card: #0f172a;
-  --border-subtle: rgba(51, 65, 85, 0.4);
-  --border-medium: rgba(51, 65, 85, 0.8);
+  --bg-app: #080c14;
+  --bg-card: #121a2a;
+  --bg-elevated: #1a2438;
+  --border-subtle: rgba(148, 163, 184, 0.18);
+  --border-medium: rgba(148, 163, 184, 0.32);
 
   /* Typography Colors */
   --text-main: #f8fafc;
@@ -58,8 +57,22 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
 
-  /* Accent/link color – darker in light mode for contrast */
-  --color-accent: var(--color-sky-blue);
+  --color-accent: var(--color-heart);
+  --gradient-hero: radial-gradient(
+      ellipse 90% 70% at 12% -8%,
+      rgba(224, 122, 95, 0.22),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 70% 55% at 88% 8%,
+      rgba(91, 141, 239, 0.16),
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse 60% 45% at 50% 100%,
+      rgba(61, 217, 196, 0.08),
+      transparent 55%
+    );
 
   /* Kalenderstatus (dark mode) */
   --calendar-formidlet-bg: rgba(59, 130, 246, 0.35);
@@ -91,17 +104,31 @@
 /* Light mode – overrides when data-theme="light" */
 [data-theme='light'] {
   color-scheme: light;
-  --bg-app: #f8fafc;
+  --bg-app: #f6f4f1;
   --bg-card: #ffffff;
-  --border-subtle: rgba(15, 23, 42, 0.12);
-  --border-medium: rgba(15, 23, 42, 0.25);
+  --bg-elevated: #faf8f5;
+  --border-subtle: rgba(15, 23, 42, 0.1);
+  --border-medium: rgba(15, 23, 42, 0.2);
   --text-main: #0f172a;
   --text-body: #334155;
   --text-muted: #64748b;
   --text-on-dark: #ffffff;
-  --color-accent: #0369a1; /* Mørkere blå for god kontrast på lys bakgrunn */
-  --color-sky-blue: #0369a1; /* Samme mørkere blå – erstatter lyseblå i lys modus */
-  --color-royal-blue: #0369a1; /* Konsistent med accent i lys modus */
+  --color-accent: #b45309;
+  --color-heart: #c96a52;
+  --color-heart-hover: #a85540;
+  --color-heart-soft: rgba(201, 106, 82, 0.12);
+  --color-sky-blue: #1d4ed8;
+  --color-royal-blue: #1d4ed8;
+  --gradient-hero: radial-gradient(
+      ellipse 90% 70% at 12% -8%,
+      rgba(201, 106, 82, 0.14),
+      transparent 58%
+    ),
+    radial-gradient(
+      ellipse 70% 55% at 88% 8%,
+      rgba(29, 78, 216, 0.1),
+      transparent 52%
+    );
   /* Kalenderstatus – klarere farger i lys modus */
   --calendar-formidlet-bg: rgba(3, 105, 161, 0.4);
   --calendar-formidlet-range-bg: rgba(3, 105, 161, 0.32);
@@ -169,33 +196,11 @@ body::before {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image:
-    linear-gradient(to bottom, rgba(2, 6, 23, 0.7) 0%, rgba(2, 6, 23, 0.95) 100%),
-    url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
-  background-size: cover;
-  background-position: center 70%;
-  background-repeat: no-repeat;
-}
-
-@media (max-width: 768px) {
-  body::before {
-    background-position: 42% 78%;
-  }
+  background: var(--gradient-hero), var(--bg-app);
 }
 
 [data-theme='light'] body::before {
-  background-image:
-    linear-gradient(to bottom, rgba(248, 250, 252, 0.92) 0%, rgba(241, 245, 249, 0.95) 100%),
-    url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
-}
-
-@media (max-width: 768px) {
-  [data-theme='light'] body::before {
-    background-position: 42% 78%;
-    background-image:
-      linear-gradient(to bottom, rgba(248, 250, 252, 0.82) 0%, rgba(241, 245, 249, 0.94) 100%),
-      url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
-  }
+  background: var(--gradient-hero), var(--bg-app);
 }
 
 a {
@@ -282,18 +287,19 @@ body:has(.site-main--ops) {
 }
 
 .header {
-  background: rgba(15, 23, 42, 0.8);
+  background: color-mix(in srgb, var(--bg-card) 82%, transparent);
   border-bottom: 1px solid var(--border-subtle);
-  padding: var(--space-4) 0;
+  padding: var(--space-3) 0;
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 [data-theme='light'] .header {
-  background: rgba(255, 255, 255, 0.9);
-  border-bottom-color: rgba(15, 23, 42, 0.1);
+  background: color-mix(in srgb, #ffffff 92%, transparent);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
 }
 
 [data-theme='light'] .header-hamburger {
@@ -316,17 +322,18 @@ body:has(.site-main--ops) {
 }
 
 .card {
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
+  background: color-mix(in srgb, var(--bg-card) 94%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
   padding: var(--space-5);
   box-shadow: var(--shadow-md);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
   transition:
-    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    border-color 0.25s ease,
-    background 0.25s ease;
+    transform var(--transition-smooth) var(--ease-out-soft),
+    box-shadow var(--transition-smooth) var(--ease-out-soft),
+    border-color var(--transition-fast) ease,
+    background var(--transition-fast) ease;
 }
 
 @media (max-width: 768px) {
@@ -345,20 +352,20 @@ body:has(.site-main--ops) {
 
 .card:not(.no-hover):hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.35);
-  border-color: rgba(59, 130, 246, 0.25);
-  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.4);
+  border-color: color-mix(in srgb, var(--color-heart) 35%, var(--border-subtle));
+  background: var(--bg-elevated);
 }
 
 [data-theme='light'] .card {
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 [data-theme='light'] .card:not(.no-hover):hover {
-  background: rgba(255, 255, 255, 1);
-  border-color: rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--color-heart) 28%, rgba(15, 23, 42, 0.12));
+  box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.12);
 }
 
 /* Innstillings-/filterpaneler: bruk temaets bakgrunn (ingen mørk override) */
@@ -373,9 +380,87 @@ body:has(.site-main--ops) {
   background: rgba(0, 0, 0, 0.04);
 }
 
-/* Portal-kort: mørk bakgrunn i dark mode */
+/* Portal cards on landing */
 .portal-card {
-  background: rgba(15, 23, 42, 0.6);
+  background: color-mix(in srgb, var(--bg-card) 96%, transparent);
+}
+
+.portal-card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-2);
+  flex-shrink: 0;
+}
+
+.portal-card-icon--login {
+  background: var(--color-heart-soft);
+  color: var(--color-heart);
+}
+
+.portal-card-icon--demo {
+  background: color-mix(in srgb, var(--color-royal-blue) 14%, transparent);
+  color: var(--color-royal-blue);
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-teal);
+  background: color-mix(in srgb, var(--color-teal) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-teal) 28%, transparent);
+  margin-bottom: var(--space-4);
+}
+
+.trust-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+  padding: var(--space-6);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-card) 88%, transparent);
+  border: 1px solid var(--border-subtle);
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+.trust-section-item h3 {
+  font-size: 1.05rem;
+  margin-bottom: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trust-section-item p {
+  font-size: 0.9375rem;
+  margin: 0;
+  color: var(--text-body);
+  line-height: 1.55;
+}
+
+.trust-section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  background: var(--color-heart-soft);
+  color: var(--color-heart);
+  flex-shrink: 0;
 }
 
 /* Portal cards: align buttons at bottom when side-by-side */
@@ -405,8 +490,14 @@ body:has(.site-main--ops) {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
+.portal-card-desc {
+  color: var(--text-muted);
+  margin: 0 0 var(--space-3);
+  line-height: 1.5;
+}
+
 [data-theme='light'] .portal-card-desc {
-  color: var(--text-body) !important;
+  color: var(--text-body);
 }
 
 [data-theme='light'] .portal-card h2 {
@@ -605,7 +696,7 @@ body:has(.site-main--ops) {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  background-color: var(--color-royal-blue);
+  background-color: var(--color-heart);
   color: var(--text-on-dark);
   border: none;
   padding: var(--space-3) var(--space-5);
@@ -625,16 +716,16 @@ body:has(.site-main--ops) {
 }
 
 .button:hover {
-  background-color: #2563eb;
+  background-color: var(--color-heart-hover);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
 [data-theme='light'] .button {
-  background-color: var(--color-accent);
+  background-color: var(--color-heart);
 }
 [data-theme='light'] .button:hover {
-  background-color: #025a8a;
+  background-color: var(--color-heart-hover);
 }
 
 .button:active {
@@ -798,10 +889,9 @@ textarea {
   display: block;
   margin-bottom: var(--space-2);
   font-weight: 600;
-  color: var(--color-accent);
+  color: var(--text-body);
   font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
 }
 
 /* Typography — display: Fraunces; UI: DM Sans (next/font på <html>) */
@@ -903,12 +993,12 @@ p {
 }
 
 .nav-link:hover {
-  background: rgba(125, 211, 252, 0.1);
+  background: var(--color-heart-soft);
   color: var(--color-accent);
 }
 
 [data-theme='light'] .nav-link:hover {
-  background: rgba(3, 105, 161, 0.08);
+  background: var(--color-heart-soft);
 }
 
 /* Footer Styles */
@@ -1853,6 +1943,8 @@ body {
 
 .login-page .login-card {
   transform: none;
+  box-shadow: var(--shadow-xl);
+  border-top: 3px solid var(--color-heart);
 }
 .login-page .login-card:hover {
   transform: none;

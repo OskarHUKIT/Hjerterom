@@ -160,9 +160,10 @@ export const translations = {
     pwaClose: 'Lukk',
 
     // Homepage
-    heroTitle: 'Boly forenkler boligformidling',
+    heroBadge: 'Nord-Norge · BankID-sikret',
+    heroTitle: 'Hjerterum forenkler boligformidling',
     heroDesc:
-      'Boly er det sikre bindeleddet mellom kommune og privat boligeier og støtter boligformidling i kommunalt regi. Løsningen sikres av BankID.',
+      'Hjerterum er det trygge bindeleddet mellom kommune og private utleiere, for sosial formidling, arrangement og turisme i Nord-Norge. Løsningen sikres med BankID for utleiere og saksbehandlere.',
     chooseRole: 'Velg din rolle',
     forMunicipality: 'For kommuneansatte',
     kommunebrukerLabel: 'Jeg er kommunebruker',
@@ -192,9 +193,9 @@ export const translations = {
       'Generelle vilkår for bruk av Boly. Utleiere har i tillegg kommunespesifikke avtaler som signeres med BankID.',
     footerTermsAgreementLink: 'Brukervilkår',
     privacy: 'Personvern',
-    aboutBoly: 'Om Boly',
+    aboutBoly: 'Om Hjerterum',
     comingSoon: 'Kommer snart',
-    footerDevelopedLine1: 'Boly er utviklet av',
+    footerDevelopedLine1: 'Hjerterum er utviklet av',
     footerDevelopedLine2: 'Gamechanging og Nav Narvik',
     copyright: '© 2026 Alle rettigheter reservert.',
     footerCookieSettings: 'Informasjonskapsler',
@@ -724,11 +725,14 @@ export const translations = {
 
     // Forsiden (portal-kort)
     homeLoginCardTitle: 'Logg inn',
+    homeLoginCardDesc: 'For utleiere og kommuneansatte med eksisterende konto.',
     homeLoginCardCta: 'Logg inn',
     /** Skiller hjemkortets lenke fra «Logg inn» i header for skjermlesere. */
-    homeLoginCardLinkAria: 'Gå til innloggingssiden for Boly',
+    homeLoginCardLinkAria: 'Gå til innloggingssiden for Hjerterum',
     homeDemoCardTitle: 'Be om demo',
+    homeDemoCardDesc: 'Se hvordan Hjerterum kan brukes i din kommune.',
     homeDemoCardCta: 'Be om demo',
+    homeDemoPopupIntro: 'Ta kontakt for en uforpliktende gjennomgang av løsningen.',
 
     // Boligbank (nav/database) — UI rundt tabell, filter, tidslinje
     dbViewTable: 'Tabellvisning',
@@ -1356,9 +1360,10 @@ export const translations = {
     pwaClose: 'Gidde',
 
     // Homepage
-    heroTitle: 'Boly ovdánahttá beaivvášformiduhttima.',
+    heroBadge: 'Davvi-Norgga · BankID-sihkkaraston',
+    heroTitle: 'Hjerterum ovdánahttá beaivvášformiduhttima.',
     heroDesc:
-      'Boly lea sihkar oktavuohta kommuvnna ja priváhta beaivvášoamasteaddji gaskka ja doarjju kommuvnna beaivvášformidemiija. BankID várrejit láttodaga.',
+      'Hjerterum lea sihkar oktavuohta kommuvnna ja priváhta duodjáriid gaskka, sosiála formidemiija, dáhpáhusaid ja turisma várás Davvi-Norggas. BankID sihkkarastá duodjáriid ja saksbehandlere.',
     chooseRole: 'Vállje iežat rolla',
     forMunicipality: 'Kommuvnna bargiide',
     kommunebrukerLabel: 'Lean kommuvnna geavaheaddji',
@@ -1906,10 +1911,13 @@ export const translations = {
     invoiceSignatureConfirmedAt: 'Vuolláičuojan dievddojuvvon Boly:s: {date}',
 
     homeLoginCardTitle: 'Sisa',
+    homeLoginCardDesc: 'Duodjáriide ja kommuvnna bargiide geat leat juo registrerejuvvon.',
     homeLoginCardCta: 'Sisa',
-    homeLoginCardLinkAria: 'Mana Boly sisačáliibmái',
+    homeLoginCardLinkAria: 'Mana Hjerterum sisačáliibmái',
     homeDemoCardTitle: 'Bivdde demo',
+    homeDemoCardDesc: 'Oaidnit movt Hjerterum sáhttá geavahuvvot du kommuvnnas.',
     homeDemoCardCta: 'Bivdde demo',
+    homeDemoPopupIntro: 'Váldde oktavuođa ovttasbargguin ovttasbarggu dihte.',
 
     dbViewTable: 'Tabellá oainnus',
     dbViewList: 'Listu',
@@ -2536,9 +2544,10 @@ export const translations = {
     pwaClose: 'Close',
 
     // Homepage
-    heroTitle: 'Boly simplifies housing mediation.',
+    heroBadge: 'Northern Norway · BankID secured',
+    heroTitle: 'Hjerterum simplifies housing mediation.',
     heroDesc:
-      'Boly is the secure link between municipalities and private property owners and supports housing mediation in a municipal context. The solution is secured by BankID.',
+      'Hjerterum is the trusted link between municipalities and private landlords, for social mediation, events, and tourism in Northern Norway. The solution is secured with BankID for landlords and case workers.',
     chooseRole: 'Choose your role',
     forMunicipality: 'For municipality staff',
     kommunebrukerLabel: 'I am a municipality user',
@@ -3094,10 +3103,13 @@ export const translations = {
     invoiceSignatureConfirmedAt: 'Signing confirmed in Boly: {date}',
 
     homeLoginCardTitle: 'Log in',
+    homeLoginCardDesc: 'For landlords and municipality staff with an existing account.',
     homeLoginCardCta: 'Log in',
-    homeLoginCardLinkAria: 'Go to the Boly sign-in page',
+    homeLoginCardLinkAria: 'Go to the Hjerterum sign-in page',
     homeDemoCardTitle: 'Request a demo',
+    homeDemoCardDesc: 'See how Hjerterum can work in your municipality.',
     homeDemoCardCta: 'Request a demo',
+    homeDemoPopupIntro: 'Get in touch for a no-obligation walkthrough of the platform.',
 
     dbViewTable: 'Table view',
     dbViewList: 'List',

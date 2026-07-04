@@ -1588,7 +1588,8 @@ export default function ListingDetailsClient() {
                         padding: 'var(--space-4)',
                         background: 'var(--bg-card)',
                         borderRadius: '12px',
-                        borderLeft: '4px solid var(--color-accent)',
+                        boxShadow: 'inset 0 3px 0 0 var(--color-accent)',
+                        border: '1px solid var(--border-subtle)',
                       }}
                     >
                       <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-body)' }}>

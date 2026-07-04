@@ -566,7 +566,8 @@ export default function NavNotifications() {
                 style={{
                   padding: 'var(--space-6)',
                   opacity: notif.status === 'completed' ? 0.88 : 1,
-                  borderLeft: `4px solid ${notif.status === 'unread' ? 'var(--color-accent)' : 'var(--color-teal)'}`,
+                  boxShadow: `inset 0 3px 0 0 ${notif.status === 'unread' ? 'var(--color-accent)' : 'var(--color-teal)'}`,
+                  border: '1px solid var(--border-subtle)',
                   transition: 'all 0.2s',
                 }}
               >

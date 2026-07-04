@@ -1,11 +1,11 @@
 {
-  "name": "Boly",
-  "short_name": "Boly",
-  "description": "Boligformidling mellom Kommune og utleiere",
+  "name": "Hjerterum",
+  "short_name": "Hjerterum",
+  "description": "Boligformidling mellom kommune og utleiere i Nord-Norge",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#3b82f6",
+  "background_color": "#080c14",
+  "theme_color": "#e07a5f",
   "icons": [
     {
       "src": "/BolyMobilIcon.png",

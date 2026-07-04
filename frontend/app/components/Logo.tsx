@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useState } from 'react'
 import { useTheme } from '../../context/ThemeContext'
+import { APP_NAME } from '../../lib/brand'
 
 export default function Logo() {
   const [logoError, setLogoError] = useState(false)
@@ -22,26 +23,27 @@ export default function Logo() {
     >
       {logoError ? (
         <div
+          className="logo-wordmark-fallback"
           style={{
             height: '60px',
             padding: '0 0.75rem',
-            background: 'var(--color-dark-navy)',
-            borderRadius: '6px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.25rem',
-            color: 'white',
-            fontWeight: 'bold',
+            fontSize: '1.5rem',
+            color: 'var(--text-main)',
+            fontWeight: 700,
+            fontFamily: 'var(--font-display), ui-serif, Georgia, serif',
+            letterSpacing: '-0.03em',
           }}
         >
-          Boly
+          {APP_NAME}
         </div>
       ) : (
         <Image
           className="header-logo-wrap"
           src={logoSrc}
-          alt="Boly"
+          alt={APP_NAME}
           width={320}
           height={96}
           priority

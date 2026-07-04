@@ -622,7 +622,8 @@ export default function TermsDocumentsPage() {
                 className="card"
                 style={{
                   padding: 'var(--space-4)',
-                  borderLeft: `4px solid ${isApproved ? '#22c55e' : '#f59e0b'}`,
+                  boxShadow: `inset 0 3px 0 0 ${isApproved ? '#22c55e' : '#f59e0b'}`,
+                  border: '1px solid var(--border-subtle)',
                 }}
               >
                 <div
