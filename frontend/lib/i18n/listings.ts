@@ -308,6 +308,12 @@ export const listingsTranslations = {
     listingImageDropzoneTitle: "Legg til bilder",
     listingImageDropzoneHint:
       "Klikk for å velge fra enheten. Du kan laste opp flere filer samtidig (f.eks. JPG eller PNG).",
+    uploadDropzoneTitle: "Last opp bilder",
+    uploadDropzoneHint:
+      "Dra bilder hit eller klikk for å velge. Kun bildefiler (JPG, PNG, WebP). Maks {max} bilder.",
+    uploadProgress: "{pct} % lastet opp",
+    uploadError: "Kunne ikke laste opp bildet.",
+    uploadQueued: "Klar til opplasting",
     listingImageEmptyViewer: "Ingen bilder er lagt ut ennå.",
     listingImageUploading: "Laster opp …",
     listingImageAddPhotos: "Legg til bilder",
@@ -839,6 +845,12 @@ export const listingsTranslations = {
     listingImageDropzoneTitle: "Lasit govaid",
     listingImageDropzoneHint:
       "Coahkkal válljet ovttasbarggus. Sáhttát lasihit máŋga fiilla ovtta áiggi (ovd. JPG dahje PNG).",
+    uploadDropzoneTitle: "Nammat govaid",
+    uploadDropzoneHint:
+      "Sirdde govaid dán dahje deip válljet. Dušše govagovat (JPG, PNG, WebP). Maks {max} govva.",
+    uploadProgress: "{pct} % viežžon",
+    uploadError: "Ii sáhttán nammat govva.",
+    uploadQueued: "Heivehuvvon nammamii",
     listingImageEmptyViewer: "Ii leat lasihuvvon govaid.",
     listingImageUploading: "Viežžá …",
     listingImageAddPhotos: "Lasit govaid",
@@ -1361,6 +1373,12 @@ export const listingsTranslations = {
     listingImageDropzoneTitle: "Add photos",
     listingImageDropzoneHint:
       "Click to choose from your device. You can upload several files at once (e.g. JPG or PNG).",
+    uploadDropzoneTitle: "Upload photos",
+    uploadDropzoneHint:
+      "Drag photos here or click to choose. Image files only (JPG, PNG, WebP). Max {max} photos.",
+    uploadProgress: "{pct}% uploaded",
+    uploadError: "Could not upload the photo.",
+    uploadQueued: "Ready to upload",
     listingImageEmptyViewer: "No photos have been added yet.",
     listingImageUploading: "Uploading…",
     listingImageAddPhotos: "Add photos",

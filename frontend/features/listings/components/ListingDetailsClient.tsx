@@ -233,7 +233,7 @@ export default function ListingDetailsClient() {
     handleUpdateField,
     handlePetPolicyChange,
     handleRegenerateTenantLink,
-    handleUploadMore,
+    handleUploadListingImage,
     handleReorderListingImage,
     handleHouseRulesFileChange,
     handleHouseRulesRemove,
@@ -544,7 +544,8 @@ export default function ListingDetailsClient() {
             setIsFullscreen={setIsFullscreen}
             uploading={uploading}
             isSaving={isSaving}
-            onUploadMore={handleUploadMore}
+            onUploadImage={handleUploadListingImage}
+            onUploadError={() => toast(t('uploadError'), 'error')}
             onReorderImage={handleReorderListingImage}
             t={t}
           />

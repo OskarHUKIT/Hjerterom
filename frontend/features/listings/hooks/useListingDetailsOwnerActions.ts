@@ -1,11 +1,17 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { geocodeAddressBestEffort } from '@/app/lib/geocoding'
 import { listingMapCoordsPayload } from '@/app/lib/listingMapCoords'
 import { uploadHouseRulesPdf, removeHouseRulesPdfObject } from '@/app/lib/houseRulesPdf'
 import { listingDetailsErrMessage as errMessage } from '@/features/listings/lib/listingDetailsUtils'
+import {
+  filterListingImageFiles,
+  MAX_LISTING_IMAGES,
+  persistListingImageUrls,
+  uploadListingImageToStorage,
+} from '@/features/listings/lib/listingImageUpload'
 import { useTermsGate } from '@/features/auth/hooks/useTermsGate'
 import type { TranslationKey } from '@/lib/translations'
 
@@ -58,6 +64,8 @@ export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerAction
     setCopyFeedback, loading, confirmDialog, toast, t,
   } = args
   const { requireActiveAgreement } = useTermsGate()
+  const allImagesRef = useRef(allImages)
+  allImagesRef.current = allImages
   const returnTo = `/listings/${id}`
   const listingCity = (listing?.city || '').trim()
 
@@ -228,58 +236,58 @@ export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerAction
     }
   }, [loading, listing, id])
 
-  const handleUploadMore = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return
-
-    if (!gateUpload()) return
+  const handleUploadListingImage = async (
+    file: File,
+    onProgress: (pct: number) => void
+  ) => {
+    if (!gateUpload()) throw new Error('gate')
 
     if (showGalleryFormidlet) {
       toast(t('ownerCannotEditListingWhenFormidlet'), 'error')
-      return
+      throw new Error('formidla')
+    }
+
+    if (allImagesRef.current.length >= MAX_LISTING_IMAGES) {
+      toast(t('uploadError'), 'error')
+      throw new Error('max_files')
+    }
+
+    if (!filterListingImageFiles([file]).length) {
+      toast(t('uploadError'), 'error')
+      throw new Error('invalid_type')
     }
 
     setUploading(true)
     try {
-      const files = Array.from(e.target.files)
-      const newUrls = []
+      const url = await uploadListingImageToStorage(supabase, file, onProgress)
+      const updatedImageUrls = [...allImagesRef.current, url]
 
-      for (const file of files) {
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${Math.random()}.${fileExt}`
-        const filePath = `listing-images/${fileName}`
+      await persistListingImageUrls(supabase, id, updatedImageUrls)
 
-        const { error: uploadError } = await supabase.storage
-          .from('listings')
-          .upload(filePath, file)
-
-        if (uploadError) throw uploadError
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('listings').getPublicUrl(filePath)
-
-        newUrls.push(publicUrl)
-      }
-
-      const updatedImageUrls = [...allImages, ...newUrls]
-
-      const { error: updateError } = await supabase
-        .from('listings')
-        .update({
-          image_urls: updatedImageUrls,
-          image_url: updatedImageUrls[0], // Ensure we have a main thumbnail
-        })
-        .eq('id', id)
-
-      if (updateError) throw updateError
-
+      allImagesRef.current = updatedImageUrls
       setListing({ ...listing, image_urls: updatedImageUrls, image_url: updatedImageUrls[0] })
       setCurrentImageIndex(updatedImageUrls.length - 1)
       toast(t('imagesAdded'), 'success')
     } catch (err: unknown) {
-      toast(t('errorUploading') + errMessage(err))
+      if (err instanceof Error && ['gate', 'formidla', 'max_files', 'invalid_type'].includes(err.message)) {
+        throw err
+      }
+      throw err
     } finally {
       setUploading(false)
+    }
+  }
+
+  /** @deprecated Use handleUploadListingImage — kept for type compat during migration */
+  const handleUploadMore = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return
+    const files = Array.from(e.target.files)
+    for (const file of files) {
+      try {
+        await handleUploadListingImage(file, () => {})
+      } catch {
+        break
+      }
     }
   }
 
@@ -499,6 +507,7 @@ export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerAction
     handleUpdateField,
     handlePetPolicyChange,
     handleRegenerateTenantLink,
+    handleUploadListingImage,
     handleUploadMore,
     handleReorderListingImage,
     handleHouseRulesFileChange,

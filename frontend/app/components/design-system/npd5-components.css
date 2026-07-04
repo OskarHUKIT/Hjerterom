@@ -643,18 +643,197 @@ a.ds-property-card:hover {
 }
 
 .ds-upload-zone {
-  border: 2px dashed var(--border-medium);
+  border: 2px dashed var(--border-subtle);
   border-radius: 12px;
   padding: var(--space-6);
   text-align: center;
-  background: color-mix(in srgb, var(--bg-app) 80%, transparent);
+  background: var(--bg-card);
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .ds-upload-zone--active {
   border-color: var(--color-royal-blue);
-  background: color-mix(in srgb, var(--color-royal-blue) 8%, var(--bg-app));
+  background: color-mix(in srgb, var(--color-royal-blue) 8%, var(--bg-card));
+}
+
+.ds-file-upload-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: var(--space-4);
+  background: var(--bg-card);
+}
+
+.ds-file-upload-card__dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 160px;
+  padding: var(--space-5);
+  border: 2px dashed var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-card);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ds-file-upload-card__dropzone--active {
+  border-color: var(--color-royal-blue);
+  background: color-mix(in srgb, var(--color-royal-blue) 8%, var(--bg-card));
+}
+
+.ds-file-upload-card__dropzone--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ds-file-upload-card__icon {
+  opacity: 0.75;
+  color: var(--color-sky-blue);
+}
+
+.ds-file-upload-card__title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.ds-file-upload-card__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  max-width: 28rem;
+}
+
+.ds-file-upload-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ds-file-upload-card__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-app);
+}
+
+.ds-file-upload-card__item--error {
+  border-color: color-mix(in srgb, var(--color-danger) 40%, var(--border-subtle));
+}
+
+.ds-file-upload-card__item-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-file-upload-card__thumb,
+.ds-file-upload-card__thumb-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  object-fit: cover;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+}
+
+.ds-file-upload-card__thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.ds-file-upload-card__item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ds-file-upload-card__filename {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-file-upload-card__progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border-subtle);
+  overflow: hidden;
+}
+
+.ds-file-upload-card__progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-teal);
+  transition: width 0.15s ease;
+}
+
+.ds-file-upload-card__progress-text,
+.ds-file-upload-card__queued,
+.ds-file-upload-card__done,
+.ds-file-upload-card__error {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.ds-file-upload-card__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-teal);
+}
+
+.ds-file-upload-card__error {
+  color: var(--color-danger);
+}
+
+.ds-file-upload-card__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-sm, 44px);
+  height: var(--touch-target-sm, 44px);
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ds-file-upload-card__remove:focus-visible {
+  outline: 2px solid var(--color-royal-blue);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-file-upload-card__progress-bar {
+    transition: none;
+  }
 }
 
 .ds-upload-zone__title {

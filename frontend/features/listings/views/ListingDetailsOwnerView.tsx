@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import {
@@ -16,7 +17,8 @@ import {
 import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
 import StatusBadge from '@/app/components/design-system/StatusBadge'
 import GalleryGrid from '@/app/components/design-system/GalleryGrid'
-import FileUploadZone from '@/app/components/design-system/FileUploadZone'
+import FileUploadCard from '@/app/components/design-system/FileUploadCard'
+import { MAX_LISTING_IMAGES } from '@/features/listings/lib/listingImageUpload'
 import type { ListingDetailsRecord } from '@/app/lib/listingUiTypes'
 import type { TranslationKey } from '@/lib/translations'
 
@@ -31,25 +33,24 @@ export type ListingDetailsOwnerGalleryProps = {
   setIsFullscreen: React.Dispatch<React.SetStateAction<boolean>>
   uploading: boolean
   isSaving: string | null
-  onUploadMore: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onUploadImage: (file: File, onProgress: (pct: number) => void) => Promise<void>
+  onUploadError: () => void
   onReorderImage: (fromIndex: number, direction: -1 | 1) => void
   t: (key: TranslationKey) => string
+}
+
+function uploadHint(t: (key: TranslationKey) => string) {
+  return t('uploadDropzoneHint').replace('{max}', String(MAX_LISTING_IMAGES))
+}
+
+function uploadProgressLabel(t: (key: TranslationKey) => string, pct: number) {
+  return t('uploadProgress').replace('{pct}', String(Math.round(pct)))
 }
 
 function galleryStatusVariant(showGalleryFormidlet: boolean, status?: string | null) {
   if (showGalleryFormidlet) return 'info' as const
   if (status === 'Tilgjengelig') return 'success' as const
   return 'danger' as const
-}
-
-function uploadFilesToInputHandler(
-  files: File[],
-  onUploadMore: (e: React.ChangeEvent<HTMLInputElement>) => void
-) {
-  if (!files.length) return
-  const dt = new DataTransfer()
-  files.forEach((f) => dt.items.add(f))
-  onUploadMore({ target: { files: dt.files } } as React.ChangeEvent<HTMLInputElement>)
 }
 
 export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProps) {
@@ -64,10 +65,22 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
     setIsFullscreen,
     uploading,
     isSaving,
-    onUploadMore,
+    onUploadImage,
+    onUploadError,
     onReorderImage,
     t,
   } = props
+
+  const uploadFile = useCallback(
+    async (file: File, onProgress: (pct: number) => void) => {
+      try {
+        await onUploadImage(file, onProgress)
+      } catch {
+        onUploadError()
+      }
+    },
+    [onUploadImage, onUploadError]
+  )
 
   const galleryClassName = [
     'listing-image-gallery',
@@ -155,11 +168,15 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
           </>
         ) : (
           canOwnerEditListingDetail ? (
-            <FileUploadZone
-              title={t('listingImageDropzoneTitle')}
-              hint={t('listingImageDropzoneHint')}
-              accept="image/*"
-              onFiles={(files) => uploadFilesToInputHandler(files, onUploadMore)}
+            <FileUploadCard
+              title={t('uploadDropzoneTitle')}
+              hint={uploadHint(t)}
+              progressLabel={(pct) => uploadProgressLabel(t, pct)}
+              maxFiles={MAX_LISTING_IMAGES}
+              currentCount={0}
+              disabled={uploading}
+              uploadFile={uploadFile}
+              onUploadError={onUploadError}
             />
           ) : (
             <div className="listing-image-placeholder" aria-label={t('listingImageEmptyViewer')}>
@@ -173,11 +190,15 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
 
         {canOwnerEditListingDetail && allImages.length > 0 && (
           <div className="listing-gallery-upload-label" style={{ marginTop: 'var(--space-3)' }}>
-            <FileUploadZone
+            <FileUploadCard
               title={uploading ? t('listingImageUploading') : t('listingImageAddPhotos')}
-              hint={t('listingImageDropzoneHint')}
-              accept="image/*"
-              onFiles={(files) => uploadFilesToInputHandler(files, onUploadMore)}
+              hint={uploadHint(t)}
+              progressLabel={(pct) => uploadProgressLabel(t, pct)}
+              maxFiles={MAX_LISTING_IMAGES}
+              currentCount={allImages.length}
+              disabled={uploading || allImages.length >= MAX_LISTING_IMAGES}
+              uploadFile={uploadFile}
+              onUploadError={onUploadError}
               className="listing-gallery-upload-zone"
             />
           </div>

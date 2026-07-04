@@ -4,7 +4,6 @@ import { useToast } from '@/app/components/design-system'
 import { use, useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { OptimizedPublicStorageImage } from '../../components/OptimizedPublicStorageImage'
 import {
   ArrowLeft,
   Save,
@@ -43,10 +42,15 @@ import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 import PageSkeleton from '../../components/design-system/PageSkeleton'
-import { Stepper, FileUploadZone, IdentityVerificationDialog } from '@/app/components/design-system'
+import { Stepper, FileUploadCard, IdentityVerificationDialog } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
 import SharedAvailabilityCalendar from '@/features/listings/components/SharedAvailabilityCalendar'
 import RegisterLanesStep from '@/features/listings/components/register/RegisterLanesStep'
+import {
+  MAX_LISTING_IMAGES,
+  filterListingImageFiles,
+  uploadListingImagesToStorage,
+} from '@/features/listings/lib/listingImageUpload'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import {
   readRegisterDraft,
@@ -263,9 +267,23 @@ export default function HomeownerRegister() {
   }, [formData.city])
 
   const handleImageFiles = (files: File[]) => {
-    if (!files.length) return
-    setImageFiles([...imageFiles, ...files])
-    setImagePreviews([...imagePreviews, ...files.map((file) => URL.createObjectURL(file))])
+    const images = filterListingImageFiles(files)
+    if (!images.length && files.length) {
+      toast(t('uploadError'), 'error')
+      return
+    }
+    const room = MAX_LISTING_IMAGES - imageFiles.length
+    if (room <= 0) {
+      toast(t('uploadError'), 'error')
+      return
+    }
+    const batch = images.slice(0, room)
+    if (batch.length < images.length) {
+      toast(t('uploadError'), 'error')
+    }
+    if (!batch.length) return
+    setImageFiles((prev) => [...prev, ...batch])
+    setImagePreviews((prev) => [...prev, ...batch.map((file) => URL.createObjectURL(file))])
   }
 
   const removeImage = (index: number) => {
@@ -290,24 +308,21 @@ export default function HomeownerRegister() {
   }
 
   const uploadImages = async (files: File[]) => {
-    const urls = []
-    for (const file of files) {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random()}.${fileExt}`
-      const filePath = `listing-images/${fileName}`
-
-      const { error: uploadError } = await supabase.storage.from('listings').upload(filePath, file)
-
-      if (uploadError) throw uploadError
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('listings').getPublicUrl(filePath)
-
-      urls.push(publicUrl)
-    }
-    return urls
+    if (!files.length) return []
+    return uploadListingImagesToStorage(supabase, files)
   }
+
+  const stagedPhotoItems = imageFiles.map((file, index) => ({
+    id: String(index),
+    name: file.name,
+    progress: 100,
+    status: 'queued' as const,
+    previewUrl: imagePreviews[index],
+  }))
+
+  const uploadHint = t('uploadDropzoneHint').replace('{max}', String(MAX_LISTING_IMAGES))
+  const uploadProgressText = (pct: number) =>
+    t('uploadProgress').replace('{pct}', String(Math.round(pct)))
 
   const runGeocode = useCallback(async () => {
     const fd = formRef.current
@@ -515,7 +530,13 @@ export default function HomeownerRegister() {
 
       let imageUrls: string[] = []
       if (imageFiles.length > 0) {
-        imageUrls = await uploadImages(imageFiles)
+        try {
+          imageUrls = await uploadImages(imageFiles)
+        } catch {
+          toast(t('uploadError'), 'error')
+          setLoading(false)
+          return
+        }
       }
 
       const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
@@ -1257,32 +1278,17 @@ export default function HomeownerRegister() {
                 <Camera size={20} /> {t('regImagesSection')}
               </h3>
               <div className="register-upload-dropzone">
-                <div className="image-previews-grid">
-                  {imagePreviews.map((p, i) => (
-                    <div key={i} className="image-preview-item">
-                      <OptimizedPublicStorageImage
-                        variant="fill"
-                        src={p}
-                        alt={`${t('regImagesSection')} — forhåndsvisning ${i + 1}`}
-                        sizes="(max-width: 768px) 33vw, 220px"
-                        className="image-preview-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(i)}
-                        className="image-preview-remove"
-                        aria-label={t('regHouseRulesClear')}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <FileUploadZone
-                  title={t('regUploadImages')}
-                  hint={t('listingImageDropzoneHint')}
-                  accept="image/*"
-                  onFiles={handleImageFiles}
+                <FileUploadCard
+                  title={t('uploadDropzoneTitle')}
+                  hint={uploadHint}
+                  progressLabel={uploadProgressText}
+                  queuedLabel={t('uploadQueued')}
+                  maxFiles={MAX_LISTING_IMAGES}
+                  currentCount={imageFiles.length}
+                  stagedItems={stagedPhotoItems}
+                  onFilesSelected={handleImageFiles}
+                  onRemoveStaged={(id) => removeImage(Number(id))}
+                  onUploadError={() => toast(t('uploadError'), 'error')}
                 />
               </div>
               <div className="register-house-rules-panel">
