@@ -36,6 +36,8 @@ export const commonTranslations = {
     heroEyebrow: "Kommune · utleier · gjest",
     heroDesc:
       "Hjerterum er det trygge bindeleddet mellom kommune og private utleiere, for sosial formidling, arrangement og turisme i Nord-Norge. Løsningen sikres med BankID for utleiere og saksbehandlere.",
+    heroPreviewAlt: "Forhåndsvisning av Hjerterum-plattformen for boligformidling i Nord-Norge",
+    heroCtaText: "Logg inn",
     homeTrustAria: "Hvorfor du kan stole på Hjerterum",
     homeTrustSecure: "BankID-sikret",
     homeTrustA11y: "Tilgjengelig design",
@@ -477,6 +479,8 @@ export const commonTranslations = {
     heroEyebrow: "Kommune · oamasteaddji · guossálaš",
     heroDesc:
       "Boly lea sihkar oktavuohta kommuvnna ja priváhta beaivvášoamasteaddji gaskka, ja doarjju sosiala formidemiija, arrangementa ja turisma Davvi-Norggas. BankID várrejit láttodaga.",
+    heroPreviewAlt: "Oaidnin Hjerterum-platformii beaivvášformidemiijai Davvi-Norggas",
+    heroCtaText: "Sisa",
     homeTrustAria: "Manin sáhtát luohtá Boly",
     homeTrustSecure: "BankID-várrehus",
     homeTrustA11y: "Oažžu doaimmaš design",
@@ -914,6 +918,8 @@ export const commonTranslations = {
     heroEyebrow: "Municipality · landlord · guest",
     heroDesc:
       "Boly is the secure link between municipalities and private property owners, for social mediation, events and tourism in Northern Norway. The solution is secured by BankID for landlords and caseworkers.",
+    heroPreviewAlt: "Preview of the Hjerterum housing mediation platform for Northern Norway",
+    heroCtaText: "Log in",
     homeTrustAria: "Why you can trust Boly",
     homeTrustSecure: "BankID secured",
     homeTrustA11y: "Accessible design",

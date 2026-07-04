@@ -8,6 +8,7 @@ module.exports = {
   darkMode: ['selector', '[data-theme="dark"]'],
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
     './context/**/*.{js,ts,jsx,tsx}',
     './lib/**/*.{js,ts,jsx,tsx}',
   ],
@@ -36,6 +37,15 @@ module.exports = {
       },
       borderRadius: {
         boly: '10px',
+      },
+      keyframes: {
+        grid: {
+          '0%': { transform: 'translateY(-50%)' },
+          '100%': { transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        grid: 'grid 15s linear infinite',
       },
     },
   },
