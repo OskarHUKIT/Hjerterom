@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
+import { readRpcOk } from '@/app/lib/supabaseRpc'
 import { useLanguage } from '@/context/LanguageContext'
 import {
   NotificationsWithActions,
@@ -47,17 +48,21 @@ export default function LandlordBookingRequests({ listingIds }: Props) {
     let cancelled = false
     setLoading(true)
     void (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('bookings')
         .select('id, listing_id, guest_name, guest_email, check_in, check_out, status, message')
         .in('listing_id', listingIds)
         .in('status', ['pending', 'accepted'])
         .order('created_at', { ascending: false })
         .limit(30)
-      if (!cancelled) {
+      if (cancelled) return
+      if (error) {
+        toast(error.message, 'error')
+        setRows([])
+      } else {
         setRows((data ?? []) as BookingRow[])
-        setLoading(false)
       }
+      setLoading(false)
     })()
     return () => {
       cancelled = true
@@ -70,24 +75,35 @@ export default function LandlordBookingRequests({ listingIds }: Props) {
       const { data, error } = await supabase.rpc('prepare_booking_payment', {
         p_booking_id: id,
       })
-      if (error || !data?.ok) {
-        toast(error?.message ?? t('errSaveListing'), 'error')
+      const payload = readRpcOk(data)
+      if (error || !payload.ok) {
+        toast(error?.message ?? payload.reason ?? payload.error ?? t('errSaveListing'), 'error')
         setBusyId(null)
         return
       }
     } else {
-      const { error } = await supabase.from('bookings').update({ status }).eq('id', id)
-      if (error) {
-        toast(error.message, 'error')
+      const { data, error } = await supabase
+        .from('bookings')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select('id')
+        .maybeSingle()
+      if (error || !data) {
+        toast(error?.message ?? t('errSaveListing'), 'error')
         setBusyId(null)
         return
       }
     }
     setBusyId(null)
     setRows((prev) =>
-      status === 'rejected' ? prev.filter((r) => r.id !== id) : prev.map((r) => (r.id === id ? { ...r, status } : r))
+      status === 'rejected'
+        ? prev.filter((r) => r.id !== id)
+        : prev.map((r) => (r.id === id ? { ...r, status } : r))
     )
-    toast(status === 'accepted' ? t('landlordBookingAcceptedToast') : t('finnBookingUpdated'), 'success')
+    toast(
+      status === 'accepted' ? t('landlordBookingAcceptedToast') : t('finnBookingUpdated'),
+      'success'
+    )
   }
 
   const handleReject = async (row: BookingRow) => {
