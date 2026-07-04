@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { Button } from '@/app/components/ui/Button'
-import { useToast } from '@/app/components/design-system'
+import { useToast, Stepper } from '@/app/components/design-system'
 import { logPlatformEvent } from '@/app/lib/platformEvents'
 
 type ChatMessage = { role: string; content: string; at?: string }
@@ -193,8 +193,18 @@ export default function LosChatPage() {
     })
   }
 
+  const losStep = handedOff ? 2 : messages.some((m) => m.role === 'user') ? 1 : 0
+
   return (
     <>
+      <Stepper
+        currentStep={losStep}
+        steps={[
+          { id: 'contact', label: t('losStepContact') },
+          { id: 'understand', label: t('losStepUnderstand') },
+          { id: 'handoff', label: t('losStepHandoff') },
+        ]}
+      />
       {handedOff ? (
         <div className="los-handoff-banner" role="status">
           {caseReference ? (

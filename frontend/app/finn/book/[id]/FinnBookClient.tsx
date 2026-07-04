@@ -6,7 +6,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import type { TranslationKey } from '@/lib/translations'
-import { PageSkeleton, PortalPageShell, useToast } from '@/app/components/design-system'
+import { PageSkeleton, PortalPageShell, useToast, Stepper, DismissibleAlert } from '@/app/components/design-system'
 import {
   formatNokFromCents,
   platformApplicationFeeCents,
@@ -132,10 +132,21 @@ export default function FinnBookClient() {
   const platformFee =
     platformFeeCents > 0 ? formatNokFromCents(platformFeeCents) : null
 
+  const checkoutStep =
+    booking?.status === 'paid' ? 2 : booking?.status === 'accepted' || booking?.status === 'pending' ? 1 : 0
+
   return (
     <PortalPageShell loading={pageLoading} loadingFallback={<PageSkeleton minHeight={240} />}>
       {booking ? (
     <section>
+      <Stepper
+        currentStep={checkoutStep}
+        steps={[
+          { id: 'details', label: t('finnCheckoutStepDetails') },
+          { id: 'payment', label: t('finnCheckoutStepPayment') },
+          { id: 'confirm', label: t('finnCheckoutStepConfirm') },
+        ]}
+      />
       <div className="finn-hero">
         <h1>{t('finnCheckoutTitle')}</h1>
         <p>{t('finnCheckoutLead')}</p>
@@ -155,6 +166,11 @@ export default function FinnBookClient() {
         </p>
         {booking.status === 'accepted' || booking.status === 'pending' ? (
           <>
+            {!vippsConfigured ? (
+              <DismissibleAlert storageKey="finn-vipps-not-ready" tone="warning">
+                {t('finnVippsNotReady')}
+              </DismissibleAlert>
+            ) : null}
             <fieldset style={{ border: 'none', margin: '0 0 var(--space-4)', padding: 0 }}>
               <legend style={{ fontWeight: 600, marginBottom: 8 }}>{t('finnPaymentMethod')}</legend>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -177,9 +193,7 @@ export default function FinnBookClient() {
                   Vipps
                 </label>
               ) : (
-                <p className="finn-card-meta" style={{ margin: '4px 0 0' }}>
-                  {t('finnVippsNotReady')}
-                </p>
+                null
               )}
             </fieldset>
             <Button type="button" variant="accent" disabled={paying} onClick={() => void pay()}>

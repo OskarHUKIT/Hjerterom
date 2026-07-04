@@ -7,6 +7,7 @@ import OpsPageHeader from '../components/OpsPageHeader'
 import OpsPanel from '../components/OpsPanel'
 import OpsAlert from '../components/OpsAlert'
 import OpsGdprBanner from '../components/OpsGdprBanner'
+import { StatisticsCard } from '@/app/components/design-system'
 import { OpsPageSkeleton } from '../components/OpsSkeleton'
 import {
   opsGetDashboardStats,
@@ -96,22 +97,32 @@ export default function OpsStatsPage() {
       <OpsGdprBanner />
 
       <div className="ops-kpi-grid">
-        <div className="ops-kpi-card">
-          <p className="ops-kpi-label">{t('opsKpiTerminatedAgreements')}</p>
-          <p className="ops-kpi-value">{stats.agreements_terminated}</p>
-        </div>
-        <div className="ops-kpi-card">
-          <p className="ops-kpi-label">{t('opsKpiResignPending')}</p>
-          <p className="ops-kpi-value">{stats.resign_pending}</p>
-        </div>
-        <div className="ops-kpi-card">
-          <p className="ops-kpi-label">{t('opsKpiSign30d')}</p>
-          <p className="ops-kpi-value">{stats.sign_events_30d}</p>
-        </div>
-        <div className="ops-kpi-card">
-          <p className="ops-kpi-label">{t('opsKpiTermsApproved')}</p>
-          <p className="ops-kpi-value">{stats.terms_approved}</p>
-        </div>
+        <StatisticsCard
+          label={t('opsKpiTerminatedAgreements')}
+          value={stats.agreements_terminated}
+          delta={stats.sign_events_30d > 0 ? stats.sign_events_30d : null}
+          detailsHref="/ops/accounts"
+          detailsLabel={t('opsStatsSeeDetails')}
+        />
+        <StatisticsCard
+          label={t('opsKpiResignPending')}
+          value={stats.resign_pending}
+          detailsHref="/ops/terms"
+          detailsLabel={t('opsStatsSeeDetails')}
+        />
+        <StatisticsCard
+          label={t('opsKpiSign30d')}
+          value={stats.sign_events_30d}
+          delta={stats.sign_events_30d}
+          detailsHref="/ops/stats"
+          detailsLabel={t('opsStatsSeeDetails')}
+        />
+        <StatisticsCard
+          label={t('opsKpiTermsApproved')}
+          value={stats.terms_approved}
+          detailsHref="/ops/terms"
+          detailsLabel={t('opsStatsSeeDetails')}
+        />
       </div>
 
       <div className="ops-stack">

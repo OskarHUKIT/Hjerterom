@@ -1,4 +1,6 @@
 /* Professional Dark Design System with Northern Scenery */
+@import './components/design-system/npd5-components.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -23,6 +25,10 @@
   --color-sky-blue: #7dd3fc;
   --color-teal: #2dd4bf;
   --color-dark-teal: #0d9488;
+  /* NPD-5 semantic status (D3) */
+  --ds-success: #2dd4bf;
+  --ds-warning: #f59e0b;
+  --ds-danger: #ef4444;
   /* Sekundær interaksjon (outline/CTA #2) */
   --color-blue-cta-secondary: #38bdf8;
   --color-blue-cta-secondary-hover: #0ea5e9;
@@ -117,6 +123,9 @@
   --color-accent: #0369a1; /* Mørkere blå for god kontrast på lys bakgrunn */
   --color-sky-blue: #0369a1; /* Samme mørkere blå – erstatter lyseblå i lys modus */
   --color-royal-blue: #0369a1; /* Konsistent med accent i lys modus */
+  --ds-success: #0d9488;
+  --ds-warning: #d97706;
+  --ds-danger: #dc2626;
   /* Kalenderstatus – klarere farger i lys modus */
   --calendar-formidlet-bg: rgba(3, 105, 161, 0.4);
   --calendar-formidlet-range-bg: rgba(3, 105, 161, 0.32);

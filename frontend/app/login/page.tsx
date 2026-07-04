@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { Mail, Lock, UserPlus, LogIn, User, Phone } from 'lucide-react'
 import Logo from '../components/Logo'
 import FieldInput from '../components/design-system/FieldInput'
+import ShellChromeControls from '../components/design-system/ShellChromeControls'
 import { useLanguage } from '../../context/LanguageContext'
 import { bolyLocaleToSignicatUi } from '../lib/signicatLocale'
 import { getLandlordPostLoginHref } from '../lib/landlordNavGate'
@@ -295,7 +296,10 @@ function LoginPageContent() {
     <main className="login-page">
       <div className="card login-card">
         <div className="hrt-login-header">
-          <Logo />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+            <Logo />
+            <ShellChromeControls compact className="login-chrome-controls" />
+          </div>
           <h1>{isSignUp ? t('createAccount') : t('welcomeBack')}</h1>
           <p>{isSignUp ? t('createAccountDesc') : t('loginDesc')}</p>
         </div>

@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { LogIn, Presentation, Compass, MessageCircle, Shield, Accessibility, MapPin } from 'lucide-react'
+import { LogIn, Presentation, Compass, MessageCircle, Shield, Accessibility, MapPin, Building2, Home as HomeIcon } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import { usePlatformMode } from '../context/PlatformModeContext'
 import PortalCard from './components/design-system/PortalCard'
+import FeatureSection from './components/design-system/FeatureSection'
 import Modal from './components/design-system/Modal'
 
 export default function Home() {
@@ -92,6 +93,41 @@ export default function Home() {
           ) : null}
         </div>
       </div>
+
+      <FeatureSection
+        title={t('homeFeaturesTitle')}
+        lead={t('homeFeaturesLead')}
+        items={[
+          {
+            icon: Building2,
+            title: t('homeFeatureKommuneTitle'),
+            description: t('homeFeatureKommuneDesc'),
+          },
+          {
+            icon: HomeIcon,
+            title: t('homeFeatureLandlordTitle'),
+            description: t('homeFeatureLandlordDesc'),
+          },
+          ...(flags.finn
+            ? [
+                {
+                  icon: Compass,
+                  title: t('homeFeatureFinnTitle'),
+                  description: t('homeFeatureFinnDesc'),
+                },
+              ]
+            : []),
+          ...(flags.los
+            ? [
+                {
+                  icon: MessageCircle,
+                  title: t('homeFeatureLosTitle'),
+                  description: t('homeFeatureLosDesc'),
+                },
+              ]
+            : []),
+        ]}
+      />
 
       <Modal open={showDemoPopup} onClose={() => setShowDemoPopup(false)} title={t('homeDemoCardTitle')}>
         <div className="hrt-modal-contact">

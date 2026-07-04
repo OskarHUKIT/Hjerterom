@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Mail, CalendarCheck, Star } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { PageSkeleton, PortalPageShell, useConfirm, useToast } from '@/app/components/design-system'
+import { PageSkeleton, PortalPageShell, useConfirm, useToast, BookingTimeline, bookingTimelineActiveIndex } from '@/app/components/design-system'
 import { QK } from '@/app/lib/queries/queryKeys'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
 import { formatDateNo } from '@/app/lib/dateFormat'
@@ -288,7 +288,15 @@ export default function FinnMineClient() {
                   <p className="finn-card-meta" style={{ margin: '0 0 8px' }}>
                     {listing?.city} · {formatDateNo(b.check_in)} – {formatDateNo(b.check_out)}
                   </p>
-                  <span className="finn-badge">{statusLabel(b.status)}</span>
+                  <BookingTimeline
+                    activeIndex={bookingTimelineActiveIndex(b.status)}
+                    steps={[
+                      { id: 'requested', label: t('finnTimelineRequested'), description: t('finnTimelineRequestedDesc') },
+                      { id: 'accepted', label: t('finnTimelineAccepted'), description: t('finnTimelineAcceptedDesc') },
+                      { id: 'paid', label: t('finnTimelinePaid'), description: t('finnTimelinePaidDesc') },
+                      { id: 'stay', label: t('finnTimelineStay'), description: t('finnTimelineStayDesc') },
+                    ]}
+                  />
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
                     {(b.status === 'accepted' || b.status === 'pending') && (
                       <Link

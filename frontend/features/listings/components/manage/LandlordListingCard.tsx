@@ -16,6 +16,7 @@ import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicSto
 import { publicContactInfoFormPdfUrl } from '@/app/lib/storagePublicUrl'
 import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import { useLanguage } from '@/context/LanguageContext'
+import StatusBadge from '@/app/components/design-system/StatusBadge'
 import ListingTourismSettings from '@/features/listings/components/ListingTourismSettings'
 import ListingCoHostsPanel from '@/features/listings/components/ListingCoHostsPanel'
 import ListingEventOptIn from '@/features/listings/components/ListingEventOptIn'
@@ -67,11 +68,6 @@ type LandlordListingCardProps = {
   onRefreshEvents: () => Promise<void>
 }
 
-function statusBadgeClass(todaySt: string) {
-  if (todaySt === 'Formidla') return 'hm-status-badge--formidlet'
-  if (todaySt === 'Utilgjengelig') return 'hm-status-badge--unavailable'
-  return 'hm-status-badge--available'
-}
 
 export default function LandlordListingCard({
   listing,
@@ -142,13 +138,22 @@ export default function LandlordListingCard({
               >
                 <h3>{listing.address}</h3>
               </button>
-              <span className={`hm-status-badge ${statusBadgeClass(todaySt)}`}>
-                {todaySt === 'Formidla'
-                  ? t('formidlet')
-                  : todaySt === 'Utilgjengelig'
-                    ? t('unavailable')
-                    : t('available')}
-              </span>
+              <StatusBadge
+                label={
+                  todaySt === 'Formidla'
+                    ? t('formidlet')
+                    : todaySt === 'Utilgjengelig'
+                      ? t('unavailable')
+                      : t('available')
+                }
+                variant={
+                  todaySt === 'Formidla'
+                    ? 'info'
+                    : todaySt === 'Utilgjengelig'
+                      ? 'danger'
+                      : 'success'
+                }
+              />
             </div>
             <p className="text-sm hm-listing-meta">
               {isMobileLayout

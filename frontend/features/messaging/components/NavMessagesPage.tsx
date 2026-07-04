@@ -621,8 +621,8 @@ export default function NavMessagesPage() {
                     ? otherUser
                       ? compactMobileChat
                         ? otherUser.name
-                        : `Chat med ${otherUser.name}`
-                      : 'Chat'
+                        : t('messagesThreadWith').replace('{name}', otherUser.name)
+                      : t('messages')
                     : otherUser?.name || t('messagesLandlordSharedChannelTitle')}
                 </span>
               </div>
