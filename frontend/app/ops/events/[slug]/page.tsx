@@ -6,7 +6,6 @@ import { useParams } from 'next/navigation'
 import { opsListKommuner, type OpsKommuneListItem } from '@/app/lib/opsApi'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import OpsShell from '../../components/OpsShell'
 import OpsPageHeader from '../../components/OpsPageHeader'
 import OpsPanel from '../../components/OpsPanel'
 import OpsBadge from '../../components/OpsBadge'
@@ -151,29 +150,25 @@ export default function OpsEventDetailPage() {
   }
 
   if (loading) {
-    return (
-      <OpsShell>
-        <OpsPageSkeleton />
-      </OpsShell>
-    )
+    return <OpsPageSkeleton />
   }
 
   if (!event) {
     return (
-      <OpsShell>
+      <>
         <OpsPageHeader title={t('opsEventsTitle')} />
         <p>{t('finnEventNotFound')}</p>
         <Link href="/ops/events" className={buttonClassName('secondary')}>
           {t('confirmCancel')}
         </Link>
-      </OpsShell>
+      </>
     )
   }
 
   const status = String(event.status ?? 'draft')
 
   return (
-    <OpsShell>
+    <>
       <OpsPageHeader
         title={String(event.name ?? '')}
         lead={String(event.description_public ?? '')}
@@ -268,6 +263,6 @@ export default function OpsEventDetailPage() {
           </button>
         </div>
       </OpsPanel>
-    </OpsShell>
+    </>
   )
 }

@@ -2,14 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Building2, MoreHorizontal } from 'lucide-react'
-import { useLanguage } from '../../../context/LanguageContext'
-
-const PRIMARY = [
-  { href: '/ops', icon: LayoutDashboard, labelKey: 'opsNavDashboard' as const, exact: true },
-  { href: '/ops/kommuner', icon: Building2, labelKey: 'opsNavKommuner' as const },
-  { href: '/ops/accounts', icon: Users, labelKey: 'opsNavAccounts' as const },
-] as const
+import { Megaphone, MoreHorizontal } from 'lucide-react'
+import { useLanguage } from '@/context/LanguageContext'
+import { OPS_MOBILE_PRIMARY, isOpsNavActive } from '../lib/opsNav'
 
 export default function OpsMobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const pathname = usePathname()
@@ -17,12 +12,9 @@ export default function OpsMobileNav({ onOpenMenu }: { onOpenMenu: () => void })
 
   return (
     <nav className="ops-mobile-nav" aria-label={t('opsConsoleTitle')}>
-      {PRIMARY.map((item) => {
+      {OPS_MOBILE_PRIMARY.map((item) => {
         const Icon = item.icon
-        const active =
-          'exact' in item && item.exact
-            ? pathname === item.href
-            : pathname === item.href || pathname?.startsWith(`${item.href}/`)
+        const active = isOpsNavActive(pathname ?? '', item.href, item.exact)
         return (
           <Link
             key={item.href}
@@ -34,6 +26,15 @@ export default function OpsMobileNav({ onOpenMenu }: { onOpenMenu: () => void })
           </Link>
         )
       })}
+      <Link
+        href="/ops/broadcasts"
+        className={`ops-mobile-nav-item${
+          isOpsNavActive(pathname ?? '', '/ops/broadcasts') ? ' ops-mobile-nav-item--active' : ''
+        }`}
+      >
+        <Megaphone size={20} aria-hidden />
+        <span>{t('opsNavBroadcasts')}</span>
+      </Link>
       <button
         type="button"
         className="ops-mobile-nav-item ops-mobile-nav-item--menu"

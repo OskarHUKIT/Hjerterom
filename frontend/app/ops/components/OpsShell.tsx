@@ -2,57 +2,28 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  Shield,
-  BarChart3,
-  Megaphone,
-  Menu,
-  Building2,
-  HeartPulse,
-  ArrowLeft,
-  CalendarDays,
-  SlidersHorizontal,
-} from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { useLanguage } from '../../../context/LanguageContext'
-import { usePlatformMode } from '../../../context/PlatformModeContext'
+import { Menu } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useLanguage } from '@/context/LanguageContext'
+import { usePlatformMode } from '@/context/PlatformModeContext'
 import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 import BottomSheet from '../../components/BottomSheet'
 import OpsMobileNav from './OpsMobileNav'
+import OpsSidebar from './OpsSidebar'
 import { OpsPageSkeleton } from './OpsSkeleton'
+import { Badge } from '@/components/ui/badge'
+import { opsGetDashboardStats } from '@/app/lib/opsApi'
+import { flattenOpsNav, isOpsNavActive } from '../lib/opsNav'
+import { OPS_NAV_GROUPS } from '../lib/opsNav'
+import { ArrowLeft } from 'lucide-react'
 
-type NavItem = {
-  href: string
-  icon: typeof LayoutDashboard
-  labelKey: 'opsNavDashboard' | 'opsNavPlatform' | 'opsNavBroadcasts' | 'opsNavEvents' | 'opsNavKommuner' | 'opsNavServiceAreas' | 'opsNavAccounts' | 'opsNavTerms' | 'opsNavHealth' | 'opsNavSecurity' | 'opsNavStats'
-  exact?: boolean
-  requiresCentralEvents?: boolean
-}
-
-const ALL_NAV_ITEMS: NavItem[] = [
-  { href: '/ops', icon: LayoutDashboard, labelKey: 'opsNavDashboard', exact: true },
-  { href: '/ops/platform', icon: SlidersHorizontal, labelKey: 'opsNavPlatform' },
-  { href: '/ops/broadcasts', icon: Megaphone, labelKey: 'opsNavBroadcasts' },
-  { href: '/ops/events', icon: CalendarDays, labelKey: 'opsNavEvents', requiresCentralEvents: true },
-  { href: '/ops/kommuner', icon: Building2, labelKey: 'opsNavKommuner' },
-  { href: '/ops/service-areas', icon: Building2, labelKey: 'opsNavServiceAreas' },
-  { href: '/ops/accounts', icon: Users, labelKey: 'opsNavAccounts' },
-  { href: '/ops/terms', icon: FileText, labelKey: 'opsNavTerms' },
-  { href: '/ops/health', icon: HeartPulse, labelKey: 'opsNavHealth' },
-  { href: '/ops/security', icon: Shield, labelKey: 'opsNavSecurity' },
-  { href: '/ops/stats', icon: BarChart3, labelKey: 'opsNavStats' },
-]
-
-function isActive(pathname: string, href: string, exact?: boolean) {
-  if (exact) return pathname === href
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
-
-function currentPageLabel(pathname: string, items: NavItem[], t: ReturnType<typeof useLanguage>['t']) {
-  const match = items.find((item) => isActive(pathname, item.href, item.exact))
+function currentPageLabel(
+  pathname: string,
+  centralEvents: boolean,
+  t: ReturnType<typeof useLanguage>['t'],
+) {
+  const items = flattenOpsNav(centralEvents)
+  const match = items.find((item) => isOpsNavActive(pathname, item.href, item.exact))
   return match ? t(match.labelKey) : t('opsConsoleTitle')
 }
 
@@ -62,14 +33,23 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
   const access = useAuthGate({ mode: 'ops' })
   const { flags } = usePlatformMode()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [termsPending, setTermsPending] = useState(0)
 
-  const navItems = useMemo(
-    () =>
-      ALL_NAV_ITEMS.filter(
-        (item) => !item.requiresCentralEvents || flags.centralEvents
-      ),
-    [flags.centralEvents]
-  )
+  useEffect(() => {
+    if (access.data?.kind !== 'authorized') return
+    let cancelled = false
+    void (async () => {
+      try {
+        const stats = await opsGetDashboardStats()
+        if (!cancelled) setTermsPending(stats.terms_pending)
+      } catch {
+        /* non-blocking */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [access.data?.kind])
 
   if (access.isLoading || access.data?.kind === 'unauthenticated') {
     return (
@@ -89,40 +69,12 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
     )
   }
 
-  const pageTitle = currentPageLabel(pathname ?? '', navItems, t)
+  const pageTitle = currentPageLabel(pathname ?? '', flags.centralEvents, t)
 
   return (
     <div className="ops-root">
       <div className="ops-shell">
-        <aside className="ops-sidebar" aria-label={t('opsConsoleTitle')}>
-          <div className="ops-sidebar-brand">
-            <p className="ops-sidebar-kicker">{t('opsConsoleKicker')}</p>
-            <h1 className="ops-sidebar-title">{t('opsConsoleTitle')}</h1>
-            <p className="ops-sidebar-sub">{t('opsConsoleSubtitle')}</p>
-          </div>
-          <nav className="ops-sidebar-nav">
-            {navItems.map((item) => {
-              const Icon = item.icon
-              const active = isActive(pathname ?? '', item.href, item.exact)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`ops-nav-link${active ? ' ops-nav-link--active' : ''}`}
-                >
-                  <Icon size={18} aria-hidden />
-                  <span>{t(item.labelKey)}</span>
-                </Link>
-              )
-            })}
-          </nav>
-          <div className="ops-sidebar-foot">
-            <Link href="/" className="ops-sidebar-exit">
-              <ArrowLeft size={16} aria-hidden />
-              {t('opsExitToApp')}
-            </Link>
-          </div>
-        </aside>
+        <OpsSidebar termsPending={termsPending} />
 
         <div className="ops-main">
           <header className="ops-topbar">
@@ -135,9 +87,19 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
               >
                 <Menu size={22} />
               </button>
-              <h2 className="ops-topbar-title">{pageTitle}</h2>
+              <div className="ops-topbar-copy">
+                <p className="ops-topbar-kicker">{t('opsConsoleKicker')}</p>
+                <h2 className="ops-topbar-title">{pageTitle}</h2>
+              </div>
             </div>
-            <div className="ops-topbar-org-slot">
+            <div className="ops-topbar-actions">
+              {termsPending > 0 ? (
+                <Link href="/ops/terms" className="ops-topbar-alert">
+                  <Badge variant="destructive">
+                    {t('opsPendingTermsCount').replace('{count}', String(termsPending))}
+                  </Badge>
+                </Link>
+              ) : null}
               <Link href="/ops/platform" className="ops-topbar-mode-link">
                 {flags.isHjerterumMode ? t('opsPlatformModulesActive') : t('opsPlatformSocialLive')}
               </Link>
@@ -155,23 +117,38 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
         title={t('opsConsoleTitle')}
         closeLabel={t('close')}
       >
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const active = isActive(pathname ?? '', item.href, item.exact)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMenuOpen(false)}
-                className={`ops-nav-link${active ? ' ops-nav-link--active' : ''}`}
-              >
-                <Icon size={18} aria-hidden />
-                <span>{t(item.labelKey)}</span>
-              </Link>
-            )
-          })}
-          <Link href="/" onClick={() => setMenuOpen(false)} className="ops-sidebar-exit" style={{ marginTop: 'var(--space-2)' }}>
+        <nav className="ops-mobile-sheet-nav">
+          {OPS_NAV_GROUPS.flatMap((group) =>
+            group.items
+              .filter((item) => !item.requiresCentralEvents || flags.centralEvents)
+              .map((item) => {
+                const Icon = item.icon
+                const active = isOpsNavActive(pathname ?? '', item.href, item.exact)
+                const badge = item.termsBadge ? termsPending : undefined
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className={`ops-nav-link${active ? ' ops-nav-link--active' : ''}`}
+                  >
+                    <Icon size={18} aria-hidden />
+                    <span>{t(item.labelKey)}</span>
+                    {badge != null && badge > 0 ? (
+                      <Badge variant="destructive" className="ops-nav-link-badge">
+                        {badge > 99 ? '99+' : badge}
+                      </Badge>
+                    ) : null}
+                  </Link>
+                )
+              }),
+          )}
+          <Link
+            href="/"
+            onClick={() => setMenuOpen(false)}
+            className="ops-sidebar-exit"
+            style={{ marginTop: 'var(--space-2)' }}
+          >
             <ArrowLeft size={16} aria-hidden />
             {t('opsExitToApp')}
           </Link>

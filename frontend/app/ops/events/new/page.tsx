@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { getAuthUserDeduped, supabase } from '@/app/lib/supabase'
 import { opsListKommuner, type OpsKommuneListItem } from '@/app/lib/opsApi'
 import { useLanguage } from '@/context/LanguageContext'
-import OpsShell from '../../components/OpsShell'
 import OpsPageHeader from '../../components/OpsPageHeader'
 import OpsPanel from '../../components/OpsPanel'
 import { useToast } from '@/app/components/design-system'
@@ -110,7 +109,7 @@ export default function OpsEventNewPage() {
   }
 
   return (
-    <OpsShell>
+    <>
       <OpsPageHeader title={t('opsEventNew')} lead={t('opsEventsDesc')} />
       <OpsPanel>
         <div className="ops-form-grid">
@@ -233,6 +232,6 @@ export default function OpsEventNewPage() {
           </button>
         </div>
       </OpsPanel>
-    </OpsShell>
+    </>
   )
 }

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Calendar, Plus } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import OpsShell from '../components/OpsShell'
 import OpsPageHeader from '../components/OpsPageHeader'
 import OpsPanel from '../components/OpsPanel'
 import OpsEmptyState from '../components/OpsEmptyState'
@@ -58,7 +57,7 @@ export default function OpsEventsPage() {
     mode === 'turisme' ? t('opsEventRoutingTourism') : t('opsEventRoutingSaksbehandler')
 
   return (
-    <OpsShell>
+    <>
       <OpsPageHeader
         title={t('opsEventsTitle')}
         lead={t('opsEventsDesc')}
@@ -128,6 +127,6 @@ export default function OpsEventsPage() {
           </ul>
         </OpsPanel>
       )}
-    </OpsShell>
+    </>
   )
 }
