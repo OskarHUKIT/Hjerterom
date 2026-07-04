@@ -337,6 +337,15 @@
   border: 1px solid var(--border-subtle);
 }
 
+.image-preview-cover {
+  object-fit: cover;
+}
+
+.image-preview-item img,
+.image-preview-item span {
+  object-fit: cover;
+}
+
 .image-preview-remove {
   position: absolute;
   top: 5px;
@@ -454,9 +463,18 @@
 }
 
 .register-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 220px;
   padding: var(--space-4) var(--space-10);
   font-size: 1.125rem;
   border-radius: var(--hrt-radius-md, 14px);
+}
+
+.register-submit-btn svg.is-busy {
+  opacity: 0.6;
 }
 
 .form-textarea-tall {

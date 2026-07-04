@@ -1112,7 +1112,7 @@ export default function HomeownerRegister() {
                         src={p}
                         alt={`${t('regImagesSection')} — forhåndsvisning ${i + 1}`}
                         sizes="(max-width: 768px) 33vw, 220px"
-                        style={{ objectFit: 'cover' }}
+                        className="image-preview-cover"
                       />
                       <button
                         type="button"
@@ -1202,7 +1202,7 @@ export default function HomeownerRegister() {
               className="button register-submit-btn"
               disabled={loading || !formData.has_insurance}
             >
-              {loading ? <Save size={22} style={{ opacity: 0.6 }} /> : <Save size={22} />}
+              {loading ? <Save size={22} className="is-busy" /> : <Save size={22} />}
               {loading ? t('regSaving') : t('regPublish')}
             </button>
           </div>
