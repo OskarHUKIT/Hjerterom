@@ -73,7 +73,9 @@ Dette sletter **ikke** migrasjonshistorikk eller tabellstruktur.
 
 Repoet har workflow **Supabase DB Push** (`.github/workflows/supabase-deploy.yml`).
 
-**Engangsoppsett (Mac/PC eller iPad-nettleser):**
+**Automatisk deploy:** Når du pusher til **`main`** og endrer filer under `supabase/migrations/` eller `supabase/functions/`, kjører GitHub Actions `supabase db push` / function deploy direkte mot prosjektet i `SUPABASE_PROJECT_REF`. Du trenger ikke lenger egne feature-branch pushes eller `.github/trigger-*`-filer.
+
+**Manuell kjøring:** Actions → Supabase DB Push → Run workflow → skriv `push` i bekreftelsesfeltet.
 
 1. Gå til [supabase.com/dashboard/account/tokens](https://supabase.com/dashboard/account/tokens) → **Generate new token** → kopier
 2. GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**:

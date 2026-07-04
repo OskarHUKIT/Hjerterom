@@ -1,5 +1,7 @@
 name: Supabase Functions Deploy
 
+# Deploy edge functions from main when function code changes.
+
 on:
   workflow_dispatch:
     inputs:
@@ -10,7 +12,8 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/trigger-supabase-functions-deploy'
+      - 'supabase/functions/**'
+      - '.github/workflows/supabase-functions-deploy.yml'
 
 jobs:
   functions-deploy:

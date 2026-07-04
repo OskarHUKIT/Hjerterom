@@ -1,7 +1,7 @@
 name: Supabase DB Push
 
-# Kjører KUN mot det Supabase-prosjektet som ligger i GitHub Secrets.
-# Sett SUPABASE_PROJECT_REF til det NYE Hjerterum-prosjektet — aldri prod-Boly.
+# Runs only against the Supabase project in GitHub Secrets (SUPABASE_PROJECT_REF).
+# Triggers on main when migrations change — no feature-branch pushes.
 
 on:
   workflow_dispatch:
@@ -13,7 +13,9 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/trigger-supabase-db-push'
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/supabase-deploy.yml'
 
 jobs:
   db-push:
@@ -36,6 +38,6 @@ jobs:
         working-directory: supabase
         run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
 
-      - name: Push all migrations (fresh Hjerterum database)
+      - name: Push migrations to Supabase
         working-directory: supabase
         run: supabase db push --yes --include-all

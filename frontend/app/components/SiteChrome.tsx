@@ -16,18 +16,23 @@ function isOpsRoute(pathname: string | null): boolean {
   return pathname === '/ops' || (pathname?.startsWith('/ops/') ?? false)
 }
 
+function isEventStaffRoute(pathname: string | null): boolean {
+  return pathname === '/nav/event' || (pathname?.startsWith('/nav/event/') ?? false)
+}
+
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const ops = isOpsRoute(pathname)
   const finn = isFinnRoute(pathname)
   const los = isLosRoute(pathname)
+  const eventStaff = isEventStaffRoute(pathname)
 
-  if (ops || finn || los) {
+  if (ops || finn || los || eventStaff) {
     return (
       <div
         id="main-content"
         tabIndex={-1}
-        className={`site-main${ops ? ' site-main--ops' : finn ? ' site-main--finn' : ' site-main--los'}`}
+        className={`site-main${ops ? ' site-main--ops' : finn ? ' site-main--finn' : los ? ' site-main--los' : ' site-main--event'}`}
       >
         {children}
       </div>
