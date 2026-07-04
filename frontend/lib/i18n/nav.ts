@@ -25,6 +25,9 @@ export const navTranslations = {
     kommuneAdminRole: "Kommune-admin",
     messages: "Meldinger",
     navMore: "Mer",
+    appShellSidebarLabel: "Hovedmeny",
+    appShellCollapseSidebar: "Skjul sidemeny",
+    appShellExpandSidebar: "Vis sidemeny",
     dbMobileTools: "Verktøy",
     dbMapModeHint:
       "I kartvisning vises Tilgjengelig, Utilgjengelig og Formidlet med ulike farger på kartet.",
@@ -324,6 +327,9 @@ export const navTranslations = {
     kommuneAdminRole: "Kommuvdna-admin",
     messages: "Sáhcastallat",
     navMore: "Eanet",
+    appShellSidebarLabel: "Váldo navigeren",
+    appShellCollapseSidebar: "Čiega sámenavigeren",
+    appShellExpandSidebar: "Čájet sámenavigeren",
     dbMobileTools: "Reaiddu",
     dbMapModeHint:
       "Kártamodeallas čájehit «Gallehusa», «Ii gallehusa» ja «Formidlejuvvon» iešguđet ivnnuin karttas.",
@@ -620,6 +626,9 @@ export const navTranslations = {
     kommuneAdminRole: "Municipality admin",
     messages: "Messages",
     navMore: "More",
+    appShellSidebarLabel: "Main menu",
+    appShellCollapseSidebar: "Collapse sidebar",
+    appShellExpandSidebar: "Expand sidebar",
     dbMobileTools: "Tools",
     dbMapModeHint:
       "In map view, available, unavailable, and mediated listings are shown in different colors on the map.",
