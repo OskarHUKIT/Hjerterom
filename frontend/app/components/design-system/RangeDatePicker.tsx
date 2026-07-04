@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Calendar } from 'lucide-react'
+import { CalendarDays } from 'lucide-react'
+
+import { CalendarWithRangeSelection } from '@/app/components/ui/calendar-with-range-selection'
 
 type RangeDatePickerProps = {
   checkIn: string
@@ -11,9 +13,12 @@ type RangeDatePickerProps = {
   checkOutLabel: string
   placeholder: string
   className?: string
+  minNights?: number
+  maxNights?: number
+  hint?: string | null
 }
 
-/** Popover date range for Finn search (NPD-5 #11). */
+/** Popover range calendar for Finn search (NPD-5 #11). */
 export default function RangeDatePicker({
   checkIn,
   checkOut,
@@ -22,9 +27,21 @@ export default function RangeDatePicker({
   checkOutLabel,
   placeholder,
   className,
+  minNights,
+  maxNights,
+  hint,
 }: RangeDatePickerProps) {
   const [open, setOpen] = useState(false)
+  const [months, setMonths] = useState(2)
   const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)')
+    const sync = () => setMonths(mq.matches ? 2 : 1)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -51,30 +68,28 @@ export default function RangeDatePicker({
         aria-expanded={open}
         aria-haspopup="dialog"
       >
-        <Calendar size={16} aria-hidden />
+        <CalendarDays size={16} aria-hidden />
         <span>{summary}</span>
       </button>
       {open ? (
-        <div className="ds-range-picker__popover" role="dialog">
-          <div className="ds-range-picker__fields">
-            <label>
-              {checkInLabel}
-              <input
-                type="date"
-                value={checkIn}
-                onChange={(e) => onChange({ checkIn: e.target.value, checkOut })}
-              />
-            </label>
-            <label>
-              {checkOutLabel}
-              <input
-                type="date"
-                value={checkOut}
-                min={checkIn || undefined}
-                onChange={(e) => onChange({ checkIn, checkOut: e.target.value })}
-              />
-            </label>
+        <div className="ds-range-picker__popover ds-range-picker__popover--calendar" role="dialog">
+          <div className="ds-range-picker__calendar-labels" aria-hidden>
+            <span>{checkInLabel}</span>
+            <span>{checkOutLabel}</span>
           </div>
+          <CalendarWithRangeSelection
+            variant="tourist"
+            checkIn={checkIn}
+            checkOut={checkOut}
+            onChange={(next) => {
+              onChange(next)
+              if (next.checkIn && next.checkOut) setOpen(false)
+            }}
+            numberOfMonths={months}
+            minNights={minNights}
+            maxNights={maxNights}
+            hint={hint}
+          />
         </div>
       ) : null}
     </div>

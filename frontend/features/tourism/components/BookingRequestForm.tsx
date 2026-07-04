@@ -9,6 +9,7 @@ import { Button, buttonClassName } from '@/app/components/ui/Button'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { submitBookingRequest, bookingErrorTranslationKey } from '@/features/tourism/lib/submitBookingRequest'
 import TourismAvailabilityCalendar from '@/features/tourism/components/TourismAvailabilityCalendar'
+import { CalendarWithRangeSelection } from '@/app/components/ui/calendar-with-range-selection'
 import { ensureGuestProfile } from '@/app/lib/ensureGuestProfile'
 
 type Props = {
@@ -192,6 +193,22 @@ export default function BookingRequestForm({
         onDatesBlocked={setDatesBlocked}
       />
 
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <CalendarWithRangeSelection
+          variant="tourist"
+          checkIn={form.checkIn}
+          checkOut={form.checkOut}
+          onChange={({ checkIn, checkOut }) => {
+            setForm((f) => ({ ...f, checkIn, checkOut }))
+          }}
+          numberOfMonths={2}
+          minNights={2}
+          maxNights={20}
+          hint={t('rangeCalendarStayHint').replace('{min}', '2').replace('{max}', '20')}
+          calendarClassName={!userId ? 'pointer-events-none opacity-50' : undefined}
+        />
+      </div>
+
       {authLoading ? (
         <p className="finn-card-meta">{t('loadingPleaseWait')}</p>
       ) : !userId ? (
@@ -245,26 +262,6 @@ export default function BookingRequestForm({
             value={form.phone}
             disabled={!userId}
             onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-          />
-        </label>
-        <label>
-          {t('finnFilterCheckIn')}
-          <input
-            type="date"
-            required
-            value={form.checkIn}
-            disabled={!userId}
-            onChange={(e) => setForm((f) => ({ ...f, checkIn: e.target.value }))}
-          />
-        </label>
-        <label>
-          {t('finnFilterCheckOut')}
-          <input
-            type="date"
-            required
-            value={form.checkOut}
-            disabled={!userId}
-            onChange={(e) => setForm((f) => ({ ...f, checkOut: e.target.value }))}
           />
         </label>
         <label>

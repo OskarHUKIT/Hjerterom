@@ -218,6 +218,7 @@ export const commonTranslations = {
     notificationsSharedDesc: "Delt varslingssystem for kommune-ansatte.",
     notificationsUserDesc: "Viktige oppdateringer om ditt leieforhold.",
     loadingPleaseWait: "Vennligst vent...",
+    rangeCalendarStayHint: "Oppholdet må være mellom {min} og {max} netter",
     pageLoadStuck:
       "Kunne ikke laste innhold i tide. Sjekk nettverk og at Supabase-variabler (NEXT_PUBLIC_SUPABASE_URL og ANON_KEY) er satt, særlig ved lokal kjøring (.env.local).",
     loginAuthNoResponse:
@@ -660,6 +661,7 @@ export const commonTranslations = {
     notificationsSharedDesc: "Dahkkon doarjanguoibmimat kommuvnna bargiide.",
     notificationsUserDesc: "Dehálaš ođasmahttit du duodji birra.",
     loadingPleaseWait: "Veahkkelis beara",
+    rangeCalendarStayHint: "Orruhus ferte leat {min} ja {max} idja gaskkas",
     pageLoadStuck:
       "Sisdoallu ii sáhttán heivehuvvot oktanaga. Geahčal fierpmádatoktavuođa ja ahte Supabase-variábelat leat čadnon.",
     loginAuthNoResponse:
@@ -1097,6 +1099,7 @@ export const commonTranslations = {
     notificationsSharedDesc: "Shared notification system for municipality staff.",
     notificationsUserDesc: "Important updates about your tenancy.",
     loadingPleaseWait: "Please wait...",
+    rangeCalendarStayHint: "Your stay must be between {min} and {max} nights",
     pageLoadStuck:
       "Content is taking too long to load. Check your network and that NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set (e.g. in .env.local for local dev).",
     loginAuthNoResponse:

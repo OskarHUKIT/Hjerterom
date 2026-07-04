@@ -93,6 +93,27 @@
   --lane-multi-border: rgba(248, 250, 252, 0.45);
   --lane-selection-ring: rgba(56, 189, 248, 0.85);
 
+  /* shadcn / originui calendar tokens (Boly-mapped) */
+  --background: var(--bg-app);
+  --foreground: var(--text-main);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-main);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-main);
+  --primary: var(--lane-sosial-accent);
+  --primary-foreground: var(--text-on-dark);
+  --secondary: rgba(255, 255, 255, 0.06);
+  --secondary-foreground: var(--text-main);
+  --muted: rgba(255, 255, 255, 0.04);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--lane-sosial-available-bg);
+  --accent-foreground: var(--text-main);
+  --destructive: var(--ds-danger);
+  --destructive-foreground: var(--text-on-dark);
+  --border: var(--border-subtle);
+  --input: var(--border-subtle);
+  --ring: var(--lane-selection-ring);
+
   /* Motion — konsistent taktil feedback */
   --transition-fast: 0.2s;
   --transition-smooth: 0.25s;
@@ -150,6 +171,25 @@
   --lane-conflict-bg: rgba(185, 28, 28, 0.5);
   --lane-multi-border: rgba(15, 23, 42, 0.35);
   --lane-selection-ring: rgba(2, 132, 199, 0.9);
+  --background: var(--bg-app);
+  --foreground: var(--text-main);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-main);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-main);
+  --primary: var(--lane-sosial-accent);
+  --primary-foreground: var(--text-on-dark);
+  --secondary: rgba(15, 23, 42, 0.06);
+  --secondary-foreground: var(--text-main);
+  --muted: rgba(15, 23, 42, 0.04);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--lane-sosial-available-bg);
+  --accent-foreground: var(--text-main);
+  --destructive: var(--ds-danger);
+  --destructive-foreground: var(--text-on-dark);
+  --border: var(--border-subtle);
+  --input: var(--border-subtle);
+  --ring: var(--lane-selection-ring);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -3152,6 +3192,19 @@ body.mobile-bottom-nav-active .ds-toast-region {
   gap: var(--space-2);
 }
 
+.shared-avail-range-calendar {
+  margin: var(--space-3) 0;
+  overflow-x: auto;
+}
+
+.shared-avail-range-calendar .calendar-range {
+  width: 100%;
+}
+
+.shared-avail-range-calendar .rdp-root {
+  margin-inline: auto;
+}
+
 .shared-avail-hint {
   margin: var(--space-3) 0 0;
   text-align: center;
@@ -3209,4 +3262,75 @@ body.mobile-bottom-nav-active .ds-toast-region {
 
 .lane-period-badge--shared .lane-period-badge-lane {
   color: var(--color-teal);
+}
+
+/* Range calendar — lane-aware color variants (originui / shadcn) */
+.calendar-range {
+  --primary: var(--lane-sosial-accent);
+  --primary-foreground: var(--text-on-dark);
+  --accent: var(--lane-sosial-available-bg);
+  --accent-foreground: var(--text-main);
+  --ring: var(--lane-selection-ring);
+}
+
+.calendar-range--tourist {
+  --primary: var(--lane-tourism-accent);
+  --primary-foreground: var(--text-on-dark);
+  --accent: var(--lane-tourism-available-bg);
+  --accent-foreground: var(--text-main);
+}
+
+.calendar-range .rdp-root {
+  color: var(--foreground);
+}
+
+.calendar-range__hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.calendar-range--homeowner .avail-day--open:not([data-selected]) > button {
+  background: color-mix(in srgb, var(--lane-sosial-available-bg) 70%, transparent);
+}
+
+.calendar-range--homeowner .avail-day--closed:not([data-selected]) > button {
+  background: color-mix(in srgb, var(--lane-sosial-unavailable-bg) 75%, transparent);
+}
+
+.calendar-range--homeowner .avail-day--mediated:not([data-selected]) > button {
+  background: color-mix(in srgb, var(--lane-sosial-mediated-bg) 70%, transparent);
+}
+
+.calendar-range--homeowner .avail-day--unmarked:not([data-selected]) > button {
+  background: var(--lane-empty-bg);
+}
+
+.calendar-range--homeowner .avail-day-lane-dots {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.calendar-range--homeowner .avail-day-lane-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+}
+
+.calendar-range--homeowner .avail-day-lane-dot--sosial {
+  background: var(--lane-sosial-accent);
+}
+
+.calendar-range--homeowner .avail-day-lane-dot--turisme {
+  background: var(--lane-tourism-accent);
+}
+
+.calendar-range--homeowner .avail-day-lane-dot--event {
+  background: var(--lane-event-accent);
 }

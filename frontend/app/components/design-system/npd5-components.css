@@ -410,6 +410,22 @@ a.ds-property-card:hover {
   box-shadow: var(--shadow-xl);
 }
 
+.ds-range-picker__popover--calendar {
+  min-width: min(calc(100vw - 2rem), 680px);
+  padding: var(--space-2);
+}
+
+.ds-range-picker__calendar-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  padding: 0 var(--space-1);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .ds-range-picker__fields {
   display: grid;
   gap: var(--space-2);
