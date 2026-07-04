@@ -1,5 +1,5 @@
 -- NPD-3D: Manual concurrency check for submit_tourism_booking row lock.
--- Run in Supabase SQL Editor with service role after migration 20260704130000.
+-- Run in Supabase SQL Editor with service role after migration 20260701220000.
 --
 -- Expected: second insert attempt returns dates_conflict when overlapping pending/accepted exists.
 

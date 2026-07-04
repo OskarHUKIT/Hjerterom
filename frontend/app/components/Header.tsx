@@ -35,6 +35,7 @@ import {
 } from '../lib/kommuneRoles'
 import { devInfo, logError } from '@/app/lib/appLogger'
 import MobileBottomNav from './MobileBottomNav'
+import ShellChromeControls from './design-system/ShellChromeControls'
 import { navItemsFor, isNavActive } from '../../lib/navConfig'
 
 export default function Header() {
@@ -281,6 +282,10 @@ export default function Header() {
         </Link>
       )}
 
+      {!isMobileLayout && user ? (
+        <ShellChromeControls compact className="header-desktop-chrome" />
+      ) : null}
+
       {loading ? (
         <div style={{ width: '100px' }}></div>
       ) : user ? (
@@ -501,46 +506,7 @@ export default function Header() {
             marginLeft: 'var(--space-2)',
           }}
         >
-          <div
-            className="header-guest-lang-row"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-              height: 'var(--touch-target-sm)',
-              flexShrink: 0,
-            }}
-            aria-label={t('language')}
-          >
-            <Globe
-              size={18}
-              style={{ opacity: 0.85, color: 'var(--text-muted)', flexShrink: 0 }}
-              aria-hidden
-            />
-            <select
-              value={locale}
-              onChange={(e) => setLocale(e.target.value as 'no' | 'se' | 'en')}
-              className="header-guest-lang-select"
-              style={{
-                margin: 0,
-                height: 'var(--touch-target-sm)',
-                minHeight: 'var(--touch-target-sm)',
-                boxSizing: 'border-box',
-                padding: '0 10px',
-                borderRadius: 8,
-                background: 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--text-main)',
-                fontSize: '0.85rem',
-                lineHeight: 1.2,
-                maxWidth: '150px',
-              }}
-            >
-              <option value="no">{t('norwegian')}</option>
-              <option value="se">{t('sami')}</option>
-              <option value="en">{t('english')}</option>
-            </select>
-          </div>
+          <ShellChromeControls compact className="header-guest-chrome" />
           {!hideGuestLoginButtonInHeader && (
             <Link
               href="/login"
@@ -602,48 +568,9 @@ export default function Header() {
           className="header-mobile-actions"
           style={{ display: 'none', alignItems: 'center', gap: 'var(--space-2)' }}
         >
-          {!loading && !user && (
-            <div
-              className="header-guest-lang"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                height: 'var(--touch-target)',
-                flexShrink: 0,
-              }}
-              aria-label={t('language')}
-            >
-              <Globe
-                size={20}
-                style={{ opacity: 0.85, color: 'var(--text-muted)', flexShrink: 0 }}
-                aria-hidden
-              />
-              <select
-                value={locale}
-                onChange={(e) => setLocale(e.target.value as 'no' | 'se' | 'en')}
-                className="header-guest-lang-select"
-                style={{
-                  margin: 0,
-                  height: 'var(--touch-target)',
-                  minHeight: 'var(--touch-target)',
-                  boxSizing: 'border-box',
-                  padding: '0 8px',
-                  borderRadius: 8,
-                  background: 'var(--bg-app)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.8rem',
-                  lineHeight: 1.2,
-                  maxWidth: 'min(130px, 28vw)',
-                }}
-              >
-                <option value="no">{t('norwegian')}</option>
-                <option value="se">{t('sami')}</option>
-                <option value="en">{t('english')}</option>
-              </select>
-            </div>
-          )}
+          {!loading && !user ? (
+            <ShellChromeControls compact className="header-mobile-guest-chrome" />
+          ) : null}
           {user && !hideHeaderMobileShortcutIcons && (
             <>
               {isKommuneStaffRole(navRoleForLinks) && (
@@ -792,7 +719,7 @@ export default function Header() {
         }
         /* Gjest: språk i topplinjen; ikke gjenta globus i mobil-drawer */
         @media (max-width: 768px) {
-          .header-nav-mobile .header-guest-lang-row {
+          .header-nav-mobile .header-guest-chrome {
             display: none !important;
           }
           .header-nav-mobile .header-guest-toolbar {
@@ -808,11 +735,11 @@ export default function Header() {
          * språkvalg er tilgjengelig.
          */
         @media (max-width: 380px) {
-          .header-mobile-actions .header-guest-lang {
+          .header-mobile-actions .header-mobile-guest-chrome {
             display: none !important;
           }
-          .header-nav-mobile .header-guest-lang-row {
-            display: flex !important;
+          .header-nav-mobile .header-guest-chrome {
+            display: inline-flex !important;
           }
         }
         .menu-item {

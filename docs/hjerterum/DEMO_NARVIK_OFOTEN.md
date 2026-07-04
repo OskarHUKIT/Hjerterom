@@ -96,6 +96,24 @@ Passord for alle demo-kontoer: **`Ofoten2026!`**
 
 ---
 
+### Event saksbehandler (Kari)
+
+Logg inn som **`kari.event@demo.ofoten.no`** / **`Ofoten2026!`**.
+
+Etter innlogging lander du på **`/nav/event/database`** (event opt-in boliger — ingen sosial boligbank).
+
+| Rute | Formål |
+|------|--------|
+| `/nav/event/database` | Event boligbank (kun opt-in boliger) |
+| `/nav/event/inquiries` | Event-henvendelser (Veidekke m.m.) |
+| `/nav/event/messages` | Meldinger med utleiere |
+
+**Isolasjon:** Event SB ser ikke `/nav/database`, Los-innboks eller sosiale meldinger. Middleware redirecter til event-flaten.
+
+**Ops:** Kjør `supabase/scripts/fix_event_demo_kari.sql` hvis login feiler på phi (manglende `event_ansatt` / `central_event_staff`).
+
+---
+
 ## Kommune / event / admin
 
 | Rolle | E-post |

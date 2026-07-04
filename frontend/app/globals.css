@@ -3151,6 +3151,16 @@ body.mobile-bottom-nav-active .ds-toast-region {
   outline-offset: 2px;
 }
 
+.header-desktop-chrome,
+.header-guest-chrome,
+.header-mobile-guest-chrome {
+  flex-shrink: 0;
+}
+
+.header-guest-toolbar .header-guest-chrome {
+  margin-right: var(--space-1);
+}
+
 /* ─── Shared availability calendar (utleier) ─── */
 .avail-mode-tabs {
   display: grid;

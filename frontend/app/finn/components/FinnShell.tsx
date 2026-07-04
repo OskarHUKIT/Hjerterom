@@ -28,7 +28,7 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t, locale, setLocale } = useLanguage()
 
-  /** Tourist portal defaults to English when no preference is stored. */
+  /** Tourist portal defaults to English when no Finn-specific preference is stored. */
   useEffect(() => {
     try {
       const stored = localStorage.getItem(FINN_LOCALE_KEY)
@@ -36,12 +36,21 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
         if (stored !== locale) setLocale(stored as Locale)
         return
       }
-      if (locale !== 'en') setLocale('en')
+      setLocale('en')
       localStorage.setItem(FINN_LOCALE_KEY, 'en')
     } catch {
       /* ignore */
     }
-  }, [locale, setLocale])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Finn default runs once on shell mount
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FINN_LOCALE_KEY, locale)
+    } catch {
+      /* ignore */
+    }
+  }, [locale])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-finn-shell', 'true')
