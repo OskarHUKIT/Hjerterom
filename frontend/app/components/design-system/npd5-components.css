@@ -1044,3 +1044,71 @@ a.ds-property-card:hover {
   }
 }
 
+/* Accordion tabs w/ chevron (originui/accordion-11 → Boly tokens) */
+
+.ds-accordion-chevron {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ds-accordion-chevron__item {
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.ds-accordion-chevron__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  text-align: left;
+  min-height: var(--touch-target, 44px);
+}
+
+.ds-accordion-chevron__trigger:focus-visible {
+  outline: 2px solid var(--color-royal-blue);
+  outline-offset: -2px;
+}
+
+.ds-accordion-chevron__trigger-main {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.ds-accordion-chevron__chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.ds-accordion-chevron__item--open .ds-accordion-chevron__chevron {
+  transform: rotate(180deg);
+}
+
+.ds-accordion-chevron__panel {
+  padding: 0 var(--space-4) var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-accordion-chevron__chevron {
+    transition: none;
+  }
+}
+

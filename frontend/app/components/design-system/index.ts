@@ -17,6 +17,8 @@ export { default as SelectorChips } from './SelectorChips'
 export type { SelectorChipOption } from './SelectorChips'
 export { default as SegmentedButtonGroup } from './SegmentedButtonGroup'
 export type { SegmentedButtonOption } from './SegmentedButtonGroup'
+export { default as AccordionWithChevron } from './AccordionWithChevron'
+export type { AccordionChevronItem } from './AccordionWithChevron'
 export {
   default as ListingStatusBadge,
   listingAvailabilityBadgeVariant,

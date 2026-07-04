@@ -32,7 +32,11 @@ export default function ListingHubPage({ listingId }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { flags: platformFlags } = usePlatformMode()
-  const openSection = searchParams.get('section')?.trim() || null
+  const panelParam = searchParams.get('panel')?.trim() || null
+  const sectionParam = searchParams.get('section')?.trim() || null
+  const openSection =
+    sectionParam ||
+    (panelParam === 'tourism' || panelParam === 'events' ? panelParam : null)
 
   const [listing, setListing] = useState<any | null>(null)
   const [availability, setAvailability] = useState<Record<string, any[]>>({})
@@ -103,6 +107,16 @@ export default function ListingHubPage({ listingId }: Props) {
   useEffect(() => {
     void fetchListing()
   }, [fetchListing])
+
+  useEffect(() => {
+    if (
+      panelParam &&
+      (panelParam === 'tourism' || panelParam === 'events') &&
+      !sectionParam
+    ) {
+      router.replace(`/homeowner/listings/${listingId}?section=${panelParam}`, { scroll: false })
+    }
+  }, [listingId, panelParam, router, sectionParam])
 
   useEffect(() => {
     setEventOptIns(eventCalendarOptIns)
@@ -340,6 +354,7 @@ export default function ListingHubPage({ listingId }: Props) {
           listing={listing}
           tourism={platformFlags.tourism}
           centralEvents={platformFlags.centralEvents}
+          stripeBookings={platformFlags.stripeBookings}
           openSection={openSection}
           onListingUpdated={(patch) => setListing((prev: any) => (prev ? { ...prev, ...patch } : prev))}
         />
