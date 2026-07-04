@@ -74,7 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ) : null}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){document.documentElement.setAttribute('data-theme','dark');})();`,
+            __html: `(function(){try{var t=localStorage.getItem('boly-theme-guest');var k=Object.keys(localStorage);for(var i=0;i<k.length;i++){if(k[i].indexOf('boly-theme:')===0){var u=localStorage.getItem(k[i]);if(u==='light'||u==='dark'){t=u;break;}}}var legacy=localStorage.getItem('boly-theme');if(legacy==='light'||legacy==='dark')t=legacy;if(t!=='light'&&t!=='dark')t='dark';document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}catch(e){document.documentElement.setAttribute('data-theme','dark');document.documentElement.style.colorScheme='dark';}})();`,
           }}
         />
       </head>

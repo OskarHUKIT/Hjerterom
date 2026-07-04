@@ -124,7 +124,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      /**
+       * Locale updates call `auth.updateUser`, which emits USER_UPDATED. Re-resolving theme
+       * from profile here would override the active choice (e.g. light → dark default).
+       * Only re-apply theme on sign-in/out; token refresh must not touch theme either.
+       */
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        userIdRef.current = session?.user?.id ?? null
+        return
+      }
       void applyForUser(session?.user?.id ?? null)
     })
 

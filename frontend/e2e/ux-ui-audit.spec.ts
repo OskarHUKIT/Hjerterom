@@ -92,6 +92,27 @@ test('Finn public — dark theme, language, mobile', async ({ page }) => {
     const after = await page.evaluate(() => document.documentElement.getAttribute('data-theme'))
     if (before !== after) record('pass', 'Finn', `Theme toggle works on Finn: ${before} → ${after}`)
     else record('fail', 'Finn', 'Theme toggle present but did not change data-theme')
+
+    const localeSelect = page.locator('.shell-chrome-controls__select').first()
+    if ((await localeSelect.count()) > 0) {
+      const themeBeforeLocale = await page.evaluate(() =>
+        document.documentElement.getAttribute('data-theme')
+      )
+      await localeSelect.selectOption('se')
+      await page.waitForTimeout(1500)
+      const themeAfterLocale = await page.evaluate(() =>
+        document.documentElement.getAttribute('data-theme')
+      )
+      if (themeBeforeLocale === themeAfterLocale) {
+        record('pass', 'Finn', `Theme unchanged after locale switch (${themeBeforeLocale})`)
+      } else {
+        record(
+          'fail',
+          'Finn',
+          `Theme changed on locale switch: ${themeBeforeLocale} → ${themeAfterLocale}`
+        )
+      }
+    }
   } else {
     record('fail', 'Finn', 'Theme toggle not found on Finn (PRD §15 — required on all shells)')
   }
