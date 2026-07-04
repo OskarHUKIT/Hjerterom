@@ -180,29 +180,9 @@ export default function ListingDetailsClient() {
   const [requestChangeSending, setRequestChangeSending] = useState(false)
   const [showNavNotes, setShowNavNotes] = useState(false)
 
-  // Gallery state
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [isFullscreen, setIsFullscreen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [houseRulesBusy, setHouseRulesBusy] = useState(false)
   const [isSaving, setIsSaving] = useState<string | null>(null)
-
-
-  useEffect(() => {
-    if (!isFullscreen) return
-    const y = window.scrollY
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsFullscreen(false)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prev
-      window.scrollTo(0, y)
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [isFullscreen])
 
   const isOwner = currentUser?.id === listing?.owner_id
 
@@ -272,7 +252,6 @@ export default function ListingDetailsClient() {
     setNewNote,
     setIsSaving,
     setUploading,
-    setCurrentImageIndex,
     setHouseRulesBusy,
     setCopyFeedback,
     loading,
@@ -538,10 +517,8 @@ export default function ListingDetailsClient() {
             allImages={allImages}
             canOwnerEditListingDetail={canOwnerEditListingDetail}
             showGalleryFormidlet={showGalleryFormidlet}
-            currentImageIndex={currentImageIndex}
-            setCurrentImageIndex={setCurrentImageIndex}
-            isFullscreen={isFullscreen}
-            setIsFullscreen={setIsFullscreen}
+            isOwner={isOwner}
+            isNavView={isNavView}
             uploading={uploading}
             isSaving={isSaving}
             onUploadImage={handleUploadListingImage}

@@ -1,20 +1,15 @@
 'use client'
 
 import { useCallback } from 'react'
-import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import {
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
   Edit3,
   FileText,
   ImagePlus,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  ChevronDown,
-  Maximize2,
-  X,
 } from 'lucide-react'
-import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
 import StatusBadge from '@/app/components/design-system/StatusBadge'
 import GalleryGrid from '@/app/components/design-system/GalleryGrid'
 import FileUploadCard from '@/app/components/design-system/FileUploadCard'
@@ -27,10 +22,8 @@ export type ListingDetailsOwnerGalleryProps = {
   allImages: string[]
   canOwnerEditListingDetail: boolean
   showGalleryFormidlet: boolean
-  currentImageIndex: number
-  setCurrentImageIndex: React.Dispatch<React.SetStateAction<number>>
-  isFullscreen: boolean
-  setIsFullscreen: React.Dispatch<React.SetStateAction<boolean>>
+  isOwner: boolean
+  isNavView: boolean
   uploading: boolean
   isSaving: string | null
   onUploadImage: (file: File, onProgress: (pct: number) => void) => Promise<void>
@@ -59,10 +52,8 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
     allImages,
     canOwnerEditListingDetail,
     showGalleryFormidlet,
-    currentImageIndex,
-    setCurrentImageIndex,
-    isFullscreen,
-    setIsFullscreen,
+    isOwner,
+    isNavView,
     uploading,
     isSaving,
     onUploadImage,
@@ -82,130 +73,22 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
     [onUploadImage, onUploadError]
   )
 
-  const galleryClassName = [
-    'listing-image-gallery',
-    allImages.length === 0 ? 'listing-image-gallery--empty' : 'listing-image-gallery--has-images',
-  ].join(' ')
+  const galleryImages = allImages.map((src, idx) => ({
+    src,
+    alt: listing?.address
+      ? `${listing.address} (${idx + 1}/${allImages.length})`
+      : `${idx + 1}/${allImages.length}`,
+  }))
+
+  const showHubCalendarLink = isOwner && !isNavView && Boolean(listing?.id)
 
   return (
-    <>
-      <div className={galleryClassName}>
-        {allImages.length > 0 ? (
-          <>
-            <div
-              role="button"
-              tabIndex={0}
-              className="listing-gallery-hitarea"
-              onClick={() => setIsFullscreen(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  setIsFullscreen(true)
-                }
-              }}
-              aria-label={t('listingFullscreen')}
-            >
-              <OptimizedPublicStorageImage
-                key={allImages[currentImageIndex]}
-                variant="fill"
-                src={allImages[currentImageIndex]}
-                alt={
-                  listing?.address
-                    ? `${listing.address} — bilde ${currentImageIndex + 1} av ${allImages.length}`
-                    : `Boligbilde ${currentImageIndex + 1} av ${allImages.length}`
-                }
-                sizes="100vw"
-                quality={95}
-                priority={currentImageIndex === 0}
-                className="listing-gallery-image"
-              />
-            </div>
-
-            {allImages.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  className="listing-gallery-nav-btn listing-gallery-nav-btn--prev"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCurrentImageIndex(
-                      (prev) => (prev - 1 + allImages.length) % allImages.length
-                    )
-                  }}
-                  aria-label={t('listingGalleryPrev')}
-                >
-                  <ChevronLeft size={24} />
-                </button>
-                <button
-                  type="button"
-                  className="listing-gallery-nav-btn listing-gallery-nav-btn--next"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
-                  }}
-                  aria-label={t('listingGalleryNext')}
-                >
-                  <ChevronRight size={24} />
-                </button>
-                <div className="listing-gallery-counter listing-gallery-counter--center">
-                  {currentImageIndex + 1} / {allImages.length}
-                </div>
-              </>
-            )}
-
-            <button
-              type="button"
-              className="listing-gallery-fullscreen-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                setIsFullscreen(true)
-              }}
-              title={t('listingFullscreen')}
-              aria-label={t('listingFullscreen')}
-            >
-              <Maximize2 size={20} />
-            </button>
-          </>
-        ) : (
-          canOwnerEditListingDetail ? (
-            <FileUploadCard
-              title={t('uploadDropzoneTitle')}
-              hint={uploadHint(t)}
-              progressLabel={(pct) => uploadProgressLabel(t, pct)}
-              maxFiles={MAX_LISTING_IMAGES}
-              currentCount={0}
-              disabled={uploading}
-              uploadFile={uploadFile}
-              onUploadError={onUploadError}
-            />
-          ) : (
-            <div className="listing-image-placeholder" aria-label={t('listingImageEmptyViewer')}>
-              <span className="listing-image-placeholder-icon-wrap" aria-hidden>
-                <ImagePlus size={32} strokeWidth={1.75} className="listing-image-placeholder-icon" />
-              </span>
-              <span className="listing-image-placeholder-title">{t('listingImageEmptyViewer')}</span>
-            </div>
-          )
-        )}
-
-        {canOwnerEditListingDetail && allImages.length > 0 && (
-          <div className="listing-gallery-upload-label" style={{ marginTop: 'var(--space-3)' }}>
-            <FileUploadCard
-              title={uploading ? t('listingImageUploading') : t('listingImageAddPhotos')}
-              hint={uploadHint(t)}
-              progressLabel={(pct) => uploadProgressLabel(t, pct)}
-              maxFiles={MAX_LISTING_IMAGES}
-              currentCount={allImages.length}
-              disabled={uploading || allImages.length >= MAX_LISTING_IMAGES}
-              uploadFile={uploadFile}
-              onUploadError={onUploadError}
-              className="listing-gallery-upload-zone"
-            />
-          </div>
-        )}
-
-        <div className="listing-gallery-status-badge-wrap">
-          <StatusBadge
+    <section className="listing-owner-gallery card no-hover listing-detail-card">
+      <div className="listing-owner-gallery__head">
+        <h3 className="listing-section-heading">
+          <ImagePlus size={20} aria-hidden /> {t('regImagesSection')}
+        </h3>
+        <StatusBadge
           label={
             showGalleryFormidlet
               ? t('formidlet')
@@ -217,143 +100,101 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
           }
           variant={galleryStatusVariant(showGalleryFormidlet, listing?.status)}
         />
-        </div>
       </div>
 
-      {allImages.length > 1 ? (
+      {showGalleryFormidlet ? (
+        <div className="listing-owner-gallery__formidla-banner" role="status">
+          {t('ownerCannotEditListingWhenFormidlet')}
+        </div>
+      ) : null}
+
+      {allImages.length > 0 ? (
         <GalleryGrid
+          variant="block"
           className="listing-gallery-grid-block"
-          images={allImages.map((src, idx) => ({
-            src,
-            alt: listing?.address
-              ? `${listing.address} (${idx + 1}/${allImages.length})`
-              : `${idx + 1}/${allImages.length}`,
-          }))}
+          images={galleryImages}
+          closeLabel={t('close')}
+          prevLabel={t('listingGalleryPrev')}
+          nextLabel={t('listingGalleryNext')}
+          renderItemFooter={
+            canOwnerEditListingDetail && allImages.length > 1
+              ? (idx) => (
+                  <>
+                    <button
+                      type="button"
+                      className="listing-gallery-reorder-btn"
+                      disabled={isSaving === 'image_urls' || idx === 0}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void onReorderImage(idx, -1)
+                      }}
+                      title={t('listingImageMoveEarlier')}
+                      aria-label={t('listingImageMoveEarlier')}
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="listing-gallery-reorder-btn"
+                      disabled={isSaving === 'image_urls' || idx >= allImages.length - 1}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void onReorderImage(idx, 1)
+                      }}
+                      title={t('listingImageMoveLater')}
+                      aria-label={t('listingImageMoveLater')}
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                  </>
+                )
+              : undefined
+          }
+        />
+      ) : canOwnerEditListingDetail ? (
+        <FileUploadCard
+          title={t('uploadDropzoneTitle')}
+          hint={uploadHint(t)}
+          progressLabel={(pct) => uploadProgressLabel(t, pct)}
+          maxFiles={MAX_LISTING_IMAGES}
+          currentCount={0}
+          disabled={uploading}
+          uploadFile={uploadFile}
+          onUploadError={onUploadError}
+        />
+      ) : (
+        <div className="listing-image-placeholder" aria-label={t('listingImageEmptyViewer')}>
+          <span className="listing-image-placeholder-icon-wrap" aria-hidden>
+            <ImagePlus size={32} strokeWidth={1.75} className="listing-image-placeholder-icon" />
+          </span>
+          <span className="listing-image-placeholder-title">{t('listingImageEmptyViewer')}</span>
+        </div>
+      )}
+
+      {canOwnerEditListingDetail && allImages.length > 0 ? (
+        <FileUploadCard
+          title={uploading ? t('listingImageUploading') : t('listingImageAddPhotos')}
+          hint={uploadHint(t)}
+          progressLabel={(pct) => uploadProgressLabel(t, pct)}
+          maxFiles={MAX_LISTING_IMAGES}
+          currentCount={allImages.length}
+          disabled={uploading || allImages.length >= MAX_LISTING_IMAGES}
+          uploadFile={uploadFile}
+          onUploadError={onUploadError}
+          className="listing-gallery-upload-zone"
         />
       ) : null}
 
-      {canOwnerEditListingDetail && allImages.length > 1 ? (
-        <div className="listing-gallery-thumbs">
-          {allImages.map((url, idx) => (
-            <div key={`${url}-${idx}`} className="listing-gallery-thumb-col">
-              <div
-                className={`listing-gallery-thumb-wrap${
-                  idx === currentImageIndex ? ' listing-gallery-thumb-wrap--active' : ''
-                }`}
-              >
-                <button
-                  type="button"
-                  className="listing-gallery-thumb-btn"
-                  onClick={() => setCurrentImageIndex(idx)}
-                  aria-label={`${idx + 1} / ${allImages.length}`}
-                >
-                  <OptimizedPublicStorageImage
-                    variant="fixed"
-                    src={url}
-                    alt=""
-                    width={56}
-                    height={56}
-                    sizes="56px"
-                    className="listing-gallery-thumb-img"
-                  />
-                </button>
-              </div>
-              <div className="listing-gallery-reorder-row">
-                <button
-                  type="button"
-                  className="button listing-gallery-reorder-btn"
-                  disabled={isSaving === 'image_urls' || idx === 0}
-                  onClick={() => void onReorderImage(idx, -1)}
-                  title={t('listingImageMoveEarlier')}
-                  aria-label={t('listingImageMoveEarlier')}
-                >
-                  <ChevronUp size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="button listing-gallery-reorder-btn"
-                  disabled={isSaving === 'image_urls' || idx >= allImages.length - 1}
-                  onClick={() => void onReorderImage(idx, 1)}
-                  title={t('listingImageMoveLater')}
-                  aria-label={t('listingImageMoveLater')}
-                >
-                  <ChevronDown size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+      {showHubCalendarLink ? (
+        <Link
+          href={`/homeowner/listings/${listing.id}#hub-calendar-heading`}
+          className="listing-owner-gallery__calendar-link"
+        >
+          <CalendarDays size={18} aria-hidden />
+          {t('manageCalendarLink')}
+        </Link>
       ) : null}
-
-      {typeof document !== 'undefined' &&
-        isFullscreen &&
-        allImages.length > 0 &&
-        createPortal(
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('listingFullscreen')}
-            className="listing-fullscreen-overlay"
-            onClick={() => setIsFullscreen(false)}
-          >
-            <button
-              type="button"
-              className="listing-fullscreen-close"
-              onClick={() => setIsFullscreen(false)}
-              aria-label={t('close')}
-            >
-              <X size={40} />
-            </button>
-
-            <div className="listing-fullscreen-stage" onClick={(e) => e.stopPropagation()}>
-              <img
-                key={`fs-${allImages[currentImageIndex]}`}
-                src={allImages[currentImageIndex]}
-                alt={
-                  listing?.address
-                    ? `${listing.address} — bilde ${currentImageIndex + 1} av ${allImages.length}`
-                    : `Boligbilde ${currentImageIndex + 1} av ${allImages.length}`
-                }
-                decoding="async"
-                className="listing-fullscreen-img"
-              />
-            </div>
-
-            {allImages.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  className="listing-fullscreen-nav listing-fullscreen-nav--prev"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCurrentImageIndex(
-                      (prev) => (prev - 1 + allImages.length) % allImages.length
-                    )
-                  }}
-                  aria-label={t('listingGalleryPrev')}
-                >
-                  <ChevronLeft size={40} />
-                </button>
-                <button
-                  type="button"
-                  className="listing-fullscreen-nav listing-fullscreen-nav--next"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
-                  }}
-                  aria-label={t('listingGalleryNext')}
-                >
-                  <ChevronRight size={40} />
-                </button>
-                <div className="listing-fullscreen-counter">
-                  {currentImageIndex + 1} / {allImages.length}
-                </div>
-              </>
-            )}
-          </div>,
-          document.body
-        )}
-    </>
+    </section>
   )
 }
 

@@ -674,6 +674,66 @@
 }
 
 .listing-gallery-grid-block {
+  margin-bottom: var(--space-3);
+}
+
+.listing-owner-gallery {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.listing-owner-gallery__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.listing-owner-gallery__head .listing-section-heading {
+  margin: 0;
+}
+
+.listing-owner-gallery__formidla-banner {
+  padding: var(--space-3) var(--space-4);
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-sky-blue) 35%, transparent);
+  background: color-mix(in srgb, var(--color-sky-blue) 12%, var(--bg-card));
+  color: var(--text-body);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.listing-owner-gallery__calendar-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  color: var(--color-royal-blue);
+  text-decoration: none;
+}
+
+.listing-owner-gallery__calendar-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.listing-availability-hub-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-weight: 600;
+  color: var(--color-royal-blue);
+  text-decoration: none;
+}
+
+.listing-availability-hub-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.listing-gallery-grid-block {
   margin-top: var(--space-4);
 }
 

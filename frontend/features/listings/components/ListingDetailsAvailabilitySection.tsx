@@ -1,7 +1,8 @@
 'use client'
 
 import type { Dispatch, SetStateAction, ReactNode } from 'react'
-import { Calendar, Clock, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
+import { Calendar, Clock, X, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
 import { formatDateNo } from '@/app/lib/dateFormat'
 import { ListingDetailsNavMediationPanels } from '@/features/mediation/views/ListingDetailsNavView'
 
@@ -121,7 +122,17 @@ export default function ListingDetailsAvailabilitySection(
         </p>
       )}
 
-      {(isNavView || availability.length > 0) && (
+      {!isNavView && listing?.id ? (
+        <Link
+          href={`/homeowner/listings/${listing.id}#hub-calendar-heading`}
+          className="listing-availability-hub-link"
+        >
+          <CalendarDays size={18} aria-hidden />
+          {t('manageCalendarLink')}
+        </Link>
+      ) : null}
+
+      {(isNavView && availability.length > 0) && (
         <div className="listing-availability-calendar-section">
           <h4 className="listing-availability-calendar-heading">
             <Calendar size={18} /> {t('calendar')}

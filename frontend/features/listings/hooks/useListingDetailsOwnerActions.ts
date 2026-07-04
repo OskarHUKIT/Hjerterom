@@ -44,7 +44,6 @@ export type UseListingDetailsOwnerActionsArgs = {
   setNewNote: (s: string) => void
   setIsSaving: (v: string | null) => void
   setUploading: (v: boolean) => void
-  setCurrentImageIndex: React.Dispatch<React.SetStateAction<number>>
   setHouseRulesBusy: (v: boolean) => void
   setCopyFeedback: (v: boolean) => void
   loading: boolean
@@ -60,7 +59,7 @@ export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerAction
     handoverReports, setHandoverReports, ownerAgreementTerminated, tenantLinkRegenerating,
     setTenantLinkRegenerating, setTenantReportToken, reportTimeFilter, requestChangeReport,
     setRequestChangeReport, requestChangeComment, setRequestChangeComment, setRequestChangeSending,
-    newNote, setNewNote, setIsSaving, setUploading, setCurrentImageIndex, setHouseRulesBusy,
+    newNote, setNewNote, setIsSaving, setUploading, setHouseRulesBusy,
     setCopyFeedback, loading, confirmDialog, toast, t,
   } = args
   const { requireActiveAgreement } = useTermsGate()
@@ -266,7 +265,6 @@ export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerAction
 
       allImagesRef.current = updatedImageUrls
       setListing({ ...listing, image_urls: updatedImageUrls, image_url: updatedImageUrls[0] })
-      setCurrentImageIndex(updatedImageUrls.length - 1)
       toast(t('imagesAdded'), 'success')
     } catch (err: unknown) {
       if (err instanceof Error && ['gate', 'formidla', 'max_files', 'invalid_type'].includes(err.message)) {
@@ -313,11 +311,6 @@ export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerAction
         .eq('id', id)
       if (error) throw error
       setListing({ ...listing, image_urls: next, image_url: next[0] ?? null })
-      setCurrentImageIndex((prev) => {
-        const cur = allImages[prev]
-        const ni = next.indexOf(cur)
-        return ni >= 0 ? ni : 0
-      })
     } catch (err: unknown) {
       toast(t('errorSaving') + errMessage(err))
     } finally {
