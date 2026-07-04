@@ -22,15 +22,15 @@ export default function StatusBadge({ label, variant = 'neutral', className }: S
   )
 }
 
-/** Map listing / booking status strings to badge variants. */
+/** Map generic status strings to badge variants (non-homeowner fallback). */
 export function statusBadgeVariantFor(raw: string): StatusBadgeVariant {
   const s = raw.toLowerCase()
-  if (/paid|godkjent|approved|active|tilgjengelig|available|signed|formidla|mediated/.test(s)) {
-    return 'success'
-  }
-  if (/pending|accepted|new|venter|await/.test(s)) return 'pending'
-  if (/cancel|reject|expired|utilgjengelig|unavailable|terminated|closed/.test(s)) return 'danger'
-  if (/draft|info/.test(s)) return 'info'
+  if (/tilgjengelig|available|paid|completed/.test(s)) return 'success'
+  if (/pending|venter|await/.test(s)) return 'pending'
+  if (/utilgjengelig|unavailable|reject|cancel|terminated|closed/.test(s)) return 'danger'
+  if (/formidla|formidlet|mediated|info/.test(s)) return 'info'
   if (/warn/.test(s)) return 'warning'
+  if (/ikke markert|unmarked|draft/.test(s)) return 'neutral'
+  if (/accepted|godkjent|approved/.test(s)) return 'success'
   return 'neutral'
 }

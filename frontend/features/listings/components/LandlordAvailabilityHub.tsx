@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
+import ListingStatusBadge from '@/app/components/design-system/ListingStatusBadge'
 import { useToast } from '@/app/components/design-system'
 import SharedAvailabilityCalendar from '@/features/listings/components/SharedAvailabilityCalendar'
 import LanePeriodBadge from '@/features/listings/components/LanePeriodBadge'
@@ -78,15 +79,7 @@ export default function LandlordAvailabilityHub({
         role="status"
       >
         <strong>{t('availTodayLabel')}</strong>
-        <span>
-          {todayStatus === 'Ikke markert'
-            ? t('availabilityUnmarked')
-            : todayStatus === 'Formidla'
-              ? t('formidlet')
-              : todayStatus === 'Utilgjengelig'
-                ? t('unavailable')
-                : t('available')}
-        </span>
+        <ListingStatusBadge availability={todayStatus} />
       </div>
 
       <p className="avail-mode-desc">{t('sharedCalendarLead')}</p>

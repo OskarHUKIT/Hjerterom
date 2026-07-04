@@ -8,7 +8,7 @@ import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import { EmptyState, useToast } from '@/app/components/design-system'
-import StatusBadge from '@/app/components/design-system/StatusBadge'
+import ListingStatusBadge from '@/app/components/design-system/ListingStatusBadge'
 import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
 import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import { isKommuneSocialActiveForCity } from '@/app/lib/kommuneSocialSubscription'
@@ -247,18 +247,7 @@ export default function ListingHubPage({ listingId }: Props) {
               {listing.city}
               {listing.postal_code ? ` · ${listing.postal_code}` : ''}
             </p>
-            <StatusBadge
-              label={
-                todaySt === 'Formidla'
-                  ? t('formidlet')
-                  : todaySt === 'Utilgjengelig'
-                    ? t('unavailable')
-                    : t('available')
-              }
-              variant={
-                todaySt === 'Formidla' ? 'info' : todaySt === 'Utilgjengelig' ? 'danger' : 'success'
-              }
-            />
+            <ListingStatusBadge availability={todaySt} />
           </div>
           <div className="listing-hub-actions">
             <Link

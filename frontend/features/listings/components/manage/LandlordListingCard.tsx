@@ -6,7 +6,7 @@ import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicSto
 import { publicContactInfoFormPdfUrl } from '@/app/lib/storagePublicUrl'
 import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import { useLanguage } from '@/context/LanguageContext'
-import StatusBadge from '@/app/components/design-system/StatusBadge'
+import ListingStatusBadge from '@/app/components/design-system/ListingStatusBadge'
 import ListingAvailabilityOverview from '@/features/listings/components/ListingAvailabilityOverview'
 import type { ListingEventOptInPeriod } from '@/features/listings/types/lanes'
 import { buttonClassName } from '@/app/components/ui/Button'
@@ -74,22 +74,7 @@ export default function LandlordListingCard({
           <div className="hm-listing-title-block">
             <div className="hm-listing-title-row">
               <h3 className="hm-listing-title-static">{listing.address}</h3>
-              <StatusBadge
-                label={
-                  todaySt === 'Formidla'
-                    ? t('formidlet')
-                    : todaySt === 'Utilgjengelig'
-                      ? t('unavailable')
-                      : t('available')
-                }
-                variant={
-                  todaySt === 'Formidla'
-                    ? 'info'
-                    : todaySt === 'Utilgjengelig'
-                      ? 'danger'
-                      : 'success'
-                }
-              />
+              <ListingStatusBadge availability={todaySt} />
             </div>
             <p className="text-sm hm-listing-meta">
               {isMobileLayout

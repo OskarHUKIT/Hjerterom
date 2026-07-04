@@ -13,9 +13,9 @@
 }
 
 .ds-status-badge--success {
-  background: color-mix(in srgb, var(--ds-success) 18%, transparent);
+  background: color-mix(in srgb, var(--ds-success) 20%, var(--bg-card));
   color: var(--ds-success);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ds-success) 35%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ds-success) 40%, transparent);
 }
 
 .ds-status-badge--warning {
@@ -25,9 +25,9 @@
 }
 
 .ds-status-badge--danger {
-  background: color-mix(in srgb, var(--ds-danger) 18%, transparent);
+  background: color-mix(in srgb, var(--ds-danger) 20%, var(--bg-card));
   color: var(--ds-danger);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ds-danger) 35%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ds-danger) 40%, transparent);
 }
 
 .ds-status-badge--info {
@@ -37,7 +37,7 @@
 }
 
 .ds-status-badge--neutral {
-  background: color-mix(in srgb, var(--text-muted) 14%, transparent);
+  background: color-mix(in srgb, var(--text-muted) 16%, var(--bg-card));
   color: var(--text-muted);
   box-shadow: inset 0 0 0 1px var(--border-subtle);
 }

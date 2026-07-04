@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
+import ListingStatusBadge from '@/app/components/design-system/ListingStatusBadge'
 import { Button } from '@/app/components/ui/Button'
 import { formatDateNo } from '@/app/lib/dateFormat'
 
@@ -93,9 +94,12 @@ export default function LandlordBookingRequests({ listingIds }: Props) {
               background: 'var(--bg-app)',
             }}
           >
-            <p style={{ margin: '0 0 4px', fontWeight: 600, color: 'var(--text-main)' }}>
-              {row.guest_name || row.guest_email}
-            </p>
+            <div className="landlord-booking-row-head">
+              <p className="landlord-booking-row-guest">
+                {row.guest_name || row.guest_email}
+              </p>
+              <ListingStatusBadge booking={row.status} />
+            </div>
             <p style={{ margin: '0 0 8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               {formatDateNo(row.check_in)} – {formatDateNo(row.check_out)}
             </p>
@@ -123,11 +127,7 @@ export default function LandlordBookingRequests({ listingIds }: Props) {
                   {t('landlordBookingReject')}
                 </Button>
               </div>
-            ) : (
-              <span style={{ fontSize: '0.85rem', color: 'var(--color-teal)', fontWeight: 600 }}>
-                {t('landlordBookingAccepted')}
-              </span>
-            )}
+            ) : null}
           </li>
         ))}
       </ul>
