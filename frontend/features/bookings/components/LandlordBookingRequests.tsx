@@ -3,9 +3,16 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { useToast } from '@/app/components/design-system'
-import ListingStatusBadge from '@/app/components/design-system/ListingStatusBadge'
-import { Button } from '@/app/components/ui/Button'
+import {
+  NotificationsWithActions,
+  useConfirm,
+  useToast,
+  type NotificationWithActionsItem,
+} from '@/app/components/design-system'
+import {
+  bookingStatusBadgeLabel,
+  bookingStatusBadgeVariant,
+} from '@/app/components/design-system/ListingStatusBadge'
 import { formatDateNo } from '@/app/lib/dateFormat'
 
 type BookingRow = {
@@ -26,16 +33,19 @@ type Props = {
 export default function LandlordBookingRequests({ listingIds }: Props) {
   const { t } = useLanguage()
   const toast = useToast()
+  const confirm = useConfirm()
   const [rows, setRows] = useState<BookingRow[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
 
   useEffect(() => {
     if (listingIds.length === 0) {
+      setRows([])
       setLoading(false)
       return
     }
     let cancelled = false
+    setLoading(true)
     void (async () => {
       const { data } = await supabase
         .from('bookings')
@@ -74,63 +84,85 @@ export default function LandlordBookingRequests({ listingIds }: Props) {
       }
     }
     setBusyId(null)
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+    setRows((prev) =>
+      status === 'rejected' ? prev.filter((r) => r.id !== id) : prev.map((r) => (r.id === id ? { ...r, status } : r))
+    )
     toast(status === 'accepted' ? t('landlordBookingAcceptedToast') : t('finnBookingUpdated'), 'success')
   }
 
-  if (loading || rows.length === 0) return null
+  const handleReject = async (row: BookingRow) => {
+    const guestLabel = row.guest_name || row.guest_email
+    const ok = await confirm({
+      title: t('landlordBookingRejectConfirmTitle'),
+      message: t('landlordBookingRejectConfirmMessage').replace('{guest}', guestLabel),
+      confirmLabel: t('landlordBookingReject'),
+      cancelLabel: t('cancel'),
+      variant: 'danger',
+    })
+    if (!ok) return
+    await updateStatus(row.id, 'rejected')
+  }
+
+  const items: NotificationWithActionsItem[] = rows.map((row) => {
+    const guestLabel = row.guest_name || row.guest_email
+    const secondaryActions = [
+      {
+        id: 'message',
+        label: t('landlordBookingOpenMessage'),
+        href: `/nav/messages?booking=${row.id}`,
+        variant: 'secondary' as const,
+      },
+    ]
+
+    if (row.status === 'pending') {
+      return {
+        id: row.id,
+        title: guestLabel,
+        meta: `${formatDateNo(row.check_in)} – ${formatDateNo(row.check_out)}`,
+        body: row.message,
+        statusLabel: bookingStatusBadgeLabel(row.status, t),
+        statusVariant: bookingStatusBadgeVariant(row.status),
+        primaryActions: [
+          {
+            id: 'accept',
+            label: t('landlordBookingAccept'),
+            variant: 'accent' as const,
+            disabled: busyId === row.id,
+            onClick: () => {
+              void updateStatus(row.id, 'accepted')
+            },
+          },
+          {
+            id: 'reject',
+            label: t('landlordBookingReject'),
+            variant: 'secondary' as const,
+            disabled: busyId === row.id,
+            onClick: () => {
+              void handleReject(row)
+            },
+          },
+        ],
+        secondaryActions,
+      }
+    }
+
+    return {
+      id: row.id,
+      title: guestLabel,
+      meta: `${formatDateNo(row.check_in)} – ${formatDateNo(row.check_out)}`,
+      body: row.message,
+      statusLabel: bookingStatusBadgeLabel(row.status, t),
+      statusVariant: bookingStatusBadgeVariant(row.status),
+      secondaryActions,
+    }
+  })
 
   return (
-    <section className="card" style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-5)' }}>
-      <h3 style={{ margin: '0 0 var(--space-4)' }}>{t('landlordBookingsTitle')}</h3>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
-        {rows.map((row) => (
-          <li
-            key={row.id}
-            style={{
-              padding: 'var(--space-4)',
-              borderRadius: 12,
-              border: '1px solid var(--border-subtle)',
-              background: 'var(--bg-app)',
-            }}
-          >
-            <div className="landlord-booking-row-head">
-              <p className="landlord-booking-row-guest">
-                {row.guest_name || row.guest_email}
-              </p>
-              <ListingStatusBadge booking={row.status} />
-            </div>
-            <p style={{ margin: '0 0 8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              {formatDateNo(row.check_in)} – {formatDateNo(row.check_out)}
-            </p>
-            {row.message ? (
-              <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--text-body)', lineHeight: 1.5 }}>
-                {row.message}
-              </p>
-            ) : null}
-            {row.status === 'pending' ? (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Button
-                  type="button"
-                  variant="accent"
-                  disabled={busyId === row.id}
-                  onClick={() => void updateStatus(row.id, 'accepted')}
-                >
-                  {t('landlordBookingAccept')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={busyId === row.id}
-                  onClick={() => void updateStatus(row.id, 'rejected')}
-                >
-                  {t('landlordBookingReject')}
-                </Button>
-              </div>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-    </section>
+    <NotificationsWithActions
+      title={loading || rows.length > 0 ? t('landlordBookingsTitle') : undefined}
+      items={items}
+      loading={loading}
+      loadingRows={1}
+    />
   )
 }

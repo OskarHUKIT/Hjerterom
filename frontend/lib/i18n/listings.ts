@@ -466,6 +466,10 @@ export const listingsTranslations = {
     landlordBookingAccept: "Godta",
     landlordBookingReject: "Avslå",
     landlordBookingAccepted: "Godkjent",
+    landlordBookingOpenMessage: "Åpne melding",
+    landlordBookingRejectConfirmTitle: "Avslå booking?",
+    landlordBookingRejectConfirmMessage:
+      "Gjesten ({guest}) får beskjed om at forespørselen er avslått.",
     eventOptInSuccess: "Boligen er meldt tilgjengelig for arrangementet.",
     eventTaskCardTitle: "{name} — vil du delta?",
     eventTaskCardBody: "Du kan melde boligen tilgjengelig med ett trykk.",
@@ -957,6 +961,10 @@ export const listingsTranslations = {
     landlordBookingAccept: "Dohkke",
     landlordBookingReject: "Hilggon",
     landlordBookingAccepted: "Dohkkehuvvon",
+    landlordBookingOpenMessage: "Raba sáhcastallama",
+    landlordBookingRejectConfirmTitle: "Hilggon booking?",
+    landlordBookingRejectConfirmMessage:
+      "Leietaker ({guest}) oačču dieđu ahte jearaldat lea hilggon.",
     eventOptInSuccess: "Dávvir registreret.",
     eventTaskCardTitle: "{name} — searvát?",
     eventTaskCardBody: "Melde dávvira.",
@@ -1452,6 +1460,10 @@ export const listingsTranslations = {
     landlordBookingAccept: "Accept",
     landlordBookingReject: "Decline",
     landlordBookingAccepted: "Accepted",
+    landlordBookingOpenMessage: "Open messages",
+    landlordBookingRejectConfirmTitle: "Decline booking?",
+    landlordBookingRejectConfirmMessage:
+      "The guest ({guest}) will be notified that the request was declined.",
     eventOptInSuccess: "Property is available for this event.",
     eventTaskCardTitle: "{name} — want to participate?",
     eventTaskCardBody: "You can opt in your property with one tap.",

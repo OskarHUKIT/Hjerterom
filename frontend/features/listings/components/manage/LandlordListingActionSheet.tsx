@@ -63,10 +63,6 @@ export default function LandlordListingActionSheet({
           </>
         )}
 
-        <Link href={hubHref} className="button hm-sheet-btn hm-sheet-btn--primary" onClick={onClose}>
-          {t('manageOpenListing')}
-        </Link>
-
         <button
           type="button"
           className="button button-secondary hm-sheet-btn"

@@ -23,6 +23,11 @@ export {
 export { default as Stepper } from './Stepper'
 export type { StepperStep } from './Stepper'
 export { default as PropertyCard } from './PropertyCard'
+export { default as NotificationsWithActions } from './NotificationsWithActions'
+export type {
+  NotificationAction,
+  NotificationWithActionsItem,
+} from './NotificationsWithActions'
 export { default as RangeDatePicker } from './RangeDatePicker'
 export { default as BookingTimeline, bookingTimelineActiveIndex } from './BookingTimeline'
 export { default as StatisticsCard } from './StatisticsCard'
