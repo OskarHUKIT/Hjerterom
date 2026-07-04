@@ -28,11 +28,8 @@ import { useAuthSession } from '../../context/AuthSessionContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { useTheme } from '../../context/ThemeContext'
 import { usePlatformMode } from '../../context/PlatformModeContext'
-import {
-  isKommuneAdminRole,
-  isKommuneStaffRole,
-  kommuneNavUsesAccountsLabel,
-} from '../lib/kommuneRoles'
+import { isKommuneStaffRole, isKommuneAdminRole, kommuneNavUsesAccountsLabel } from '../lib/kommuneRoles'
+import { isEventStaffRole } from '../lib/eventStaffRoles'
 import { devInfo, logError } from '@/app/lib/appLogger'
 import MobileBottomNav from './MobileBottomNav'
 import ShellChromeControls from './design-system/ShellChromeControls'
@@ -176,6 +173,7 @@ export default function Header() {
     Boolean(user) &&
     navRoleForLinks != null &&
     !isKommuneStaffRole(navRoleForLinks) &&
+    !isEventStaffRole(navRoleForLinks) &&
     hasSignedTerms
 
   const hideHeaderMobileShortcutIcons =
@@ -184,7 +182,9 @@ export default function Header() {
 
   const logoHref = !user
     ? '/'
-    : isKommuneStaffRole(navRoleForLinks)
+    : isEventStaffRole(navRoleForLinks)
+      ? '/nav/event/database'
+      : isKommuneStaffRole(navRoleForLinks)
       ? '/nav/database'
       : hasSignedTerms
         ? '/homeowner/manage'
@@ -328,7 +328,9 @@ export default function Header() {
                     ? t('kommune')
                     : role === 'kommune_admin'
                       ? t('kommuneAdminRole')
-                      : t('landlord')}
+                      : role === 'event_ansatt'
+                        ? t('eventStaffBadge')
+                        : t('landlord')}
                   )
                 </span>
               )}

@@ -18,7 +18,8 @@
     "cap:open:android": "npx cap open android",
     "mobile:build": "npm run build:mobile && npm run cap:sync",
     "mobile:ios": "npm run mobile:build && npm run cap:open:ios",
-    "mobile:android": "npm run mobile:build && npm run cap:open:android"
+    "mobile:android": "npm run mobile:build && npm run cap:open:android",
+    "i18n-audit": "node scripts/i18n-audit.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",

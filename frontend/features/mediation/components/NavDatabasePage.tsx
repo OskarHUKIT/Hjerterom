@@ -172,7 +172,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
       ? access.userRole
       : null
   const kommuneCanEdit = isEventPortal
-    ? true
+    ? false
     : access?.kind === 'ok'
       ? access.kommuneCanEdit
       : true

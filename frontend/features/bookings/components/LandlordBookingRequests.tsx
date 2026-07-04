@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { MessageSquare } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
@@ -99,6 +101,9 @@ export default function LandlordBookingRequests({ listingIds }: Props) {
             <p style={{ margin: '0 0 8px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               {formatDateNo(row.check_in)} – {formatDateNo(row.check_out)}
             </p>
+            <p style={{ margin: '0 0 8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <span aria-hidden>🧳</span> {t('msgChannelGuest')}
+            </p>
             {row.message ? (
               <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--text-body)', lineHeight: 1.5 }}>
                 {row.message}
@@ -122,11 +127,43 @@ export default function LandlordBookingRequests({ listingIds }: Props) {
                 >
                   {t('landlordBookingReject')}
                 </Button>
+                <Link
+                  href={`/nav/messages?booking=${row.id}`}
+                  className="button"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: '0.85rem',
+                    padding: '8px 12px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <MessageSquare size={16} aria-hidden />
+                  {t('landlordBookingMessageGuest')}
+                </Link>
               </div>
             ) : (
-              <span style={{ fontSize: '0.85rem', color: 'var(--color-teal)', fontWeight: 600 }}>
-                {t('landlordBookingAccepted')}
-              </span>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--color-teal)', fontWeight: 600 }}>
+                  {t('landlordBookingAccepted')}
+                </span>
+                <Link
+                  href={`/nav/messages?booking=${row.id}`}
+                  className="button"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: '0.85rem',
+                    padding: '8px 12px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <MessageSquare size={16} aria-hidden />
+                  {t('landlordBookingMessageGuest')}
+                </Link>
+              </div>
             )}
           </li>
         ))}

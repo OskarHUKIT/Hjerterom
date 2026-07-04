@@ -7,6 +7,7 @@ import { CalendarDays, Map as MapIcon, MessageSquare } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { isEventStaffRole } from '@/app/lib/eventStaffRoles'
+import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 
 const NAV = [
@@ -21,6 +22,7 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
   const pathname = usePathname()
   const [ready, setReady] = useState(false)
   const [allowed, setAllowed] = useState(false)
+  const [eventNames, setEventNames] = useState<string[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -40,8 +42,29 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
         router.replace('/')
         return
       }
-      setAllowed(true)
-      setReady(true)
+
+      const { data: staffRows } = await supabase
+        .from('central_event_staff')
+        .select('event_id')
+        .eq('profile_id', auth.user.id)
+
+      const eventIds = (staffRows ?? []).map((r) => r.event_id)
+      let names: string[] = []
+      if (eventIds.length > 0) {
+        const { data: events } = await supabase
+          .from('central_events')
+          .select('name')
+          .in('id', eventIds)
+        names = (events ?? [])
+          .map((e) => e.name)
+          .filter((name): name is string => typeof name === 'string' && name.length > 0)
+      }
+
+      if (!cancelled) {
+        setEventNames(names)
+        setAllowed(true)
+        setReady(true)
+      }
     })()
     return () => {
       cancelled = true
@@ -58,50 +81,24 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
 
   if (!allowed) return null
 
+  const badgeLabel =
+    eventNames.length > 0
+      ? `${t('eventStaffBadge')} · ${eventNames.join(', ')}`
+      : t('eventStaffBadge')
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header
-        style={{
-          borderBottom: '1px solid var(--border-subtle)',
-          padding: '12px 16px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: 12,
-          background: 'var(--bg-subtle)',
-        }}
-      >
-        <span
-          style={{
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            padding: '4px 10px',
-            borderRadius: 999,
-            background: 'rgba(168, 85, 247, 0.15)',
-            border: '1px solid rgba(168, 85, 247, 0.35)',
-          }}
-        >
-          🎫 {t('eventStaffBadge')}
-        </span>
-        <nav style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+    <div className="event-staff-shell">
+      <header className="event-staff-header">
+        <span className="event-staff-badge">🎫 {badgeLabel}</span>
+        <nav className="event-staff-nav" aria-label={t('eventStaffNavAria')}>
           {NAV.map(({ href, icon: Icon, labelKey }) => {
             const active = pathname === href || (href !== '/nav/event' && pathname?.startsWith(href))
             return (
               <Link
                 key={href}
                 href={href}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  textDecoration: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.88rem',
-                  color: active ? 'var(--text-main)' : 'var(--text-muted)',
-                  background: active ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
-                }}
+                className={`event-staff-nav-link${active ? ' event-staff-nav-link--active' : ''}`}
+                aria-current={active ? 'page' : undefined}
               >
                 <Icon size={16} aria-hidden />
                 {t(labelKey)}
@@ -109,10 +106,9 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
             )
           })}
         </nav>
+        <ShellChromeControls compact className="event-staff-chrome" />
       </header>
-      <main style={{ flex: 1, padding: 'var(--space-4)', width: '100%', margin: '0 auto' }}>
-        {children}
-      </main>
+      <main className="event-staff-main">{children}</main>
     </div>
   )
 }

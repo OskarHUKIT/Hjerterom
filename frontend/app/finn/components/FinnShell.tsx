@@ -8,6 +8,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import type { Locale } from '@/lib/translations'
 import Logo from '@/app/components/Logo'
 import FeaturePortalGate from '@/app/components/FeaturePortalGate'
+import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
 
 const FINN_LOCALE_KEY = 'hjerterum-finn-locale'
 
@@ -41,6 +42,15 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
       /* ignore */
     }
   }, [locale, setLocale])
+
+  /** Persist Finn locale choice for return visits. */
+  useEffect(() => {
+    try {
+      localStorage.setItem(FINN_LOCALE_KEY, locale)
+    } catch {
+      /* ignore */
+    }
+  }, [locale])
 
   /** Consumer portal is always light — avoids dark-theme token bleed from app shell. */
   useEffect(() => {
@@ -78,6 +88,7 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
             )
           })}
         </nav>
+        <ShellChromeControls compact className="finn-header-chrome" />
       </header>
       <main className="finn-main">
         <FeaturePortalGate feature="finn">{children}</FeaturePortalGate>

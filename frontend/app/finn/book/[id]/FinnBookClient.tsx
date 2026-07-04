@@ -5,8 +5,15 @@ import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
+import type { TranslationKey } from '@/lib/translations'
 import { PageSkeleton, useToast } from '@/app/components/design-system'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
+
+function bookingStatusLabel(t: (key: TranslationKey) => string, status: string): string {
+  const key = `finnBookingStatus_${status}` as TranslationKey
+  const translated = t(key)
+  return translated === key ? status : translated
+}
 
 export default function FinnBookClient() {
   const params = useParams<{ id: string }>()
@@ -18,6 +25,7 @@ export default function FinnBookClient() {
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'vipps'>('stripe')
+  const [vippsConfigured, setVippsConfigured] = useState(false)
   const [booking, setBooking] = useState<{
     id: string
     status: string
@@ -49,6 +57,29 @@ export default function FinnBookClient() {
   useEffect(() => {
     if (cancelled) toast(t('finnCheckoutCancelled'), 'info')
   }, [cancelled, t, toast])
+
+  useEffect(() => {
+    let cancelledFlag = false
+    void (async () => {
+      try {
+        const res = await fetch('/api/vipps/config')
+        if (!res.ok) return
+        const data = (await res.json()) as { configured?: boolean }
+        if (!cancelledFlag) setVippsConfigured(!!data.configured)
+      } catch {
+        /* ignore */
+      }
+    })()
+    return () => {
+      cancelledFlag = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!vippsConfigured && paymentMethod === 'vipps') {
+      setPaymentMethod('stripe')
+    }
+  }, [vippsConfigured, paymentMethod])
 
   const pay = async () => {
     if (!booking) return
@@ -107,7 +138,7 @@ export default function FinnBookClient() {
         </p>
         {amount ? <p className="finn-price" style={{ fontSize: '1.5rem' }}>{amount}</p> : null}
         <p className="finn-card-meta" style={{ marginBottom: 'var(--space-4)' }}>
-          {t('finnCheckoutStatus')}: <strong>{booking.status}</strong>
+          {t('finnCheckoutStatus')}: <strong>{bookingStatusLabel(t, booking.status)}</strong>
         </p>
         {booking.status === 'accepted' || booking.status === 'pending' ? (
           <>
@@ -120,17 +151,23 @@ export default function FinnBookClient() {
                   checked={paymentMethod === 'stripe'}
                   onChange={() => setPaymentMethod('stripe')}
                 />
-                Stripe
+                {t('finnPaymentStripe')}
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === 'vipps'}
-                  onChange={() => setPaymentMethod('vipps')}
-                />
-                Vipps
-              </label>
+              {vippsConfigured ? (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked={paymentMethod === 'vipps'}
+                    onChange={() => setPaymentMethod('vipps')}
+                  />
+                  {t('finnPaymentVipps')}
+                </label>
+              ) : (
+                <p className="finn-card-meta" style={{ margin: '4px 0 0' }}>
+                  {t('finnVippsNotReady')}
+                </p>
+              )}
             </fieldset>
             <Button type="button" variant="accent" disabled={paying} onClick={() => void pay()}>
               {paying ? t('finnCheckoutPaying') : t('finnCheckoutPay')}

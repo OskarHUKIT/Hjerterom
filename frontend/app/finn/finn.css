@@ -35,6 +35,17 @@
   z-index: 50;
 }
 
+.finn-header-chrome {
+  margin-left: auto;
+}
+
+.finn-header-chrome .shell-chrome-controls__select,
+.finn-header-chrome .shell-chrome-controls__theme {
+  background: var(--finn-bg-elevated);
+  border-color: var(--finn-border);
+  color: var(--finn-text);
+}
+
 .finn-brand {
   display: inline-flex;
   align-items: center;
