@@ -1,26 +1,41 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ArrowLeft, Info } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast, useConfirm } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
 import OpsPageHeader from '../../components/OpsPageHeader'
-import OpsPanel from '../../components/OpsPanel'
 import OpsAlert from '../../components/OpsAlert'
-import OpsTabs from '../../components/OpsTabs'
-import OpsKpiGrid from '../../components/OpsKpiGrid'
-import { OpsWizardProgress } from '../../components/OpsChecklist'
 import { OpsPageSkeleton } from '../../components/OpsSkeleton'
+import { BroadcastStepper } from '../components/BroadcastStepper'
+import { BroadcastPreviewStats } from '../components/BroadcastPreviewStats'
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Separator } from '@/components/ui/separator'
+import {
+  opsGetBroadcast,
   opsListKommuner,
   opsListServiceAreas,
   opsPreviewBroadcast,
   opsSendBroadcast,
   opsUpsertBroadcastDraft,
   type BroadcastChannels,
+  type BroadcastDetail,
   type BroadcastPreview,
   type BroadcastSegment,
   type OpsKommuneListItem,
@@ -34,21 +49,67 @@ type EventOption = { id: string; name: string }
 
 const ROLE_KEYS = [
   { key: 'homeowner', labelKey: 'opsBroadcastRoleHomeowner' as const },
-  { key: 'kommune_ansatt', labelKey: 'opsBroadcastRoleKommune' as const, alsoSets: 'kommune_admin' },
+  { key: 'kommune_ansatt', labelKey: 'opsBroadcastRoleKommune' as const },
   { key: 'event_ansatt', labelKey: 'opsBroadcastRoleEvent' as const },
   { key: 'leietaker', labelKey: 'opsBroadcastRoleLeietaker' as const },
 ]
 
-export default function OpsBroadcastNewPage() {
+function applyDraftToForm(
+  d: BroadcastDetail,
+  setters: {
+    setDraftId: (id: string) => void
+    setRoles: (r: Record<string, boolean>) => void
+    setKommuneIds: (ids: string[]) => void
+    setEventId: (id: string) => void
+    setServiceAreaId: (id: string) => void
+    setTitleNo: (v: string) => void
+    setTitleSe: (v: string) => void
+    setTitleEn: (v: string) => void
+    setMessageNo: (v: string) => void
+    setMessageSe: (v: string) => void
+    setMessageEn: (v: string) => void
+    setLinkHref: (v: string) => void
+    setChannels: (c: BroadcastChannels) => void
+    setStep: (s: 1 | 2 | 3) => void
+  },
+) {
+  const rolesInSeg = d.segment.roles ?? []
+  setters.setDraftId(d.id)
+  setters.setRoles({
+    homeowner: rolesInSeg.includes('homeowner'),
+    kommune_ansatt:
+      rolesInSeg.includes('kommune_ansatt') || rolesInSeg.includes('kommune_admin'),
+    event_ansatt: rolesInSeg.includes('event_ansatt'),
+    leietaker: rolesInSeg.includes('leietaker'),
+  })
+  setters.setKommuneIds(d.segment.kommune_ids ?? [])
+  setters.setEventId(d.segment.event_id ?? '')
+  setters.setServiceAreaId(d.segment.service_area_id ?? '')
+  setters.setTitleNo(d.title_no)
+  setters.setTitleSe(d.title_se)
+  setters.setTitleEn(d.title_en)
+  setters.setMessageNo(d.message_no)
+  setters.setMessageSe(d.message_se)
+  setters.setMessageEn(d.message_en)
+  setters.setLinkHref(d.link_href ?? '')
+  setters.setChannels(d.channels)
+  const hasContent = Boolean(d.title_no.trim() && d.message_no.trim())
+  setters.setStep(hasContent ? 2 : 1)
+}
+
+function OpsBroadcastNewPageInner() {
   const { t } = useLanguage()
   const toast = useToast()
   const confirm = useConfirm()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const draftParam = searchParams.get('draft')
 
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   const [loadingMeta, setLoadingMeta] = useState(true)
+  const [loadingDraft, setLoadingDraft] = useState(Boolean(draftParam))
   const [busy, setBusy] = useState(false)
-  const [draftId, setDraftId] = useState<string | null>(null)
+  const [draftId, setDraftId] = useState<string | null>(draftParam)
 
   const [kommuner, setKommuner] = useState<OpsKommuneListItem[]>([])
   const [serviceAreas, setServiceAreas] = useState<OpsServiceArea[]>([])
@@ -106,6 +167,49 @@ export default function OpsBroadcastNewPage() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!draftParam) {
+      setLoadingDraft(false)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const d = await opsGetBroadcast(draftParam)
+        if (cancelled) return
+        if (d.status !== 'draft') {
+          router.replace(`/ops/broadcasts/${draftParam}`)
+          return
+        }
+        applyDraftToForm(d, {
+          setDraftId,
+          setRoles,
+          setKommuneIds,
+          setEventId,
+          setServiceAreaId,
+          setTitleNo,
+          setTitleSe,
+          setTitleEn,
+          setMessageNo,
+          setMessageSe,
+          setMessageEn,
+          setLinkHref,
+          setChannels,
+          setStep,
+        })
+      } catch (e) {
+        if (!cancelled) {
+          toast(e instanceof Error ? e.message : t('errorPrefix'), 'error')
+        }
+      } finally {
+        if (!cancelled) setLoadingDraft(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [draftParam, router, t, toast])
 
   const segment = useMemo((): BroadcastSegment => {
     const selectedRoles: string[] = []
@@ -198,13 +302,13 @@ export default function OpsBroadcastNewPage() {
     }
   }
 
-  if (loadingMeta) return <OpsPageSkeleton />
+  if (loadingMeta || loadingDraft) return <OpsPageSkeleton />
 
   const wizardLabels = [
     t('opsBroadcastStepAudience'),
     t('opsBroadcastStepContent'),
     t('opsBroadcastStepReview'),
-  ]
+  ] as [string, string, string]
 
   const previewTitle =
     localeTab === 'se'
@@ -219,6 +323,14 @@ export default function OpsBroadcastNewPage() {
         ? messageEn || messageNo
         : messageNo
 
+  const previewStats = preview
+    ? [
+        { label: t('opsBroadcastPreviewTotal'), value: preview.total },
+        { label: t('opsBroadcastPreviewPush'), value: preview.push_eligible },
+        { label: t('opsBroadcastPreviewEmail'), value: preview.email_eligible },
+      ]
+    : null
+
   return (
     <div className="ops-stack ops-stack--lg">
       <OpsPageHeader
@@ -228,113 +340,128 @@ export default function OpsBroadcastNewPage() {
             {t('opsBroadcastsTitle')}
           </Link>
         }
-        title={t('opsBroadcastNew')}
+        title={draftId ? t('opsBroadcastContinueDraft') : t('opsBroadcastNew')}
         lead={t('opsBroadcastOneWayHint')}
       />
 
-      <OpsWizardProgress steps={3} current={step} labels={wizardLabels} />
+      {draftId ? (
+        <Alert>
+          <Info className="size-4" />
+          <AlertDescription>{t('opsBroadcastResumeHint')}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <BroadcastStepper step={step} labels={wizardLabels} />
 
       {step === 1 ? (
-        <OpsPanel title={t('opsBroadcastStepAudience')}>
-          <p className="ops-meta">{t('opsBroadcastRoleHint')}</p>
-          <div className="ops-form-grid" style={{ maxWidth: 520 }}>
-            {ROLE_KEYS.map(({ key, labelKey }) => (
-              <label key={key} className="ops-label" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(roles[key])}
-                  onChange={(e) => toggleRole(key, e.target.checked)}
-                />
-                {t(labelKey)}
-              </label>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 'var(--space-6)' }}>
-            <p className="ops-list-card-title">{t('opsBroadcastKommuneFilter')}</p>
-            <div className="ops-form-grid" style={{ maxWidth: 640, marginTop: 8 }}>
-              {kommuner.map((k) => (
-                <label key={k.id} className="ops-label" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={kommuneIds.includes(k.id)}
-                    onChange={() => toggleKommune(k.id)}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('opsBroadcastStepAudience')}</CardTitle>
+            <CardDescription>{t('opsBroadcastRoleHint')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {ROLE_KEYS.map(({ key, labelKey }) => (
+                <div key={key} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`role-${key}`}
+                    checked={Boolean(roles[key])}
+                    onCheckedChange={(checked) => toggleRole(key, checked === true)}
                   />
-                  {k.display_name}
-                </label>
+                  <Label htmlFor={`role-${key}`} className="cursor-pointer font-normal">
+                    {t(labelKey)}
+                  </Label>
+                </div>
               ))}
             </div>
-          </div>
 
-          <div className="ops-form-grid" style={{ maxWidth: 480, marginTop: 'var(--space-6)' }}>
-            <label className="ops-label">
-              {t('opsBroadcastEventFilter')}
-              <select
-                className="ops-input"
-                value={eventId}
-                onChange={(e) => {
-                  setEventId(e.target.value)
-                  setPreview(null)
-                }}
-              >
-                <option value="">—</option>
-                {events.map((ev) => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="ops-label">
-              {t('opsBroadcastServiceAreaFilter')}
-              <select
-                className="ops-input"
-                value={serviceAreaId}
-                onChange={(e) => {
-                  setServiceAreaId(e.target.value)
-                  setPreview(null)
-                }}
-              >
-                <option value="">—</option>
-                {serviceAreas.map((sa) => (
-                  <option key={sa.id} value={sa.id}>
-                    {sa.display_name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+            <Separator />
 
-          <div style={{ marginTop: 'var(--space-6)' }}>
-            <Button type="button" variant="secondary" onClick={() => void runPreview()}>
-              {t('opsBroadcastPreview')}
-            </Button>
-            {preview ? (
-              <div style={{ marginTop: 'var(--space-4)' }}>
-                <OpsKpiGrid
-                  items={[
-                    { label: t('opsBroadcastPreviewTotal'), value: preview.total },
-                    { label: t('opsBroadcastPreviewPush'), value: preview.push_eligible },
-                    { label: t('opsBroadcastPreviewEmail'), value: preview.email_eligible },
-                  ]}
-                />
-                {preview.total > 500 ? (
-                  <div style={{ marginTop: 'var(--space-3)' }}>
-                    <OpsAlert tone="info">
-                      {t('opsBroadcastLargeWarning').replace('{count}', String(preview.total))}
-                    </OpsAlert>
+            <div className="space-y-3">
+              <p className="text-sm font-medium">{t('opsBroadcastKommuneFilter')}</p>
+              <div className="grid max-h-48 gap-2 overflow-y-auto sm:grid-cols-2">
+                {kommuner.map((k) => (
+                  <div key={k.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`kommune-${k.id}`}
+                      checked={kommuneIds.includes(k.id)}
+                      onCheckedChange={() => toggleKommune(k.id)}
+                    />
+                    <Label htmlFor={`kommune-${k.id}`} className="cursor-pointer font-normal">
+                      {k.display_name}
+                    </Label>
                   </div>
-                ) : null}
+                ))}
               </div>
-            ) : null}
-            {previewError ? (
-              <div style={{ marginTop: 'var(--space-3)' }}>
-                <OpsAlert tone="info">{previewError}</OpsAlert>
-              </div>
-            ) : null}
-          </div>
+            </div>
 
-          <div className="ops-actions-row" style={{ marginTop: 'var(--space-6)' }}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="event-filter">{t('opsBroadcastEventFilter')}</Label>
+                <select
+                  id="event-filter"
+                  className="ops-input w-full"
+                  value={eventId}
+                  onChange={(e) => {
+                    setEventId(e.target.value)
+                    setPreview(null)
+                  }}
+                >
+                  <option value="">—</option>
+                  {events.map((ev) => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="service-area-filter">{t('opsBroadcastServiceAreaFilter')}</Label>
+                <select
+                  id="service-area-filter"
+                  className="ops-input w-full"
+                  value={serviceAreaId}
+                  onChange={(e) => {
+                    setServiceAreaId(e.target.value)
+                    setPreview(null)
+                  }}
+                >
+                  <option value="">—</option>
+                  {serviceAreas.map((sa) => (
+                    <option key={sa.id} value={sa.id}>
+                      {sa.display_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Button type="button" variant="secondary" onClick={() => void runPreview()}>
+                {t('opsBroadcastPreview')}
+              </Button>
+              {previewStats ? (
+                <div className="space-y-3">
+                  <BroadcastPreviewStats items={previewStats} />
+                  {preview && preview.total > 500 ? (
+                    <Alert>
+                      <Info className="size-4" />
+                      <AlertDescription>
+                        {t('opsBroadcastLargeWarning').replace('{count}', String(preview.total))}
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+                </div>
+              ) : null}
+              {previewError ? (
+                <Alert>
+                  <Info className="size-4" />
+                  <AlertDescription>{previewError}</AlertDescription>
+                </Alert>
+              ) : null}
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end border-t">
             <Button
               type="button"
               variant="accent"
@@ -343,90 +470,116 @@ export default function OpsBroadcastNewPage() {
             >
               {t('opsBroadcastStepContent')}
             </Button>
-          </div>
-        </OpsPanel>
+          </CardFooter>
+        </Card>
       ) : null}
 
       {step === 2 ? (
-        <OpsPanel title={t('opsBroadcastStepContent')}>
-          <OpsTabs
-            tabs={[
-              { id: 'no' as const, label: t('opsBroadcastLocaleNo') },
-              { id: 'se' as const, label: t('opsBroadcastLocaleSe') },
-              { id: 'en' as const, label: t('opsBroadcastLocaleEn') },
-            ]}
-            active={localeTab}
-            onChange={setLocaleTab}
-          />
-          <div className="ops-form-grid" style={{ maxWidth: 640, marginTop: 'var(--space-4)' }}>
-            <label className="ops-label">
-              {t('opsBroadcastTitle')} {localeTab === 'no' ? '*' : ''}
-              <input
-                className="ops-input"
-                value={localeTab === 'no' ? titleNo : localeTab === 'se' ? titleSe : titleEn}
-                onChange={(e) => {
-                  const v = e.target.value
-                  if (localeTab === 'no') setTitleNo(v)
-                  else if (localeTab === 'se') setTitleSe(v)
-                  else setTitleEn(v)
-                }}
-                maxLength={120}
-              />
-            </label>
-            <label className="ops-label">
-              {t('opsBroadcastMessage')} {localeTab === 'no' ? '*' : ''}
-              <textarea
-                className="ops-input"
-                rows={6}
-                value={localeTab === 'no' ? messageNo : localeTab === 'se' ? messageSe : messageEn}
-                onChange={(e) => {
-                  const v = e.target.value
-                  if (localeTab === 'no') setMessageNo(v)
-                  else if (localeTab === 'se') setMessageSe(v)
-                  else setMessageEn(v)
-                }}
-                maxLength={2000}
-              />
-            </label>
-            <label className="ops-label">
-              {t('opsBroadcastLink')}
-              <input
-                className="ops-input"
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('opsBroadcastStepContent')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Tabs
+              value={localeTab}
+              onValueChange={(v) => setLocaleTab(v as LocaleTab)}
+            >
+              <TabsList>
+                <TabsTrigger value="no">{t('opsBroadcastLocaleNo')}</TabsTrigger>
+                <TabsTrigger value="se">{t('opsBroadcastLocaleSe')}</TabsTrigger>
+                <TabsTrigger value="en">{t('opsBroadcastLocaleEn')}</TabsTrigger>
+              </TabsList>
+              <TabsContent value={localeTab} className="mt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="broadcast-title">
+                    {t('opsBroadcastTitle')} {localeTab === 'no' ? '*' : ''}
+                  </Label>
+                  <Input
+                    id="broadcast-title"
+                    value={localeTab === 'no' ? titleNo : localeTab === 'se' ? titleSe : titleEn}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      if (localeTab === 'no') setTitleNo(v)
+                      else if (localeTab === 'se') setTitleSe(v)
+                      else setTitleEn(v)
+                    }}
+                    maxLength={120}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="broadcast-message">
+                    {t('opsBroadcastMessage')} {localeTab === 'no' ? '*' : ''}
+                  </Label>
+                  <Textarea
+                    id="broadcast-message"
+                    rows={6}
+                    value={
+                      localeTab === 'no' ? messageNo : localeTab === 'se' ? messageSe : messageEn
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value
+                      if (localeTab === 'no') setMessageNo(v)
+                      else if (localeTab === 'se') setMessageSe(v)
+                      else setMessageEn(v)
+                    }}
+                    maxLength={2000}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="space-y-2">
+              <Label htmlFor="broadcast-link">{t('opsBroadcastLink')}</Label>
+              <Input
+                id="broadcast-link"
                 value={linkHref}
                 onChange={(e) => setLinkHref(e.target.value)}
                 placeholder="/homeowner/manage"
               />
-            </label>
-          </div>
+            </div>
 
-          <div className="ops-form-grid" style={{ maxWidth: 420, marginTop: 'var(--space-4)' }}>
-            <label className="ops-label" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
-                type="checkbox"
-                checked={channels.in_app}
-                onChange={(e) => setChannels((c) => ({ ...c, in_app: e.target.checked }))}
-              />
-              {t('opsBroadcastChannelInApp')}
-            </label>
-            <label className="ops-label" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
-                type="checkbox"
-                checked={channels.push}
-                onChange={(e) => setChannels((c) => ({ ...c, push: e.target.checked }))}
-              />
-              {t('opsBroadcastChannelPush')}
-            </label>
-            <label className="ops-label" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
-                type="checkbox"
-                checked={channels.email}
-                onChange={(e) => setChannels((c) => ({ ...c, email: e.target.checked }))}
-              />
-              {t('opsBroadcastChannelEmail')}
-            </label>
-          </div>
+            <Separator />
 
-          <div className="ops-actions-row" style={{ marginTop: 'var(--space-6)' }}>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="channel-in-app"
+                  checked={channels.in_app}
+                  onCheckedChange={(checked) =>
+                    setChannels((c) => ({ ...c, in_app: checked === true }))
+                  }
+                />
+                <Label htmlFor="channel-in-app" className="cursor-pointer font-normal">
+                  {t('opsBroadcastChannelInApp')}
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="channel-push"
+                  checked={channels.push}
+                  onCheckedChange={(checked) =>
+                    setChannels((c) => ({ ...c, push: checked === true }))
+                  }
+                />
+                <Label htmlFor="channel-push" className="cursor-pointer font-normal">
+                  {t('opsBroadcastChannelPush')}
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="channel-email"
+                  checked={channels.email}
+                  onCheckedChange={(checked) =>
+                    setChannels((c) => ({ ...c, email: checked === true }))
+                  }
+                />
+                <Label htmlFor="channel-email" className="cursor-pointer font-normal">
+                  {t('opsBroadcastChannelEmail')}
+                </Label>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="justify-between border-t">
             <Button type="button" variant="secondary" onClick={() => setStep(1)}>
               {t('opsBroadcastStepAudience')}
             </Button>
@@ -438,47 +591,65 @@ export default function OpsBroadcastNewPage() {
             >
               {t('opsBroadcastStepReview')}
             </Button>
-          </div>
-        </OpsPanel>
+          </CardFooter>
+        </Card>
       ) : null}
 
       {step === 3 ? (
-        <OpsPanel title={t('opsBroadcastStepReview')}>
-          {preview ? (
-            <OpsKpiGrid
-              items={[
-                { label: t('opsBroadcastPreviewTotal'), value: preview.total },
-                { label: t('opsBroadcastPreviewPush'), value: preview.push_eligible },
-                { label: t('opsBroadcastPreviewEmail'), value: preview.email_eligible },
-              ]}
-            />
-          ) : null}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('opsBroadcastStepReview')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {previewStats ? <BroadcastPreviewStats items={previewStats} /> : null}
 
-          <div className="card ops-panel" style={{ marginTop: 'var(--space-4)', padding: 'var(--space-4)' }}>
-            <p className="ops-list-card-title">{previewTitle || '—'}</p>
-            <p className="ops-meta" style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>
-              {previewMessage || '—'}
-            </p>
-            {linkHref ? (
-              <p className="ops-meta" style={{ marginTop: 8 }}>
-                {linkHref}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="ops-actions-row" style={{ marginTop: 'var(--space-6)' }}>
+            <Card size="sm">
+              <CardHeader>
+                <CardTitle className="text-base">{previewTitle || '—'}</CardTitle>
+                <CardDescription className="whitespace-pre-wrap">
+                  {previewMessage || '—'}
+                </CardDescription>
+                {linkHref ? (
+                  <CardDescription className="text-primary">{linkHref}</CardDescription>
+                ) : null}
+              </CardHeader>
+            </Card>
+          </CardContent>
+          <CardFooter className="flex-wrap justify-between gap-2 border-t">
             <Button type="button" variant="secondary" disabled={busy} onClick={() => setStep(2)}>
               {t('opsBroadcastStepContent')}
             </Button>
-            <Button type="button" variant="secondary" disabled={busy} onClick={() => void saveDraft().then(() => toast(t('opsBroadcastSaveDraft'), 'success'))}>
-              {t('opsBroadcastSaveDraft')}
-            </Button>
-            <Button type="button" variant="accent" disabled={busy || !preview?.total} onClick={() => void handleSend()}>
-              {busy ? t('dbSavingShort') : t('opsBroadcastSend')}
-            </Button>
-          </div>
-        </OpsPanel>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() =>
+                  void saveDraft().then(() => toast(t('opsBroadcastSaveDraft'), 'success'))
+                }
+              >
+                {t('opsBroadcastSaveDraft')}
+              </Button>
+              <Button
+                type="button"
+                variant="accent"
+                disabled={busy || !preview?.total}
+                onClick={() => void handleSend()}
+              >
+                {busy ? t('dbSavingShort') : t('opsBroadcastSend')}
+              </Button>
+            </div>
+          </CardFooter>
+        </Card>
       ) : null}
     </div>
+  )
+}
+
+export default function OpsBroadcastNewPage() {
+  return (
+    <Suspense fallback={<OpsPageSkeleton />}>
+      <OpsBroadcastNewPageInner />
+    </Suspense>
   )
 }

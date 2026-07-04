@@ -8,6 +8,7 @@ module.exports = {
   darkMode: ['selector', '[data-theme="dark"]'],
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
     './context/**/*.{js,ts,jsx,tsx}',
     './features/**/*.{js,ts,jsx,tsx,mdx}',
     './lib/**/*.{js,ts,jsx,tsx}',
@@ -70,6 +71,13 @@ module.exports = {
       },
       borderRadius: {
         boly: '10px',
+        '4xl': '2rem',
+      },
+      ringWidth: {
+        3: '3px',
+      },
+      outlineColor: {
+        ring: 'var(--ring)',
       },
     },
   },

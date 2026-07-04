@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Sans, Fraunces } from 'next/font/google'
+import { DM_Sans, Fraunces, Geist } from 'next/font/google'
 import './globals.css'
 import './styles/hjerterum-v2.css'
 import SiteChrome from './components/SiteChrome'
@@ -7,6 +7,9 @@ import SkipLink from './components/design-system/SkipLink'
 import PushSubscription from './components/PushSubscription'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import { Providers } from './providers'
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const fontSans = DM_Sans({
   subsets: ['latin'],
@@ -63,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="nb"
       suppressHydrationWarning
-      className={`${fontSans.variable} ${fontDisplay.variable}`}
+      className={cn(fontSans.variable, fontDisplay.variable, "font-sans", geist.variable)}
     >
       <head>
         {supabaseOrigin ? (

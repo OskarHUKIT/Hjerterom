@@ -1,19 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import type { TranslationKey } from '@/lib/translations'
 import OpsGdprBanner from '../components/OpsGdprBanner'
 import OpsPageHeader from '../components/OpsPageHeader'
-import OpsBadge from '../components/OpsBadge'
-import OpsAlert from '../components/OpsAlert'
 import OpsEmptyState from '../components/OpsEmptyState'
 import OpsDataTable from '../components/OpsDataTable'
 import { OpsTableSkeleton } from '../components/OpsSkeleton'
 import { Button } from '@/app/components/ui/Button'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
 import { opsListBroadcasts, type BroadcastListItem } from '@/app/lib/opsApi'
 
@@ -33,6 +34,11 @@ function segmentSummary(
   const kommuneCount = segment.kommune_ids?.length ?? 0
   if (kommuneCount > 0) labels.push(`${kommuneCount} kommune`)
   return labels.join(' · ') || roles.join(', ')
+}
+
+function broadcastHref(row: BroadcastListItem): string {
+  if (row.status === 'draft') return `/ops/broadcasts/new?draft=${row.id}`
+  return `/ops/broadcasts/${row.id}`
 }
 
 export default function OpsBroadcastsPage() {
@@ -59,8 +65,17 @@ export default function OpsBroadcastsPage() {
     }
   }, [])
 
+  const drafts = useMemo(() => items.filter((i) => i.status === 'draft'), [items])
+  const sent = useMemo(() => items.filter((i) => i.status === 'sent'), [items])
+
   if (loading) return <OpsTableSkeleton rows={6} cols={5} />
-  if (error) return <OpsAlert tone="error">{error}</OpsAlert>
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )
+  }
 
   return (
     <div className="ops-stack ops-stack--lg">
@@ -77,7 +92,9 @@ export default function OpsBroadcastsPage() {
         }
       />
       <OpsGdprBanner />
-      <OpsAlert tone="info">{t('opsBroadcastOneWayHint')}</OpsAlert>
+      <Alert>
+        <AlertDescription>{t('opsBroadcastOneWayHint')}</AlertDescription>
+      </Alert>
 
       {items.length === 0 ? (
         <OpsEmptyState
@@ -89,50 +106,85 @@ export default function OpsBroadcastsPage() {
           }
         />
       ) : (
-        <OpsDataTable
-          rows={items}
-          onRowClick={(row) => router.push(`/ops/broadcasts/${row.id}`)}
-          columns={[
-            {
-              key: 'title',
-              header: t('opsBroadcastTitle'),
-              render: (row) => (
-                <Link
-                  href={`/ops/broadcasts/${row.id}`}
-                  className="ops-link"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {row.title_no || '—'}
-                </Link>
-              ),
-            },
-            {
-              key: 'status',
-              header: t('opsKommuneStatus'),
-              render: (row) => (
-                <OpsBadge tone={row.status === 'sent' ? 'success' : 'neutral'}>
-                  {row.status === 'sent' ? t('opsBroadcastStatusSent') : t('opsBroadcastStatusDraft')}
-                </OpsBadge>
-              ),
-            },
-            {
-              key: 'segment',
-              header: t('opsBroadcastStepAudience'),
-              render: (row) => <span className="ops-meta">{segmentSummary(row.segment, t)}</span>,
-            },
-            {
-              key: 'recipients',
-              header: t('opsBroadcastRecipients'),
-              render: (row) => (row.status === 'sent' ? row.recipient_count : '—'),
-            },
-            {
-              key: 'sent',
-              header: t('opsBroadcastSentAt'),
-              render: (row) =>
-                row.sent_at ? formatDateTimeNo(row.sent_at) : formatDateTimeNo(row.created_at),
-            },
-          ]}
-        />
+        <>
+          {drafts.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('opsBroadcastDraftsSection')}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {drafts.map((row) => (
+                  <div
+                    key={row.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                  >
+                    <div>
+                      <Link href={broadcastHref(row)} className="ops-link font-medium">
+                        {row.title_no || '—'}
+                      </Link>
+                      <p className="ops-meta text-sm">{segmentSummary(row.segment, t)}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">{t('opsBroadcastStatusDraft')}</Badge>
+                      <Link href={broadcastHref(row)}>
+                        <Button variant="secondary">{t('opsBroadcastContinueDraft')}</Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {sent.length > 0 ? (
+            <OpsDataTable
+              rows={sent}
+              onRowClick={(row) => router.push(broadcastHref(row))}
+            columns={[
+              {
+                key: 'title',
+                header: t('opsBroadcastTitle'),
+                render: (row) => (
+                  <Link
+                    href={broadcastHref(row)}
+                    className="ops-link"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {row.title_no || '—'}
+                  </Link>
+                ),
+              },
+              {
+                key: 'status',
+                header: t('opsKommuneStatus'),
+                render: (row) => (
+                  <Badge variant={row.status === 'sent' ? 'default' : 'secondary'}>
+                    {row.status === 'sent'
+                      ? t('opsBroadcastStatusSent')
+                      : t('opsBroadcastStatusDraft')}
+                  </Badge>
+                ),
+              },
+              {
+                key: 'segment',
+                header: t('opsBroadcastStepAudience'),
+                render: (row) => <span className="ops-meta">{segmentSummary(row.segment, t)}</span>,
+              },
+              {
+                key: 'recipients',
+                header: t('opsBroadcastRecipients'),
+                render: (row) => (row.status === 'sent' ? row.recipient_count : '—'),
+              },
+              {
+                key: 'sent',
+                header: t('opsBroadcastSentAt'),
+                render: (row) =>
+                  row.sent_at ? formatDateTimeNo(row.sent_at) : formatDateTimeNo(row.created_at),
+              },
+            ]}
+          />
+          ) : null}
+        </>
       )}
     </div>
   )

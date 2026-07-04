@@ -6,12 +6,12 @@ import { useParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import OpsPageHeader from '../../components/OpsPageHeader'
-import OpsPanel from '../../components/OpsPanel'
-import OpsBadge from '../../components/OpsBadge'
 import OpsAlert from '../../components/OpsAlert'
-import OpsKpiGrid from '../../components/OpsKpiGrid'
 import { OpsPageSkeleton } from '../../components/OpsSkeleton'
+import { BroadcastPreviewStats } from '../components/BroadcastPreviewStats'
 import { Button } from '@/app/components/ui/Button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
 import { opsGetBroadcast, type BroadcastDetail } from '@/app/lib/opsApi'
 
@@ -45,6 +45,7 @@ export default function OpsBroadcastDetailPage() {
   if (error || !detail) return <OpsAlert tone="error">{error || t('pageLoadStuck')}</OpsAlert>
 
   const stats = detail.delivery_stats as Record<string, number | unknown>
+  const isDraft = detail.status === 'draft'
 
   return (
     <div className="ops-stack ops-stack--lg">
@@ -55,26 +56,33 @@ export default function OpsBroadcastDetailPage() {
             {t('opsBroadcastsTitle')}
           </Link>
         }
-        title={t('opsBroadcastDetailTitle')}
+        title={isDraft ? t('opsBroadcastContinueDraft') : t('opsBroadcastDetailTitle')}
         lead={
           <>
-            <OpsBadge tone={detail.status === 'sent' ? 'success' : 'neutral'}>
+            <Badge variant={detail.status === 'sent' ? 'default' : 'secondary'}>
               {detail.status === 'sent' ? t('opsBroadcastStatusSent') : t('opsBroadcastStatusDraft')}
-            </OpsBadge>
+            </Badge>
             {detail.sent_at ? (
               <span className="ops-meta"> · {formatDateTimeNo(detail.sent_at)}</span>
             ) : null}
           </>
         }
         actions={
-          <Link href="/ops/broadcasts">
-            <Button variant="secondary">{t('opsBroadcastBack')}</Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {isDraft ? (
+              <Link href={`/ops/broadcasts/new?draft=${detail.id}`}>
+                <Button variant="accent">{t('opsBroadcastContinueDraft')}</Button>
+              </Link>
+            ) : null}
+            <Link href="/ops/broadcasts">
+              <Button variant="secondary">{t('opsBroadcastBack')}</Button>
+            </Link>
+          </div>
         }
       />
 
       {detail.status === 'sent' ? (
-        <OpsKpiGrid
+        <BroadcastPreviewStats
           items={[
             { label: t('opsBroadcastRecipients'), value: detail.recipient_count },
             {
@@ -89,30 +97,34 @@ export default function OpsBroadcastDetailPage() {
         />
       ) : null}
 
-      <OpsPanel title={t('opsBroadcastTitle')}>
-        <p className="ops-list-card-title">{detail.title_no}</p>
-        {detail.title_se ? <p className="ops-meta">se: {detail.title_se}</p> : null}
-        {detail.title_en ? <p className="ops-meta">en: {detail.title_en}</p> : null}
-      </OpsPanel>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('opsBroadcastTitle')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          <p className="font-medium">{detail.title_no}</p>
+          {detail.title_se ? <CardDescription>se: {detail.title_se}</CardDescription> : null}
+          {detail.title_en ? <CardDescription>en: {detail.title_en}</CardDescription> : null}
+        </CardContent>
+      </Card>
 
-      <OpsPanel title={t('opsBroadcastMessage')}>
-        <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.55 }}>{detail.message_no}</p>
-        {detail.message_se ? (
-          <p className="ops-meta" style={{ whiteSpace: 'pre-wrap', marginTop: 12 }}>
-            se: {detail.message_se}
-          </p>
-        ) : null}
-        {detail.message_en ? (
-          <p className="ops-meta" style={{ whiteSpace: 'pre-wrap', marginTop: 12 }}>
-            en: {detail.message_en}
-          </p>
-        ) : null}
-        {detail.link_href ? (
-          <p className="ops-meta" style={{ marginTop: 12 }}>
-            {detail.link_href}
-          </p>
-        ) : null}
-      </OpsPanel>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('opsBroadcastMessage')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="whitespace-pre-wrap leading-relaxed">{detail.message_no}</p>
+          {detail.message_se ? (
+            <CardDescription className="whitespace-pre-wrap">se: {detail.message_se}</CardDescription>
+          ) : null}
+          {detail.message_en ? (
+            <CardDescription className="whitespace-pre-wrap">en: {detail.message_en}</CardDescription>
+          ) : null}
+          {detail.link_href ? (
+            <CardDescription className="text-primary">{detail.link_href}</CardDescription>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   )
 }

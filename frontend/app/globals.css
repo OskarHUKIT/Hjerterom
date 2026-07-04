@@ -94,8 +94,6 @@
   --lane-selection-ring: rgba(56, 189, 248, 0.85);
 
   /* shadcn / originui calendar tokens (Boly-mapped) */
-  --background: var(--bg-app);
-  --foreground: var(--text-main);
   --card: var(--bg-card);
   --card-foreground: var(--text-main);
   --popover: var(--bg-card);
