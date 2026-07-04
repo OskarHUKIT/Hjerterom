@@ -585,29 +585,107 @@ export async function opsGetFunnelStats(): Promise<OpsFunnelStats> {
 }
 
 export type OpsPlatformSettingsPayload = {
-  social_module_enabled: boolean
+  social_module_enabled?: boolean
   finn_portal_enabled: boolean
   los_portal_enabled: boolean
   central_events_enabled: boolean
   tourism_lane_enabled: boolean
   stripe_bookings_enabled: boolean
   updated_at?: string | null
+  /** Legacy DB before social_module_enabled migration */
+  product_mode?: string
 }
 
-export async function opsGetPlatformSettings(): Promise<OpsPlatformSettingsPayload> {
-  const { data, error } = await supabase.rpc('ops_get_platform_settings')
-  if (error) throw error
-  return data as OpsPlatformSettingsPayload
-}
-
-export async function opsSetPlatformSettings(input: {
+type PlatformSettingsInput = {
   socialModuleEnabled?: boolean
   finnPortalEnabled?: boolean
   losPortalEnabled?: boolean
   centralEventsEnabled?: boolean
   tourismLaneEnabled?: boolean
   stripeBookingsEnabled?: boolean
-}) {
+}
+
+type PlatformSettingsRpcResult = { ok: boolean; settings: OpsPlatformSettingsPayload }
+
+function isMissingPlatformRpc(error: { code?: string; message?: string }): boolean {
+  const msg = error.message ?? ''
+  return (
+    error.code === 'PGRST202' ||
+    error.code === '42883' ||
+    /Could not find the function|function.*does not exist|schema cache/i.test(msg)
+  )
+}
+
+function isMissingSocialColumn(error: { code?: string; message?: string }): boolean {
+  const msg = error.message ?? ''
+  return error.code === '42703' || /social_module_enabled/i.test(msg)
+}
+
+export function normalizeOpsPlatformSettingsPayload(
+  raw: OpsPlatformSettingsPayload
+): OpsPlatformSettingsPayload {
+  const social =
+    raw.social_module_enabled !== undefined
+      ? raw.social_module_enabled !== false
+      : raw.product_mode !== 'boly'
+  return {
+    social_module_enabled: social,
+    finn_portal_enabled: Boolean(raw.finn_portal_enabled),
+    los_portal_enabled: Boolean(raw.los_portal_enabled),
+    central_events_enabled: Boolean(raw.central_events_enabled),
+    tourism_lane_enabled: Boolean(raw.tourism_lane_enabled),
+    stripe_bookings_enabled: Boolean(raw.stripe_bookings_enabled),
+    updated_at: raw.updated_at ?? null,
+  }
+}
+
+function legacyProductMode(input: Required<PlatformSettingsInput>): 'boly' | 'hjerterum' {
+  if (
+    input.tourismLaneEnabled ||
+    input.losPortalEnabled ||
+    input.centralEventsEnabled ||
+    input.finnPortalEnabled
+  ) {
+    return 'hjerterum'
+  }
+  return 'boly'
+}
+
+async function opsSetPlatformSettingsLegacy(
+  input: PlatformSettingsInput
+): Promise<PlatformSettingsRpcResult> {
+  const full: Required<PlatformSettingsInput> = {
+    socialModuleEnabled: input.socialModuleEnabled ?? true,
+    finnPortalEnabled: input.finnPortalEnabled ?? false,
+    losPortalEnabled: input.losPortalEnabled ?? false,
+    centralEventsEnabled: input.centralEventsEnabled ?? false,
+    tourismLaneEnabled: input.tourismLaneEnabled ?? false,
+    stripeBookingsEnabled: input.stripeBookingsEnabled ?? false,
+  }
+
+  const { data, error } = await supabase.rpc('ops_set_platform_settings', {
+    p_product_mode: legacyProductMode(full),
+    p_finn_portal_enabled: full.finnPortalEnabled,
+    p_los_portal_enabled: full.losPortalEnabled,
+    p_central_events_enabled: full.centralEventsEnabled,
+    p_tourism_lane_enabled: full.tourismLaneEnabled,
+    p_stripe_bookings_enabled: full.stripeBookingsEnabled,
+  })
+  if (error) throw error
+  const payload = data as PlatformSettingsRpcResult
+  return {
+    ok: payload.ok,
+    settings: normalizeOpsPlatformSettingsPayload(payload.settings),
+  }
+}
+
+export async function opsGetPlatformSettings(): Promise<OpsPlatformSettingsPayload> {
+  const { data, error } = await supabase.rpc('ops_get_platform_settings')
+  if (error) throw error
+  return normalizeOpsPlatformSettingsPayload(data as OpsPlatformSettingsPayload)
+}
+
+export async function opsSetPlatformSettings(input: PlatformSettingsInput) {
   const { data, error } = await supabase.rpc('ops_set_platform_settings', {
     p_social_module_enabled: input.socialModuleEnabled ?? null,
     p_finn_portal_enabled: input.finnPortalEnabled ?? null,
@@ -616,8 +694,24 @@ export async function opsSetPlatformSettings(input: {
     p_tourism_lane_enabled: input.tourismLaneEnabled ?? null,
     p_stripe_bookings_enabled: input.stripeBookingsEnabled ?? null,
   })
-  if (error) throw error
-  return data as { ok: boolean; settings: OpsPlatformSettingsPayload }
+
+  if (error) {
+    if (isMissingSocialColumn(error)) {
+      throw new Error(
+        'Database migration missing (social_module_enabled). Run: supabase db push'
+      )
+    }
+    if (isMissingPlatformRpc(error)) {
+      return opsSetPlatformSettingsLegacy(input)
+    }
+    throw error
+  }
+
+  const payload = data as PlatformSettingsRpcResult
+  return {
+    ok: payload.ok,
+    settings: normalizeOpsPlatformSettingsPayload(payload.settings),
+  }
 }
 
 // ─── Broadcasts ───
@@ -743,6 +837,41 @@ export async function opsApplyPlatformPreset(
   const { data, error } = await supabase.rpc('ops_apply_platform_preset', {
     p_preset: preset,
   })
-  if (error) throw error
-  return data as { ok: boolean; settings: OpsPlatformSettingsPayload }
+  if (error) {
+    if (isMissingPlatformRpc(error) || isMissingSocialColumn(error)) {
+      const map: Record<typeof preset, PlatformSettingsInput> = {
+        boly_only: {
+          socialModuleEnabled: true,
+          finnPortalEnabled: false,
+          losPortalEnabled: false,
+          centralEventsEnabled: false,
+          tourismLaneEnabled: false,
+          stripeBookingsEnabled: false,
+        },
+        hjerterum_full: {
+          socialModuleEnabled: true,
+          finnPortalEnabled: true,
+          losPortalEnabled: true,
+          centralEventsEnabled: true,
+          tourismLaneEnabled: true,
+          stripeBookingsEnabled: true,
+        },
+        hjerterum_pilot: {
+          socialModuleEnabled: true,
+          finnPortalEnabled: false,
+          losPortalEnabled: true,
+          centralEventsEnabled: false,
+          tourismLaneEnabled: true,
+          stripeBookingsEnabled: false,
+        },
+      }
+      return opsSetPlatformSettingsLegacy(map[preset])
+    }
+    throw error
+  }
+  const payload = data as PlatformSettingsRpcResult
+  return {
+    ok: payload.ok,
+    settings: normalizeOpsPlatformSettingsPayload(payload.settings),
+  }
 }

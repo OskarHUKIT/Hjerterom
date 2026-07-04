@@ -56,6 +56,8 @@ export const opsTranslations = {
     opsPlatformOff: "Av",
     opsPlatformSave: "Lagre innstillinger",
     opsPlatformSaved: "Plattforminnstillinger lagret",
+    opsPlatformDbMigrationHint:
+      "Kunne ikke lagre moduler — databasemigrasjon mangler. Kjør «supabase db push» på produksjon.",
     opsPlatformOpenApp: "Åpne app",
     opsPlatformLeadModules:
       "Velg hvilke moduler som er aktive. Avhengigheter håndheves automatisk (Los krever sosial, Stripe krever turisme).",
@@ -440,6 +442,8 @@ export const opsTranslations = {
     opsPlatformOff: "Off",
     opsPlatformSave: "Vurke",
     opsPlatformSaved: "Vurkejuvvon",
+    opsPlatformDbMigrationHint:
+      "Ii sáhte vurket — DB-migrasjon váilu. Ráhkat «supabase db push» produksuvnnas.",
     opsPlatformOpenApp: "App",
     opsPlatformLeadModules: "Modulat — Los gáibida sosial, Stripe gáibida turisma.",
     opsPlatformActiveModules: "Aktiv modulat",
@@ -818,6 +822,8 @@ export const opsTranslations = {
     opsPlatformOff: "Off",
     opsPlatformSave: "Save settings",
     opsPlatformSaved: "Platform settings saved",
+    opsPlatformDbMigrationHint:
+      "Could not save modules — database migration is missing. Run «supabase db push» on production.",
     opsPlatformOpenApp: "Open app",
     opsPlatformLeadModules:
       "Choose which modules are active. Dependencies are enforced automatically (Los requires social, Stripe requires tourism).",

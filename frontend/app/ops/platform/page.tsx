@@ -53,6 +53,14 @@ function fromPayload(p: OpsPlatformSettingsPayload): LocalSettings {
   }
 }
 
+function platformErrorMessage(e: unknown, t: (key: import('@/lib/translations').TranslationKey) => string): string {
+  const msg = e instanceof Error ? e.message : t('errorPrefix')
+  if (/social_module_enabled|supabase db push|schema cache/i.test(msg)) {
+    return t('opsPlatformDbMigrationHint')
+  }
+  return msg
+}
+
 export default function OpsPlatformControlPage() {
   const { t } = useLanguage()
   const toast = useToast()
@@ -76,7 +84,7 @@ export default function OpsPlatformControlPage() {
       setSettings(fromPayload(data))
       setUpdatedAt(data.updated_at ?? null)
     } catch (e) {
-      toast(e instanceof Error ? e.message : t('pageLoadStuck'), 'error')
+      toast(platformErrorMessage(e, t), 'error')
     } finally {
       setLoading(false)
     }
@@ -97,7 +105,7 @@ export default function OpsPlatformControlPage() {
       refetchGlobal()
       toast(t('opsPlatformSaved'), 'success')
     } catch (e) {
-      toast(e instanceof Error ? e.message : t('errorPrefix'), 'error')
+      toast(platformErrorMessage(e, t), 'error')
     } finally {
       setSaving(false)
     }
@@ -124,7 +132,7 @@ export default function OpsPlatformControlPage() {
       refetchGlobal()
       toast(t('opsPlatformSaved'), 'success')
     } catch (e) {
-      toast(e instanceof Error ? e.message : t('errorPrefix'), 'error')
+      toast(platformErrorMessage(e, t), 'error')
     } finally {
       setSaving(false)
     }
