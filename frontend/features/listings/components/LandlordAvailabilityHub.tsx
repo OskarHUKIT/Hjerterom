@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { Building2, Compass, CalendarDays } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
-import SharedAvailabilityCalendar from '@/features/listings/components/SharedAvailabilityCalendar'
+import ListingLaneCalendar from '@/features/listings/components/ListingLaneCalendar'
 import LanePeriodBadge from '@/features/listings/components/LanePeriodBadge'
+import { normalizeSelection } from '@/features/listings/lib/laneCalendarModel'
 import { formatDateNo } from '@/app/lib/dateFormat'
 import {
   landlordOpenClosePeriods,
@@ -93,6 +94,30 @@ export default function LandlordAvailabilityHub({
     ] as const
   ).filter((m) => m.show)
 
+  const applyLanePeriod = async () => {
+    if (!selStart || !selEnd) return
+    const { start, end } = normalizeSelection(selStart, selEnd)
+    await applySharedPeriod(start, end, paintStatus)
+  }
+
+  const laneCalendarCommon = {
+    periods,
+    eventOptIns,
+    tourismEnabled,
+    showEvents,
+    paintStatus,
+    onPaintStatusChange: setPaintStatus,
+    selectionStart: selStart,
+    selectionEnd: selEnd,
+    onSelectionChange: (s: string | null, e: string | null) => {
+      setSelStart(s)
+      setSelEnd(e)
+    },
+    onApply: applyLanePeriod,
+    applying,
+    hideLaneSelector: true,
+  }
+
   return (
     <div className="landlord-availability-hub">
       <div className="avail-mode-tabs" role="tablist" aria-label={t('availModeTabsAria')}>
@@ -130,19 +155,11 @@ export default function LandlordAvailabilityHub({
       {mode === 'sosial' ? (
         <div className="avail-mode-panel">
           <p className="avail-mode-desc">{t('availModeSocialDesc')}</p>
-          <SharedAvailabilityCalendar
-            periods={periods}
-            eventOptIns={eventOptIns}
-            paintStatus={paintStatus}
-            onPaintStatusChange={setPaintStatus}
-            selectionStart={selStart}
-            selectionEnd={selEnd}
-            onSelectionChange={(s, e) => {
-              setSelStart(s)
-              setSelEnd(e)
-            }}
-            onApply={applySharedPeriod}
-            applying={applying}
+          <ListingLaneCalendar
+            {...laneCalendarCommon}
+            showTourism={false}
+            paintLane="sosial"
+            onPaintLaneChange={() => {}}
           />
         </div>
       ) : null}
@@ -165,19 +182,11 @@ export default function LandlordAvailabilityHub({
           ) : (
             <>
               <p className="avail-mode-desc">{t('availModeTourismDesc')}</p>
-              <SharedAvailabilityCalendar
-                periods={periods}
-                eventOptIns={eventOptIns}
-                paintStatus={paintStatus}
-                onPaintStatusChange={setPaintStatus}
-                selectionStart={selStart}
-                selectionEnd={selEnd}
-                onSelectionChange={(s, e) => {
-                  setSelStart(s)
-                  setSelEnd(e)
-                }}
-                onApply={applySharedPeriod}
-                applying={applying}
+              <ListingLaneCalendar
+                {...laneCalendarCommon}
+                showTourism={showTourism}
+                paintLane="turisme"
+                onPaintLaneChange={() => {}}
               />
             </>
           )}

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import {
   Edit3,
   FileText,
-  Camera,
   ImagePlus,
   ChevronLeft,
   ChevronRight,
@@ -15,6 +14,9 @@ import {
   X,
 } from 'lucide-react'
 import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
+import StatusBadge from '@/app/components/design-system/StatusBadge'
+import GalleryGrid from '@/app/components/design-system/GalleryGrid'
+import FileUploadZone from '@/app/components/design-system/FileUploadZone'
 import type { ListingDetailsRecord } from '@/app/lib/listingUiTypes'
 import type { TranslationKey } from '@/lib/translations'
 
@@ -34,10 +36,20 @@ export type ListingDetailsOwnerGalleryProps = {
   t: (key: TranslationKey) => string
 }
 
-function galleryStatusClass(showGalleryFormidlet: boolean, status?: string | null) {
-  if (showGalleryFormidlet) return 'listing-gallery-status-badge--formidlet'
-  if (status === 'Tilgjengelig') return 'listing-gallery-status-badge--available'
-  return 'listing-gallery-status-badge--unavailable'
+function galleryStatusVariant(showGalleryFormidlet: boolean, status?: string | null) {
+  if (showGalleryFormidlet) return 'info' as const
+  if (status === 'Tilgjengelig') return 'success' as const
+  return 'danger' as const
+}
+
+function uploadFilesToInputHandler(
+  files: File[],
+  onUploadMore: (e: React.ChangeEvent<HTMLInputElement>) => void
+) {
+  if (!files.length) return
+  const dt = new DataTransfer()
+  files.forEach((f) => dt.items.add(f))
+  onUploadMore({ target: { files: dt.files } } as React.ChangeEvent<HTMLInputElement>)
 }
 
 export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProps) {
@@ -142,68 +154,64 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
             </button>
           </>
         ) : (
-          <label
-            className={`listing-image-placeholder${
-              canOwnerEditListingDetail ? ' listing-image-placeholder--clickable' : ''
-            }`}
-            aria-label={
-              canOwnerEditListingDetail
-                ? `${t('listingImageDropzoneTitle')}. ${t('listingImageDropzoneHint')}`
-                : t('listingImageEmptyViewer')
-            }
-          >
-            {canOwnerEditListingDetail && (
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={onUploadMore}
-                className="listing-hidden-input"
-              />
-            )}
-            <span className="listing-image-placeholder-icon-wrap" aria-hidden>
-              <ImagePlus
-                size={32}
-                strokeWidth={1.75}
-                className="listing-image-placeholder-icon"
-              />
-            </span>
-            <span className="listing-image-placeholder-title">
-              {canOwnerEditListingDetail
-                ? t('listingImageDropzoneTitle')
-                : t('listingImageEmptyViewer')}
-            </span>
-            {canOwnerEditListingDetail && (
-              <span className="listing-image-placeholder-hint">{t('listingImageDropzoneHint')}</span>
-            )}
-          </label>
+          canOwnerEditListingDetail ? (
+            <FileUploadZone
+              title={t('listingImageDropzoneTitle')}
+              hint={t('listingImageDropzoneHint')}
+              accept="image/*"
+              onFiles={(files) => uploadFilesToInputHandler(files, onUploadMore)}
+            />
+          ) : (
+            <div className="listing-image-placeholder" aria-label={t('listingImageEmptyViewer')}>
+              <span className="listing-image-placeholder-icon-wrap" aria-hidden>
+                <ImagePlus size={32} strokeWidth={1.75} className="listing-image-placeholder-icon" />
+              </span>
+              <span className="listing-image-placeholder-title">{t('listingImageEmptyViewer')}</span>
+            </div>
+          )
         )}
 
         {canOwnerEditListingDetail && allImages.length > 0 && (
-          <label className="listing-gallery-upload-label">
-            <input
-              type="file"
-              multiple
+          <div className="listing-gallery-upload-label" style={{ marginTop: 'var(--space-3)' }}>
+            <FileUploadZone
+              title={uploading ? t('listingImageUploading') : t('listingImageAddPhotos')}
+              hint={t('listingImageDropzoneHint')}
               accept="image/*"
-              onChange={onUploadMore}
-              className="listing-hidden-input"
+              onFiles={(files) => uploadFilesToInputHandler(files, onUploadMore)}
+              className="listing-gallery-upload-zone"
             />
-            <Camera size={18} className={uploading ? 'is-busy' : undefined} />
-            {uploading ? t('listingImageUploading') : t('listingImageAddPhotos')}
-          </label>
+          </div>
         )}
 
-        <div
-          className={`listing-gallery-status-badge ${galleryStatusClass(
-            showGalleryFormidlet,
-            listing?.status
-          )}`}
-        >
-          {showGalleryFormidlet ? 'Formidlet' : (listing?.status ?? '')}
+        <div className="listing-gallery-status-badge-wrap">
+          <StatusBadge
+          label={
+            showGalleryFormidlet
+              ? t('formidlet')
+              : listing?.status === 'Tilgjengelig'
+                ? t('available')
+                : listing?.status === 'Utilgjengelig'
+                  ? t('unavailable')
+                  : (listing?.status ?? t('availabilityUnmarked'))
+          }
+          variant={galleryStatusVariant(showGalleryFormidlet, listing?.status)}
+        />
         </div>
       </div>
 
-      {canOwnerEditListingDetail && allImages.length > 1 && (
+      {allImages.length > 1 ? (
+        <GalleryGrid
+          className="listing-gallery-grid-block"
+          images={allImages.map((src, idx) => ({
+            src,
+            alt: listing?.address
+              ? `${listing.address} (${idx + 1}/${allImages.length})`
+              : `${idx + 1}/${allImages.length}`,
+          }))}
+        />
+      ) : null}
+
+      {canOwnerEditListingDetail && allImages.length > 1 ? (
         <div className="listing-gallery-thumbs">
           {allImages.map((url, idx) => (
             <div key={`${url}-${idx}`} className="listing-gallery-thumb-col">
@@ -254,7 +262,7 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
       {typeof document !== 'undefined' &&
         isFullscreen &&

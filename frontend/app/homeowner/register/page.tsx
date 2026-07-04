@@ -41,7 +41,7 @@ import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 import PageSkeleton from '../../components/design-system/PageSkeleton'
-import { Stepper } from '@/app/components/design-system'
+import { Stepper, FileUploadZone } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
 import './register.css'
 
@@ -149,14 +149,10 @@ export default function HomeownerRegister() {
     }
   }, [formData.city])
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files)
-      setImageFiles([...imageFiles, ...files])
-
-      const newPreviews = files.map((file) => URL.createObjectURL(file))
-      setImagePreviews([...imagePreviews, ...newPreviews])
-    }
+  const handleImageFiles = (files: File[]) => {
+    if (!files.length) return
+    setImageFiles([...imageFiles, ...files])
+    setImagePreviews([...imagePreviews, ...files.map((file) => URL.createObjectURL(file))])
   }
 
   const removeImage = (index: number) => {
@@ -1159,16 +1155,12 @@ export default function HomeownerRegister() {
                     </div>
                   ))}
                 </div>
-                <label className="button button-accent register-upload-btn">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="sr-input"
-                  />
-                  {t('regUploadImages')}
-                </label>
+                <FileUploadZone
+                  title={t('regUploadImages')}
+                  hint={t('listingImageDropzoneHint')}
+                  accept="image/*"
+                  onFiles={handleImageFiles}
+                />
               </div>
               <div className="register-house-rules-panel">
                 <label className="label register-house-rules-heading">

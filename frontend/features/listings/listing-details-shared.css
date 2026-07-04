@@ -666,6 +666,21 @@
   min-height: var(--touch-target);
 }
 
+.listing-gallery-status-badge-wrap {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 5;
+}
+
+.listing-gallery-grid-block {
+  margin-top: var(--space-4);
+}
+
+.listing-gallery-upload-zone {
+  padding: var(--space-4);
+}
+
 .listing-gallery-status-badge {
   position: absolute;
   top: 20px;
