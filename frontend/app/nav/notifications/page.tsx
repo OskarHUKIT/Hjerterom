@@ -27,6 +27,7 @@ import { formatDateTimeNo } from '../../lib/dateFormat'
 import { useLanguage } from '../../../context/LanguageContext'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
+import { buildNavMessagesHref } from '../../lib/returnNav'
 import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 import type { NotificationsListPayload } from '../../lib/queries/notificationsListQuery'
 import {
@@ -407,8 +408,11 @@ export default function NavNotifications() {
             const messageLink =
               notif.type === 'NEW_MESSAGE'
                 ? (role === 'kommune_ansatt' || role === 'kommune_admin') && notif.related_user_id
-                  ? `/nav/messages?with=${notif.related_user_id}`
-                  : '/nav/messages'
+                  ? buildNavMessagesHref({
+                      with: notif.related_user_id,
+                      returnTo: '/nav/notifications',
+                    })
+                  : buildNavMessagesHref({ returnTo: '/nav/notifications' })
                 : notif.type === 'LANDLORD_RESIGN_REQUEST' &&
                     (role === 'kommune_ansatt' || role === 'kommune_admin') &&
                     notif.related_user_id

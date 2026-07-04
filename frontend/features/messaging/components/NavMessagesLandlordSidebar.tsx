@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { MessageSquare, ChevronRight } from 'lucide-react'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import { channelBadgeEmoji } from '@/app/lib/messageChannelLabels'
+import { buildNavMessagesHref } from '@/app/lib/returnNav'
 import type { TranslationKey } from '@/lib/translations'
 import type {
   LandlordAreaThread,
@@ -22,6 +23,7 @@ export type NavMessagesLandlordSidebarProps = {
   withEventId: string | null
   withAreaId: string | null
   t: (key: TranslationKey) => string
+  returnTo?: string | null
 }
 
 export default function NavMessagesLandlordSidebar({
@@ -35,6 +37,7 @@ export default function NavMessagesLandlordSidebar({
   withEventId,
   withAreaId,
   t,
+  returnTo,
 }: NavMessagesLandlordSidebarProps) {
   const setLandlordMessagesTab = onLandlordMessagesTabChange
   return (
@@ -128,7 +131,7 @@ export default function NavMessagesLandlordSidebar({
                   {guestBookingThreads.map((g) => (
                     <Link
                       key={g.bookingId}
-                      href={`/nav/messages?booking=${g.bookingId}`}
+                      href={buildNavMessagesHref({ booking: g.bookingId, returnTo })}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -179,7 +182,7 @@ export default function NavMessagesLandlordSidebar({
                   {landlordEventThreads.map((ev) => (
                     <Link
                       key={ev.eventId}
-                      href={`/nav/messages?event=${ev.eventId}`}
+                      href={buildNavMessagesHref({ event: ev.eventId, returnTo })}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -221,7 +224,7 @@ export default function NavMessagesLandlordSidebar({
                 {landlordAreaThreads.map((a) => (
                   <Link
                     key={a.serviceAreaId}
-                    href={`/nav/messages?area=${a.serviceAreaId}`}
+                    href={buildNavMessagesHref({ area: a.serviceAreaId, returnTo })}
                     style={{
                       display: 'flex',
                       alignItems: 'center',

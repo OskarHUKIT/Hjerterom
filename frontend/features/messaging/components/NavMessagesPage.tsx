@@ -18,6 +18,8 @@ import { supabase } from '@/app/lib/supabase'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
 import { useLanguage } from '@/context/LanguageContext'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
+import { getContextualBackLink } from '@/app/lib/appHubNav'
+import { buildNavMessagesHref } from '@/app/lib/returnNav'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '@/app/lib/landlordOnboarding'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import { usePlatformMode } from '@/context/PlatformModeContext'
@@ -56,6 +58,7 @@ export default function NavMessagesPage() {
   const withAreaId = searchParams.get('area')
   const withBookingId = searchParams.get('booking')
   const withEventId = searchParams.get('event')
+  const returnTo = searchParams.get('returnTo')
 
   const chatBoot = useAuthGate({ mode: 'chat' })
   const bootOk = chatBoot.data?.kind === 'ok' ? chatBoot.data : null
@@ -136,18 +139,20 @@ export default function NavMessagesPage() {
         p_landlord_id: withUserId,
       })
       if (cancelled || error || !data) return
-      router.replace(`/nav/messages?with=${withUserId}&area=${data}`)
+      router.replace(
+        buildNavMessagesHref({ with: withUserId, area: data, returnTo })
+      )
     })()
     return () => {
       cancelled = true
     }
-  }, [profileResolved, isKommune, withUserId, withAreaId, router])
+  }, [profileResolved, isKommune, withUserId, withAreaId, router, returnTo])
 
   useEffect(() => {
     if (!profileResolved || isKommune || withAreaId || withBookingId || landlordAreaThreads.length !== 1)
       return
     if (guestBookingThreads.length > 0) return
-    router.replace(`/nav/messages?area=${landlordAreaThreads[0].serviceAreaId}`)
+    router.replace(buildNavMessagesHref({ area: landlordAreaThreads[0].serviceAreaId, returnTo }))
   }, [
     profileResolved,
     isKommune,
@@ -156,6 +161,7 @@ export default function NavMessagesPage() {
     landlordAreaThreads,
     guestBookingThreads,
     router,
+    returnTo,
   ])
 
   useEffect(() => {
@@ -365,14 +371,11 @@ export default function NavMessagesPage() {
     setShowLandlordMessagesIntro(false)
   }
 
-  const backHref =
-    landlordMobileChatOnly || (kommuneMobileChatOnly && !!withUserId)
-      ? '/nav/messages'
-      : isKommune && withUserId
-        ? '/nav/messages'
-        : isKommune
-          ? '/nav/database'
-          : '/homeowner/manage'
+  const inThread = !!(withUserId || withAreaId || withBookingId || withEventId)
+  const backLink = getContextualBackLink('/nav/messages', role, t, {
+    inThread,
+    returnTo,
+  })
 
   const contactPickerQuery = messagesContactSearch.trim().toLowerCase()
   const filteredLandlordsForPicker = contactPickerQuery
@@ -484,13 +487,15 @@ export default function NavMessagesPage() {
       </LandlordOnboardingModal>
 
       <div style={{ marginBottom: compactMobileChat ? 'var(--space-4)' : 'var(--space-6)', flexShrink: 0 }}>
-        <Link
-          href={backHref}
-          className="nav-link"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: '-1rem' }}
-        >
-          <ArrowLeft size={18} /> {t('back')}
-        </Link>
+        {backLink ? (
+          <Link
+            href={backLink.href}
+            className="nav-link"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: '-1rem' }}
+          >
+            <ArrowLeft size={18} /> {backLink.label}
+          </Link>
+        ) : null}
         <h1 style={{ fontSize: 'clamp(1.35rem, 4.6vw, 2rem)', marginTop: 'var(--space-2)' }}>
           {t('messages')}
         </h1>
@@ -545,6 +550,7 @@ export default function NavMessagesPage() {
           showMessagesPickerSearch={showMessagesPickerSearch}
           landlordsWithoutThread={landlordsWithoutThread}
           t={t}
+          returnTo={returnTo}
         />
         )}
         {showLandlordAreaSidebar && !landlordMobileChatOnly && (
@@ -559,6 +565,7 @@ export default function NavMessagesPage() {
             withEventId={withEventId}
             withAreaId={withAreaId}
             t={t}
+            returnTo={returnTo}
           />
         )}
 
@@ -587,8 +594,8 @@ export default function NavMessagesPage() {
                     borderBottom: '1px solid var(--border-subtle)',
                   }}
                 >
-                  {compactMobileChat ? (
-                    <Link href="/nav/messages" aria-label={t('back')}>
+                  {compactMobileChat && backLink ? (
+                    <Link href={backLink.href} aria-label={backLink.label}>
                       <ArrowLeft size={20} />
                     </Link>
                   ) : (
@@ -615,7 +622,15 @@ export default function NavMessagesPage() {
                   flexShrink: 0,
                 }}
               >
-                {!compactMobileChat && <MessageSquare size={20} style={{ color: 'var(--color-sky-blue)' }} />}
+                {compactMobileChat && backLink ? (
+                  <Link href={backLink.href} aria-label={backLink.label}>
+                    <ArrowLeft size={20} />
+                  </Link>
+                ) : (
+                  !compactMobileChat && (
+                    <MessageSquare size={20} style={{ color: 'var(--color-sky-blue)' }} />
+                  )
+                )}
                 <span style={{ fontWeight: 600 }}>
                   {isKommune && withUserId
                     ? otherUser

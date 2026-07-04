@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { readRpcOk } from '@/app/lib/supabaseRpc'
 import { useLanguage } from '@/context/LanguageContext'
+import { buildNavMessagesHref } from '@/app/lib/returnNav'
 import {
   NotificationsWithActions,
   useConfirm,
@@ -125,7 +126,7 @@ export default function LandlordBookingRequests({ listingIds }: Props) {
       {
         id: 'message',
         label: t('landlordBookingOpenMessage'),
-        href: `/nav/messages?booking=${row.id}`,
+        href: buildNavMessagesHref({ booking: row.id, returnTo: '/homeowner/manage' }),
         variant: 'secondary' as const,
       },
     ]

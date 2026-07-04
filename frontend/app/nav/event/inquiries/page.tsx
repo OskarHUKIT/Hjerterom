@@ -1,7 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
+import { getContextualBackLink } from '@/app/lib/appHubNav'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
@@ -22,6 +26,7 @@ type Inquiry = {
 export default function EventStaffInquiriesPage() {
   const { t } = useLanguage()
   const toast = useToast()
+  const pathname = usePathname()
   const [rows, setRows] = useState<Inquiry[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -71,8 +76,19 @@ export default function EventStaffInquiriesPage() {
 
   if (loading) return <LoadingPlaceholder />
 
+  const backLink = getContextualBackLink(pathname ?? '/nav/event/inquiries', 'event_ansatt', t)
+
   return (
     <div>
+      {backLink ? (
+        <Link
+          href={backLink.href}
+          className="nav-link"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: '-1rem', marginBottom: 'var(--space-4)' }}
+        >
+          <ArrowLeft size={18} /> {backLink.label}
+        </Link>
+      ) : null}
       <h1 style={{ margin: '0 0 16px' }}>{t('eventNavInquiries')}</h1>
       {rows.length === 0 ? (
         <p style={{ opacity: 0.7 }}>{t('eventInquiriesEmpty')}</p>

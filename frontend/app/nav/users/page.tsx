@@ -22,7 +22,7 @@ import { supabase } from '../../lib/supabase'
 import { logError } from '@/app/lib/appLogger'
 import { formatDateNo } from '../../lib/dateFormat'
 import { formatKommuneRegionsForDisplay, parseKommuneRegions } from '../../lib/kommuneRegions'
-import UserProfileClient from './UserProfileClient'
+import { buildNavMessagesHref } from '@/app/lib/returnNav'
 import LoadingPlaceholder from '../../components/LoadingPlaceholder'
 import { useLanguage } from '../../../context/LanguageContext'
 import {
@@ -422,7 +422,7 @@ function NavUsersContent() {
                   }}
                 >
                   <Link
-                    href={`/nav/messages?with=${s.id}`}
+                    href={buildNavMessagesHref({ with: s.id, returnTo: '/nav/users' })}
                     className="button button-secondary"
                     style={{
                       padding: '8px 16px',
@@ -570,7 +570,10 @@ function NavUsersContent() {
                   <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
                     {kommuneCanEdit ? (
                       <Link
-                        href={`/nav/messages?with=${user.owner_id}`}
+                        href={buildNavMessagesHref({
+                          with: user.owner_id,
+                          returnTo: '/nav/users',
+                        })}
                         className="button button-secondary"
                         style={{
                           padding: '8px 16px',

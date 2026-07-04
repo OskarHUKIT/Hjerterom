@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { User, Phone, MessageSquare, ShieldCheck, RotateCcw } from 'lucide-react'
+import { buildNavMessagesHref } from '@/app/lib/returnNav'
 import { DateInput } from '@/app/components/DateInput'
 import { dayAvailabilityToneForIso } from '@/app/lib/listingDayAvailabilityTone'
 import { MAX_MEDIATION_NOTE_IN_NOTIFICATION } from '@/app/lib/formidletNotification'
@@ -378,7 +379,10 @@ export function ListingDetailsNavStickySidebar({
                 </div>
                 {listing.owner_id && !ownerAgreementTerminated && (
                   <Link
-                    href={`/nav/messages?with=${listing.owner_id}`}
+                    href={buildNavMessagesHref({
+                      with: listing.owner_id,
+                      returnTo: `/listings/${listing.id}?view=nav`,
+                    })}
                     className="button button-secondary listing-message-link"
                   >
                     <MessageSquare size={18} aria-hidden /> {t('message')}

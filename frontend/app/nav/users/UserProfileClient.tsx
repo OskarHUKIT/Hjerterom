@@ -20,7 +20,7 @@ import {
   ShieldAlert,
   Send,
 } from 'lucide-react'
-import { supabase, getAuthUserDeduped } from '../../lib/supabase'
+import { buildNavMessagesHref } from '@/app/lib/returnNav'
 import { logError } from '@/app/lib/appLogger'
 import { formatAuditLogDescription } from '../../lib/auditLogFormat'
 import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
@@ -473,7 +473,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
     <main className="container">
       <div style={{ marginBottom: 'var(--space-8)' }}>
         <Link
-          href="/nav/users/"
+          href="/nav/users"
           className="nav-link"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: '-1rem' }}
         >
@@ -966,7 +966,7 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
                   {t('chatDesc')}
                 </p>
                 <Link
-                  href={`/nav/messages?with=${id}`}
+                  href={buildNavMessagesHref({ with: id, returnTo: `/nav/users/${id}` })}
                   className="button"
                   style={{
                     display: 'inline-flex',

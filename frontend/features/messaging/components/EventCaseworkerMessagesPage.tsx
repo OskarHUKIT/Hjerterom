@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
+import { getContextualBackLink } from '@/app/lib/appHubNav'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
@@ -37,6 +38,7 @@ type Msg = {
 export default function EventCaseworkerMessagesPage() {
   const { t } = useLanguage()
   const toast = useToast()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const { data: access, isPending: accessPending } = useAuthGate({
     mode: 'event-staff',
@@ -165,8 +167,24 @@ export default function EventCaseworkerMessagesPage() {
   const activeThread = threads.find(
     (th) => th.landlordId === withLandlordId && th.eventId === withEventId
   )
+  const inThread = !!(withLandlordId && withEventId)
+  const backLink = getContextualBackLink(pathname ?? '/nav/event/messages', 'event_ansatt', t, {
+    inThread,
+  })
 
   return (
+    <div>
+      {backLink ? (
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <Link
+            href={backLink.href}
+            className="nav-link"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginLeft: '-1rem' }}
+          >
+            <ArrowLeft size={18} /> {backLink.label}
+          </Link>
+        </div>
+      ) : null}
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 320px) 1fr', gap: 16, minHeight: 480 }}>
       <aside className="card" style={{ padding: 'var(--space-3)', overflow: 'auto' }}>
         <h2 style={{ margin: '0 0 12px', fontSize: '1rem' }}>{t('eventNavMessages')}</h2>
@@ -217,7 +235,11 @@ export default function EventCaseworkerMessagesPage() {
                 gap: 8,
               }}
             >
-              <Link href="/nav/event/messages" style={{ color: 'inherit' }} aria-label={t('back')}>
+              <Link
+                href={backLink?.href ?? '/nav/event/messages'}
+                style={{ color: 'inherit' }}
+                aria-label={backLink?.label ?? t('back')}
+              >
                 <ArrowLeft size={18} />
               </Link>
               <div>
@@ -265,6 +287,7 @@ export default function EventCaseworkerMessagesPage() {
           </>
         )}
       </section>
+    </div>
     </div>
   )
 }

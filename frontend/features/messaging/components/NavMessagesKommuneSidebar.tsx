@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { MessageSquare, User, ChevronRight, Home, Users, MessageCircle } from 'lucide-react'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import { supabase } from '@/app/lib/supabase'
+import { buildNavMessagesHref } from '@/app/lib/returnNav'
 import type { TranslationKey } from '@/lib/translations'
 import type { ConversationRow } from '@/features/messaging/types/navMessages'
 
@@ -25,6 +26,7 @@ export type NavMessagesKommuneSidebarProps = {
   showMessagesPickerSearch: boolean
   landlordsWithoutThread: { id: string; name: string }[]
   t: (key: TranslationKey) => string
+  returnTo?: string | null
 }
 
 export default function NavMessagesKommuneSidebar({
@@ -44,6 +46,7 @@ export default function NavMessagesKommuneSidebar({
   showMessagesPickerSearch,
   landlordsWithoutThread,
   t,
+  returnTo,
 }: NavMessagesKommuneSidebarProps) {
   const router = useRouter()
   const setMessagesPickerTab = onMessagesPickerTabChange
@@ -94,7 +97,11 @@ export default function NavMessagesKommuneSidebar({
                   {conversations.map((c) => (
                     <Link
                       key={`${c.userId}:${c.serviceAreaId}`}
-                      href={`/nav/messages?with=${c.userId}&area=${c.serviceAreaId}`}
+                      href={buildNavMessagesHref({
+                        with: c.userId,
+                        area: c.serviceAreaId,
+                        returnTo,
+                      })}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -337,7 +344,9 @@ export default function NavMessagesKommuneSidebar({
                             .rpc('resolve_staff_landlord_thread_area', { p_landlord_id: l.id })
                             .then(({ data, error }) => {
                               if (error || !data) return
-                              router.push(`/nav/messages?with=${l.id}&area=${data}`)
+                              router.push(
+                                buildNavMessagesHref({ with: l.id, area: data, returnTo })
+                              )
                             })
                         }}
                         style={{
@@ -400,7 +409,7 @@ export default function NavMessagesKommuneSidebar({
                   filteredColleaguesForPicker.map((c) => (
                     <Link
                       key={c.id}
-                      href={`/nav/messages?with=${c.id}`}
+                      href={buildNavMessagesHref({ with: c.id, returnTo })}
                       style={{
                         display: 'flex',
                         alignItems: 'center',

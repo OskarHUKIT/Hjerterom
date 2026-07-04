@@ -117,6 +117,7 @@ import { useListingDetailsQuery } from '@/features/listings/hooks/useListingDeta
 import { useListingDetailsOwnerActions } from '@/features/listings/hooks/useListingDetailsOwnerActions'
 import { useTermsGate } from '@/features/auth/hooks/useTermsGate'
 import { getAppHubHref } from '@/app/lib/appHubNav'
+import { buildNavMessagesHref } from '@/app/lib/returnNav'
 import ListingDetailsAddressSection from '@/features/listings/components/ListingDetailsAddressSection'
 import ListingDetailsPropertySection from '@/features/listings/components/ListingDetailsPropertySection'
 import ListingDetailsAvailabilitySection from '@/features/listings/components/ListingDetailsAvailabilitySection'
@@ -410,7 +411,10 @@ export default function ListingDetailsClient() {
                 </div>
                 {viewerIsKommuneStaff && listing.owner_id && !ownerAgreementTerminated && (
                   <Link
-                    href={`/nav/messages?with=${listing.owner_id}`}
+                    href={buildNavMessagesHref({
+                      with: listing.owner_id,
+                      returnTo: `/listings/${id}?view=nav`,
+                    })}
                     className="button button-secondary listing-message-link"
                   >
                     <MessageSquare size={18} aria-hidden /> {t('message')}
