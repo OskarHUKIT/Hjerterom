@@ -37,6 +37,26 @@ Each file below is a **self-contained packet** for a fresh agent context window.
 - [ ] `/finn` — search results
 - [ ] `/finn/mine` — guest bookings (if auth)
 
-## Branch naming
+## NPD index (juli 2026 — post-audit)
+
+Orchestration: **[`../NPD_PLAN.md`](../NPD_PLAN.md)** · Audits: `UX_UI_AUDIT_RESULTS.txt`, `audits/PRODUCT_GROWTH_AUDIT_RESULTS.txt`
+
+| Brief | Prioritet | Depends on |
+|-------|-----------|------------|
+| [NPD-0A-skip-link-i18n.md](./NPD-0A-skip-link-i18n.md) | P0 | — |
+| [NPD-0B-event-demo-seed.md](./NPD-0B-event-demo-seed.md) | P0 | — |
+| [NPD-1A-marketing-chrome.md](./NPD-1A-marketing-chrome.md) | P1 | 0A |
+| [NPD-1B-nav-desktop-chrome.md](./NPD-1B-nav-desktop-chrome.md) | P1 | 0A |
+| [NPD-2-event-sb-journey.md](./NPD-2-event-sb-journey.md) | P1 | 0B |
+| [NPD-3A-guest-landlord-thread.md](./NPD-3A-guest-landlord-thread.md) | P1 | — |
+| [NPD-3B-instant-book-e2e.md](./NPD-3B-instant-book-e2e.md) | P1 | 3A (soft) |
+| [NPD-3C-vipps-checkout.md](./NPD-3C-vipps-checkout.md) | P2 | env |
+| [NPD-3D-booking-concurrency.md](./NPD-3D-booking-concurrency.md) | P2 | 3B |
+| [NPD-4A-finn-locale-consistency.md](./NPD-4A-finn-locale-consistency.md) | P1 | 1A |
+| [NPD-4B-sami-audit-m5.md](./NPD-4B-sami-audit-m5.md) | P1 gate | 4A |
+
+Branch naming: `cursor/npd-{brief-slug}-6155` off `main`.
+
+## Branch naming (refactor waves)
 
 `cursor/app-refactor-wave{N}-020a` off `main` (or continue on existing refactor branch).

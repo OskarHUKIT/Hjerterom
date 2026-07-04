@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { CalendarDays, Map as MapIcon, MessageSquare } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
+import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
 import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 
 const NAV = [
@@ -55,6 +56,7 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
         >
           🎫 {t('eventStaffBadge')}
         </span>
+        <ShellChromeControls compact className="event-staff-chrome" />
         <nav style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
           {NAV.map(({ href, icon: Icon, labelKey }) => {
             const active = pathname === href || (href !== '/nav/event' && pathname?.startsWith(href))

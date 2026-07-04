@@ -46,7 +46,7 @@ const PERSONAS = [
     id: 'event_sb',
     email: 'kari.event@demo.ofoten.no',
     label: 'Event saksbehandler',
-    postLoginPaths: ['/nav/event-inquiries', '/nav/database'],
+    postLoginPaths: ['/nav/event/database', '/nav/event/inquiries', '/nav/event/messages'],
   },
   {
     id: 'landlord',

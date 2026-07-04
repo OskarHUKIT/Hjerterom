@@ -1,10 +1,15 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
 
 export default function FinnTermsPageClient() {
-  const { t } = useLanguage()
+  const { t, locale } = useLanguage()
+
+  useEffect(() => {
+    document.title = `${t('finnLegalTitle')} | Hjerterum`
+  }, [t, locale])
 
   return (
     <article className="finn-legal card">
