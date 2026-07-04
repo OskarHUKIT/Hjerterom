@@ -1287,6 +1287,7 @@ export default function HomeownerRegister() {
                   setAvailSelEnd(null)
                   toast(t('sharedCalendarSaved'), 'success')
                 }}
+                tourismEnabled={Boolean(formData.tourism_enabled)}
               />
             </section>
 

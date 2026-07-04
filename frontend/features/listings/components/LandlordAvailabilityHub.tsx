@@ -110,6 +110,8 @@ export default function LandlordAvailabilityHub({
         onApply={applySharedPeriod}
         applying={applying}
         showPaintToggle={false}
+        tourismEnabled={Boolean(listing.tourism_enabled)}
+        showLaneIndicators
       />
 
       <div className="landlord-period-list">

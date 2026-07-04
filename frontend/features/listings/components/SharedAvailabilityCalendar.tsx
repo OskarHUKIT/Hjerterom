@@ -26,11 +26,17 @@ type Props = {
   applying?: boolean
   /** When false, paint mode is controlled by an external SegmentedButtonGroup. */
   showPaintToggle?: boolean
+  /** Shows read-only lane dots on open days (teal/blue/amber). */
+  tourismEnabled?: boolean
+  showLaneIndicators?: boolean
 }
 
 const WEEKDAYS = ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø']
 
 function cellBackground(cell: SharedDayCell, paintStatus: 'Tilgjengelig' | 'Utilgjengelig'): string {
+  if (cell.isReadOnly) {
+    return 'color-mix(in srgb, var(--color-sky-blue) 28%, var(--bg-surface))'
+  }
   if (cell.inSelection) {
     return paintStatus === 'Tilgjengelig'
       ? 'color-mix(in srgb, var(--color-teal) 35%, transparent)'
@@ -48,6 +54,17 @@ function cellBackground(cell: SharedDayCell, paintStatus: 'Tilgjengelig' | 'Util
   }
 }
 
+function LaneIndicatorDots({ indicators }: { indicators: SharedDayCell['laneIndicators'] }) {
+  if (!indicators) return null
+  return (
+    <span className="shared-avail-lane-dots" aria-hidden>
+      {indicators.sosial ? <span className="shared-avail-lane-dot shared-avail-lane-dot--sosial" /> : null}
+      {indicators.turisme ? <span className="shared-avail-lane-dot shared-avail-lane-dot--turisme" /> : null}
+      {indicators.event ? <span className="shared-avail-lane-dot shared-avail-lane-dot--event" /> : null}
+    </span>
+  )
+}
+
 export default function SharedAvailabilityCalendar({
   periods,
   eventOptIns,
@@ -59,6 +76,8 @@ export default function SharedAvailabilityCalendar({
   onApply,
   applying,
   showPaintToggle = true,
+  tourismEnabled = false,
+  showLaneIndicators = true,
 }: Props) {
   const { t, locale } = useLanguage()
   const [month, setMonth] = useState(() => {
@@ -73,8 +92,8 @@ export default function SharedAvailabilityCalendar({
       buildSharedMonthCells(month, periods, eventOptIns, {
         start: selectionStart,
         end: selectionEnd,
-      }),
-    [month, periods, eventOptIns, selectionStart, selectionEnd]
+      }, { tourismEnabled }),
+    [month, periods, eventOptIns, selectionStart, selectionEnd, tourismEnabled]
   )
 
   const monthLabel = month.toLocaleDateString(locale === 'en' ? 'en-GB' : 'nb-NO', {
@@ -85,19 +104,19 @@ export default function SharedAvailabilityCalendar({
   const hasSelection = Boolean(selectionStart && selectionEnd)
 
   const handleDayPointerDown = useCallback(
-    (iso: string) => {
-      if (!iso) return
-      dragAnchor.current = iso
+    (cell: SharedDayCell) => {
+      if (!cell.iso || cell.isReadOnly) return
+      dragAnchor.current = cell.iso
       isDragging.current = true
-      onSelectionChange(iso, iso)
+      onSelectionChange(cell.iso, cell.iso)
     },
     [onSelectionChange]
   )
 
   const handleDayPointerEnter = useCallback(
-    (iso: string) => {
-      if (!iso || !isDragging.current || !dragAnchor.current) return
-      onSelectionChange(dragAnchor.current, iso)
+    (cell: SharedDayCell) => {
+      if (!cell.iso || cell.isReadOnly || !isDragging.current || !dragAnchor.current) return
+      onSelectionChange(dragAnchor.current, cell.iso)
     },
     [onSelectionChange]
   )
@@ -134,22 +153,22 @@ export default function SharedAvailabilityCalendar({
       </div>
 
       {showPaintToggle ? (
-      <div className="shared-avail-status-row">
-        <span className="shared-avail-label">{t('sharedCalendarQuestion')}</span>
-        <div className="shared-avail-toggle" role="group" aria-label={t('status')}>
-          {(['Tilgjengelig', 'Utilgjengelig'] as const).map((status) => (
-            <button
-              key={status}
-              type="button"
-              aria-pressed={paintStatus === status}
-              className={`shared-avail-toggle-btn${paintStatus === status ? ' shared-avail-toggle-btn--active' : ''}${status === 'Tilgjengelig' ? ' shared-avail-toggle-btn--open' : ' shared-avail-toggle-btn--closed'}`}
-              onClick={() => onPaintStatusChange(status)}
-            >
-              {status === 'Tilgjengelig' ? t('sharedCalendarOpen') : t('sharedCalendarClosed')}
-            </button>
-          ))}
+        <div className="shared-avail-status-row">
+          <span className="shared-avail-label">{t('sharedCalendarQuestion')}</span>
+          <div className="shared-avail-toggle" role="group" aria-label={t('status')}>
+            {(['Tilgjengelig', 'Utilgjengelig'] as const).map((status) => (
+              <button
+                key={status}
+                type="button"
+                aria-pressed={paintStatus === status}
+                className={`shared-avail-toggle-btn${paintStatus === status ? ' shared-avail-toggle-btn--active' : ''}${status === 'Tilgjengelig' ? ' shared-avail-toggle-btn--open' : ' shared-avail-toggle-btn--closed'}`}
+                onClick={() => onPaintStatusChange(status)}
+              >
+                {status === 'Tilgjengelig' ? t('sharedCalendarOpen') : t('sharedCalendarClosed')}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
       ) : null}
 
       <div className="shared-avail-presets">
@@ -225,14 +244,17 @@ export default function SharedAvailabilityCalendar({
                 key={cell.iso}
                 type="button"
                 role="gridcell"
+                disabled={cell.isReadOnly}
                 className={[
                   'shared-avail-cell',
                   cell.isToday ? 'shared-avail-cell--today' : '',
                   cell.isPast ? 'shared-avail-cell--past' : '',
                   cell.inSelection ? 'shared-avail-cell--selected' : '',
                   cell.status === 'Ikke markert' ? 'shared-avail-cell--unmarked' : '',
-                  cell.status === 'Formidla' ? 'shared-avail-cell--mediated' : '',
-                  cell.hasEventOptIn ? 'shared-avail-cell--event' : '',
+                  cell.status === 'Tilgjengelig' ? 'shared-avail-cell--booked-open' : '',
+                  cell.status === 'Utilgjengelig' ? 'shared-avail-cell--booked-closed' : '',
+                  cell.isReadOnly ? 'shared-avail-cell--mediated shared-avail-cell--readonly' : '',
+                  cell.hasEventOptIn ? 'shared-avail-cell--event-window' : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -240,16 +262,16 @@ export default function SharedAvailabilityCalendar({
                 title={hint}
                 aria-label={`${cell.iso}, ${hint}`}
                 aria-selected={cell.inSelection}
+                aria-disabled={cell.isReadOnly}
                 onPointerDown={(e) => {
+                  if (cell.isReadOnly) return
                   e.preventDefault()
-                  handleDayPointerDown(cell.iso)
+                  handleDayPointerDown(cell)
                 }}
-                onPointerEnter={() => handleDayPointerEnter(cell.iso)}
+                onPointerEnter={() => handleDayPointerEnter(cell)}
               >
                 <span className="shared-avail-day-num">{Number(cell.iso.slice(8, 10))}</span>
-                {cell.hasEventOptIn && !cell.inSelection ? (
-                  <span className="shared-avail-event-dot" aria-hidden />
-                ) : null}
+                {showLaneIndicators ? <LaneIndicatorDots indicators={cell.laneIndicators} /> : null}
               </button>
             )
           })}
@@ -273,13 +295,22 @@ export default function SharedAvailabilityCalendar({
           <span className="shared-avail-legend-swatch shared-avail-legend-swatch--mediated" />
           {t('formidlet')}
         </li>
+        {showLaneIndicators ? (
+          <li className="shared-avail-legend-lanes">
+            <span className="shared-avail-lane-dots shared-avail-lane-dots--legend" aria-hidden>
+              <span className="shared-avail-lane-dot shared-avail-lane-dot--sosial" />
+              <span className="shared-avail-lane-dot shared-avail-lane-dot--turisme" />
+              <span className="shared-avail-lane-dot shared-avail-lane-dot--event" />
+            </span>
+            {t('sharedCalendarLaneDotsLegend')}
+          </li>
+        ) : null}
       </ul>
 
       {hasSelection ? (
         <div className="shared-avail-apply-bar">
           <span className="shared-avail-selection-text">
-            {selectionLabel} ·{' '}
-            {paintStatus === 'Tilgjengelig' ? t('available') : t('unavailable')}
+            {selectionLabel} · {paintStatus === 'Tilgjengelig' ? t('available') : t('unavailable')}
           </span>
           <div className="shared-avail-apply-actions">
             <Button

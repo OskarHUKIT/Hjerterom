@@ -1,15 +1,23 @@
 import type { ListingAvailabilityPeriodRow, ListingEventOptInPeriod } from '@/features/listings/types/lanes'
 import { listingAvailabilityStatusForDay } from '@/app/lib/listingAvailabilityStatusToday'
 
+export type SharedDayLaneIndicators = {
+  sosial: boolean
+  turisme: boolean
+  event: boolean
+}
+
 export type SharedDayCell = {
   iso: string
   status: 'Formidla' | 'Utilgjengelig' | 'Tilgjengelig' | 'Ikke markert'
   hasEventOptIn: boolean
+  laneIndicators: SharedDayLaneIndicators | null
   isToday: boolean
   isPast: boolean
   inSelection: boolean
   isSelectionStart: boolean
   isSelectionEnd: boolean
+  isReadOnly: boolean
 }
 
 function isoFromParts(year: number, month: number, day: number): string {
@@ -31,12 +39,26 @@ function hasEventOnDay(iso: string, eventOptIns: ListingEventOptInPeriod[]): boo
   })
 }
 
+function laneIndicatorsForOpenDay(
+  iso: string,
+  eventOptIns: ListingEventOptInPeriod[],
+  tourismEnabled: boolean
+): SharedDayLaneIndicators {
+  return {
+    sosial: true,
+    turisme: tourismEnabled,
+    event: hasEventOnDay(iso, eventOptIns),
+  }
+}
+
 export function buildSharedMonthCells(
   month: Date,
   periods: ListingAvailabilityPeriodRow[],
   eventOptIns: ListingEventOptInPeriod[],
-  selection: { start: string | null; end: string | null }
+  selection: { start: string | null; end: string | null },
+  options: { tourismEnabled?: boolean } = {}
 ): SharedDayCell[] {
+  const tourismEnabled = Boolean(options.tourismEnabled)
   const year = month.getFullYear()
   const monthIdx = month.getMonth()
   const first = new Date(year, monthIdx, 1)
@@ -59,26 +81,33 @@ export function buildSharedMonthCells(
       iso: '',
       status: 'Ikke markert',
       hasEventOptIn: false,
+      laneIndicators: null,
       isToday: false,
       isPast: false,
       inSelection: false,
       isSelectionStart: false,
       isSelectionEnd: false,
+      isReadOnly: false,
     })
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
     const iso = isoFromParts(year, monthIdx, d)
+    const status = listingAvailabilityStatusForDay('_', availMap, iso)
     const inSelection = Boolean(selStart && selEnd && inRange(iso, selStart, selEnd))
+    const eventActive = hasEventOnDay(iso, eventOptIns)
     cells.push({
       iso,
-      status: listingAvailabilityStatusForDay('_', availMap, iso),
-      hasEventOptIn: hasEventOnDay(iso, eventOptIns),
+      status,
+      hasEventOptIn: eventActive,
+      laneIndicators:
+        status === 'Tilgjengelig' ? laneIndicatorsForOpenDay(iso, eventOptIns, tourismEnabled) : null,
       isToday: iso === today,
       isPast: iso < today,
       inSelection,
       isSelectionStart: iso === selStart,
       isSelectionEnd: iso === selEnd,
+      isReadOnly: status === 'Formidla',
     })
   }
 
