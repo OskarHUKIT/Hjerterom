@@ -9,6 +9,8 @@ import {
   Info,
   Sparkles,
   LayoutDashboard,
+  Building2,
+  KeyRound,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '@/app/lib/landlordOnboarding'
@@ -20,7 +22,7 @@ import {
 } from '@/app/components/PWAInstallPrompt'
 import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
-import { EmptyState, useToast } from '@/app/components/design-system'
+import { EmptyState, InteractiveEmptyState, useToast } from '@/app/components/design-system'
 import EventTaskCards from '@/features/listings/components/EventTaskCards'
 import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
 import LandlordStripeConnect from '@/features/bookings/components/LandlordStripeConnect'
@@ -332,15 +334,17 @@ export default function HomeownerManage() {
       ) : null}
 
       <div>
-          <LandlordManageFilters
-            filter={filter}
-            onFilterChange={setFilter}
-            filteredCount={filteredListings.length}
-            filtersRowRef={filtersRowRef}
-            onScrollFiltersIntoViewMobile={scrollFiltersIntoViewMobile}
-            centralEvents={platformFlags.centralEvents}
-            tourism={platformFlags.tourism}
-          />
+          {myListings.length > 0 ? (
+            <LandlordManageFilters
+              filter={filter}
+              onFilterChange={setFilter}
+              filteredCount={filteredListings.length}
+              filtersRowRef={filtersRowRef}
+              onScrollFiltersIntoViewMobile={scrollFiltersIntoViewMobile}
+              centralEvents={platformFlags.centralEvents}
+              tourism={platformFlags.tourism}
+            />
+          ) : null}
 
           <div className="hm-listings-grid">
             {loading ? (
@@ -355,6 +359,22 @@ export default function HomeownerManage() {
                   {t('retryLoad')}
                 </button>
               </div>
+            ) : myListings.length === 0 ? (
+              <InteractiveEmptyState
+                variant="subtle"
+                title={t('manageEmptyTitle')}
+                description={t('manageEmptyBody')}
+                icons={[
+                  <HomeIcon key="home" size={22} aria-hidden />,
+                  <Building2 key="building" size={22} aria-hidden />,
+                  <KeyRound key="key" size={22} aria-hidden />,
+                ]}
+                action={{
+                  label: t('manageEmptyCta'),
+                  href: '/homeowner/register',
+                  icon: <Plus size={18} aria-hidden />,
+                }}
+              />
             ) : filteredListings.length > 0 ? (
               filteredListings.map((listing) => (
                 <LandlordListingCard
@@ -371,12 +391,8 @@ export default function HomeownerManage() {
               ))
             ) : (
               <EmptyState
-                title={t('noProperties')}
-                action={
-                  <Link href="/homeowner/register" className={buttonClassName('accent')}>
-                    {t('noPropertiesCta')}
-                  </Link>
-                }
+                title={t('manageFilterActiveHint')}
+                className="hm-filter-empty"
               />
             )}
           </div>

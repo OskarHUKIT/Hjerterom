@@ -1,4 +1,6 @@
 export { default as EmptyState } from './EmptyState'
+export { default as InteractiveEmptyState } from './InteractiveEmptyState'
+export type { InteractiveEmptyStateAction, InteractiveEmptyStateProps } from './InteractiveEmptyState'
 export { default as PageSkeleton } from './PageSkeleton'
 export { default as PortalPageShell } from './PortalPageShell'
 export { default as ShellChromeControls } from './ShellChromeControls'

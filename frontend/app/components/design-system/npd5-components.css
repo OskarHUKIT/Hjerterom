@@ -875,3 +875,109 @@ a.ds-property-card:hover {
   }
 }
 
+/* Interactive empty state (remcostoeten/interactive-empty-state → Boly tokens) */
+
+.ds-interactive-empty {
+  text-align: center;
+  padding: var(--space-8) var(--space-6);
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
+.ds-interactive-empty--subtle {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--bg-card) 88%, var(--bg-app));
+}
+
+.ds-interactive-empty--sm {
+  padding: var(--space-6) var(--space-5);
+}
+
+.ds-interactive-empty__icons {
+  position: relative;
+  width: 88px;
+  height: 72px;
+  margin: 0 auto var(--space-5);
+}
+
+.ds-interactive-empty__icon {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-app);
+  color: var(--color-sky-blue, var(--color-royal-blue));
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+}
+
+.ds-interactive-empty__icon--1 {
+  top: 8px;
+  left: 0;
+  animation: ds-interactive-empty-float 4.5s ease-in-out infinite;
+}
+
+.ds-interactive-empty__icon--2 {
+  top: 0;
+  right: 4px;
+  z-index: 1;
+  animation: ds-interactive-empty-float 4.5s ease-in-out infinite 0.6s;
+}
+
+.ds-interactive-empty__icon--3 {
+  bottom: 0;
+  left: 22px;
+  animation: ds-interactive-empty-float 4.5s ease-in-out infinite 1.2s;
+}
+
+.ds-interactive-empty__title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.ds-interactive-empty__body {
+  margin: 0 auto var(--space-5);
+  max-width: 42ch;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.ds-interactive-empty__action {
+  display: flex;
+  justify-content: center;
+}
+
+.ds-interactive-empty__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-sm, 44px);
+  text-decoration: none;
+}
+
+.ds-interactive-empty--sm .ds-interactive-empty__title {
+  font-size: 1rem;
+}
+
+@keyframes ds-interactive-empty-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-interactive-empty__icon {
+    animation: none;
+  }
+}
+

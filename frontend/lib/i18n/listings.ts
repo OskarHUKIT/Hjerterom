@@ -30,6 +30,10 @@ export const listingsTranslations = {
     manageListingActions: "Handlinger",
     manageFilterActiveHint:
       "Et filter er valgt. Boliger som ikke matcher filteret, vises ikke i listen.",
+    manageEmptyTitle: "Ingen boliger ennå",
+    manageEmptyBody:
+      "Registrer din første bolig for å holde tilgjengelighet oppdatert og samarbeide med kommunen om formidling.",
+    manageEmptyCta: "Registrer bolig",
     manageFilterGroupAria: "Filtrer boliger",
     manageFilterAll: "Alle",
     manageFilterAvailableToday: "Ledig i dag",
@@ -536,6 +540,10 @@ export const listingsTranslations = {
     manageListingActions: "Doaimmat",
     manageFilterActiveHint:
       "Silli lea válljejuvvon. Dáidat mat eai heive silliide, eai čájet listtus.",
+    manageEmptyTitle: "Dál eai leat dávirat",
+    manageEmptyBody:
+      "Registrere vuot ođđa dávvira vai sáhtát doaimmahit olámuttosa ja formidla kommunain.",
+    manageEmptyCta: "Registrer dávvira",
     manageFilterGroupAria: "Filter dáidat",
     manageFilterAll: "Buot",
     manageFilterAvailableToday: "Olámuttos odne",
@@ -1029,6 +1037,10 @@ export const listingsTranslations = {
     manageListingActions: "Actions",
     manageFilterActiveHint:
       "A filter is active. Listings that do not match the filter are hidden from the list.",
+    manageEmptyTitle: "No properties yet",
+    manageEmptyBody:
+      "Register your first property to keep availability up to date and work with the municipality on mediation.",
+    manageEmptyCta: "Register property",
     manageFilterGroupAria: "Filter properties",
     manageFilterAll: "All",
     manageFilterAvailableToday: "Available today",
