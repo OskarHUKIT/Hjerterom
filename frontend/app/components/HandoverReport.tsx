@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/app/components/design-system'
 import { useState, useRef, useEffect, type CSSProperties } from 'react'
 import { Send, ImagePlus, X } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '../lib/supabase'
@@ -111,6 +112,7 @@ export default function HandoverReport({
   onSaved,
 }: HandoverReportProps) {
   const { t } = useLanguage()
+  const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
@@ -154,7 +156,7 @@ export default function HandoverReport({
       }
     } catch (err: any) {
       setUploadError(err?.message || t('errUnknown'))
-      alert(t('errUpload') + err.message)
+      toast(t('errUpload') + err.message, 'error')
     } finally {
       setUploadingPhotos(false)
       e.target.value = ''

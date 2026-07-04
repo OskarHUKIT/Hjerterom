@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/app/components/design-system'
 import React, { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { FileText, Download, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
@@ -102,6 +103,7 @@ export default function InvoiceBasisSection(props: {
     onRequireSignTerms,
     t,
   } = props
+  const toast = useToast()
   const isKonto = paymentMethod === 'konto'
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -249,7 +251,7 @@ export default function InvoiceBasisSection(props: {
 
   const downloadPdf = async () => {
     if (isOwner && !isNavView && !hasActiveAgreement) {
-      alert(t('signAgreementToEdit'))
+      toast(t('signAgreementToEdit'), 'error')
       onRequireSignTerms()
       return
     }
@@ -316,7 +318,7 @@ export default function InvoiceBasisSection(props: {
       const safe = `fakturagrunnlag-${listingId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 8)}.pdf`
       triggerPdfDownload(blob, safe)
     } catch (e: unknown) {
-      alert(t('invoicePdfError') + ': ' + formatErrorMessage(e))
+      toast(t('invoicePdfError') + ': ' + formatErrorMessage(e), 'error')
     } finally {
       setPdfLoading(false)
     }

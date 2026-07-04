@@ -6,6 +6,11 @@ import { devWarn } from '@/app/lib/appLogger'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
+/** Placeholder so `createClient` does not throw during Next.js prerender without env vars. */
+const SUPABASE_BUILD_PLACEHOLDER_URL = 'https://placeholder.supabase.co'
+const SUPABASE_BUILD_PLACEHOLDER_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.placeholder'
+
 /** Uten URL/nøkkel henger ofte getSession/getUser — da blir hele appen «Laster…». */
 export const isSupabaseConfigured = Boolean(supabaseUrl.trim() && supabaseKey.trim())
 
@@ -76,7 +81,9 @@ const client = isSupabaseConfigured
         flowType: 'implicit',
       },
     })
-  : createClient(supabaseUrl, supabaseKey, { ...supabaseGlobalOptions })
+  : createClient(SUPABASE_BUILD_PLACEHOLDER_URL, SUPABASE_BUILD_PLACEHOLDER_KEY, {
+      ...supabaseGlobalOptions,
+    })
 
 /** Sjekker om feilen er ugyldig/utløpt refresh token – da skal vi logge ut og sende bruker til forsiden. */
 function isInvalidRefreshTokenError(err: unknown): boolean {

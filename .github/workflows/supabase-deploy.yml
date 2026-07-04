@@ -1,0 +1,41 @@
+name: Supabase DB Push
+
+# Kjører KUN mot det Supabase-prosjektet som ligger i GitHub Secrets.
+# Sett SUPABASE_PROJECT_REF til det NYE Hjerterum-prosjektet — aldri prod-Boly.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Skriv push for å bekrefte migrasjon til Hjerterum Supabase'
+        required: true
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - '.github/trigger-supabase-db-push'
+
+jobs:
+  db-push:
+    if: github.event_name == 'push' || github.event.inputs.confirm == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Hjerterum project
+        working-directory: supabase
+        run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      - name: Push all migrations (fresh Hjerterum database)
+        working-directory: supabase
+        run: supabase db push --yes --include-all

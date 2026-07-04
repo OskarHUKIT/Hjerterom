@@ -6,6 +6,7 @@ import L from 'leaflet'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../context/LanguageContext'
 import { listingAvailabilityStatusToday } from '../lib/listingAvailabilityStatusToday'
+import { getListingMapCoords } from '../lib/listingMapCoords'
 
 /** Kartnål-farger samsvarer med status for dagens dato (lokal tid). */
 function makePinDivIcon(fill: string, stroke: string): L.DivIcon {
@@ -23,18 +24,22 @@ function makePinDivIcon(fill: string, stroke: string): L.DivIcon {
 const pinTilgjengelig = makePinDivIcon('#14b8a6', '#0f766e')
 const pinFormidlet = makePinDivIcon('#0ea5e9', '#0369a1')
 const pinUtilgjengelig = makePinDivIcon('#ef4444', '#b91c1c')
+const pinUmarkert = makePinDivIcon('#94a3b8', '#64748b')
 
 interface MapViewProps {
   listings: any[]
   availability?: Record<string, any[]>
   /** Når satt: vis kun denne boligen (én markør) og zoom inn — f.eks. fra detaljside. */
   focusListingId?: string | null
+  /** Query på detaljlenke, f.eks. `?view=nav` for saksbehandler. */
+  listingDetailQuery?: string
 }
 
 export default function MapView({
   listings,
   availability = {},
   focusListingId = null,
+  listingDetailQuery = '',
 }: MapViewProps) {
   const router = useRouter()
   const { t } = useLanguage()
@@ -58,8 +63,9 @@ export default function MapView({
       focusId.length > 0 ? listings.filter((l) => String(l.id) === focusId) : listings
     const markersById: Record<string, L.Marker> = {}
     sourceList.forEach((l) => {
-      const lat = parseFloat(l.latitude)
-      const lon = parseFloat(l.longitude)
+      const coords = getListingMapCoords(l)
+      if (!coords) return
+      const { lat, lng: lon } = coords
 
       if (!isNaN(lat) && !isNaN(lon)) {
         boundsPoints.push([lat, lon])
@@ -69,7 +75,9 @@ export default function MapView({
             ? pinFormidlet
             : statusToday === 'Utilgjengelig'
               ? pinUtilgjengelig
-              : pinTilgjengelig
+              : statusToday === 'Ikke markert'
+                ? pinUmarkert
+                : pinTilgjengelig
         const marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map)
 
         // DOM-API (textContent) — unngår XSS dersom adresse/pris noen gang skulle være upålitelig
@@ -113,7 +121,7 @@ export default function MapView({
         // Håndter klikk på knappen i popupen
         marker.on('popupopen', () => {
           document.getElementById(`view-listing-${l.id}`)?.addEventListener('click', () => {
-            router.push(`/listings/${l.id}`)
+            router.push(`/listings/${l.id}${listingDetailQuery}`)
           })
         })
       }
@@ -137,7 +145,13 @@ export default function MapView({
         mapRef.current = null
       }
     }
-  }, [listings, availability, router, t, focusListingId])
+  }, [listings, availability, router, t, focusListingId, listingDetailQuery])
+
+  useEffect(() => {
+    if (!mapRef.current || !containerRef.current) return
+    const tId = window.setTimeout(() => mapRef.current?.invalidateSize(), 120)
+    return () => window.clearTimeout(tId)
+  }, [listings, focusListingId])
 
   return (
     <div

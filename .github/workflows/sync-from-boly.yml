@@ -1,0 +1,62 @@
+name: Sync from Boly
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Hjerterom
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MIRROR_TOKEN }}
+
+      - name: Pull latest from Boly and push to Hjerterom
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          set -euo pipefail
+          TOKEN="$(printf '%s' "$MIRROR_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+          if [ -z "$TOKEN" ]; then
+            echo "MIRROR_TOKEN is missing on OskarHUKIT/Hjerterom."
+            exit 1
+          fi
+
+          HTTP_CODE="$(curl -sS -o /tmp/boly-check.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/OskarHUKIT/Boly)"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Token cannot read OskarHUKIT/Boly (HTTP ${HTTP_CODE})."
+            cat /tmp/boly-check.json || true
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git remote add boly "https://x-access-token:${TOKEN}@github.com/OskarHUKIT/Boly.git" 2>/dev/null || \
+            git remote set-url boly "https://x-access-token:${TOKEN}@github.com/OskarHUKIT/Boly.git"
+
+          git fetch boly main
+          git checkout main
+          git reset --hard boly/main
+
+          if git cat-file -e "HEAD:.github/workflows/mirror-to-hjerterom.yml" 2>/dev/null; then
+            git rm -f .github/workflows/mirror-to-hjerterom.yml
+            git commit -m "Remove Boly mirror workflow from Hjerterom"
+          fi
+
+          git push origin main --force-with-lease
+
+          for branch in $(git for-each-ref --format='%(refname:short)' refs/remotes/boly/ | grep -v '^boly/HEAD$' | grep -v '^boly/main$' | sed 's|^boly/||'); do
+            git push origin "boly/${branch}:refs/heads/${branch}" || true
+          done
+
+          git push origin --tags --force-with-lease || true

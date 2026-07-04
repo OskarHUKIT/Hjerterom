@@ -56,7 +56,13 @@ project.xcworkspace
 .DS_Store
 
 # IDE
-.cursor/
+.cursor/*
+!.cursor/rules
+!.cursor/rules/
+!.cursor/rules/**
+!.cursor/skills
+!.cursor/skills/
+!.cursor/skills/**
 .vscode/
 .idea/
 *.swp

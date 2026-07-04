@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Sans, Fraunces } from 'next/font/google'
 import './globals.css'
+import './styles/hjerterum-v2.css'
 import SiteChrome from './components/SiteChrome'
+import SkipLink from './components/design-system/SkipLink'
 import PushSubscription from './components/PushSubscription'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import { Providers } from './providers'
@@ -24,7 +26,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#3b82f6',
+  themeColor: '#5b7cfa',
   viewportFit: 'cover',
   userScalable: true,
   // Prevent unwanted zoom on input focus (iOS)
@@ -32,10 +34,11 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Boly',
-  description: 'Boly – formidling av bolig mellom kommune og private utleiere',
+  title: 'Hjerterum',
+  description:
+    'Hjerterum – boligformidling, arrangement og turisme mellom kommune, utleiere og gjester i Nord-Norge',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, title: 'Boly' },
+  appleWebApp: { capable: true, title: 'Hjerterum' },
   icons: {
     icon: [{ url: '/BolyMobilIcon.png', sizes: '1024x1024', type: 'image/png' }],
     apple: '/BolyMobilIcon.png',
@@ -77,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="site-body">
         <Providers>
+          <SkipLink />
           <PushSubscription />
           <PWAInstallPrompt />
           <SiteChrome>{children}</SiteChrome>

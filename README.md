@@ -1,82 +1,37 @@
-# Boligbank Application
+# Boly
 
-A modern web application for Boligbank (Housing Bank) management system.
+Boly er en digital plattform for boligformidling mellom kommune og private utleiere.
 
-## Project Structure
+Primær kildekode vedlikeholdes i [OskarHUKIT/Boly](https://github.com/OskarHUKIT/Boly). Dette depotet (`Hjerterom`) speiles fra Boly for sikkerhetskopi og videre arbeid.
+
+## Prosjektstruktur
 
 ```
-boligbanken-app/
-├── frontend/          # Frontend application
-├── backend/           # Backend API
-├── docs/              # Documentation
-└── README.md          # This file
+├── frontend/     # Next.js-app (bolynorge.no)
+├── supabase/     # Database, migrasjoner og edge-funksjoner
+├── docs/         # Dokumentasjon (GDPR, drift, juridisk)
+└── tests/        # Tester
 ```
 
-## Features
+## Kom i gang
 
-- User management
-- Terms and conditions management
-- Document handling
-- Training/knowledge base
+Se [QUICK_START.md](./QUICK_START.md) for lokal utvikling og deploy.
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or higher)
-- npm or yarn
-
-### Installation
-
-1. Install all dependencies (root, frontend, and backend):
 ```bash
 npm run install:all
-```
-
-Or install manually:
-```bash
-# Root dependencies
-npm install
-
-# Frontend dependencies
-cd frontend
-npm install
-
-# Backend dependencies
-cd ../backend
-npm install
-```
-
-### Development
-
-Start both frontend and backend servers:
-```bash
-npm run dev
-```
-
-This will start:
-- Frontend: http://localhost:3000 (Next.js)
-- Backend API: http://localhost:3001 (Express)
-
-Or run them separately:
-```bash
-# Frontend only
 npm run dev:frontend
-
-# Backend only
-npm run dev:backend
 ```
 
-### Building for Production
+Appen kjører på http://localhost:3000
 
-```bash
-npm run build
-npm start
-```
+## Synkronisering fra Boly
 
-## Technology Stack
+GitHub Actions-workflowen `sync-from-boly` henter siste `main` fra Boly og oppdaterer dette depotet. Krever `MIRROR_TOKEN` (PAT med `repo`-tilgang til Boly) under **Settings → Secrets → Actions**.
 
-- Frontend: React/Next.js
-- Backend: Node.js/Express
-- Database: PostgreSQL/MongoDB
+Manuell kjøring: **Actions → Sync from Boly → Run workflow**.
 
+## Teknologistack
+
+- Frontend: Next.js, React, Tailwind CSS
+- Backend: Supabase (Postgres, Auth, Storage, Edge Functions)
+- Deploy: Vercel (frontend), Supabase Cloud (backend)

@@ -1,6 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { parseKommuneRegions } from './kommuneRegions'
 import { isKommuneStaffRole } from './kommuneRoles'
+import { isEventStaffRole } from './eventStaffRoles'
+import { isLeietakerRole } from './guestRoles'
+import { isKommuneSocialActiveForCity } from './kommuneSocialSubscription'
 
 const RT = encodeURIComponent('/homeowner/manage')
 
@@ -91,6 +94,8 @@ export async function getLandlordPostLoginHref(
   ])
   const role = profile?.role
   if (isKommuneStaffRole(role)) return '/nav/database'
+  if (isEventStaffRole(role)) return '/nav/event/database'
+  if (isLeietakerRole(role)) return '/finn/mine'
 
   if (ua?.is_terminated && ua?.terminated_by_kommune) {
     return '/homeowner/kommune-terminated'
@@ -104,6 +109,18 @@ export async function getLandlordPostLoginHref(
     hasLandlordSignedTermsBefore(supabase, userId),
     getLandlordSignCity(supabase, userId, email ?? null),
   ])
+
+  if (city) {
+    const socialActive = await isKommuneSocialActiveForCity(supabase, city)
+    if (!socialActive) {
+      const { count } = await supabase
+        .from('listings')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_id', userId)
+      if ((count ?? 0) > 0) return '/homeowner/manage'
+      return '/homeowner/register'
+    }
+  }
 
   if (signedBefore && city) {
     return signTermsHref(city)

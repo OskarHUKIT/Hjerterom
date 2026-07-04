@@ -7,20 +7,22 @@ import { fetchOpsAccess, opsAccessQueryKey, type OpsAccess } from '../lib/querie
 
 const staleMs = 2 * 60 * 1000
 
-export function useOpsAccess(options?: { redirectUnauthenticated?: boolean }) {
+export function useOpsAccess(options?: { redirectUnauthenticated?: boolean; enabled?: boolean }) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const redirectUnauthenticated = options?.redirectUnauthenticated !== false
+  const enabled = options?.enabled !== false
 
   const q = useQuery<OpsAccess, Error>({
     queryKey: opsAccessQueryKey,
     queryFn: () => fetchOpsAccess(queryClient),
     staleTime: staleMs,
     gcTime: 10 * 60 * 1000,
+    enabled,
   })
 
   useEffect(() => {
-    if (!redirectUnauthenticated) return
+    if (!enabled || !redirectUnauthenticated) return
     if (q.data?.kind === 'unauthenticated') {
       router.replace('/login?redirect=/ops')
       return
@@ -28,7 +30,7 @@ export function useOpsAccess(options?: { redirectUnauthenticated?: boolean }) {
     if (q.data?.kind === 'forbidden') {
       router.replace('/')
     }
-  }, [q.data, redirectUnauthenticated, router])
+  }, [enabled, q.data, redirectUnauthenticated, router])
 
   return q
 }

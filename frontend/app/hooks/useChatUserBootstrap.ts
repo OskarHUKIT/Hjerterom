@@ -7,17 +7,19 @@ import {
   fetchChatUserBootstrap,
 } from '../lib/queries/chatUserBootstrap'
 
-export function useChatUserBootstrap() {
+export function useChatUserBootstrap(options?: { enabled?: boolean }) {
   const queryClient = useQueryClient()
+  const enabled = options?.enabled !== false
   const q = useQuery({
     queryKey: chatUserBootstrapQueryKey,
     queryFn: () => fetchChatUserBootstrap(queryClient),
     staleTime: 60_000,
     gcTime: 10 * 60 * 1000,
+    enabled,
   })
 
   useEffect(() => {
-    if (!q.data) return
+    if (!enabled || !q.data) return
     if (q.data.kind === 'anon') {
       window.location.replace('/login')
       return
@@ -25,7 +27,7 @@ export function useChatUserBootstrap() {
     if (q.data.kind === 'redirect') {
       window.location.replace(q.data.href)
     }
-  }, [q.data])
+  }, [enabled, q.data])
 
   return q
 }

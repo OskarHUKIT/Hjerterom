@@ -97,6 +97,7 @@ export type OpsTermsItem = {
   title: string
   version: number
   kommune_region: string | null
+  scope: string | null
   effective_from: string | null
   created_at: string | null
   pdf_bucket: string | null
@@ -294,6 +295,8 @@ export type OpsKommuneDetail = {
     launched_at: string | null
     notes: string | null
     created_at: string
+    digital_los_enabled?: boolean
+    tourism_enabled?: boolean
   }
   health_metrics: OpsKommuneHealth
   staff: {
@@ -401,6 +404,19 @@ export async function opsGetKommuneDetail(slug: string): Promise<OpsKommuneDetai
   const { data, error } = await supabase.rpc('ops_get_kommune_detail', { p_slug: slug })
   if (error) throw error
   return data as OpsKommuneDetail
+}
+
+export async function opsSetKommuneFeatures(
+  slug: string,
+  features: { digitalLosEnabled?: boolean; tourismEnabled?: boolean }
+) {
+  const { data, error } = await supabase.rpc('ops_set_kommune_features', {
+    p_slug: slug,
+    p_digital_los_enabled: features.digitalLosEnabled ?? null,
+    p_tourism_enabled: features.tourismEnabled ?? null,
+  })
+  if (error) throw error
+  return data
 }
 
 export async function opsUpsertKommune(args: {
@@ -566,4 +582,50 @@ export async function opsGetFunnelStats(): Promise<OpsFunnelStats> {
   const { data, error } = await supabase.rpc('ops_get_funnel_stats')
   if (error) throw error
   return data as OpsFunnelStats
+}
+
+export type OpsPlatformSettingsPayload = {
+  product_mode: 'boly' | 'hjerterum'
+  finn_portal_enabled: boolean
+  los_portal_enabled: boolean
+  central_events_enabled: boolean
+  tourism_lane_enabled: boolean
+  stripe_bookings_enabled: boolean
+  updated_at?: string | null
+}
+
+export async function opsGetPlatformSettings(): Promise<OpsPlatformSettingsPayload> {
+  const { data, error } = await supabase.rpc('ops_get_platform_settings')
+  if (error) throw error
+  return data as OpsPlatformSettingsPayload
+}
+
+export async function opsSetPlatformSettings(input: {
+  productMode?: 'boly' | 'hjerterum'
+  finnPortalEnabled?: boolean
+  losPortalEnabled?: boolean
+  centralEventsEnabled?: boolean
+  tourismLaneEnabled?: boolean
+  stripeBookingsEnabled?: boolean
+}) {
+  const { data, error } = await supabase.rpc('ops_set_platform_settings', {
+    p_product_mode: input.productMode ?? null,
+    p_finn_portal_enabled: input.finnPortalEnabled ?? null,
+    p_los_portal_enabled: input.losPortalEnabled ?? null,
+    p_central_events_enabled: input.centralEventsEnabled ?? null,
+    p_tourism_lane_enabled: input.tourismLaneEnabled ?? null,
+    p_stripe_bookings_enabled: input.stripeBookingsEnabled ?? null,
+  })
+  if (error) throw error
+  return data as { ok: boolean; settings: OpsPlatformSettingsPayload }
+}
+
+export async function opsApplyPlatformPreset(
+  preset: 'boly_only' | 'hjerterum_full' | 'hjerterum_pilot'
+) {
+  const { data, error } = await supabase.rpc('ops_apply_platform_preset', {
+    p_preset: preset,
+  })
+  if (error) throw error
+  return data as { ok: boolean; settings: OpsPlatformSettingsPayload }
 }

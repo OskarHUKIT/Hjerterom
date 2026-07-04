@@ -26,9 +26,17 @@ import {
   recoveryPasswordPageHref,
 } from '../../lib/authRecovery'
 
+function isSafeInternalPath(path: string | null | undefined): path is string {
+  return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') && path !== '/'
+}
+
 async function goAfterAuth(next: string | null, otpType: string | null) {
   if (otpType === 'recovery' || next === '/login/update-password') {
     window.location.replace(recoveryPasswordPageHref())
+    return
+  }
+  if (isSafeInternalPath(next)) {
+    window.location.replace(next)
     return
   }
   const href =

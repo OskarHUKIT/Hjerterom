@@ -70,6 +70,25 @@ alter policy "Authenticated users can view all listings"
   on public.listings
   using ((select auth.role()) = 'authenticated');
 
-alter policy "Owners can manage their own listings"
+-- Replaced monolithic owner policy in 20260419120000 — initplan on split policies:
+alter policy "Owners can insert own listings"
   on public.listings
-  using ((select auth.uid()) = owner_id);
+  with check ((select auth.uid()) = owner_id);
+
+alter policy "Owners can update own listings when not formidlet"
+  on public.listings
+  using (
+    (select auth.uid()) = owner_id
+    and not public.listing_locked_for_landlord_edit(id)
+  )
+  with check (
+    (select auth.uid()) = owner_id
+    and not public.listing_locked_for_landlord_edit(id)
+  );
+
+alter policy "Owners can delete own listings when not formidlet"
+  on public.listings
+  using (
+    (select auth.uid()) = owner_id
+    and not public.listing_locked_for_landlord_edit(id)
+  );

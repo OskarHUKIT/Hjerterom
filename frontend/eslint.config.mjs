@@ -74,6 +74,19 @@ const eslintConfig = [
     },
   },
   eslintConfigPrettier,
+  {
+    files: ['app/**/*.{ts,tsx}', 'features/**/*.{ts,tsx}'],
+    rules: {
+      'no-alert': 'error',
+    },
+  },
+  // Wave 6: discourage new megacomponents in app/ and features/.
+  {
+    files: ['app/**/*.tsx', 'features/**/*.tsx'],
+    rules: {
+      'max-lines': ['warn', { max: 800, skipBlankLines: true, skipComments: true }],
+    },
+  },
 ]
 
 export default eslintConfig

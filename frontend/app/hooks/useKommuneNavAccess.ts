@@ -11,22 +11,24 @@ import {
 
 const staleMs = 2 * 60 * 1000
 
-export function useKommuneNavAccess(options?: { redirectUnauthenticated?: boolean }) {
+export function useKommuneNavAccess(options?: { redirectUnauthenticated?: boolean; enabled?: boolean }) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const redirectUnauthenticated = options?.redirectUnauthenticated !== false
+  const enabled = options?.enabled !== false
 
   const q = useQuery<KommuneNavAccess, Error>({
     queryKey: kommuneNavAccessQueryKey,
     queryFn: () => fetchKommuneNavAccess(queryClient),
     staleTime: staleMs,
     gcTime: 10 * 60 * 1000,
+    enabled,
   })
 
   useEffect(() => {
-    if (!redirectUnauthenticated || q.data?.kind !== 'unauthenticated') return
+    if (!enabled || !redirectUnauthenticated || q.data?.kind !== 'unauthenticated') return
     router.replace('/login')
-  }, [q.data, redirectUnauthenticated, router])
+  }, [enabled, q.data, redirectUnauthenticated, router])
 
   return q
 }

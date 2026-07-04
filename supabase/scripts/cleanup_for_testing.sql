@@ -1,12 +1,27 @@
 -- =============================================================================
--- Boly: Cleanup script for testing period
+-- Boly / Hjerterum: Cleanup script for testing period
 -- Run this in Supabase Dashboard → SQL Editor to remove ALL user data
 -- WARNING: This permanently deletes all listings, users, messages, etc.
+-- Does NOT drop schema or migration history (see reset_remote_for_fresh_migrations.sql)
 -- =============================================================================
 
 -- Disable triggers temporarily to avoid cascade issues during cleanup
 SET session_replication_role = 'replica';
 
+-- ─── Hjerterum (requires 20260630* migrations) ───
+DELETE FROM los_handoffs;
+DELETE FROM los_sessions;
+DELETE FROM event_inquiries;
+DELETE FROM bookings;
+DELETE FROM listing_event_availability;
+DELETE FROM central_event_staff;
+DELETE FROM central_events;
+DELETE FROM guest_profiles;
+
+-- Ops events (if table exists)
+DELETE FROM platform_events;
+
+-- ─── Core Boly ───
 -- 1. Delete chat messages
 DELETE FROM chat_messages;
 

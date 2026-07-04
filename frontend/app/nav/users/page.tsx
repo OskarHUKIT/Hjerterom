@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/app/components/design-system'
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -30,14 +31,15 @@ import {
   kommuneNavUsesAccountsLabel,
 } from '../../lib/kommuneRoles'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
-import { useKommuneNavAccess } from '../../hooks/useKommuneNavAccess'
+import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 
 function NavUsersContent() {
   const { t } = useLanguage()
+  const toast = useToast()
   const router = useRouter()
   const queryClient = useQueryClient()
   const pathname = usePathname()
-  const kommuneAccess = useKommuneNavAccess()
+  const kommuneAccess = useAuthGate({ mode: 'kommune' })
   const searchParams = useSearchParams()
   const userId = searchParams.get('id')
   const [users, setUsers] = useState<any[]>([])
@@ -207,7 +209,7 @@ function NavUsersContent() {
       p_can_edit: !currentCanEdit,
     })
     if (error) {
-      alert(error.message)
+      toast(error.message, 'error')
       return
     }
     setStaffRows((prev) =>
