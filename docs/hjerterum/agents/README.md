@@ -11,6 +11,7 @@ Each file below is a **self-contained packet** for a fresh agent context window.
 5. **Parity:** Behavior must stay identical unless the brief says otherwise.
 6. **Verify:** Run `cd frontend && npm run build` before commit.
 7. **Commit:** Use prefix `refactor(wave-N):` or `fix(p0):` from the brief.
+8. **Git:** Push directly to `main` — see `.cursor/rules/git-workflow.mdc` (no feature branches unless explicitly requested).
 
 ## Wave index
 
@@ -57,6 +58,6 @@ Orchestration: **[`../NPD_PLAN.md`](../NPD_PLAN.md)** · Audits: `UX_UI_AUDIT_RE
 
 Branch naming: `cursor/npd-{brief-slug}-6155` off `main`.
 
-## Branch naming (refactor waves)
+## Git workflow
 
-`cursor/app-refactor-wave{N}-020a` off `main` (or continue on existing refactor branch).
+All agents push **directly to `main`**. See `.cursor/rules/git-workflow.mdc`.

@@ -1,0 +1,40 @@
+---
+description: Git workflow for all Cursor Cloud Agents and local agents on Hjerterum
+alwaysApply: true
+---
+
+# Git workflow — push directly to `main`
+
+**Default for all agents on this project:** commit and push **directly to `main`**. Do not open feature branches or pull requests unless the user explicitly asks.
+
+## Required flow
+
+1. `git checkout main && git pull origin main`
+2. Make changes on `main`
+3. `git add` → `git commit -m "..."` → `git push origin main`
+
+## Do not (unless user explicitly requests)
+
+- Create `cursor/*` feature branches
+- Open draft or ready PRs as the default delivery path
+- Leave work only on a branch without pushing to `main`
+
+## When the user asks for a PR or branch
+
+- Use a branch only for that task
+- Still merge to `main` when done unless they want an open PR for review
+
+## Commit messages
+
+- Complete sentences; prefix by area (`feat(finn):`, `fix(nav):`, `docs:`)
+- Push after each logical unit of work — do not accumulate unpushed commits
+
+## Conflicts / sync
+
+- Always pull `main` before starting work
+- If push is rejected: `git pull --rebase origin main`, resolve, push again
+
+## Related docs
+
+- Agent briefs: `docs/hjerterum/agents/README.md`
+- Service flow: `docs/hjerterum/SERVICE_FLOW.md`
