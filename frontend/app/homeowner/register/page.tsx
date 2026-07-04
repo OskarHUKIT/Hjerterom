@@ -26,6 +26,7 @@ import {
   Phone,
   User,
   CalendarDays,
+  Compass,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '../../lib/supabase'
 import { useLanguage } from '../../../context/LanguageContext'
@@ -42,12 +43,20 @@ import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 import PageSkeleton from '../../components/design-system/PageSkeleton'
-import { Stepper, FileUploadZone } from '@/app/components/design-system'
+import { Stepper, FileUploadZone, IdentityVerificationDialog } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
 import SharedAvailabilityCalendar from '@/features/listings/components/SharedAvailabilityCalendar'
+import RegisterLanesStep from '@/features/listings/components/register/RegisterLanesStep'
 import { usePlatformMode } from '@/context/PlatformModeContext'
-import { Compass } from 'lucide-react'
+import {
+  readRegisterDraft,
+  saveRegisterDraft,
+  clearRegisterDraft,
+  type RegisterDraftPeriod,
+} from '../lib/registerDraft'
 import './register.css'
+
+const REGISTER_LAST_STEP = 4
 
 export default function HomeownerRegister() {
   const { t } = useLanguage()
@@ -62,9 +71,11 @@ export default function HomeownerRegister() {
   const [backHref, setBackHref] = useState('/')
   const [socialKommuneActive, setSocialKommuneActive] = useState<boolean | null>(null)
   const [registerStep, setRegisterStep] = useState(0)
-  const [draftPeriods, setDraftPeriods] = useState<
-    { start: string; end: string; status: 'Tilgjengelig' | 'Utilgjengelig' }[]
-  >([])
+  const [eventInterest, setEventInterest] = useState(false)
+  const [identityOpen, setIdentityOpen] = useState(false)
+  const pendingListingRowRef = useRef<Record<string, unknown> | null>(null)
+  const pendingSignCityRef = useRef<string>('')
+  const [draftPeriods, setDraftPeriods] = useState<RegisterDraftPeriod[]>([])
   const [availPaintStatus, setAvailPaintStatus] = useState<'Tilgjengelig' | 'Utilgjengelig'>(
     'Tilgjengelig'
   )
@@ -147,6 +158,94 @@ export default function HomeownerRegister() {
     }
     checkTerms()
   }, [router])
+
+  useEffect(() => {
+    const draft = readRegisterDraft()
+    if (!draft) return
+    setFormData((prev) => ({ ...prev, ...(draft.formData as typeof prev) }))
+    setDraftPeriods(draft.draftPeriods ?? [])
+    setEventInterest(Boolean(draft.eventInterest))
+    setAvailPaintStatus(draft.availPaintStatus ?? 'Tilgjengelig')
+    setRegisterStep(Math.min(Math.max(0, draft.step), REGISTER_LAST_STEP))
+  }, [])
+
+  const persistRegisterDraft = useCallback(
+    (step = registerStep) => {
+      saveRegisterDraft({
+        v: 1,
+        step,
+        formData: formRef.current as unknown as Record<string, unknown>,
+        draftPeriods,
+        eventInterest,
+        availPaintStatus,
+      })
+    },
+    [availPaintStatus, draftPeriods, eventInterest, registerStep]
+  )
+
+  const validatePropertyStep = useCallback((): boolean => {
+    const req = (s: string | undefined | null) => String(s ?? '').trim().length > 0
+    const fd = formRef.current
+    if (
+      !req(fd.owner_name) ||
+      !req(fd.contact_phone) ||
+      !req(fd.address) ||
+      !req(fd.city) ||
+      !req(fd.postal_code)
+    ) {
+      toast(t('regValidationRequiredFields'), 'error')
+      return false
+    }
+    if (fd.latitude == null || fd.longitude == null || Number.isNaN(Number(fd.latitude))) {
+      toast(t('regValidationGeocode'), 'error')
+      return false
+    }
+    const priceMinSum =
+      (parseFloat(String(fd.price_daily)) || 0) +
+      (parseFloat(String(fd.price_weekly)) || 0) +
+      (parseFloat(String(fd.price_monthly_short)) || 0) +
+      (parseFloat(String(fd.price_monthly_long)) || 0)
+    if (priceMinSum <= 0) {
+      toast(t('regValidationPrice'), 'error')
+      return false
+    }
+    const sizeSqmCheck = parseFloat(String(fd.size_sqm)) || 0
+    const bedroomsCheck = parseInt(String(fd.bedrooms), 10)
+    const maxOccCheck = parseInt(String(fd.max_occupants), 10)
+    if (sizeSqmCheck <= 0 || Number.isNaN(bedroomsCheck) || bedroomsCheck < 0 || maxOccCheck < 1) {
+      toast(t('regValidationSizeOccupants'), 'error')
+      return false
+    }
+    return true
+  }, [t, toast])
+
+  const goToNextStep = () => {
+    if (registerStep === 0 && !validatePropertyStep()) return
+    const next = Math.min(REGISTER_LAST_STEP, registerStep + 1)
+    persistRegisterDraft(next)
+    setRegisterStep(next)
+  }
+
+  const goToPreviousStep = () => {
+    const prev = Math.max(0, registerStep - 1)
+    persistRegisterDraft(prev)
+    setRegisterStep(prev)
+  }
+
+  const handleSaveDraft = () => {
+    persistRegisterDraft()
+    toast(t('regDraftSaved'), 'success')
+  }
+
+  const continueToSignTerms = () => {
+    const row = pendingListingRowRef.current
+    if (!row) return
+    savePendingFirstListingDraft(row)
+    const cityQ = pendingSignCityRef.current
+    const returnTo = encodeURIComponent('/homeowner/register')
+    router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}&pendingListing=1`)
+    pendingListingRowRef.current = null
+  }
 
   useEffect(() => {
     const city = formData.city?.trim()
@@ -469,10 +568,9 @@ export default function HomeownerRegister() {
       const socialActive = await isKommuneSocialActiveForCity(supabase, formData.city?.trim() || '')
 
       if (isFirstListing && !agreementRow && socialActive) {
-        savePendingFirstListingDraft(listingRow as unknown as Record<string, unknown>)
-        const cityQ = encodeURIComponent(formData.city?.trim() || '')
-        const returnTo = encodeURIComponent('/homeowner/register')
-        router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}&pendingListing=1`)
+        pendingListingRowRef.current = listingRow as unknown as Record<string, unknown>
+        pendingSignCityRef.current = encodeURIComponent(formData.city?.trim() || '')
+        setIdentityOpen(true)
         setLoading(false)
         return
       }
@@ -576,6 +674,7 @@ export default function HomeownerRegister() {
       }
 
       toast(socialActive ? t('registerSuccess') : t('registerSuccessTourismOnly'), 'success')
+      clearRegisterDraft()
 
       const { data: agreementAfter } = await supabase
         .from('user_agreements')
@@ -622,33 +721,29 @@ export default function HomeownerRegister() {
           </div>
         )}
         <Stepper
+          variant="registration"
           currentStep={registerStep}
+          ariaLabel={t('registerStepAria')}
           steps={[
-            { id: 'bolig', label: t('regStepBolig') },
-            { id: 'lanes', label: t('regStepLanes') },
-            { id: 'availability', label: t('regStepAvailability') },
-            { id: 'agreements', label: t('regStepAgreements') },
+            { id: 'property', label: t('registerStepProperty') },
+            { id: 'lanes', label: t('registerStepLanes') },
+            { id: 'photos', label: t('registerStepPhotos') },
+            { id: 'availability', label: t('registerStepAvailability') },
+            { id: 'agreements', label: t('registerStepAgreements') },
           ]}
         />
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              savePendingFirstListingDraft({ ...formData, v: 'draft-only' })
-              toast(t('regDraftSaved'), 'success')
-            }}
-          >
+        <div className="register-step-nav">
+          <Button type="button" variant="secondary" onClick={handleSaveDraft}>
             {t('regSaveDraft')}
           </Button>
           {registerStep > 0 ? (
-            <Button type="button" variant="secondary" onClick={() => setRegisterStep((s) => Math.max(0, s - 1))}>
-              ←
+            <Button type="button" variant="secondary" onClick={goToPreviousStep}>
+              {t('registerStepBack')}
             </Button>
           ) : null}
-          {registerStep < 3 ? (
-            <Button type="button" variant="accent" onClick={() => setRegisterStep((s) => Math.min(3, s + 1))}>
-              →
+          {registerStep < REGISTER_LAST_STEP ? (
+            <Button type="button" variant="accent" onClick={goToNextStep}>
+              {t('registerStepNext')}
             </Button>
           ) : null}
         </div>
@@ -656,7 +751,7 @@ export default function HomeownerRegister() {
 
       <form onSubmit={handleSubmit} className="register-form">
         <div className="register-form-columns">
-          <div className="register-form-main-col">
+          <div className="register-form-main-col" hidden={registerStep !== 0}>
             {/* Section 1: Basic Info & Kontakt */}
             <section className="form-section" hidden={registerStep !== 0}>
               <h3 className="form-section-heading">
@@ -1157,8 +1252,7 @@ export default function HomeownerRegister() {
               </div>
             </section>
 
-            {/* Section 4: Bilder & Annet */}
-            <section className="form-section" hidden={registerStep !== 0}>
+            <section className="form-section" hidden={registerStep !== 2}>
               <h3 className="form-section-heading">
                 <Camera size={20} /> {t('regImagesSection')}
               </h3>
@@ -1239,27 +1333,21 @@ export default function HomeownerRegister() {
               <h3 className="form-section-heading">
                 <Compass size={20} /> {t('regLanesSection')}
               </h3>
-              {socialKommuneActive !== false ? (
-                <p className="text-sm register-lanes-hint">{t('regLanesSocialHint')}</p>
-              ) : null}
-              {platformFlags.tourism ? (
-                <div className="register-lanes-tourism card">
-                  <p className="text-sm">{t('regLanesTourismHint')}</p>
-                  <label className="register-lanes-toggle">
-                    <input
-                      type="checkbox"
-                      checked={formData.tourism_enabled}
-                      onChange={(e) =>
-                        setFormData({ ...formData, tourism_enabled: e.target.checked })
-                      }
-                    />
-                    {t('regLanesTourismEnable')}
-                  </label>
-                </div>
-              ) : null}
+              <RegisterLanesStep
+                socialKommuneActive={socialKommuneActive}
+                hasSignedTerms={Boolean(hasSignedTerms)}
+                tourismEnabled={Boolean(formData.tourism_enabled)}
+                onTourismChange={(next) =>
+                  setFormData((prev) => ({ ...prev, tourism_enabled: next }))
+                }
+                showTourism={platformFlags.tourism}
+                eventInterest={eventInterest}
+                onEventInterestChange={setEventInterest}
+                showEvents={platformFlags.centralEvents}
+              />
             </section>
 
-            <section className="form-section" hidden={registerStep !== 2}>
+            <section className="form-section" hidden={registerStep !== 3}>
               <h3 className="form-section-heading">
                 <CalendarDays size={20} /> {t('regAvailabilitySection')}
               </h3>
@@ -1291,16 +1379,24 @@ export default function HomeownerRegister() {
               />
             </section>
 
-            <section className="form-section" hidden={registerStep !== 3}>
+            <section className="form-section" hidden={registerStep !== 4}>
               <h3 className="form-section-heading">
                 <ShieldCheck size={20} /> {t('regAgreementsSection')}
               </h3>
               <p className="text-sm">{t('regAgreementsLead')}</p>
+              {!hasSignedTerms && socialKommuneActive !== false ? (
+                <Link
+                  href={`/homeowner/sign-terms?city=${encodeURIComponent(formData.city?.trim() || '')}&returnTo=${encodeURIComponent('/homeowner/register')}`}
+                  className="register-agreements-sign-link"
+                >
+                  {t('homeownerNavAgreements')} →
+                </Link>
+              ) : null}
             </section>
           </div>
         </div>
 
-        <div className="register-form-footer" hidden={registerStep !== 3}>
+        <div className="register-form-footer" hidden={registerStep !== 4}>
           <label className="register-insurance-label">
             <input
               type="checkbox"
@@ -1326,6 +1422,23 @@ export default function HomeownerRegister() {
           </div>
         </div>
       </form>
+
+      <IdentityVerificationDialog
+        open={identityOpen}
+        onClose={() => {
+          setIdentityOpen(false)
+          pendingListingRowRef.current = null
+        }}
+        onConfirm={() => {
+          setIdentityOpen(false)
+          continueToSignTerms()
+        }}
+        title={t('signTermsIdentityDialogTitle')}
+        body={t('signTermsIdentityDialogBody')}
+        confirmLabel={t('signTermsIdentityDialogConfirm')}
+        cancelLabel={t('signTermsIdentityDialogCancel')}
+        busy={loading}
+      />
     </main>
   )
 }

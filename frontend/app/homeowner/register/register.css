@@ -501,3 +501,94 @@
 .form-check-row span {
   font-size: 0.85rem;
 }
+
+.register-lanes-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.register-lanes-card {
+  padding: var(--space-4);
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.register-lanes-card--social {
+  border-top: 3px solid var(--lane-sosial-accent);
+}
+
+.register-lanes-card--tourism {
+  border-top: 3px solid var(--lane-tourism-accent);
+}
+
+.register-lanes-card--event {
+  border-top: 3px solid var(--lane-event-accent);
+}
+
+.register-lanes-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.register-lanes-card-head h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.register-lanes-card-meta {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-body);
+}
+
+.register-lanes-tag {
+  align-self: flex-start;
+  display: inline-flex;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--bg-app);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.register-lanes-tag--active {
+  background: color-mix(in srgb, var(--lane-sosial-accent) 18%, var(--bg-app));
+  color: var(--lane-sosial-accent);
+  border-color: color-mix(in srgb, var(--lane-sosial-accent) 35%, transparent);
+}
+
+.register-lanes-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: auto;
+}
+
+.register-step-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  align-items: center;
+}
+
+.register-agreements-sign-link {
+  display: inline-flex;
+  margin-top: var(--space-3);
+  font-weight: 600;
+  color: var(--color-royal-blue);
+}

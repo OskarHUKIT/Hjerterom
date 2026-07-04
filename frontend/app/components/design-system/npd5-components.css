@@ -199,6 +199,29 @@
   color: var(--text-main);
 }
 
+.ds-stepper--registration {
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.ds-stepper--registration::-webkit-scrollbar {
+  display: none;
+}
+
+.ds-stepper--registration .ds-stepper__step {
+  flex: 1 0 4.5rem;
+  min-width: 4.5rem;
+}
+
+@media (max-width: 640px) {
+  .ds-stepper--registration .ds-stepper__label {
+    font-size: 0.625rem;
+    max-width: 4.25rem;
+  }
+}
+
 .ds-property-card {
   display: flex;
   flex-direction: column;
