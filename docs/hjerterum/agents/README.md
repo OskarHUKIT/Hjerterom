@@ -56,8 +56,8 @@ Orchestration: **[`../NPD_PLAN.md`](../NPD_PLAN.md)** · Audits: `UX_UI_AUDIT_RE
 | [NPD-4A-finn-locale-consistency.md](./NPD-4A-finn-locale-consistency.md) | P1 | 1A |
 | [NPD-4B-sami-audit-m5.md](./NPD-4B-sami-audit-m5.md) | P1 gate | 4A |
 
-Branch naming: `cursor/npd-{brief-slug}-6155` off `main`.
-
 ## Git workflow
 
 All agents push **directly to `main`**. See `.cursor/rules/git-workflow.mdc`.
+
+When asked to deploy, commit, or push: `git checkout main && git pull origin main` → commit → `git push origin main`. No feature branches, no PRs, unless the user explicitly requests a branch or review PR.

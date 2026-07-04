@@ -443,15 +443,15 @@ Fase 7 til slutt
 
 ### Ved start av hver sesjon
 1. Les denne filen + siste migrasjon i `supabase/migrations/`.
-2. Sjekk git branch — bruk `cursor/<beskrivelse>-020a`.
+2. `git checkout main && git pull origin main` — jobb alltid på `main` (se `.cursor/rules/git-workflow.mdc`).
 3. Bekreft hvilken fase/oppgave-ID som jobbes med.
 
 ### Ved implementering
-1. **Minste diff** — én oppgave-ID per PR når mulig.
+1. **Minste diff** — én oppgave-ID per commit når mulig.
 2. Migrasjon → RLS → RPC → types → UI.
 3. Match eksisterende konvensjoner (`kommuneRoles.ts`, `Button`, i18n `t()`).
 4. Ingen nye megasider — extract til `features/`.
-5. Commit + push før E2E; oppdater PR.
+5. Commit + `git push origin main` før E2E — ingen feature branches, ingen PR med mindre bruker ber eksplisitt om det.
 
 ### Definition of Done (alle oppgaver)
 - [ ] Migrasjon kjører rent lokalt
