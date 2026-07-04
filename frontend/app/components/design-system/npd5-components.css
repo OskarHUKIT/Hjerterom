@@ -48,6 +48,82 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lane-tourism-accent) 40%, transparent);
 }
 
+/* Selector chips (hextaui/selector-chips → Boly tokens) */
+
+.ds-selector-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  max-width: 100%;
+}
+
+.ds-selector-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target, 44px);
+  padding: 0 var(--space-4);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  color: var(--text-main);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ds-selector-chip:hover {
+  border-color: color-mix(in srgb, var(--color-royal-blue) 45%, var(--border-medium));
+  background: color-mix(in srgb, var(--color-royal-blue) 8%, transparent);
+}
+
+.ds-selector-chip--selected {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-royal-blue) 88%, var(--bg-card));
+  border-color: var(--color-royal-blue);
+  color: var(--text-main);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-royal-blue) 35%, transparent);
+}
+
+[data-theme='light'] .ds-selector-chip--selected {
+  color: var(--bg-card);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-selector-chip {
+    transition: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .hm-filters-chips.ds-selector-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+    padding-bottom: 2px;
+  }
+
+  .hm-filters-chips.ds-selector-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hm-filters-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hm-filter-count {
+    flex-shrink: 0;
+  }
+}
+
 .ds-stepper {
   display: flex;
   align-items: flex-start;

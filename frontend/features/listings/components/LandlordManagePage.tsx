@@ -79,7 +79,7 @@ export default function HomeownerManage() {
     setShowOverviewIntro,
     setShowMineBoligerIntro,
   }
-  const [filter, setFilter] = useState<ManageListingFilter>('Alle')
+  const [filter, setFilter] = useState<ManageListingFilter>('all')
   const filtersRowRef = useRef<HTMLDivElement>(null)
   const [isMobileLayout, setIsMobileLayout] = useState(false)
 
@@ -125,11 +125,20 @@ export default function HomeownerManage() {
   }
 
   const filteredListings = myListings.filter((l) => {
-    if (filter === 'Alle') return true
-    const s = listingAvailabilityStatusToday(l.id, availability)
-    if (filter === 'Ikke markert') return s === 'Ikke markert'
-    if (filter === 'Tilgjengelig') return s === 'Tilgjengelig'
-    return s === filter
+    if (filter === 'all') return true
+    if (filter === 'availableToday') {
+      return listingAvailabilityStatusToday(l.id, availability) === 'Tilgjengelig'
+    }
+    if (filter === 'mediated') {
+      return listingAvailabilityStatusToday(l.id, availability) === 'Formidla'
+    }
+    if (filter === 'tourismActive') {
+      return Boolean(l.tourism_enabled)
+    }
+    if (filter === 'eventActive') {
+      return (eventOptInsByListing[l.id] ?? []).some((e) => e.status === 'active')
+    }
+    return true
   })
 
   if (shouldShowManageFullScreenSpinner(pageGate, loading, fetchError)) {
@@ -266,6 +275,8 @@ export default function HomeownerManage() {
             filteredCount={filteredListings.length}
             filtersRowRef={filtersRowRef}
             onScrollFiltersIntoViewMobile={scrollFiltersIntoViewMobile}
+            centralEvents={platformFlags.centralEvents}
+            tourism={platformFlags.tourism}
           />
 
           <div className="hm-listings-grid">

@@ -30,6 +30,12 @@ export const listingsTranslations = {
     manageListingActions: "Handlinger",
     manageFilterActiveHint:
       "Et filter er valgt. Boliger som ikke matcher filteret, vises ikke i listen.",
+    manageFilterGroupAria: "Filtrer boliger",
+    manageFilterAll: "Alle",
+    manageFilterAvailableToday: "Ledig i dag",
+    manageFilterMediated: "Formidlet",
+    manageFilterTourismActive: "Turisme aktiv",
+    manageFilterEventActive: "Arrangement",
     termsDocumentsNav: "Vilkårsavtaler",
     termsDocumentsTitle: "Versjonerte vilkårsavtaler",
     termsDocumentsDesc:
@@ -525,6 +531,12 @@ export const listingsTranslations = {
     manageListingActions: "Doaimmat",
     manageFilterActiveHint:
       "Silli lea válljejuvvon. Dáidat mat eai heive silliide, eai čájet listtus.",
+    manageFilterGroupAria: "Filter dáidat",
+    manageFilterAll: "Buot",
+    manageFilterAvailableToday: "Olámuttos odne",
+    manageFilterMediated: "Formidla",
+    manageFilterTourismActive: "Turisma aktiiva",
+    manageFilterEventActive: "Arrangement",
     termsDocumentsNav: "Ektui šiehtadusat",
     termsDocumentsTitle: "Veršuvnnat ektui šiehtadusain",
     termsDocumentsDesc:
@@ -1007,6 +1019,12 @@ export const listingsTranslations = {
     manageListingActions: "Actions",
     manageFilterActiveHint:
       "A filter is active. Listings that do not match the filter are hidden from the list.",
+    manageFilterGroupAria: "Filter properties",
+    manageFilterAll: "All",
+    manageFilterAvailableToday: "Available today",
+    manageFilterMediated: "Mediated",
+    manageFilterTourismActive: "Tourism active",
+    manageFilterEventActive: "Event",
     termsDocumentsNav: "Terms documents",
     termsDocumentsTitle: "Versioned terms agreements",
     termsDocumentsDesc:

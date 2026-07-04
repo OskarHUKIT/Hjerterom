@@ -1,15 +1,16 @@
 'use client'
 
-import { type Ref } from 'react'
+import { useMemo, type Ref } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
+import SelectorChips from '@/app/components/design-system/SelectorChips'
 import '@/features/listings/landlord-manage.css'
 
 export type ManageListingFilter =
-  | 'Alle'
-  | 'Tilgjengelig'
-  | 'Utilgjengelig'
-  | 'Formidla'
-  | 'Ikke markert'
+  | 'all'
+  | 'availableToday'
+  | 'mediated'
+  | 'tourismActive'
+  | 'eventActive'
 
 type LandlordManageFiltersProps = {
   filter: ManageListingFilter
@@ -17,6 +18,8 @@ type LandlordManageFiltersProps = {
   filteredCount: number
   filtersRowRef: Ref<HTMLDivElement>
   onScrollFiltersIntoViewMobile: () => void
+  centralEvents: boolean
+  tourism: boolean
 }
 
 export default function LandlordManageFilters({
@@ -25,44 +28,45 @@ export default function LandlordManageFilters({
   filteredCount,
   filtersRowRef,
   onScrollFiltersIntoViewMobile,
+  centralEvents,
+  tourism,
 }: LandlordManageFiltersProps) {
   const { t } = useLanguage()
 
-  const filterLabel = (f: ManageListingFilter) => {
-    if (f === 'Alle') return t('all')
-    if (f === 'Formidla') return t('formidlet')
-    if (f === 'Ikke markert') return t('availabilityUnmarked')
-    if (f === 'Tilgjengelig') return t('available')
-    return t('unavailable')
-  }
+  const options = useMemo(() => {
+    const chips: { id: ManageListingFilter; labelKey: Parameters<typeof t>[0] }[] = [
+      { id: 'all', labelKey: 'manageFilterAll' },
+      { id: 'availableToday', labelKey: 'manageFilterAvailableToday' },
+      { id: 'mediated', labelKey: 'manageFilterMediated' },
+    ]
+    if (tourism) {
+      chips.push({ id: 'tourismActive', labelKey: 'manageFilterTourismActive' })
+    }
+    if (centralEvents) {
+      chips.push({ id: 'eventActive', labelKey: 'manageFilterEventActive' })
+    }
+    return chips.map(({ id, labelKey }) => ({ id, label: t(labelKey) }))
+  }, [t, tourism, centralEvents])
 
   return (
     <>
       <div ref={filtersRowRef} className="hm-filters-row hm-filters-panel">
-        <div className="hm-filters-buttons">
-          {(
-            ['Alle', 'Tilgjengelig', 'Ikke markert', 'Utilgjengelig', 'Formidla'] as const
-          ).map((f) => (
-            <button
-              key={f}
-              type="button"
-              aria-pressed={filter === f}
-              onClick={() => {
-                onFilterChange(f)
-                onScrollFiltersIntoViewMobile()
-              }}
-              className="hm-filter-chip"
-            >
-              {filterLabel(f)}
-            </button>
-          ))}
-        </div>
+        <SelectorChips
+          value={filter}
+          options={options}
+          onChange={(next) => {
+            onFilterChange(next)
+            onScrollFiltersIntoViewMobile()
+          }}
+          ariaLabel={t('manageFilterGroupAria')}
+          className="hm-filters-chips"
+        />
         <div className="hm-filter-count">
           {t('showing')} {filteredCount} {t('propertiesPlural')}
         </div>
       </div>
 
-      {filter !== 'Alle' && <p className="hm-filter-hint">{t('manageFilterActiveHint')}</p>}
+      {filter !== 'all' ? <p className="hm-filter-hint">{t('manageFilterActiveHint')}</p> : null}
     </>
   )
 }

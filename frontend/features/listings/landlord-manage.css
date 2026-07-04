@@ -444,25 +444,9 @@
   gap: var(--space-3);
 }
 
-.hm-filter-chip {
-  padding: var(--space-2) var(--space-4);
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  background: transparent;
-  border: 1px solid var(--border-medium);
-  color: var(--text-main);
-  transition: all 0.15s ease;
-  box-shadow: none;
-}
-
-.hm-filter-chip[aria-pressed='true'] {
-  font-weight: 600;
-  background: var(--color-royal-blue);
-  border-color: var(--color-royal-blue);
-  color: white;
-  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
+.hm-filters-chips {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .hm-filter-count {

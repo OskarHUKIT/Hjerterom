@@ -11,6 +11,8 @@ export { ConfirmProvider, useConfirm } from './ConfirmDialog'
 export { ToastProvider, useToast } from './Toast'
 export { default as StatusBadge, statusBadgeVariantFor } from './StatusBadge'
 export type { StatusBadgeVariant } from './StatusBadge'
+export { default as SelectorChips } from './SelectorChips'
+export type { SelectorChipOption } from './SelectorChips'
 export {
   default as ListingStatusBadge,
   listingAvailabilityBadgeVariant,
