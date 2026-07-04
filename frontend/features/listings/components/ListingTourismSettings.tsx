@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useMemo, useState } from 'react'
 import { Compass } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { supabase } from '@/app/lib/supabase'
 import { Button } from '@/app/components/ui/Button'
-import { useToast } from '@/app/components/design-system'
+import { SignTermsLink, useToast } from '@/app/components/design-system'
+import { useSignTermsIdentityGate } from '@/features/auth/hooks/useSignTermsIdentityGate'
+import { buildSignTermsHref } from '@/features/auth/lib/signTermsNavigation'
 
 type Props = {
   listingId: string
@@ -35,6 +36,7 @@ export default function ListingTourismSettings({
 }: Props) {
   const { t } = useLanguage()
   const toast = useToast()
+  const { requestSignTerms, SignTermsIdentityDialog } = useSignTermsIdentityGate()
   const [enabled, setEnabled] = useState(initialEnabled)
   const [priceKr, setPriceKr] = useState(
     initialNightlyPriceCents != null ? String(Math.round(initialNightlyPriceCents / 100)) : ''
@@ -45,6 +47,15 @@ export default function ListingTourismSettings({
   const [saving, setSaving] = useState(false)
   const [tourismTermsDocId, setTourismTermsDocId] = useState<string | null>(null)
   const [tourismTermsSigned, setTourismTermsSigned] = useState(true)
+
+  const signTermsUrl = useMemo(
+    () =>
+      buildSignTermsHref({
+        doc: tourismTermsDocId,
+        returnTo: `/homeowner/manage?listing=${listingId}&panel=tourism`,
+      }),
+    [listingId, tourismTermsDocId]
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -72,6 +83,10 @@ export default function ListingTourismSettings({
     }
   }, [])
 
+  const promptSignTourismTerms = () => {
+    requestSignTerms(signTermsUrl)
+  }
+
   const save = async () => {
     setSaving(true)
     try {
@@ -83,7 +98,7 @@ export default function ListingTourismSettings({
             p_user_id: uid,
           })
           if (signed === false) {
-            toast(t('tourismTermsRequired'), 'error')
+            promptSignTourismTerms()
             return
           }
         }
@@ -137,19 +152,23 @@ export default function ListingTourismSettings({
       {!tourismTermsSigned && tourismTermsDocId ? (
         <p className="text-sm ds-tourism-terms-note">
           {t('tourismTermsRequired')}{' '}
-          <Link
-            href={`/homeowner/sign-terms?doc=${tourismTermsDocId}&returnTo=${encodeURIComponent(`/homeowner/manage?listing=${listingId}&panel=tourism`)}`}
-            className="nav-link ds-tourism-terms-link"
-          >
+          <SignTermsLink href={signTermsUrl} className="nav-link ds-tourism-terms-link">
             {t('eventOptInSignTermsCta')}
-          </Link>
+          </SignTermsLink>
         </p>
       ) : null}
       <label className="ds-check-row">
         <input
           type="checkbox"
           checked={enabled}
-          onChange={(e) => setEnabled(e.target.checked)}
+          onChange={(e) => {
+            const next = e.target.checked
+            if (next && !tourismTermsSigned) {
+              promptSignTourismTerms()
+              return
+            }
+            setEnabled(next)
+          }}
         />
         <span>{t('tourismEnabled')}</span>
       </label>
@@ -214,6 +233,7 @@ export default function ListingTourismSettings({
           {saving ? t('loadingPleaseWait') : t('saveTourismSettings')}
         </Button>
       </div>
+      <SignTermsIdentityDialog />
     </section>
   )
 }

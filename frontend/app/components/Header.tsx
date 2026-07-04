@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { fetchHeaderBundle, headerBundleQueryKey } from '../lib/queries/headerBundleQuery'
 import Logo from './Logo'
+import SignTermsLink from './design-system/SignTermsLink'
 import {
   User,
   LogOut,
@@ -380,17 +381,16 @@ export default function Header() {
                 </p>
               </div>
 
-              <Link
-                prefetch={false}
+              <SignTermsLink
                 href="/homeowner/sign-terms"
                 className="menu-item"
-                onClick={() => {
+                onNavigate={() => {
                   setIsMenuOpen(false)
                   closeMobileNav()
                 }}
               >
                 <ShieldCheck size={16} /> {hasSignedTerms ? t('signedAgreement') : t('signTerms')}
-              </Link>
+              </SignTermsLink>
 
               <div style={{ padding: 'var(--space-2) var(--space-4)' }}>
                 <p

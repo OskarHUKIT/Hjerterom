@@ -15,6 +15,7 @@ import { devInfo, logError } from '@/app/lib/appLogger'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { useLanguage } from '@/context/LanguageContext'
 import Logo from '../Logo'
+import SignTermsLink from '../design-system/SignTermsLink'
 import ShellChromeControls from '../design-system/ShellChromeControls'
 import { isNavActive, type NavItemDef } from '@/lib/navConfig'
 
@@ -129,15 +130,14 @@ export default function AppShellTopbar({
               >
                 <p className="app-shell-user-dropdown__kicker">{t('userPanel')}</p>
                 {!isKommuneStaffRole(navRole) ? (
-                  <Link
-                    prefetch={false}
+                  <SignTermsLink
                     href="/homeowner/sign-terms"
                     className="app-shell-user-dropdown__item"
-                    onClick={() => setMenuOpen(false)}
+                    onNavigate={() => setMenuOpen(false)}
                   >
                     <ShieldCheck size={16} aria-hidden />
                     {hasSignedTerms ? t('signedAgreement') : t('signTerms')}
-                  </Link>
+                  </SignTermsLink>
                 ) : null}
                 <Link
                   prefetch={false}

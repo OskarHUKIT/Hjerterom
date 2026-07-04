@@ -6,7 +6,6 @@ import { geocodeAddressBestEffort } from '@/app/lib/geocoding'
 import { listingMapCoordsPayload } from '@/app/lib/listingMapCoords'
 import { uploadHouseRulesPdf, removeHouseRulesPdfObject } from '@/app/lib/houseRulesPdf'
 import { listingDetailsErrMessage as errMessage } from '@/features/listings/lib/listingDetailsUtils'
-import { useTermsGate } from '@/features/auth/hooks/useTermsGate'
 import type { TranslationKey } from '@/lib/translations'
 
 export type UseListingDetailsOwnerActionsArgs = {
@@ -45,6 +44,12 @@ export type UseListingDetailsOwnerActionsArgs = {
   confirmDialog: (opts: any) => Promise<boolean>
   toast: (msg: string, type?: 'error' | 'success') => void
   t: (key: TranslationKey) => string
+  requireActiveAgreement: (
+    hasActiveAgreement: boolean,
+    city: string,
+    returnTo: string,
+    options?: { messageKey?: TranslationKey; silent?: boolean }
+  ) => boolean
 }
 
 export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerActionsArgs) {
@@ -55,9 +60,8 @@ export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerAction
     setTenantLinkRegenerating, setTenantReportToken, reportTimeFilter, requestChangeReport,
     setRequestChangeReport, requestChangeComment, setRequestChangeComment, setRequestChangeSending,
     newNote, setNewNote, setIsSaving, setUploading, setCurrentImageIndex, setHouseRulesBusy,
-    setCopyFeedback, loading, confirmDialog, toast, t,
+    setCopyFeedback, loading, confirmDialog, toast, t, requireActiveAgreement,
   } = args
-  const { requireActiveAgreement } = useTermsGate()
   const returnTo = `/listings/${id}`
   const listingCity = (listing?.city || '').trim()
 

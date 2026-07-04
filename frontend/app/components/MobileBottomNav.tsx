@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import type { User as AuthUser } from '@supabase/supabase-js'
 import { Bell, Globe, Menu } from 'lucide-react'
 import { CurtainThemeToggle } from '@/app/components/ui/curtain-theme-toggle'
+import SignTermsLink from '@/app/components/design-system/SignTermsLink'
 import { useLanguage } from '../../context/LanguageContext'
 import { usePlatformMode } from '../../context/PlatformModeContext'
 import {
@@ -322,8 +323,7 @@ export default function MobileBottomNav({
             >
               {t('landlordAgreementsTitle')}
             </Link>
-            <Link
-              prefetch={false}
+            <SignTermsLink
               href="/homeowner/sign-terms"
               className="button"
               style={{
@@ -332,10 +332,10 @@ export default function MobileBottomNav({
                 width: '100%',
                 boxSizing: 'border-box',
               }}
-              onClick={() => setMoreOpen(false)}
+              onNavigate={() => setMoreOpen(false)}
             >
               {t('signTermsNav')}
-            </Link>
+            </SignTermsLink>
             <MobileBottomNavAppearanceControls />
           </div>
         </BottomSheet>

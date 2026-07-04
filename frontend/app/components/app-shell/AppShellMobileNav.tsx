@@ -13,6 +13,7 @@ import {
 } from '@/lib/navConfig'
 import BottomSheet from '../BottomSheet'
 import NavBadge from './NavBadge'
+import SignTermsLink from '../design-system/SignTermsLink'
 
 type AppShellMobileNavProps = {
   tabItems: NavItemDef[]
@@ -192,14 +193,13 @@ export default function AppShellMobileNav({
             >
               {t('landlordAgreementsTitle')}
             </Link>
-            <Link
-              prefetch={false}
+            <SignTermsLink
               href="/homeowner/sign-terms"
               className="button app-shell-more-link"
-              onClick={() => setMoreOpen(false)}
+              onNavigate={() => setMoreOpen(false)}
             >
               {t('signTermsNav')}
-            </Link>
+            </SignTermsLink>
           </div>
         </BottomSheet>
       ) : null}
