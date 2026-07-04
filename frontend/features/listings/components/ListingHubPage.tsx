@@ -341,6 +341,7 @@ export default function ListingHubPage({ listingId }: Props) {
             onDeletePeriod={(periodId, lid) => {
               setPendingDeletePeriod({ id: periodId, listingId: lid })
             }}
+            enableMobileMorphFab
           />
         </section>
       ) : (

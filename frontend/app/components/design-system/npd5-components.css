@@ -1425,3 +1425,153 @@ a.ds-property-card:hover {
   }
 }
 
+/* Native morphing FAB (reapollo.ui/native-morphing-button → Boly tokens) */
+.ds-native-morph-fab__stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.ds-native-morph-fab__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-royal-blue);
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.15s ease;
+}
+
+.ds-native-morph-fab__trigger:focus-visible {
+  outline: 2px solid var(--color-royal-blue);
+  outline-offset: 3px;
+}
+
+.ds-native-morph-fab--open .ds-native-morph-fab__trigger {
+  background: var(--text-main);
+}
+
+.ds-native-morph-fab__backdrop {
+  position: fixed;
+  inset: 0;
+  border: none;
+  background: color-mix(in srgb, var(--text-main) 25%, transparent);
+  cursor: default;
+  z-index: -1;
+}
+
+.ds-native-morph-fab__action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: min(16rem, calc(100vw - 2rem));
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--border-medium);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(0.75rem) scale(0.92);
+  animation: ds-morph-fab-in 0.22s ease forwards;
+  animation-delay: calc(var(--morph-index, 0) * 45ms);
+}
+
+.ds-native-morph-fab__action--open {
+  border-color: color-mix(in srgb, var(--color-teal) 45%, var(--border-medium));
+  color: var(--color-teal);
+}
+
+.ds-native-morph-fab__action--closed {
+  border-color: color-mix(in srgb, var(--lane-sosial-unavailable-bg) 55%, var(--border-medium));
+}
+
+.ds-native-morph-fab__action--back {
+  font-size: 0.8rem;
+}
+
+@keyframes ds-morph-fab-in {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ds-native-morph-fab--simple .ds-native-morph-fab__menu {
+  position: relative;
+}
+
+.ds-native-morph-fab--simple .ds-native-morph-fab__menu > summary {
+  list-style: none;
+}
+
+.ds-native-morph-fab--simple .ds-native-morph-fab__menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ds-native-morph-fab__panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-2));
+  min-width: 12rem;
+  padding: var(--space-2);
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ds-native-morph-fab__item {
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.ds-native-morph-fab__item:hover,
+.ds-native-morph-fab__item:focus-visible {
+  background: color-mix(in srgb, var(--color-royal-blue) 8%, transparent);
+  outline: none;
+}
+
+.ds-native-morph-fab__item--open {
+  color: var(--color-teal);
+}
+
+.ds-native-morph-fab__group-label {
+  margin: var(--space-2) 0 0;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-native-morph-fab__trigger,
+  .ds-native-morph-fab__action {
+    transition: none;
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+

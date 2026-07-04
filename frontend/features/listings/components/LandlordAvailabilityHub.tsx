@@ -7,6 +7,7 @@ import SegmentedButtonGroup from '@/app/components/design-system/SegmentedButton
 import { useToast } from '@/app/components/design-system'
 import SharedAvailabilityCalendar from '@/features/listings/components/SharedAvailabilityCalendar'
 import LanePeriodBadge from '@/features/listings/components/LanePeriodBadge'
+import ListingHubMobileCalendarFab from '@/features/listings/components/hub/ListingHubMobileCalendarFab'
 import { formatDateNo } from '@/app/lib/dateFormat'
 import {
   landlordOpenClosePeriods,
@@ -36,6 +37,8 @@ type Props = {
     status: string
   ) => Promise<void>
   onDeletePeriod: (periodId: string, listingId: string) => void
+  /** Listing Hub route only — fixed mobile morphing FAB (<768px). */
+  enableMobileMorphFab?: boolean
 }
 
 export default function LandlordAvailabilityHub({
@@ -44,6 +47,7 @@ export default function LandlordAvailabilityHub({
   eventOptIns,
   onAddPeriod,
   onDeletePeriod,
+  enableMobileMorphFab = false,
 }: Props) {
   const { t } = useLanguage()
   const toast = useToast()
@@ -74,7 +78,9 @@ export default function LandlordAvailabilityHub({
   }
 
   return (
-    <div className="landlord-availability-hub">
+    <div
+      className={`landlord-availability-hub${enableMobileMorphFab ? ' landlord-availability-hub--mobile-fab' : ''}`}
+    >
       <div
         className={`avail-today-banner avail-today-banner--${todayStatus === 'Ikke markert' ? 'unmarked' : todayStatus === 'Tilgjengelig' ? 'open' : todayStatus === 'Utilgjengelig' ? 'closed' : 'mediated'}`}
         role="status"
@@ -110,6 +116,7 @@ export default function LandlordAvailabilityHub({
         onApply={applySharedPeriod}
         applying={applying}
         showPaintToggle={false}
+        hidePresetsOnMobile={enableMobileMorphFab}
         tourismEnabled={Boolean(listing.tourism_enabled)}
         showLaneIndicators
       />
@@ -158,6 +165,16 @@ export default function LandlordAvailabilityHub({
           </div>
         ) : null}
       </div>
+
+      {enableMobileMorphFab ? (
+        <ListingHubMobileCalendarFab
+          onPaintStatusChange={setPaintStatus}
+          onSelectionChange={(s, e) => {
+            setSelStart(s)
+            setSelEnd(e)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

@@ -323,3 +323,30 @@
     justify-content: center;
   }
 }
+
+/* Mobile hub calendar FAB — hub route only (<768px) */
+.listing-hub-mobile-fab {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .listing-hub-page {
+    padding-bottom: calc(var(--space-8) + 4.75rem);
+  }
+
+  .landlord-availability-hub--mobile-fab .landlord-avail-paint-row {
+    display: none;
+  }
+
+  .shared-avail-presets--hub-mobile-hidden {
+    display: none;
+  }
+
+  .listing-hub-mobile-fab {
+    display: block;
+    position: fixed;
+    right: max(var(--space-4), env(safe-area-inset-right, 0px));
+    bottom: max(var(--space-4), env(safe-area-inset-bottom, 0px));
+    z-index: 120;
+  }
+}

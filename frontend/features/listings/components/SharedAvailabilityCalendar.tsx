@@ -26,6 +26,8 @@ type Props = {
   applying?: boolean
   /** When false, paint mode is controlled by an external SegmentedButtonGroup. */
   showPaintToggle?: boolean
+  /** Hide inline preset chips on mobile (hub FAB provides presets). */
+  hidePresetsOnMobile?: boolean
   /** Shows read-only lane dots on open days (teal/blue/amber). */
   tourismEnabled?: boolean
   showLaneIndicators?: boolean
@@ -76,6 +78,7 @@ export default function SharedAvailabilityCalendar({
   onApply,
   applying,
   showPaintToggle = true,
+  hidePresetsOnMobile = false,
   tourismEnabled = false,
   showLaneIndicators = true,
 }: Props) {
@@ -171,7 +174,9 @@ export default function SharedAvailabilityCalendar({
         </div>
       ) : null}
 
-      <div className="shared-avail-presets">
+      <div
+        className={`shared-avail-presets${hidePresetsOnMobile ? ' shared-avail-presets--hub-mobile-hidden' : ''}`}
+      >
         <button
           type="button"
           className="shared-avail-preset"
