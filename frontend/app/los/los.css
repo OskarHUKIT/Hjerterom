@@ -5,22 +5,17 @@
   --los-bg-panel: var(--bg-card);
   --los-text: var(--text-main);
   --los-text-muted: var(--text-muted);
-  --los-accent: var(--color-dark-teal);
-  --los-accent-soft: color-mix(in srgb, var(--color-dark-teal) 14%, transparent);
-  --los-user-bubble: color-mix(in srgb, var(--color-accent) 18%, var(--bg-card));
+  --los-accent: var(--hrt-primary, var(--color-accent));
+  --los-accent-soft: color-mix(in srgb, var(--los-accent) 12%, transparent);
+  --los-user-bubble: color-mix(in srgb, var(--los-accent) 14%, var(--bg-card));
   --los-user-text: var(--text-main);
-  --los-bot-bubble: color-mix(in srgb, var(--color-dark-teal) 10%, var(--bg-card));
-  --los-bot-border: color-mix(in srgb, var(--color-dark-teal) 28%, transparent);
+  --los-bot-bubble: var(--bg-card);
+  --los-bot-border: var(--border-subtle);
 
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--bg-card) 88%, var(--color-dark-teal) 12%) 0%,
-    var(--los-bg) 40%,
-    var(--los-bg) 100%
-  );
+  background: var(--los-bg);
   color: var(--los-text);
 }
 
@@ -32,8 +27,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  background: color-mix(in srgb, var(--los-bg-panel) 92%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--los-bg-panel);
   position: sticky;
   top: 0;
   z-index: 40;
@@ -51,6 +45,7 @@
   margin: 2px 0 0;
   font-size: 0.85rem;
   color: var(--los-text-muted);
+  max-width: 42ch;
 }
 
 .los-header-actions {
@@ -95,7 +90,7 @@
 .los-bubble {
   max-width: 85%;
   padding: var(--space-3) var(--space-4);
-  border-radius: 16px;
+  border-radius: var(--hrt-radius-md, 12px);
   line-height: 1.55;
   font-size: 0.95rem;
 }
@@ -104,6 +99,7 @@
   align-self: flex-end;
   background: var(--los-user-bubble);
   color: var(--los-user-text);
+  border: 1px solid color-mix(in srgb, var(--los-accent) 22%, transparent);
   border-bottom-right-radius: 4px;
 }
 
@@ -120,16 +116,16 @@
   gap: var(--space-2);
   padding: var(--space-3) 0 calc(var(--space-3) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--los-bg-panel) 70%, transparent);
+  background: var(--los-bg-panel);
 }
 
 .los-input-row input {
   flex: 1;
   min-height: var(--touch-target, 44px);
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--hrt-radius-sm, 8px);
   border: 1px solid var(--border-subtle);
-  background: var(--los-bg-panel);
+  background: var(--los-bg);
   color: var(--los-text);
   font: inherit;
 }
@@ -171,9 +167,9 @@
 
 .los-handoff-banner {
   padding: var(--space-3) var(--space-4);
-  border-radius: 12px;
+  border-radius: var(--hrt-radius-md, 12px);
   background: var(--los-accent-soft);
-  border: 1px solid var(--los-bot-border);
+  border: 1px solid color-mix(in srgb, var(--los-accent) 28%, transparent);
   font-size: 0.9rem;
   margin-bottom: var(--space-3);
   color: var(--los-text);
@@ -184,7 +180,7 @@
   text-align: center;
   font-size: 0.85rem;
   color: var(--los-text-muted);
-  background: color-mix(in srgb, var(--los-bg-panel) 85%, transparent);
+  background: var(--los-bg-panel);
   border-top: 1px solid var(--border-subtle);
 }
 

@@ -535,16 +535,6 @@ body::before {
 }
 
 /* ─── Header ─── */
-.header {
-  background: color-mix(in srgb, var(--bg-card) 88%, transparent) !important;
-  border-bottom: 1px solid var(--border-subtle) !important;
-  backdrop-filter: blur(12px);
-}
-
-[data-theme='light'] .header {
-  background: color-mix(in srgb, #ffffff 92%, transparent) !important;
-}
-
 .header-hamburger,
 .header-mobile-actions button,
 .header-mobile-actions a {
@@ -638,4 +628,118 @@ a:focus-visible {
   min-height: var(--touch-target);
   display: inline-flex;
   align-items: center;
+}
+
+/* ─── Event staff layout (/nav/event/*) ─── */
+.event-staff-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-staff-header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--bg-card);
+}
+
+.event-staff-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 6px 12px;
+  border-radius: var(--hrt-radius-sm);
+  background: var(--hrt-primary-soft);
+  border: 1px solid color-mix(in srgb, var(--hrt-primary) 25%, transparent);
+  color: var(--text-body);
+}
+
+.event-staff-nav {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.event-staff-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--hrt-radius-sm);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.event-staff-nav-link:hover {
+  color: var(--text-main);
+  background: var(--hrt-primary-soft);
+}
+
+.event-staff-nav-link--active {
+  color: var(--text-main);
+  background: var(--hrt-primary-soft);
+  border-color: color-mix(in srgb, var(--hrt-primary) 28%, transparent);
+}
+
+.event-staff-main {
+  flex: 1;
+  padding: var(--space-4);
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ─── Login page isolation from footer heading outline ─── */
+.login-page {
+  max-width: 100%;
+}
+
+.login-page .login-card {
+  max-width: min(440px, 100%);
+}
+
+/* ─── Nav database toolbar ─── */
+.db-header-row {
+  margin-bottom: var(--space-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.db-tabs-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.db-view-btns {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 4px;
+  border-radius: var(--hrt-radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 768px) {
+  .db-header-row {
+    margin-bottom: var(--space-3);
+    gap: var(--space-2);
+  }
 }

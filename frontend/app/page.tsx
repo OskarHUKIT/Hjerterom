@@ -20,8 +20,8 @@ export default function Home() {
     <main className="home-landing container">
       <div className="home-landing-layout">
         <div className="hero-section">
-          <p className="hrt-hero-eyebrow animate-delay-1">{t('heroEyebrow')}</p>
-          <h1 className="animate-delay-1 hero-title">
+          <p className="hrt-hero-eyebrow">{t('heroEyebrow')}</p>
+          <h1 className="hero-title">
             {titleParts.length > 1 ? (
               <>
                 {titleParts[0]}
@@ -32,8 +32,8 @@ export default function Home() {
               heroTitle
             )}
           </h1>
-          <p className="animate-delay-2 hero-lead">{t('heroDesc')}</p>
-          <ul className="hrt-trust-row animate-delay-2" aria-label={t('homeTrustAria')}>
+          <p className="hero-lead">{t('heroDesc')}</p>
+          <ul className="hrt-trust-row" aria-label={t('homeTrustAria')}>
             <li className="hrt-trust-badge">
               <Shield size={16} aria-hidden />
               {t('homeTrustSecure')}
@@ -49,7 +49,7 @@ export default function Home() {
           </ul>
         </div>
 
-        <div className="grid-portal animate-delay-3">
+        <div className="grid-portal">
           <PortalCard
             icon={LogIn}
             title={t('homeLoginCardTitle')}

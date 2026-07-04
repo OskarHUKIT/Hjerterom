@@ -284,18 +284,17 @@ body:has(.site-main--ops) {
 }
 
 .header {
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--bg-card);
   border-bottom: 1px solid var(--border-subtle);
   padding: var(--space-4) 0;
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(16px);
 }
 
 [data-theme='light'] .header {
-  background: rgba(255, 255, 255, 0.9);
-  border-bottom-color: rgba(15, 23, 42, 0.1);
+  background: var(--bg-card);
+  border-bottom-color: var(--border-subtle);
 }
 
 [data-theme='light'] .header-hamburger {
@@ -318,14 +317,12 @@ body:has(.site-main--ops) {
 }
 
 .card {
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
+  background: var(--bg-card);
+  border-radius: var(--hrt-radius-lg, 18px);
   padding: var(--space-5);
-  box-shadow: var(--shadow-md);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-subtle);
   transition:
-    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     border-color 0.25s ease,
     background 0.25s ease;
@@ -1081,6 +1078,13 @@ select optgroup {
   letter-spacing: 0.05em;
   font-size: 0.8rem;
   opacity: 0.8;
+}
+
+.footer-section-title {
+  font-size: 1rem;
+  color: var(--text-main);
+  font-weight: 600;
+  margin: 0 0 var(--space-4);
 }
 
 @media (max-width: 768px) {
@@ -2985,8 +2989,8 @@ body.mobile-bottom-nav-active .ds-toast-region {
   gap: var(--space-3);
   padding: var(--space-4);
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(32, 187, 175, 0.12), rgba(59, 130, 246, 0.08));
-  border: 1px solid rgba(32, 187, 175, 0.28);
+  background: color-mix(in srgb, var(--color-teal) 10%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--color-teal) 28%, transparent);
 }
 
 .landlord-tourism-enable-banner-text {

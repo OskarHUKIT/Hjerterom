@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarDays, Map as MapIcon, MessageSquare } from 'lucide-react'
+import { CalendarDays, Map as MapIcon, MessageSquare, Ticket } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
@@ -31,49 +31,21 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header
-        style={{
-          borderBottom: '1px solid var(--border-subtle)',
-          padding: '12px 16px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: 12,
-          background: 'var(--bg-subtle)',
-        }}
-      >
-        <span
-          style={{
-            fontWeight: 700,
-            fontSize: '0.85rem',
-            padding: '4px 10px',
-            borderRadius: 999,
-            background: 'rgba(168, 85, 247, 0.15)',
-            border: '1px solid rgba(168, 85, 247, 0.35)',
-          }}
-        >
-          🎫 {t('eventStaffBadge')}
+    <div className="event-staff-shell">
+      <header className="event-staff-header">
+        <span className="event-staff-badge">
+          <Ticket size={14} aria-hidden />
+          {t('eventStaffBadge')}
         </span>
-        <nav style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flex: 1 }}>
+        <nav className="event-staff-nav" aria-label={t('eventNavDatabase')}>
           {NAV.map(({ href, icon: Icon, labelKey }) => {
             const active = pathname === href || (href !== '/nav/event' && pathname?.startsWith(href))
             return (
               <Link
                 key={href}
                 href={href}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  textDecoration: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.88rem',
-                  color: active ? 'var(--text-main)' : 'var(--text-muted)',
-                  background: active ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
-                }}
+                className={`event-staff-nav-link${active ? ' event-staff-nav-link--active' : ''}`}
+                aria-current={active ? 'page' : undefined}
               >
                 <Icon size={16} aria-hidden />
                 {t(labelKey)}
@@ -82,9 +54,7 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
           })}
         </nav>
       </header>
-      <main style={{ flex: 1, padding: 'var(--space-4)', width: '100%', margin: '0 auto' }}>
-        {children}
-      </main>
+      <main className="event-staff-main">{children}</main>
     </div>
   )
 }
