@@ -42,7 +42,9 @@ import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 import PageSkeleton from '../../components/design-system/PageSkeleton'
-import { Stepper, FileUploadCard, IdentityVerificationDialog } from '@/app/components/design-system'
+import { Stepper, FileUploadCard, SignTermsLink } from '@/app/components/design-system'
+import { useSignTermsIdentityGate } from '@/features/auth/hooks/useSignTermsIdentityGate'
+import { buildSignTermsHref } from '@/features/auth/lib/signTermsNavigation'
 import { Button } from '@/app/components/ui/Button'
 import SharedAvailabilityCalendar from '@/features/listings/components/SharedAvailabilityCalendar'
 import RegisterLanesStep from '@/features/listings/components/register/RegisterLanesStep'
@@ -76,9 +78,9 @@ export default function HomeownerRegister() {
   const [socialKommuneActive, setSocialKommuneActive] = useState<boolean | null>(null)
   const [registerStep, setRegisterStep] = useState(0)
   const [eventInterest, setEventInterest] = useState(false)
-  const [identityOpen, setIdentityOpen] = useState(false)
-  const pendingListingRowRef = useRef<Record<string, unknown> | null>(null)
-  const pendingSignCityRef = useRef<string>('')
+  const { requestSignTerms, SignTermsIdentityDialog } = useSignTermsIdentityGate()
+  const [tourismTermsDocId, setTourismTermsDocId] = useState<string | null>(null)
+  const [tourismTermsSigned, setTourismTermsSigned] = useState(true)
   const [draftPeriods, setDraftPeriods] = useState<RegisterDraftPeriod[]>([])
   const [availPaintStatus, setAvailPaintStatus] = useState<'Tilgjengelig' | 'Utilgjengelig'>(
     'Tilgjengelig'
@@ -241,15 +243,32 @@ export default function HomeownerRegister() {
     toast(t('regDraftSaved'), 'success')
   }
 
-  const continueToSignTerms = () => {
-    const row = pendingListingRowRef.current
-    if (!row) return
-    savePendingFirstListingDraft(row)
-    const cityQ = pendingSignCityRef.current
-    const returnTo = encodeURIComponent('/homeowner/register')
-    router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}&pendingListing=1`)
-    pendingListingRowRef.current = null
-  }
+  useEffect(() => {
+    if (!platformFlags.tourism) return
+    let cancelled = false
+    void (async () => {
+      const user = await getAuthUserDeduped()
+      if (!user) return
+      const [{ data: signed }, { data: doc }] = await Promise.all([
+        supabase.rpc('landlord_has_tourism_terms_signed', { p_user_id: user.id }),
+        supabase
+          .from('terms_documents')
+          .select('id')
+          .eq('scope', 'turisme')
+          .eq('approved_for_utleier_signing', true)
+          .order('version', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ])
+      if (!cancelled) {
+        setTourismTermsSigned(signed !== false)
+        setTourismTermsDocId(doc?.id ?? null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [platformFlags.tourism])
 
   useEffect(() => {
     const city = formData.city?.trim()
@@ -519,8 +538,11 @@ export default function HomeownerRegister() {
           if (termsErr) throw termsErr
           if (!termsOk) {
             toast(t('termsMissingForRegion'), 'error')
-            router.push(
-              `/homeowner/sign-terms?city=${encodeURIComponent(formData.city?.trim() || '')}&returnTo=${encodeURIComponent('/homeowner/register')}`
+            requestSignTerms(
+              buildSignTermsHref({
+                city: formData.city?.trim() || '',
+                returnTo: '/homeowner/register',
+              })
             )
             setLoading(false)
             return
@@ -589,9 +611,14 @@ export default function HomeownerRegister() {
       const socialActive = await isKommuneSocialActiveForCity(supabase, formData.city?.trim() || '')
 
       if (isFirstListing && !agreementRow && socialActive) {
-        pendingListingRowRef.current = listingRow as unknown as Record<string, unknown>
-        pendingSignCityRef.current = encodeURIComponent(formData.city?.trim() || '')
-        setIdentityOpen(true)
+        savePendingFirstListingDraft(listingRow as unknown as Record<string, unknown>)
+        requestSignTerms(
+          buildSignTermsHref({
+            city: formData.city?.trim() || '',
+            returnTo: '/homeowner/register',
+            pendingListing: true,
+          })
+        )
         setLoading(false)
         return
       }
@@ -704,10 +731,13 @@ export default function HomeownerRegister() {
         .eq('is_terminated', false)
         .maybeSingle()
 
-      const cityQ = encodeURIComponent(formData.city?.trim() || '')
-      const returnTo = encodeURIComponent('/homeowner/manage')
       if (!agreementAfter && socialActive) {
-        router.push(`/homeowner/sign-terms?city=${cityQ}&returnTo=${returnTo}`)
+        requestSignTerms(
+          buildSignTermsHref({
+            city: formData.city?.trim() || '',
+            returnTo: '/homeowner/manage',
+          })
+        )
         return
       }
 
@@ -1343,9 +1373,18 @@ export default function HomeownerRegister() {
                 socialKommuneActive={socialKommuneActive}
                 hasSignedTerms={Boolean(hasSignedTerms)}
                 tourismEnabled={Boolean(formData.tourism_enabled)}
-                onTourismChange={(next) =>
+                onTourismChange={(next) => {
+                  if (next && !tourismTermsSigned) {
+                    requestSignTerms(
+                      buildSignTermsHref({
+                        doc: tourismTermsDocId,
+                        returnTo: '/homeowner/register',
+                      })
+                    )
+                    return
+                  }
                   setFormData((prev) => ({ ...prev, tourism_enabled: next }))
-                }
+                }}
                 showTourism={platformFlags.tourism}
                 eventInterest={eventInterest}
                 onEventInterestChange={setEventInterest}
@@ -1391,12 +1430,15 @@ export default function HomeownerRegister() {
               </h3>
               <p className="text-sm">{t('regAgreementsLead')}</p>
               {!hasSignedTerms && socialKommuneActive !== false ? (
-                <Link
-                  href={`/homeowner/sign-terms?city=${encodeURIComponent(formData.city?.trim() || '')}&returnTo=${encodeURIComponent('/homeowner/register')}`}
+                <SignTermsLink
+                  href={buildSignTermsHref({
+                    city: formData.city?.trim() || '',
+                    returnTo: '/homeowner/register',
+                  })}
                   className="register-agreements-sign-link"
                 >
                   {t('homeownerNavAgreements')} →
-                </Link>
+                </SignTermsLink>
               ) : null}
             </section>
           </div>
@@ -1429,22 +1471,7 @@ export default function HomeownerRegister() {
         </div>
       </form>
 
-      <IdentityVerificationDialog
-        open={identityOpen}
-        onClose={() => {
-          setIdentityOpen(false)
-          pendingListingRowRef.current = null
-        }}
-        onConfirm={() => {
-          setIdentityOpen(false)
-          continueToSignTerms()
-        }}
-        title={t('signTermsIdentityDialogTitle')}
-        body={t('signTermsIdentityDialogBody')}
-        confirmLabel={t('signTermsIdentityDialogConfirm')}
-        cancelLabel={t('signTermsIdentityDialogCancel')}
-        busy={loading}
-      />
+      <SignTermsIdentityDialog />
     </main>
   )
 }

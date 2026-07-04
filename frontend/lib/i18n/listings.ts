@@ -171,6 +171,10 @@ export const listingsTranslations = {
     regLanesEventInterest: "Jeg er interessert i arrangement",
     regSaveDraft: "Lagre utkast",
     regDraftSaved: "Utkast lagret på denne enheten.",
+    identityDialogTitle: "Identitetsbekreftelse med BankID",
+    identityDialogBody:
+      "Du sendes videre til Signicat for å identifisere deg med BankID og signere avtalen. Vi behandler kun opplysninger som er nødvendige for signering (navn, fødselsnummer og tidspunkt). Ha BankID-appen klar — det tar vanligvis under ett minutt.",
+    identityDialogContinue: "Fortsett til signering",
     signTermsIdentityDialogTitle: "BankID-signering",
     signTermsIdentityDialogBody:
       "Du sendes til BankID for å signere avtalen. Ha BankID-appen klar. Signeringen tar vanligvis under ett minutt.",
@@ -717,6 +721,10 @@ export const listingsTranslations = {
     regLanesEventInterest: "Beroštan arrangement",
     regSaveDraft: "Vurke dábáš",
     regDraftSaved: "Dábáš vurkejuvvon dán dihtorii.",
+    identityDialogTitle: "Identitehtaválddehus BankID:in",
+    identityDialogBody:
+      "Don sirdojuvvo Signicat:i identificerejuvvot BankID:in ja signere eavttuid. Mii gieđahallat dušše dieđuid mat leat dárbbašlaččat signeren (namma, riikkaidgovvadanummir ja áigemearka). Váldde BankID-appa gávdnon — dábáleama unnit go minuvtta.",
+    identityDialogContinue: "Joatkit signeren",
     signTermsIdentityDialogTitle: "BankID-signeren",
     signTermsIdentityDialogBody:
       "Don sirdojuvvo BankID:i signeren eavttu. Váldde BankID-appa gávdnon. Signeren lea dábáleama unnit go minuvtta.",
@@ -1249,6 +1257,10 @@ export const listingsTranslations = {
     regLanesEventInterest: "I am interested in events",
     regSaveDraft: "Save draft",
     regDraftSaved: "Draft saved on this device.",
+    identityDialogTitle: "Identity verification with BankID",
+    identityDialogBody:
+      "You will be redirected to Signicat to verify your identity with BankID and sign the agreement. We only process data required for signing (name, national ID number, and timestamp). Have the BankID app ready — it usually takes under a minute.",
+    identityDialogContinue: "Continue to signing",
     signTermsIdentityDialogTitle: "BankID signing",
     signTermsIdentityDialogBody:
       "You will be redirected to BankID to sign the agreement. Have the BankID app ready. Signing usually takes under a minute.",

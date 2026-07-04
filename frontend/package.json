@@ -22,6 +22,7 @@
     "mobile:android": "npm run mobile:build && npm run cap:open:android",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test e2e/smoke.spec.ts",
+    "test:e2e:register": "playwright test e2e/register-stepper.spec.ts",
     "i18n-audit": "node scripts/i18n-audit.mjs",
     "test:e2e:ux-audit": "playwright test e2e/ux-ui-audit.spec.ts"
   },

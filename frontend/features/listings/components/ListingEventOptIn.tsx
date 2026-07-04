@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { useToast } from '@/app/components/design-system'
+import { SignTermsLink, useToast } from '@/app/components/design-system'
 import { Button } from '@/app/components/ui/Button'
+import { useSignTermsIdentityGate } from '@/features/auth/hooks/useSignTermsIdentityGate'
+import { buildSignTermsHref } from '@/features/auth/lib/signTermsNavigation'
 import {
   publishedEventsQueryKey,
   usePublishedEventsQuery,
@@ -27,6 +28,7 @@ export default function ListingEventOptIn({ listingId }: Props) {
   const { t } = useLanguage()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const { requestSignTerms, SignTermsIdentityDialog } = useSignTermsIdentityGate()
   const { data, isLoading } = usePublishedEventsQuery([listingId])
   const [termsDocByEvent, setTermsDocByEvent] = useState<Record<string, string>>({})
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -71,6 +73,13 @@ export default function ListingEventOptIn({ listingId }: Props) {
     }
   }, [events])
 
+  const returnTo = `/homeowner/listings/${listingId}?section=events`
+
+  const signTermsUrlForEvent = (eventId: string) => {
+    const doc = termsDocByEvent[eventId]
+    return buildSignTermsHref({ doc, returnTo })
+  }
+
   const toggle = async (event: PublishedCentralEvent, active: boolean) => {
     setBusyId(event.id)
     try {
@@ -83,7 +92,12 @@ export default function ListingEventOptIn({ listingId }: Props) {
             p_event_id: event.id,
           })
           if (ok === false) {
-            toast(t('eventOptInTermsRequired'), 'error')
+            const doc = termsDocByEvent[event.id]
+            if (doc) {
+              requestSignTerms(signTermsUrlForEvent(event.id))
+            } else {
+              toast(t('eventOptInTermsRequired'), 'error')
+            }
             setBusyId(null)
             return
           }
@@ -128,8 +142,6 @@ export default function ListingEventOptIn({ listingId }: Props) {
 
   if (isLoading) return null
 
-  const returnTo = `/homeowner/listings/${listingId}?section=events`
-
   return (
     <section className="card listing-subpanel">
       <div className="listing-subpanel-head">
@@ -155,12 +167,12 @@ export default function ListingEventOptIn({ listingId }: Props) {
                 </div>
                 <div className="listing-subpanel-actions">
                   {termsDocId ? (
-                    <Link
-                      href={`/homeowner/sign-terms?doc=${termsDocId}&returnTo=${encodeURIComponent(returnTo)}`}
+                    <SignTermsLink
+                      href={signTermsUrlForEvent(event.id)}
                       className="text-sm nav-link listing-text-link"
                     >
                       {t('eventOptInSignTermsCta')}
-                    </Link>
+                    </SignTermsLink>
                   ) : null}
                   <Button
                     type="button"
@@ -176,6 +188,7 @@ export default function ListingEventOptIn({ listingId }: Props) {
           })}
         </ul>
       )}
+      <SignTermsIdentityDialog />
     </section>
   )
 }
