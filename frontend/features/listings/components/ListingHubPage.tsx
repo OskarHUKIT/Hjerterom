@@ -16,7 +16,7 @@ import { usePlatformMode } from '@/context/PlatformModeContext'
 import { useListingAvailability } from '@/features/listings/hooks/useListingAvailability'
 import { useListingEventCalendarData } from '@/features/listings/hooks/useListingEventCalendarData'
 import LandlordAvailabilityHub from '@/features/listings/components/LandlordAvailabilityHub'
-import ListingLaneBentoRow from '@/features/listings/components/hub/ListingLaneBentoRow'
+import ListingLaneBento from '@/features/listings/components/hub/ListingLaneBento'
 import ListingHubSettingsAccordion from '@/features/listings/components/hub/ListingHubSettingsAccordion'
 import ConfirmDeleteDialog from '@/features/listings/components/ConfirmDeleteDialog'
 import { buttonClassName } from '@/app/components/ui/Button'
@@ -38,6 +38,8 @@ export default function ListingHubPage({ listingId }: Props) {
   const [availability, setAvailability] = useState<Record<string, any[]>>({})
   const [eventOptIns, setEventOptIns] = useState<any[]>([])
   const [socialKommuneActive, setSocialKommuneActive] = useState(false)
+  const [hasActiveAgreement, setHasActiveAgreement] = useState(false)
+  const [tourismTermsSigned, setTourismTermsSigned] = useState(true)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [pendingDeleteListing, setPendingDeleteListing] = useState<{
@@ -75,18 +77,22 @@ export default function ListingHubPage({ listingId }: Props) {
         return
       }
 
-      const [{ data: periods }, socialActive] = await Promise.all([
+      const [{ data: periods }, socialActive, agreementRes, tourismSignedRes] = await Promise.all([
         supabase
           .from('listing_availability')
           .select('*')
           .eq('listing_id', listingId)
           .order('start_date', { ascending: true }),
         isKommuneSocialActiveForCity(supabase, row.city?.trim() || ''),
+        supabase.from('user_agreements').select('signed_at').eq('user_id', user.id).maybeSingle(),
+        supabase.rpc('landlord_has_tourism_terms_signed', { p_user_id: user.id }),
       ])
 
       setListing(row)
       setAvailability({ [listingId]: periods ?? [] })
       setSocialKommuneActive(socialActive)
+      setHasActiveAgreement(Boolean(agreementRes.data?.signed_at))
+      setTourismTermsSigned(tourismSignedRes.data !== false)
     } catch (err: unknown) {
       setFetchError(err instanceof Error ? err.message : t('manageDataLoadTimeout'))
     } finally {
@@ -204,6 +210,21 @@ export default function ListingHubPage({ listingId }: Props) {
 
   const todaySt = listingAvailabilityStatusToday(listing.id, availability)
   const isFormidla = todaySt === 'Formidla'
+  const activeEventCount = eventOptIns.filter((e) => e.status === 'active').length
+
+  const openTourismSettings = () => {
+    router.push(`/homeowner/listings/${listingId}?section=tourism`)
+    requestAnimationFrame(() => {
+      document.getElementById('hub-tourism')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  const openEventOptIn = () => {
+    router.push(`/homeowner/listings/${listingId}?section=events`)
+    requestAnimationFrame(() => {
+      document.getElementById('hub-events')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
 
   return (
     <main className="container listing-hub-page">
@@ -273,15 +294,24 @@ export default function ListingHubPage({ listingId }: Props) {
         </div>
       </div>
 
-      <ListingLaneBentoRow
+      <ListingLaneBento
         listingId={listing.id}
         city={listing.city ?? ''}
-        periods={availability[listing.id] ?? []}
-        eventOptIns={eventOptIns}
+        socialKommuneActive={socialKommuneActive}
+        hasActiveAgreement={hasActiveAgreement}
         tourismEnabled={Boolean(listing.tourism_enabled)}
+        tourismTermsSigned={tourismTermsSigned}
+        tourismPriceCents={
+          typeof listing.tourism_nightly_price_cents === 'number'
+            ? listing.tourism_nightly_price_cents
+            : null
+        }
         showTourism={platformFlags.tourism}
         showEvents={platformFlags.centralEvents}
-        socialKommuneActive={socialKommuneActive}
+        activeEventCount={activeEventCount}
+        onListingUpdated={(patch) => setListing((prev: any) => (prev ? { ...prev, ...patch } : prev))}
+        onOpenTourismSettings={openTourismSettings}
+        onOpenEventOptIn={openEventOptIn}
       />
 
       {!isFormidla ? (

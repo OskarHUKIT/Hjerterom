@@ -54,7 +54,7 @@ function AccordionSection({
   }, [open])
 
   return (
-    <div className={`listing-hub-accordion${open ? ' listing-hub-accordion--open' : ''}`}>
+    <div id={`hub-${id}`} className={`listing-hub-accordion${open ? ' listing-hub-accordion--open' : ''}`}>
       <button
         type="button"
         id={`${id}-trigger`}
