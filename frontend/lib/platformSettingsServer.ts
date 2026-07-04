@@ -1,5 +1,5 @@
 import {
-  BOLY_ONLY_SETTINGS,
+  DEFAULT_PLATFORM_SETTINGS,
   parsePlatformSettings,
   type PlatformSettings,
 } from '@/lib/platformSettings'
@@ -18,7 +18,7 @@ export async function fetchPlatformSettingsServer(): Promise<PlatformSettings> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url?.trim() || !key?.trim()) {
-    return BOLY_ONLY_SETTINGS
+    return DEFAULT_PLATFORM_SETTINGS
   }
 
   try {
@@ -31,13 +31,13 @@ export async function fetchPlatformSettingsServer(): Promise<PlatformSettings> {
       },
       body: '{}',
     })
-    if (!res.ok) return BOLY_ONLY_SETTINGS
+    if (!res.ok) return DEFAULT_PLATFORM_SETTINGS
     const data = await res.json()
     const settings = parsePlatformSettings(data)
     cache = { settings, at: Date.now() }
     return settings
   } catch {
-    return BOLY_ONLY_SETTINGS
+    return DEFAULT_PLATFORM_SETTINGS
   }
 }
 

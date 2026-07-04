@@ -10,10 +10,10 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/app/lib/supabase'
 import {
-  BOLY_ONLY_SETTINGS,
+  DEFAULT_PLATFORM_SETTINGS,
   effectivePlatformFlags,
   parsePlatformSettings,
-  type EffectivePlatformFlags,
+  type EffectiveModuleFlags,
   type PlatformSettings,
 } from '@/lib/platformSettings'
 import { invalidatePlatformSettingsCache } from '@/lib/platformSettingsServer'
@@ -28,15 +28,15 @@ async function fetchPlatformSettingsClient(): Promise<PlatformSettings> {
 
 type PlatformModeContextValue = {
   settings: PlatformSettings
-  flags: EffectivePlatformFlags
+  flags: EffectiveModuleFlags
   isLoading: boolean
   isError: boolean
   refetch: () => void
 }
 
 const PlatformModeContext = createContext<PlatformModeContextValue>({
-  settings: BOLY_ONLY_SETTINGS,
-  flags: effectivePlatformFlags(BOLY_ONLY_SETTINGS),
+  settings: DEFAULT_PLATFORM_SETTINGS,
+  flags: effectivePlatformFlags(DEFAULT_PLATFORM_SETTINGS),
   isLoading: true,
   isError: false,
   refetch: () => {},
@@ -52,7 +52,7 @@ export function PlatformModeProvider({ children }: { children: ReactNode }) {
     retry: 1,
   })
 
-  const settings = q.data ?? BOLY_ONLY_SETTINGS
+  const settings = q.data ?? DEFAULT_PLATFORM_SETTINGS
   const flags = useMemo(() => effectivePlatformFlags(settings), [settings])
 
   const refetch = useCallback(() => {

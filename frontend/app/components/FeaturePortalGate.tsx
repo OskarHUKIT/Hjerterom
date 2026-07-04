@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/context/LanguageContext'
 import { usePlatformMode } from '@/context/PlatformModeContext'
+import { isFinnGracePath } from '@/lib/moduleRegistry'
 import { Button } from '@/app/components/ui/Button'
 
 type FeaturePortalGateProps = {
@@ -12,6 +14,7 @@ type FeaturePortalGateProps = {
 
 /** Blocks Finn/Los portals when disabled in platform settings. */
 export default function FeaturePortalGate({ feature, children }: FeaturePortalGateProps) {
+  const pathname = usePathname()
   const { t } = useLanguage()
   const { flags, isLoading } = usePlatformMode()
 
@@ -23,7 +26,8 @@ export default function FeaturePortalGate({ feature, children }: FeaturePortalGa
     )
   }
 
-  const enabled = feature === 'finn' ? flags.finn : flags.los
+  const finnGrace = feature === 'finn' && isFinnGracePath(pathname ?? '')
+  const enabled = feature === 'finn' ? flags.finn || finnGrace : flags.los
   if (enabled) return <>{children}</>
 
   return (

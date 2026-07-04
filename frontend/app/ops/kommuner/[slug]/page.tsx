@@ -229,15 +229,7 @@ export default function OpsKommuneDetailPage() {
                 />
                 {t('opsKommuneDigitalLos')}
               </label>
-              <label className="ops-label" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(k.tourism_enabled)}
-                  disabled={busy}
-                  onChange={(e) => void setFeature({ tourismEnabled: e.target.checked })}
-                />
-                {t('opsKommuneTourism')}
-              </label>
+              <p className="ops-meta">{t('opsKommuneTourismPlatformNote')}</p>
             </div>
           </OpsPanel>
           <OpsKpiGrid

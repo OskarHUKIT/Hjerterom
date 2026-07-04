@@ -84,6 +84,7 @@ export default function MobileBottomNav({
   const { t } = useLanguage()
   const { flags: platformFlags } = usePlatformMode()
   const platformNav = {
+    social: platformFlags.social,
     centralEvents: platformFlags.centralEvents,
     los: platformFlags.los,
   }

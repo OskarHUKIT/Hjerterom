@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Mail, CalendarCheck, Star } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
+import { usePlatformMode } from '@/context/PlatformModeContext'
 import { PageSkeleton, PortalPageShell, useConfirm, useToast, BookingTimeline, bookingTimelineActiveIndex } from '@/app/components/design-system'
 import { QK } from '@/app/lib/queries/queryKeys'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
@@ -50,6 +51,7 @@ async function fetchFinnMineBookings(uid: string, em: string): Promise<FinnMineB
 
 export default function FinnMineClient() {
   const { t } = useLanguage()
+  const { flags } = usePlatformMode()
   const toast = useToast()
   const confirmDialog = useConfirm()
   const queryClient = useQueryClient()
@@ -241,6 +243,22 @@ export default function FinnMineClient() {
         <h1>{t('finnMineTitle')}</h1>
         <p>{t('finnMineLead')}</p>
       </div>
+
+      {!flags.tourism ? (
+        <div
+          className="finn-card"
+          style={{
+            marginBottom: 'var(--space-4)',
+            padding: 'var(--space-4)',
+            borderLeft: '4px solid var(--finn-accent)',
+          }}
+          role="status"
+        >
+          <p style={{ margin: 0, lineHeight: 1.55, color: 'var(--finn-text-secondary)' }}>
+            {t('finnMineTourismPausedBanner')}
+          </p>
+        </div>
+      ) : null}
 
       {!userEmail ? (
         <div className="finn-card" style={{ maxWidth: 480, padding: 'var(--space-6)' }}>

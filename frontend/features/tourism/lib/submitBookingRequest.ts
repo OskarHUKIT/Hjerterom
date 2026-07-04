@@ -28,6 +28,7 @@ const BOOKING_ERROR_KEYS: Record<string, TranslationKey> = {
   invalid_dates: 'finnBookingInvalidDates',
   listing_not_found: 'finnListingNotFound',
   email_required: 'finnBookingRequired',
+  tourism_module_disabled: 'finnBookingErrorTourismDisabled',
 }
 
 export function bookingErrorTranslationKey(code: string | undefined): TranslationKey | null {

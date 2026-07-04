@@ -1,19 +1,21 @@
 /** Platform feature flags from `platform_settings` (singleton). */
 
-export type ProductMode = 'boly' | 'hjerterum'
+import { effectiveModuleFlags, type EffectiveModuleFlags } from '@/lib/moduleRegistry'
 
 export type PlatformSettingsRaw = {
-  product_mode: ProductMode
+  social_module_enabled?: boolean
   finn_portal_enabled: boolean
   los_portal_enabled: boolean
   central_events_enabled: boolean
   tourism_lane_enabled: boolean
   stripe_bookings_enabled: boolean
   updated_at?: string | null
+  /** @deprecated Legacy — no longer returned by get_platform_settings */
+  product_mode?: string
 }
 
 export type PlatformSettings = {
-  productMode: ProductMode
+  socialModuleEnabled: boolean
   finnPortalEnabled: boolean
   losPortalEnabled: boolean
   centralEventsEnabled: boolean
@@ -22,9 +24,9 @@ export type PlatformSettings = {
   updatedAt: string | null
 }
 
-/** Safe default: classic Boly only (matches migration seed). */
-export const BOLY_ONLY_SETTINGS: PlatformSettings = {
-  productMode: 'boly',
+/** Safe default: social module only (matches migration seed). */
+export const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
+  socialModuleEnabled: true,
   finnPortalEnabled: false,
   losPortalEnabled: false,
   centralEventsEnabled: false,
@@ -33,12 +35,14 @@ export const BOLY_ONLY_SETTINGS: PlatformSettings = {
   updatedAt: null,
 }
 
+/** @deprecated Use DEFAULT_PLATFORM_SETTINGS */
+export const BOLY_ONLY_SETTINGS = DEFAULT_PLATFORM_SETTINGS
+
 export function parsePlatformSettings(raw: unknown): PlatformSettings {
-  if (!raw || typeof raw !== 'object') return BOLY_ONLY_SETTINGS
+  if (!raw || typeof raw !== 'object') return DEFAULT_PLATFORM_SETTINGS
   const o = raw as PlatformSettingsRaw
-  const mode = o.product_mode === 'hjerterum' ? 'hjerterum' : 'boly'
   return {
-    productMode: mode,
+    socialModuleEnabled: o.social_module_enabled !== false,
     finnPortalEnabled: Boolean(o.finn_portal_enabled),
     losPortalEnabled: Boolean(o.los_portal_enabled),
     centralEventsEnabled: Boolean(o.central_events_enabled),
@@ -48,18 +52,8 @@ export function parsePlatformSettings(raw: unknown): PlatformSettings {
   }
 }
 
-/** Effective flags — Hjerterum modules require product_mode=hjerterum AND per-flag enable. */
-export function effectivePlatformFlags(s: PlatformSettings) {
-  const hjerterum = s.productMode === 'hjerterum'
-  return {
-    isBolyCore: true,
-    isHjerterumMode: hjerterum,
-    finn: hjerterum && s.finnPortalEnabled,
-    los: hjerterum && s.losPortalEnabled,
-    centralEvents: hjerterum && s.centralEventsEnabled,
-    tourism: hjerterum && s.tourismLaneEnabled,
-    stripeBookings: hjerterum && s.stripeBookingsEnabled,
-  }
+export function effectivePlatformFlags(s: PlatformSettings): EffectiveModuleFlags {
+  return effectiveModuleFlags(s)
 }
 
-export type EffectivePlatformFlags = ReturnType<typeof effectivePlatformFlags>
+export type { EffectiveModuleFlags }

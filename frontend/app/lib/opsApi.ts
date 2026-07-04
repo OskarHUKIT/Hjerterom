@@ -585,7 +585,7 @@ export async function opsGetFunnelStats(): Promise<OpsFunnelStats> {
 }
 
 export type OpsPlatformSettingsPayload = {
-  product_mode: 'boly' | 'hjerterum'
+  social_module_enabled: boolean
   finn_portal_enabled: boolean
   los_portal_enabled: boolean
   central_events_enabled: boolean
@@ -601,7 +601,7 @@ export async function opsGetPlatformSettings(): Promise<OpsPlatformSettingsPaylo
 }
 
 export async function opsSetPlatformSettings(input: {
-  productMode?: 'boly' | 'hjerterum'
+  socialModuleEnabled?: boolean
   finnPortalEnabled?: boolean
   losPortalEnabled?: boolean
   centralEventsEnabled?: boolean
@@ -609,7 +609,7 @@ export async function opsSetPlatformSettings(input: {
   stripeBookingsEnabled?: boolean
 }) {
   const { data, error } = await supabase.rpc('ops_set_platform_settings', {
-    p_product_mode: input.productMode ?? null,
+    p_social_module_enabled: input.socialModuleEnabled ?? null,
     p_finn_portal_enabled: input.finnPortalEnabled ?? null,
     p_los_portal_enabled: input.losPortalEnabled ?? null,
     p_central_events_enabled: input.centralEventsEnabled ?? null,

@@ -6,6 +6,7 @@ import { devWarn } from '@/app/lib/appLogger'
 import { parseKommuneRegions } from '@/app/lib/kommuneRegions'
 import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { useLanguage } from '@/context/LanguageContext'
+import { usePlatformMode } from '@/context/PlatformModeContext'
 import { fetchDisplayNamesBatch } from '@/features/messaging/hooks/useDisplayNamesBatch'
 import type {
   ConversationRow,
@@ -34,6 +35,7 @@ export function useNavMessagesThreads({
   kommuneCanEdit,
 }: UseNavMessagesThreadsArgs) {
   const { t } = useLanguage()
+  const { flags } = usePlatformMode()
   const [loading, setLoading] = useState(true)
   const [conversationsLoading, setConversationsLoading] = useState(false)
   const [conversations, setConversations] = useState<ConversationRow[]>([])
@@ -226,15 +228,20 @@ export function useNavMessagesThreads({
     void (async () => {
       try {
         if (isKommune) {
+          if (!flags.social) {
+            setConversations([])
+            return
+          }
           setConversationsLoading(true)
           await fetchConversationsKommune()
         } else {
           setConversationsLoading(true)
-          await Promise.all([
-            fetchConversationsLandlord(),
-            fetchLandlordEventThreads(),
-            fetchGuestBookingThreads(),
-          ])
+          const tasks: Promise<void>[] = [fetchConversationsLandlord()]
+          if (flags.centralEvents) tasks.push(fetchLandlordEventThreads())
+          if (flags.tourism) tasks.push(fetchGuestBookingThreads())
+          await Promise.all(tasks)
+          if (!flags.centralEvents) setLandlordEventThreads([])
+          if (!flags.tourism) setGuestBookingThreads([])
           setConversations([])
         }
       } catch {
@@ -252,7 +259,7 @@ export function useNavMessagesThreads({
       cancelled = true
       setConversationsLoading(false)
     }
-  }, [profileResolved, currentUser, isKommune, withUserId, withAreaId, kommuneCanEdit, t])
+  }, [profileResolved, currentUser, isKommune, withUserId, withAreaId, kommuneCanEdit, t, flags.social, flags.centralEvents, flags.tourism])
 
   return {
     loading,

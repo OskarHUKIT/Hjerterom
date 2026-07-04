@@ -12,6 +12,7 @@ import {
   Plane,
   RefreshCw,
   Sparkles,
+  Users,
 } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { usePlatformMode } from '@/context/PlatformModeContext'
@@ -23,7 +24,8 @@ import {
   opsSetPlatformSettings,
   type OpsPlatformSettingsPayload,
 } from '@/app/lib/opsApi'
-import { effectivePlatformFlags, type ProductMode } from '@/lib/platformSettings'
+import { effectivePlatformFlags } from '@/lib/platformSettings'
+import { normalizeModuleSettings } from '@/lib/moduleRegistry'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
 import OpsPageHeader from '../components/OpsPageHeader'
 import OpsPanel from '../components/OpsPanel'
@@ -32,7 +34,7 @@ import OpsAlert from '../components/OpsAlert'
 import { OpsPageSkeleton } from '../components/OpsSkeleton'
 
 type LocalSettings = {
-  productMode: ProductMode
+  socialModuleEnabled: boolean
   finnPortalEnabled: boolean
   losPortalEnabled: boolean
   centralEventsEnabled: boolean
@@ -42,7 +44,7 @@ type LocalSettings = {
 
 function fromPayload(p: OpsPlatformSettingsPayload): LocalSettings {
   return {
-    productMode: p.product_mode === 'hjerterum' ? 'hjerterum' : 'boly',
+    socialModuleEnabled: p.social_module_enabled !== false,
     finnPortalEnabled: Boolean(p.finn_portal_enabled),
     losPortalEnabled: Boolean(p.los_portal_enabled),
     centralEventsEnabled: Boolean(p.central_events_enabled),
@@ -59,7 +61,7 @@ export default function OpsPlatformControlPage() {
   const [saving, setSaving] = useState(false)
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [settings, setSettings] = useState<LocalSettings>({
-    productMode: 'boly',
+    socialModuleEnabled: true,
     finnPortalEnabled: false,
     losPortalEnabled: false,
     centralEventsEnabled: false,
@@ -84,10 +86,12 @@ export default function OpsPlatformControlPage() {
     void load()
   }, [load])
 
-  const applyPreset = async (preset: 'boly_only' | 'hjerterum_full' | 'hjerterum_pilot') => {
+  const applyPreset = async (preset: 'social_only' | 'hjerterum_full' | 'hjerterum_pilot') => {
     setSaving(true)
     try {
-      const res = await opsApplyPlatformPreset(preset)
+      const rpcPreset =
+        preset === 'social_only' ? 'boly_only' : preset
+      const res = await opsApplyPlatformPreset(rpcPreset)
       setSettings(fromPayload(res.settings))
       setUpdatedAt(res.settings.updated_at ?? null)
       refetchGlobal()
@@ -99,16 +103,21 @@ export default function OpsPlatformControlPage() {
     }
   }
 
+  const patchSettings = (patch: Partial<LocalSettings>) => {
+    setSettings((s) => normalizeModuleSettings({ ...s, ...patch }))
+  }
+
   const save = async () => {
     setSaving(true)
     try {
+      const normalized = normalizeModuleSettings(settings)
       const res = await opsSetPlatformSettings({
-        productMode: settings.productMode,
-        finnPortalEnabled: settings.finnPortalEnabled,
-        losPortalEnabled: settings.losPortalEnabled,
-        centralEventsEnabled: settings.centralEventsEnabled,
-        tourismLaneEnabled: settings.tourismLaneEnabled,
-        stripeBookingsEnabled: settings.stripeBookingsEnabled,
+        socialModuleEnabled: normalized.socialModuleEnabled,
+        finnPortalEnabled: normalized.finnPortalEnabled,
+        losPortalEnabled: normalized.losPortalEnabled,
+        centralEventsEnabled: normalized.centralEventsEnabled,
+        tourismLaneEnabled: normalized.tourismLaneEnabled,
+        stripeBookingsEnabled: normalized.stripeBookingsEnabled,
       })
       setSettings(fromPayload(res.settings))
       setUpdatedAt(res.settings.updated_at ?? null)
@@ -124,7 +133,7 @@ export default function OpsPlatformControlPage() {
   if (loading) return <OpsPageSkeleton />
 
   const flags = effectivePlatformFlags({
-    productMode: settings.productMode,
+    socialModuleEnabled: settings.socialModuleEnabled,
     finnPortalEnabled: settings.finnPortalEnabled,
     losPortalEnabled: settings.losPortalEnabled,
     centralEventsEnabled: settings.centralEventsEnabled,
@@ -133,9 +142,40 @@ export default function OpsPlatformControlPage() {
     updatedAt,
   })
 
-  const hjerterumMode = settings.productMode === 'hjerterum'
+  const activeModuleCount = [
+    flags.social,
+    flags.tourism,
+    flags.finn,
+    flags.los,
+    flags.centralEvents,
+    flags.stripeBookings,
+  ].filter(Boolean).length
 
   const featureRows = [
+    {
+      key: 'social' as const,
+      icon: Users,
+      label: t('opsPlatformSocialLabel'),
+      desc: t('opsPlatformSocialDesc'),
+      checked: settings.socialModuleEnabled,
+      live: flags.social,
+      disabled: false,
+      onChange: (v: boolean) => patchSettings({ socialModuleEnabled: v }),
+    },
+    {
+      key: 'tourism' as const,
+      icon: Plane,
+      label: t('opsPlatformTourismLabel'),
+      desc: t('opsPlatformTourismDesc'),
+      checked: settings.tourismLaneEnabled,
+      live: flags.tourism,
+      disabled: false,
+      onChange: (v: boolean) =>
+        patchSettings({
+          tourismLaneEnabled: v,
+          ...(v ? { finnPortalEnabled: true } : {}),
+        }),
+    },
     {
       key: 'finn' as const,
       icon: Compass,
@@ -143,7 +183,8 @@ export default function OpsPlatformControlPage() {
       desc: t('opsPlatformFinnDesc'),
       checked: settings.finnPortalEnabled,
       live: flags.finn,
-      onChange: (v: boolean) => setSettings((s) => ({ ...s, finnPortalEnabled: v })),
+      disabled: !settings.tourismLaneEnabled,
+      onChange: (v: boolean) => patchSettings({ finnPortalEnabled: v }),
     },
     {
       key: 'los',
@@ -152,7 +193,8 @@ export default function OpsPlatformControlPage() {
       desc: t('opsPlatformLosDesc'),
       checked: settings.losPortalEnabled,
       live: flags.los,
-      onChange: (v: boolean) => setSettings((s) => ({ ...s, losPortalEnabled: v })),
+      disabled: !settings.socialModuleEnabled,
+      onChange: (v: boolean) => patchSettings({ losPortalEnabled: v }),
     },
     {
       key: 'events',
@@ -161,16 +203,8 @@ export default function OpsPlatformControlPage() {
       desc: t('opsPlatformEventsDesc'),
       checked: settings.centralEventsEnabled,
       live: flags.centralEvents,
-      onChange: (v: boolean) => setSettings((s) => ({ ...s, centralEventsEnabled: v })),
-    },
-    {
-      key: 'tourism',
-      icon: Plane,
-      label: t('opsPlatformTourismLabel'),
-      desc: t('opsPlatformTourismDesc'),
-      checked: settings.tourismLaneEnabled,
-      live: flags.tourism,
-      onChange: (v: boolean) => setSettings((s) => ({ ...s, tourismLaneEnabled: v })),
+      disabled: false,
+      onChange: (v: boolean) => patchSettings({ centralEventsEnabled: v }),
     },
     {
       key: 'stripe',
@@ -179,7 +213,8 @@ export default function OpsPlatformControlPage() {
       desc: t('opsPlatformStripeDesc'),
       checked: settings.stripeBookingsEnabled,
       live: flags.stripeBookings,
-      onChange: (v: boolean) => setSettings((s) => ({ ...s, stripeBookingsEnabled: v })),
+      disabled: !settings.tourismLaneEnabled,
+      onChange: (v: boolean) => patchSettings({ stripeBookingsEnabled: v }),
     },
   ]
 
@@ -187,7 +222,7 @@ export default function OpsPlatformControlPage() {
     <div className="ops-stack ops-stack--lg">
       <OpsPageHeader
         title={t('opsPlatformTitle')}
-        lead={t('opsPlatformLead')}
+        lead={t('opsPlatformLeadModules')}
         actions={
           <Button type="button" variant="secondary" disabled={saving} onClick={() => void load()}>
             <RefreshCw size={16} aria-hidden /> {t('retryLoad')}
@@ -197,11 +232,11 @@ export default function OpsPlatformControlPage() {
 
       <div className="ops-platform-hero card">
         <div className="ops-platform-hero-main">
-          <p className="ops-sidebar-kicker">{t('opsPlatformCurrentMode')}</p>
+          <p className="ops-sidebar-kicker">{t('opsPlatformActiveModules')}</p>
           <h2 className="ops-platform-hero-title">
-            {settings.productMode === 'boly' ? t('opsPlatformModeBoly') : t('opsPlatformModeHjerterum')}
+            {activeModuleCount} {t('opsPlatformModulesActive')}
           </h2>
-          <p className="ops-platform-hero-desc">{t('opsPlatformModeDesc')}</p>
+          <p className="ops-platform-hero-desc">{t('opsPlatformModulesDesc')}</p>
           {updatedAt ? (
             <p className="ops-meta" style={{ marginTop: 'var(--space-2)' }}>
               {t('opsPlatformUpdated')}: {formatDateTimeNo(updatedAt)}
@@ -209,12 +244,14 @@ export default function OpsPlatformControlPage() {
           ) : null}
         </div>
         <div className="ops-platform-hero-badges">
-          <OpsBadge tone={flags.isBolyCore ? 'success' : 'neutral'} dot>
-            {t('opsPlatformBolyCoreLive')}
+          <OpsBadge tone={flags.social ? 'success' : 'neutral'} dot>
+            {flags.social ? t('opsPlatformSocialLive') : t('opsPlatformSocialOff')}
           </OpsBadge>
-          <OpsBadge tone={flags.isHjerterumMode ? 'info' : 'neutral'} dot>
-            {flags.isHjerterumMode ? t('opsPlatformHjerterumActive') : t('opsPlatformHjerterumOff')}
-          </OpsBadge>
+          {flags.tourism ? (
+            <OpsBadge tone="info" dot>
+              {t('opsPlatformTourismLive')}
+            </OpsBadge>
+          ) : null}
         </div>
       </div>
 
@@ -224,11 +261,11 @@ export default function OpsPlatformControlPage() {
             type="button"
             className="ops-platform-preset card"
             disabled={saving}
-            onClick={() => void applyPreset('boly_only')}
+            onClick={() => void applyPreset('social_only')}
           >
             <Home size={28} aria-hidden />
-            <strong>{t('opsPlatformPresetBolyTitle')}</strong>
-            <span>{t('opsPlatformPresetBolyDesc')}</span>
+            <strong>{t('opsPlatformPresetSocialTitle')}</strong>
+            <span>{t('opsPlatformPresetSocialDesc')}</span>
           </button>
           <button
             type="button"
@@ -253,69 +290,36 @@ export default function OpsPlatformControlPage() {
         </div>
       </OpsPanel>
 
-      <OpsPanel title={t('opsPlatformProductModeTitle')}>
-        <div className="ops-segmented" role="group" aria-label={t('opsPlatformProductModeTitle')}>
-          <button
-            type="button"
-            className={`ops-segment${settings.productMode === 'boly' ? ' ops-segment--active' : ''}`}
-            disabled={saving}
-            onClick={() =>
-              setSettings((s) => ({
-                ...s,
-                productMode: 'boly',
-                finnPortalEnabled: false,
-                losPortalEnabled: false,
-                centralEventsEnabled: false,
-                tourismLaneEnabled: false,
-                stripeBookingsEnabled: false,
-              }))
-            }
-          >
-            {t('opsPlatformModeBoly')}
-          </button>
-          <button
-            type="button"
-            className={`ops-segment${settings.productMode === 'hjerterum' ? ' ops-segment--active' : ''}`}
-            disabled={saving}
-            onClick={() => setSettings((s) => ({ ...s, productMode: 'hjerterum' }))}
-          >
-            {t('opsPlatformModeHjerterum')}
-          </button>
-        </div>
-        {!hjerterumMode ? (
-          <div style={{ marginTop: 'var(--space-4)' }}>
-            <OpsAlert tone="info">{t('opsPlatformBolyOnlyHint')}</OpsAlert>
-          </div>
+      <OpsPanel title={t('opsPlatformModulesTitle')} description={t('opsPlatformModulesDesc')}>
+        {!settings.tourismLaneEnabled ? (
+          <OpsAlert tone="info">{t('opsPlatformTourismOffBookingsHint')}</OpsAlert>
         ) : null}
-      </OpsPanel>
-
-      {hjerterumMode ? (
-        <OpsPanel title={t('opsPlatformModulesTitle')} description={t('opsPlatformModulesDesc')}>
-          <div className="ops-platform-modules">
-            {featureRows.map((row) => {
-              const Icon = row.icon
-              return (
-                <label key={row.key} className="ops-platform-module card">
-                  <div className="ops-platform-module-head">
-                    <Icon size={22} aria-hidden />
-                    <div>
-                      <span className="ops-list-card-title">{row.label}</span>
-                      <p className="ops-meta">{row.desc}</p>
-                    </div>
-                    <OpsBadge tone={row.live ? 'success' : 'neutral'}>{row.live ? t('opsPlatformLive') : t('opsPlatformOff')}</OpsBadge>
+        <div className="ops-platform-modules">
+          {featureRows.map((row) => {
+            const Icon = row.icon
+            return (
+              <label key={row.key} className="ops-platform-module card">
+                <div className="ops-platform-module-head">
+                  <Icon size={22} aria-hidden />
+                  <div>
+                    <span className="ops-list-card-title">{row.label}</span>
+                    <p className="ops-meta">{row.desc}</p>
                   </div>
-                  <input
-                    type="checkbox"
-                    checked={row.checked}
-                    disabled={saving}
-                    onChange={(e) => row.onChange(e.target.checked)}
-                  />
-                </label>
-              )
-            })}
-          </div>
-        </OpsPanel>
-      ) : null}
+                  <OpsBadge tone={row.live ? 'success' : 'neutral'}>
+                    {row.live ? t('opsPlatformLive') : t('opsPlatformOff')}
+                  </OpsBadge>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={row.checked}
+                  disabled={saving || row.disabled}
+                  onChange={(e) => row.onChange(e.target.checked)}
+                />
+              </label>
+            )
+          })}
+        </div>
+      </OpsPanel>
 
       <div className="ops-actions-row">
         <Button type="button" variant="accent" disabled={saving} onClick={() => void save()}>

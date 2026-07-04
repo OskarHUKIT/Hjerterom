@@ -126,14 +126,24 @@ export function navItemsFor(
   surface: NavSurface,
   opts?: {
     isAdmin?: boolean
-    /** Hide Hjerterum nav when modules are off (from platform_settings). */
-    platform?: { centralEvents?: boolean; los?: boolean }
+    /** Hide nav when modules are off (from platform_settings). */
+    platform?: { social?: boolean; centralEvents?: boolean; los?: boolean }
   }
 ): NavItemDef[] {
   return APP_NAV_ITEMS.filter((item) => {
     if (!item.audiences.includes(audience)) return false
     if (!item.surfaces.includes(surface)) return false
     if (item.adminOnly && !opts?.isAdmin) return false
+    if (opts?.platform?.social === false) {
+      const socialOnly: NavItemId[] = [
+        'database',
+        'users',
+        'expired',
+        'termsDocuments',
+        'losInbox',
+      ]
+      if (socialOnly.includes(item.id)) return false
+    }
     if (item.id === 'eventInquiries' && opts?.platform?.centralEvents === false) return false
     if (item.id === 'losInbox' && opts?.platform?.los === false) return false
     return true
@@ -150,13 +160,23 @@ export function navItemsForSidebar(
   audience: NavAudience,
   opts?: {
     isAdmin?: boolean
-    platform?: { centralEvents?: boolean; los?: boolean }
+    platform?: { social?: boolean; centralEvents?: boolean; los?: boolean }
   }
 ): NavItemDef[] {
   return APP_NAV_ITEMS.filter((item) => {
     if (!item.audiences.includes(audience)) return false
     if (!item.surfaces.includes('sidebarDesktop')) return false
     if (item.adminOnly && !opts?.isAdmin) return false
+    if (opts?.platform?.social === false) {
+      const socialOnly: NavItemId[] = [
+        'database',
+        'users',
+        'expired',
+        'termsDocuments',
+        'losInbox',
+      ]
+      if (socialOnly.includes(item.id)) return false
+    }
     if (item.id === 'eventInquiries' && opts?.platform?.centralEvents === false) return false
     if (item.id === 'losInbox' && opts?.platform?.los === false) return false
     return true

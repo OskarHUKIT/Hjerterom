@@ -9,6 +9,7 @@ import type { Locale } from '@/lib/translations'
 import Logo from '@/app/components/Logo'
 import FeaturePortalGate from '@/app/components/FeaturePortalGate'
 import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
+import { usePlatformMode } from '@/context/PlatformModeContext'
 
 const FINN_LOCALE_KEY = 'hjerterum-finn-locale'
 
@@ -27,6 +28,7 @@ function isFinnActive(pathname: string | null, href: string): boolean {
 export default function FinnShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t, locale, setLocale } = useLanguage()
+  const { flags } = usePlatformMode()
 
   /** Tourist portal defaults to English when no Finn-specific preference is stored. */
   useEffect(() => {
@@ -66,7 +68,10 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
         </Link>
         <ShellChromeControls compact className="finn-chrome-controls" />
         <nav className="finn-nav" aria-label={t('finnMainNav')}>
-          {FINN_NAV.map(({ href, labelKey, icon: Icon }) => {
+          {FINN_NAV.filter(({ href }) => {
+            if (href === '/finn/mine') return true
+            return flags.finn
+          }).map(({ href, labelKey, icon: Icon }) => {
             const active = isFinnActive(pathname, href)
             return (
               <Link

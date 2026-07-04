@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { fetchPlatformSettingsServer } from '@/lib/platformSettingsServer'
 import { effectivePlatformFlags } from '@/lib/platformSettings'
+import { isFinnGracePath } from '@/lib/moduleRegistry'
 
 /** Ruter som krever innlogget bruker (JWT i cookie, synk med createBrowserClient). */
 const PROTECTED_PREFIXES = ['/homeowner', '/nav', '/documents', '/settings', '/ops'] as const
@@ -63,18 +64,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/ops', request.url))
   }
 
-  /** Block Hjerterum portals when disabled (Boly-only mode). */
-  if (pathname.startsWith('/finn') && !platform.finn) {
+  /** Block Finn portal when disabled — grace paths keep active bookings accessible. */
+  if (pathname.startsWith('/finn') && !platform.finn && !isFinnGracePath(pathname)) {
     return NextResponse.redirect(new URL('/', request.url))
   }
   if (pathname.startsWith('/los') && !platform.los) {
     return NextResponse.redirect(new URL('/', request.url))
   }
   if (pathname.startsWith('/nav/event-inquiries') && !platform.centralEvents) {
-    return NextResponse.redirect(new URL('/nav/database', request.url))
+    return NextResponse.redirect(new URL(platform.social ? '/nav/database' : '/', request.url))
   }
   if (pathname.startsWith('/nav/los-inbox') && !platform.los) {
-    return NextResponse.redirect(new URL('/nav/database', request.url))
+    return NextResponse.redirect(new URL(platform.social ? '/nav/database' : '/', request.url))
   }
   if (isEventStaffPath(pathname) && !platform.centralEvents) {
     return NextResponse.redirect(new URL('/', request.url))
@@ -197,8 +198,22 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    if (isHomeownerPath(pathname) && !isHomeowner) {
+    if (
+      isNavPath(pathname) &&
+      isKommune &&
+      !isEventStaffPath(pathname) &&
+      !platform.kommunePortal
+    ) {
       return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    if (isHomeownerPath(pathname)) {
+      if (!isHomeowner) {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
+      if (!platform.homeownerPortal) {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
     }
   }
 

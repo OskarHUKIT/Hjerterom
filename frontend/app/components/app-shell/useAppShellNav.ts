@@ -101,6 +101,7 @@ export function useAppShellNav() {
       : null
 
   const platformNav = {
+    social: platformFlags.social,
     centralEvents: platformFlags.centralEvents,
     los: platformFlags.los,
   }
@@ -111,7 +112,7 @@ export function useAppShellNav() {
       isAdmin: isKommuneAdminRole(navRole),
       platform: platformNav,
     })
-  }, [audience, navRole, platformFlags.centralEvents, platformFlags.los])
+  }, [audience, navRole, platformFlags.social, platformFlags.centralEvents, platformFlags.los])
 
   const mobileTabItems = useMemo(() => {
     if (!audience) return []
@@ -119,7 +120,7 @@ export function useAppShellNav() {
       isAdmin: isKommuneAdminRole(navRole),
       platform: platformNav,
     })
-  }, [audience, navRole, platformFlags.centralEvents, platformFlags.los])
+  }, [audience, navRole, platformFlags.social, platformFlags.centralEvents, platformFlags.los])
 
   const mobileMoreItems = useMemo(() => {
     if (!audience || audience !== 'kommune') return []
@@ -127,12 +128,16 @@ export function useAppShellNav() {
       isAdmin: isKommuneAdminRole(navRole),
       platform: platformNav,
     })
-  }, [audience, navRole, platformFlags.centralEvents, platformFlags.los])
+  }, [audience, navRole, platformFlags.social, platformFlags.centralEvents, platformFlags.los])
 
   const logoHref = !user
     ? '/'
     : isKommuneStaffRole(navRole)
-      ? '/nav/database'
+      ? platformFlags.social
+        ? '/nav/database'
+        : platformFlags.centralEvents
+          ? '/nav/event-inquiries'
+          : '/nav/messages'
       : hasSignedTerms
         ? '/homeowner/manage'
         : landlordBootstrapHref

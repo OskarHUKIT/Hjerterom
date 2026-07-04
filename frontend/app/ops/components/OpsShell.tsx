@@ -137,7 +137,7 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="ops-topbar-org-slot">
               <Link href="/ops/platform" className="ops-topbar-mode-link">
-                {flags.isHjerterumMode ? t('opsPlatformModeHjerterum') : t('opsPlatformModeBoly')}
+                {flags.isHjerterumMode ? t('opsPlatformModulesActive') : t('opsPlatformSocialLive')}
               </Link>
             </div>
           </header>

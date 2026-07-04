@@ -43,6 +43,7 @@ export default function Header() {
   const { t, locale, setLocale } = useLanguage()
   const { flags: platformFlags } = usePlatformMode()
   const platformNav = {
+    social: platformFlags.social,
     centralEvents: platformFlags.centralEvents,
     los: platformFlags.los,
   }

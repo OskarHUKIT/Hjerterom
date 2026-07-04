@@ -77,6 +77,8 @@ export const finnTranslations = {
     finnBookingComingSoon: "Direkte booking og betaling kommer snart.",
     finnMineTitle: "Mine forespørsler",
     finnMineLead: "Se status på forespørsler og bookinger.",
+    finnMineTourismPausedBanner:
+      "Turisme-modulen er av. Du kan fortsatt se og administrere aktive bookinger, men nye bookinger er ikke tilgjengelig.",
     finnMineComingSoon: "Magic link-innlogging for gjester kommer i neste sprint.",
     finnMineLoginCta: "Logg inn",
     finnGuestAccountRequired: "Opprett konto eller logg inn for å booke og følge forespørsler.",
@@ -104,6 +106,7 @@ export const finnTranslations = {
     finnBookingErrorDatesConflict: "Valgte datoer overlapper med en annen booking.",
     finnBookingErrorEventNotBookable: "Dette arrangementet tar ikke imot direkte booking.",
     finnBookingErrorEventNotFound: "Arrangementet ble ikke funnet.",
+    finnBookingErrorTourismDisabled: "Nye bookinger er midlertidig stengt. Dine eksisterende bookinger finner du her.",
     finnEventBookingContext: "Booking via arrangement: {name}",
     finnEventBookingNotAllowed:
       "Denne boligen kan ikke bookes direkte via dette arrangementet. Bruk henvendelsesskjemaet på arrangementssiden.",
@@ -275,6 +278,7 @@ export const finnTranslations = {
     finnBookingComingSoon: "Booking bohtte maŋŋil.",
     finnMineTitle: "Mu jearaldagat",
     finnMineLead: "Oaidnit dásiid.",
+    finnMineTourismPausedBanner: "Turisma modul off — bohtosat leat dás, ođđat booking ii.",
     finnMineComingSoon: "Login bohtte maŋŋil.",
     finnMineLoginCta: "Logge sisa",
     finnGuestAccountRequired: "Ráhkat konto dahje logge sisa bookinga várás.",
@@ -301,6 +305,7 @@ export const finnTranslations = {
     finnBookingErrorDatesConflict: "Dát overlapper annan booking.",
     finnBookingErrorEventNotBookable: "Arrangement ii sáhte booket.",
     finnBookingErrorEventNotFound: "Arrangement ii gávdnon.",
+    finnBookingErrorTourismDisabled: "Ođđa booking ii leat sáhttán. Bohtosat leat dás.",
     finnEventBookingContext: "Booking arrangementa bokte: {name}",
     finnEventBookingNotAllowed: "Dát ii sáhte booket dán arrangementa bokte.",
     finnBookingSent: "Sáddejuvvon!",
@@ -471,6 +476,8 @@ export const finnTranslations = {
     finnBookingComingSoon: "Direct booking and payment coming soon.",
     finnMineTitle: "My requests",
     finnMineLead: "Track requests and bookings.",
+    finnMineTourismPausedBanner:
+      "The tourism module is off. You can still view and manage active bookings, but new bookings are unavailable.",
     finnMineComingSoon: "Magic link guest login coming in the next sprint.",
     finnMineLoginCta: "Log in",
     finnGuestAccountRequired: "Create an account or sign in to book and track requests.",
@@ -498,6 +505,7 @@ export const finnTranslations = {
     finnBookingErrorDatesConflict: "The selected dates overlap with another booking.",
     finnBookingErrorEventNotBookable: "This event does not accept direct booking.",
     finnBookingErrorEventNotFound: "Event not found.",
+    finnBookingErrorTourismDisabled: "New bookings are temporarily closed. Your existing bookings are here.",
     finnEventBookingContext: "Booking via event: {name}",
     finnEventBookingNotAllowed:
       "This listing cannot be booked directly for this event. Use the inquiry form on the event page.",
