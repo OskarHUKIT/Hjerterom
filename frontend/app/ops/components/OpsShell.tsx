@@ -8,6 +8,7 @@ import {
   FileText,
   Shield,
   BarChart3,
+  Megaphone,
   Menu,
   Building2,
   HeartPulse,
@@ -26,7 +27,7 @@ import { OpsPageSkeleton } from './OpsSkeleton'
 type NavItem = {
   href: string
   icon: typeof LayoutDashboard
-  labelKey: 'opsNavDashboard' | 'opsNavPlatform' | 'opsNavEvents' | 'opsNavKommuner' | 'opsNavServiceAreas' | 'opsNavAccounts' | 'opsNavTerms' | 'opsNavHealth' | 'opsNavSecurity' | 'opsNavStats'
+  labelKey: 'opsNavDashboard' | 'opsNavPlatform' | 'opsNavBroadcasts' | 'opsNavEvents' | 'opsNavKommuner' | 'opsNavServiceAreas' | 'opsNavAccounts' | 'opsNavTerms' | 'opsNavHealth' | 'opsNavSecurity' | 'opsNavStats'
   exact?: boolean
   requiresCentralEvents?: boolean
 }
@@ -34,6 +35,7 @@ type NavItem = {
 const ALL_NAV_ITEMS: NavItem[] = [
   { href: '/ops', icon: LayoutDashboard, labelKey: 'opsNavDashboard', exact: true },
   { href: '/ops/platform', icon: SlidersHorizontal, labelKey: 'opsNavPlatform' },
+  { href: '/ops/broadcasts', icon: Megaphone, labelKey: 'opsNavBroadcasts' },
   { href: '/ops/events', icon: CalendarDays, labelKey: 'opsNavEvents', requiresCentralEvents: true },
   { href: '/ops/kommuner', icon: Building2, labelKey: 'opsNavKommuner' },
   { href: '/ops/service-areas', icon: Building2, labelKey: 'opsNavServiceAreas' },

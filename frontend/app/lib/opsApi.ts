@@ -620,6 +620,123 @@ export async function opsSetPlatformSettings(input: {
   return data as { ok: boolean; settings: OpsPlatformSettingsPayload }
 }
 
+// ─── Broadcasts ───
+
+export type BroadcastSegment = {
+  roles?: string[]
+  kommune_ids?: string[]
+  event_id?: string
+  service_area_id?: string
+  listing_kommune_slugs?: string[]
+  user_ids?: string[]
+  require_active_kommune?: boolean
+  exclude_user_ids?: string[]
+}
+
+export type BroadcastChannels = {
+  in_app: boolean
+  push: boolean
+  email: boolean
+}
+
+export type BroadcastPreview = {
+  total: number
+  push_eligible: number
+  email_eligible: number
+  by_role: Record<string, number>
+  by_locale: Record<string, number>
+}
+
+export type BroadcastListItem = {
+  id: string
+  status: string
+  created_at: string
+  sent_at: string | null
+  created_by: string
+  recipient_count: number
+  delivery_stats: Record<string, unknown>
+  title_no: string
+  segment: BroadcastSegment
+  message_preview: string
+}
+
+export type BroadcastDetail = {
+  id: string
+  status: string
+  created_at: string
+  sent_at: string | null
+  created_by: string
+  segment: BroadcastSegment
+  title_no: string
+  title_se: string
+  title_en: string
+  message_no: string
+  message_se: string
+  message_en: string
+  link_href: string | null
+  channels: BroadcastChannels
+  recipient_count: number
+  delivery_stats: Record<string, unknown>
+}
+
+export async function opsPreviewBroadcast(segment: BroadcastSegment): Promise<BroadcastPreview> {
+  const { data, error } = await supabase.rpc('ops_preview_broadcast', { p_segment: segment })
+  if (error) throw error
+  return data as BroadcastPreview
+}
+
+export async function opsUpsertBroadcastDraft(input: {
+  id?: string | null
+  segment: BroadcastSegment
+  titleNo: string
+  titleSe?: string
+  titleEn?: string
+  messageNo: string
+  messageSe?: string
+  messageEn?: string
+  linkHref?: string | null
+  channels?: BroadcastChannels
+}) {
+  const { data, error } = await supabase.rpc('ops_upsert_broadcast_draft', {
+    p_id: input.id ?? null,
+    p_segment: input.segment,
+    p_title_no: input.titleNo,
+    p_title_se: input.titleSe ?? '',
+    p_title_en: input.titleEn ?? '',
+    p_message_no: input.messageNo,
+    p_message_se: input.messageSe ?? '',
+    p_message_en: input.messageEn ?? '',
+    p_link_href: input.linkHref ?? null,
+    p_channels: input.channels ?? { in_app: true, push: true, email: false },
+  })
+  if (error) throw error
+  return data as { ok: boolean; id: string }
+}
+
+export async function opsSendBroadcast(broadcastId: string) {
+  const { data, error } = await supabase.rpc('ops_send_broadcast', {
+    p_broadcast_id: broadcastId,
+  })
+  if (error) throw error
+  return data as { ok: boolean; broadcast_id: string; recipient_count: number; delivery_stats: Record<string, unknown> }
+}
+
+export async function opsListBroadcasts(limit = 50, offset = 0) {
+  const { data, error } = await supabase.rpc('ops_list_broadcasts', {
+    p_limit: limit,
+    p_offset: offset,
+  })
+  if (error) throw error
+  const payload = data as { items: BroadcastListItem[]; total: number }
+  return payload
+}
+
+export async function opsGetBroadcast(id: string): Promise<BroadcastDetail> {
+  const { data, error } = await supabase.rpc('ops_get_broadcast', { p_id: id })
+  if (error) throw error
+  return data as BroadcastDetail
+}
+
 export async function opsApplyPlatformPreset(
   preset: 'boly_only' | 'hjerterum_full' | 'hjerterum_pilot'
 ) {

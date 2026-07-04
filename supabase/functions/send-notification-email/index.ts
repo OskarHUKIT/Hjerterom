@@ -18,6 +18,7 @@ type NotificationRecord = {
   status?: string
   listing_id?: string
   related_user_id?: string
+  suppress_email?: boolean
 }
 
 function escapeHtml(s: string): string {
@@ -442,6 +443,17 @@ serve(async (req) => {
       )
       return new Response(
         JSON.stringify({ ok: true, skipped: "email_notifications_enabled is false" }),
+        { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
+      )
+    }
+
+    if (record.suppress_email === true) {
+      console.log(
+        "send-notification-email skip:",
+        JSON.stringify({ ownerId, reason: "suppress_email on notification row" })
+      )
+      return new Response(
+        JSON.stringify({ ok: true, skipped: "suppress_email" }),
         { headers: { ...buildCorsHeaders(req), "Content-Type": "application/json" } }
       )
     }
