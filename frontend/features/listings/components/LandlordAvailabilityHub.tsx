@@ -96,8 +96,8 @@ export default function LandlordAvailabilityHub({
           onChange={setPaintStatus}
           ariaLabel={t('sharedCalendarQuestion')}
           options={[
-            { value: 'Tilgjengelig', label: t('available') },
-            { value: 'Utilgjengelig', label: t('unavailable') },
+            { value: 'Tilgjengelig', label: t('sharedCalendarOpen') },
+            { value: 'Utilgjengelig', label: t('sharedCalendarClosed') },
           ]}
         />
       </div>

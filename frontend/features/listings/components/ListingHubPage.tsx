@@ -309,7 +309,6 @@ export default function ListingHubPage({ listingId }: Props) {
       </div>
 
       <ListingLaneBento
-        listingId={listing.id}
         city={listing.city ?? ''}
         socialKommuneActive={socialKommuneActive}
         hasActiveAgreement={hasActiveAgreement}
@@ -323,7 +322,6 @@ export default function ListingHubPage({ listingId }: Props) {
         showTourism={platformFlags.tourism}
         showEvents={platformFlags.centralEvents}
         activeEventCount={activeEventCount}
-        onListingUpdated={(patch) => setListing((prev: any) => (prev ? { ...prev, ...patch } : prev))}
         onOpenTourismSettings={openTourismSettings}
         onOpenEventOptIn={openEventOptIn}
       />
