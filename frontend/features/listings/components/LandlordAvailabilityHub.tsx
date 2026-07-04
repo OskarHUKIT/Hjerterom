@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
 import ListingStatusBadge from '@/app/components/design-system/ListingStatusBadge'
+import SegmentedButtonGroup from '@/app/components/design-system/SegmentedButtonGroup'
 import { useToast } from '@/app/components/design-system'
 import SharedAvailabilityCalendar from '@/features/listings/components/SharedAvailabilityCalendar'
 import LanePeriodBadge from '@/features/listings/components/LanePeriodBadge'
@@ -82,7 +83,18 @@ export default function LandlordAvailabilityHub({
         <ListingStatusBadge availability={todayStatus} />
       </div>
 
-      <p className="avail-mode-desc">{t('sharedCalendarLead')}</p>
+      <div className="landlord-avail-paint-row">
+        <span className="landlord-avail-paint-label">{t('sharedCalendarQuestion')}</span>
+        <SegmentedButtonGroup
+          value={paintStatus}
+          onChange={setPaintStatus}
+          ariaLabel={t('sharedCalendarQuestion')}
+          options={[
+            { value: 'Tilgjengelig', label: t('available') },
+            { value: 'Utilgjengelig', label: t('unavailable') },
+          ]}
+        />
+      </div>
 
       <SharedAvailabilityCalendar
         periods={periods}
@@ -97,6 +109,7 @@ export default function LandlordAvailabilityHub({
         }}
         onApply={applySharedPeriod}
         applying={applying}
+        showPaintToggle={false}
       />
 
       <div className="landlord-period-list">

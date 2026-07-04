@@ -24,6 +24,8 @@ type Props = {
   onSelectionChange: (start: string | null, end: string | null) => void
   onApply: (start: string, end: string, status: 'Tilgjengelig' | 'Utilgjengelig') => void | Promise<void>
   applying?: boolean
+  /** When false, paint mode is controlled by an external SegmentedButtonGroup. */
+  showPaintToggle?: boolean
 }
 
 const WEEKDAYS = ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø']
@@ -56,6 +58,7 @@ export default function SharedAvailabilityCalendar({
   onSelectionChange,
   onApply,
   applying,
+  showPaintToggle = true,
 }: Props) {
   const { t, locale } = useLanguage()
   const [month, setMonth] = useState(() => {
@@ -130,6 +133,7 @@ export default function SharedAvailabilityCalendar({
         <p className="shared-avail-lead">{t('sharedCalendarLead')}</p>
       </div>
 
+      {showPaintToggle ? (
       <div className="shared-avail-status-row">
         <span className="shared-avail-label">{t('sharedCalendarQuestion')}</span>
         <div className="shared-avail-toggle" role="group" aria-label={t('status')}>
@@ -146,6 +150,7 @@ export default function SharedAvailabilityCalendar({
           ))}
         </div>
       </div>
+      ) : null}
 
       <div className="shared-avail-presets">
         <button
@@ -274,7 +279,7 @@ export default function SharedAvailabilityCalendar({
         <div className="shared-avail-apply-bar">
           <span className="shared-avail-selection-text">
             {selectionLabel} ·{' '}
-            {paintStatus === 'Tilgjengelig' ? t('sharedCalendarOpen') : t('sharedCalendarClosed')}
+            {paintStatus === 'Tilgjengelig' ? t('available') : t('unavailable')}
           </span>
           <div className="shared-avail-apply-actions">
             <Button

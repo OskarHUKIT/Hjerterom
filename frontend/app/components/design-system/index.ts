@@ -15,6 +15,8 @@ export { default as StatusBadge, statusBadgeVariantFor } from './StatusBadge'
 export type { StatusBadgeVariant } from './StatusBadge'
 export { default as SelectorChips } from './SelectorChips'
 export type { SelectorChipOption } from './SelectorChips'
+export { default as SegmentedButtonGroup } from './SegmentedButtonGroup'
+export type { SegmentedButtonOption } from './SegmentedButtonGroup'
 export {
   default as ListingStatusBadge,
   listingAvailabilityBadgeVariant,
