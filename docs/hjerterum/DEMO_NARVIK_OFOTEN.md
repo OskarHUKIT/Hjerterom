@@ -95,6 +95,11 @@ Full liste i SQL-filen (`jsonb`-blokken for utleiere).
 | Event-koordinator | `kari.event@demo.ofoten.no` |
 | Ops | `ops@demo.ofoten.no` (eller `ops@test.hjerterum.no`) |
 
+**Event SB etter innlogging:** `/nav/event/database` (eller `/nav/event/inquiries`).  
+Passord: `Ofoten2026!` — samme som øvrige `@demo.ofoten.no`-kontoer.
+
+Hvis innlogging feiler på phi/staging: kjør [`supabase/scripts/fix_event_demo_kari.sql`](../scripts/fix_event_demo_kari.sql) i SQL Editor (NPD-0B), eller full [`seed_narvik_ofoten_demo.sql`](../scripts/seed_narvik_ofoten_demo.sql).
+
 ---
 
 ## Rydding

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { DM_Sans, Fraunces } from 'next/font/google'
 import './globals.css'
 import SiteChrome from './components/SiteChrome'
+import SkipLink from './components/design-system/SkipLink'
 import PushSubscription from './components/PushSubscription'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import { Providers } from './providers'
@@ -78,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="site-body">
         <Providers>
+          <SkipLink />
           <PushSubscription />
           <PWAInstallPrompt />
           <SiteChrome>{children}</SiteChrome>

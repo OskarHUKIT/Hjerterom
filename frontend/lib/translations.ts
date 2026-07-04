@@ -58,6 +58,7 @@ export const translations = {
     expired: 'Utløpte',
     navMore: 'Mer',
     mainNavigation: 'Hovednavigasjon',
+    skipToMain: 'Hopp til hovedinnhold',
     onboardingSkipIntro: 'Hopp over intro',
     dbMobileTools: 'Verktøy',
     dbMapModeHint:
@@ -1605,6 +1606,7 @@ export const translations = {
     expired: 'Lohppan',
     navMore: 'Eanet',
     mainNavigation: 'Váldo navigeren',
+    skipToMain: 'Njuosat váldosisahtti',
     onboardingSkipIntro: 'Njuike introdušuvnna',
     dbMobileTools: 'Reaiddu',
     dbMapModeHint:
@@ -3124,6 +3126,7 @@ export const translations = {
     expired: 'Expired',
     navMore: 'More',
     mainNavigation: 'Main navigation',
+    skipToMain: 'Skip to main content',
     onboardingSkipIntro: 'Skip intro',
     dbMobileTools: 'Tools',
     dbMapModeHint:

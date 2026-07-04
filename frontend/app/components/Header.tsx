@@ -35,6 +35,7 @@ import {
 } from '../lib/kommuneRoles'
 import { devInfo, logError } from '@/app/lib/appLogger'
 import MobileBottomNav from './MobileBottomNav'
+import ShellChromeControls from './design-system/ShellChromeControls'
 import { navItemsFor, isNavActive } from '../../lib/navConfig'
 
 export default function Header() {
@@ -402,7 +403,7 @@ export default function Header() {
                 >
                   {t('settings')}
                 </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                <div className="header-user-settings-chrome" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                   <Link
                     prefetch={false}
                     href="/settings/privacy"
@@ -501,46 +502,7 @@ export default function Header() {
             marginLeft: 'var(--space-2)',
           }}
         >
-          <div
-            className="header-guest-lang-row"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-              height: 'var(--touch-target-sm)',
-              flexShrink: 0,
-            }}
-            aria-label={t('language')}
-          >
-            <Globe
-              size={18}
-              style={{ opacity: 0.85, color: 'var(--text-muted)', flexShrink: 0 }}
-              aria-hidden
-            />
-            <select
-              value={locale}
-              onChange={(e) => setLocale(e.target.value as 'no' | 'se' | 'en')}
-              className="header-guest-lang-select"
-              style={{
-                margin: 0,
-                height: 'var(--touch-target-sm)',
-                minHeight: 'var(--touch-target-sm)',
-                boxSizing: 'border-box',
-                padding: '0 10px',
-                borderRadius: 8,
-                background: 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)',
-                color: 'var(--text-main)',
-                fontSize: '0.85rem',
-                lineHeight: 1.2,
-                maxWidth: '150px',
-              }}
-            >
-              <option value="no">{t('norwegian')}</option>
-              <option value="se">{t('sami')}</option>
-              <option value="en">{t('english')}</option>
-            </select>
-          </div>
+          <ShellChromeControls compact className="header-guest-chrome" />
           {!hideGuestLoginButtonInHeader && (
             <Link
               href="/login"
@@ -594,6 +556,9 @@ export default function Header() {
           className="header-nav-desktop"
           style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}
         >
+          {!isMobileLayout && !loading && user ? (
+            <ShellChromeControls compact className="header-desktop-chrome" />
+          ) : null}
           {!isMobileLayout ? navContent : null}
         </nav>
 
@@ -603,46 +568,7 @@ export default function Header() {
           style={{ display: 'none', alignItems: 'center', gap: 'var(--space-2)' }}
         >
           {!loading && !user && (
-            <div
-              className="header-guest-lang"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                height: 'var(--touch-target)',
-                flexShrink: 0,
-              }}
-              aria-label={t('language')}
-            >
-              <Globe
-                size={20}
-                style={{ opacity: 0.85, color: 'var(--text-muted)', flexShrink: 0 }}
-                aria-hidden
-              />
-              <select
-                value={locale}
-                onChange={(e) => setLocale(e.target.value as 'no' | 'se' | 'en')}
-                className="header-guest-lang-select"
-                style={{
-                  margin: 0,
-                  height: 'var(--touch-target)',
-                  minHeight: 'var(--touch-target)',
-                  boxSizing: 'border-box',
-                  padding: '0 8px',
-                  borderRadius: 8,
-                  background: 'var(--bg-app)',
-                  border: '1px solid var(--border-subtle)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.8rem',
-                  lineHeight: 1.2,
-                  maxWidth: 'min(130px, 28vw)',
-                }}
-              >
-                <option value="no">{t('norwegian')}</option>
-                <option value="se">{t('sami')}</option>
-                <option value="en">{t('english')}</option>
-              </select>
-            </div>
+            <ShellChromeControls compact className="header-mobile-guest-chrome" />
           )}
           {user && !hideHeaderMobileShortcutIcons && (
             <>
@@ -787,6 +713,9 @@ export default function Header() {
         }
         @media (min-width: 769px) {
           .header-nav-mobile {
+            display: none !important;
+          }
+          .header-user-settings-chrome {
             display: none !important;
           }
         }

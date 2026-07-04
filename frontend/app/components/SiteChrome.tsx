@@ -25,6 +25,8 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
   if (ops || finn || los) {
     return (
       <div
+        id="main-content"
+        tabIndex={-1}
         className={`site-main${ops ? ' site-main--ops' : finn ? ' site-main--finn' : ' site-main--los'}`}
       >
         {children}
@@ -35,7 +37,9 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
   return (
     <>
       <Header />
-      <div className="site-main">{children}</div>
+      <div id="main-content" tabIndex={-1} className="site-main">
+        {children}
+      </div>
       <Footer />
     </>
   )
