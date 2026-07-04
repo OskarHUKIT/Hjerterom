@@ -16,7 +16,7 @@
   --touch-target: 44px;
   --touch-target-sm: 44px;
 
-  /* Core Colors — Option B: blå-forward; teal = suksess / formidling */
+  /* Core Colors: blå-forward; teal = suksess / formidling */
   --color-dark-navy: #0f172a;
   --color-royal-blue: #3b82f6;
   --color-muted-blue: #60a5fa;
@@ -49,7 +49,7 @@
   --space-8: 64px;
   --space-10: 80px;
 
-  /* Layout: høyde ca. sticky header (logo + padding) — brukes til min-hovedflate */
+  /* Layout: høyde ca. sticky header (logo + padding), brukes til min-hovedflate */
   --site-header-estimate: 5.5rem;
 
   /* Elevation */
@@ -191,39 +191,13 @@ body {
   position: relative;
 }
 
+/* Scenic background: CSS-only gradient mesh in styles/hjerterum-v2.css (no remote images) */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image:
-    linear-gradient(to bottom, rgba(2, 6, 23, 0.7) 0%, rgba(2, 6, 23, 0.95) 100%),
-    url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
-  background-size: cover;
-  background-position: center 70%;
-  background-repeat: no-repeat;
-}
-
-@media (max-width: 768px) {
-  body::before {
-    background-position: 42% 78%;
-  }
-}
-
-[data-theme='light'] body::before {
-  background-image:
-    linear-gradient(to bottom, rgba(248, 250, 252, 0.92) 0%, rgba(241, 245, 249, 0.95) 100%),
-    url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
-}
-
-@media (max-width: 768px) {
-  [data-theme='light'] body::before {
-    background-position: 42% 78%;
-    background-image:
-      linear-gradient(to bottom, rgba(248, 250, 252, 0.82) 0%, rgba(241, 245, 249, 0.94) 100%),
-      url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
-  }
 }
 
 a {
@@ -310,18 +284,17 @@ body:has(.site-main--ops) {
 }
 
 .header {
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--bg-card);
   border-bottom: 1px solid var(--border-subtle);
   padding: var(--space-4) 0;
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(16px);
 }
 
 [data-theme='light'] .header {
-  background: rgba(255, 255, 255, 0.9);
-  border-bottom-color: rgba(15, 23, 42, 0.1);
+  background: var(--bg-card);
+  border-bottom-color: var(--border-subtle);
 }
 
 [data-theme='light'] .header-hamburger {
@@ -344,14 +317,12 @@ body:has(.site-main--ops) {
 }
 
 .card {
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
+  background: var(--bg-card);
+  border-radius: var(--hrt-radius-lg, 18px);
   padding: var(--space-5);
-  box-shadow: var(--shadow-md);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-subtle);
   transition:
-    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     border-color 0.25s ease,
     background 0.25s ease;
@@ -372,10 +343,8 @@ body:has(.site-main--ops) {
 }
 
 .card:not(.no-hover):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.35);
-  border-color: rgba(59, 130, 246, 0.25);
-  background: rgba(15, 23, 42, 0.5);
+  border-color: color-mix(in srgb, var(--color-royal-blue) 28%, var(--border-subtle));
+  box-shadow: var(--shadow-md);
 }
 
 [data-theme='light'] .card {
@@ -384,9 +353,8 @@ body:has(.site-main--ops) {
 }
 
 [data-theme='light'] .card:not(.no-hover):hover {
-  background: rgba(255, 255, 255, 1);
-  border-color: rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.1);
+  border-color: color-mix(in srgb, var(--color-accent) 25%, var(--border-subtle));
+  box-shadow: var(--shadow-md);
 }
 
 /* Innstillings-/filterpaneler: bruk temaets bakgrunn (ingen mørk override) */
@@ -653,8 +621,7 @@ body:has(.site-main--ops) {
 }
 
 .button:hover {
-  background-color: #2563eb;
-  transform: translateY(-1px);
+  background-color: var(--hrt-primary-hover, #5578f0);
   box-shadow: var(--shadow-md);
 }
 
@@ -666,7 +633,7 @@ body:has(.site-main--ops) {
 }
 
 .button:active {
-  transform: translateY(0);
+  opacity: 0.92;
 }
 
 /* Sekundær blå CTA (Option B — ikke formidling) */
@@ -941,16 +908,15 @@ p {
 
 /* Footer Styles */
 .footer {
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--bg-card);
   border-top: 1px solid var(--border-subtle);
-  backdrop-filter: blur(16px);
   width: 100%;
   flex-shrink: 0;
 }
 
 [data-theme='light'] .footer {
-  background: rgba(255, 255, 255, 0.95);
-  border-top-color: rgba(15, 23, 42, 0.1);
+  background: var(--bg-card);
+  border-top-color: var(--border-subtle);
 }
 
 [data-theme='light'] .footer h3 {
@@ -1111,6 +1077,13 @@ select optgroup {
   letter-spacing: 0.05em;
   font-size: 0.8rem;
   opacity: 0.8;
+}
+
+.footer-section-title {
+  font-size: 1rem;
+  color: var(--text-main);
+  font-weight: 600;
+  margin: 0 0 var(--space-4);
 }
 
 @media (max-width: 768px) {
@@ -2507,6 +2480,37 @@ body {
   font-size: 1.05rem;
 }
 
+.ds-tourism-lead {
+  color: var(--text-muted);
+  margin: 0 0 var(--space-4);
+}
+
+.ds-tourism-terms-note {
+  margin: 0 0 var(--space-4);
+  line-height: 1.5;
+}
+
+.ds-field-block {
+  margin-top: var(--space-4);
+}
+
+.ds-check-row--spaced {
+  margin-top: var(--space-3);
+}
+
+.ds-tourism-hint {
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+.ds-form-footer {
+  margin-top: var(--space-4);
+}
+
+.ds-tourism-terms-link {
+  font-weight: 600;
+}
+
 body.mobile-bottom-nav-active .ds-toast-region {
   bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
@@ -2726,6 +2730,8 @@ body.mobile-bottom-nav-active .ds-toast-region {
   padding: 4px 2px;
   color: var(--text-main);
   transition: transform 0.12s var(--ease-out-soft), box-shadow 0.12s;
+  background: var(--lane-cell-bg, transparent);
+  box-shadow: var(--lane-cell-shadow, none);
 }
 
 .lane-calendar-cell--pad {
@@ -2889,6 +2895,7 @@ body.mobile-bottom-nav-active .ds-toast-region {
   height: 20px;
   border-radius: 6px;
   flex-shrink: 0;
+  background: var(--swatch-bg, var(--border-subtle));
 }
 
 .lane-calendar-apply-actions {
@@ -3015,8 +3022,8 @@ body.mobile-bottom-nav-active .ds-toast-region {
   gap: var(--space-3);
   padding: var(--space-4);
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(32, 187, 175, 0.12), rgba(59, 130, 246, 0.08));
-  border: 1px solid rgba(32, 187, 175, 0.28);
+  background: color-mix(in srgb, var(--color-teal) 10%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--color-teal) 28%, transparent);
 }
 
 .landlord-tourism-enable-banner-text {
@@ -3191,7 +3198,6 @@ body.mobile-bottom-nav-active .ds-toast-region {
   border-color: var(--color-royal-blue);
   background: color-mix(in srgb, var(--color-royal-blue) 12%, var(--bg-surface));
   color: var(--text-main);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
 }
 
 .avail-today-banner {
@@ -3376,6 +3382,7 @@ body.mobile-bottom-nav-active .ds-toast-region {
   font-weight: 600;
   cursor: pointer;
   color: var(--text-main);
+  background: var(--shared-cell-bg, transparent);
 }
 
 .shared-avail-cell--pad {

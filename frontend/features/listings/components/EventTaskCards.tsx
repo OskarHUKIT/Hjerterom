@@ -6,6 +6,7 @@ import { Sparkles } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { Button } from '@/app/components/ui/Button'
 import { usePublishedEventsQuery } from '@/features/events/hooks/usePublishedEventsQuery'
+import '@/features/listings/landlord-manage.css'
 
 type Props = {
   listingIds: string[]
@@ -34,33 +35,29 @@ export default function EventTaskCards({ listingIds }: Props) {
     : '/homeowner/manage'
 
   return (
-    <div style={{ display: 'grid', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
+    <div className="hm-event-tasks">
       {pending.map((event) => (
-        <div
-          key={event.id}
-          className="card"
-          style={{
-            padding: 'var(--space-5)',
-            borderLeft: '4px solid var(--color-royal-blue)',
-            background: 'rgba(59, 130, 246, 0.06)',
-          }}
-        >
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <Sparkles size={22} style={{ color: 'var(--color-royal-blue)', flexShrink: 0, marginTop: 2 }} aria-hidden />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>
+        <div key={event.id} className="card hrt-callout hrt-callout--info hm-event-task-card">
+          <div className="hm-event-task-row">
+            <Sparkles size={22} className="hm-event-task-icon" aria-hidden />
+            <div className="hm-event-task-body">
+              <p className="hm-event-task-title">
                 {t('eventTaskCardTitle').replace('{name}', event.name)}
               </p>
-              <p style={{ margin: '6px 0 12px', fontSize: '0.9rem', color: 'var(--text-body)', lineHeight: 1.5 }}>
+              <p className="hm-event-task-desc">
                 {event.start_date} – {event.end_date}. {t('eventTaskCardBody')}
               </p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Link href={manageHref} style={{ textDecoration: 'none' }}>
+              <div className="hm-event-task-actions">
+                <Link href={manageHref} className="hm-event-task-link">
                   <Button type="button" variant="accent">
                     {t('eventTaskCardCta')}
                   </Button>
                 </Link>
-                <Button type="button" variant="ghost" onClick={() => setDismissed((d) => ({ ...d, [event.id]: true }))}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setDismissed((d) => ({ ...d, [event.id]: true }))}
+                >
                   {t('eventTaskCardDismiss')}
                 </Button>
               </div>

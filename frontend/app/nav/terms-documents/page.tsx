@@ -619,11 +619,8 @@ export default function TermsDocumentsPage() {
             return (
               <li
                 key={r.id}
-                className="card"
-                style={{
-                  padding: 'var(--space-4)',
-                  borderLeft: `4px solid ${isApproved ? '#22c55e' : '#f59e0b'}`,
-                }}
+                className={`card hrt-callout ${isApproved ? 'hrt-callout--success' : 'hrt-callout--warning'}`}
+                style={{ padding: 'var(--space-4)' }}
               >
                 <div
                   style={{

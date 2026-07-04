@@ -35,24 +35,26 @@ export default function PortalCard({
   const ctaClass = buttonClassName(variant === 'primary' ? 'primary' : 'accent')
 
   return (
-    <article className="card hrt-portal-card">
-      <div className={`hrt-portal-icon ${ICON_TONE[variant]}`} aria-hidden>
-        <Icon size={26} />
-      </div>
-      <div className="hrt-portal-body">
-        <h2 className="hrt-portal-title">{title}</h2>
-        {description ? <p className="hrt-portal-desc">{description}</p> : null}
-        <div className="hrt-portal-cta">
-          {href ? (
-            <Link href={href} className={ctaClass} aria-label={ariaLabel}>
-              {ctaLabel} <ArrowRight size={18} aria-hidden />
-            </Link>
-          ) : (
-            <Button type="button" variant={variant === 'primary' ? 'primary' : 'accent'} onClick={onClick}>
-              {ctaLabel} <ArrowRight size={18} aria-hidden />
-            </Button>
-          )}
+    <article className="hrt-portal-card no-hover">
+      <div className="hrt-portal-card__row">
+        <div className={`hrt-portal-icon ${ICON_TONE[variant]}`} aria-hidden>
+          <Icon size={24} />
         </div>
+        <div className="hrt-portal-body">
+          <h2 className="hrt-portal-title">{title}</h2>
+          {description ? <p className="hrt-portal-desc">{description}</p> : null}
+        </div>
+      </div>
+      <div className="hrt-portal-cta">
+        {href ? (
+          <Link href={href} className={ctaClass} aria-label={ariaLabel}>
+            {ctaLabel} <ArrowRight size={18} aria-hidden />
+          </Link>
+        ) : (
+          <Button type="button" variant={variant === 'primary' ? 'primary' : 'accent'} onClick={onClick}>
+            {ctaLabel} <ArrowRight size={18} aria-hidden />
+          </Button>
+        )}
       </div>
     </article>
   )

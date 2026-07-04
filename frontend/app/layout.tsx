@@ -26,7 +26,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
-  themeColor: '#5b7cfa',
+  themeColor: '#4a5fd4',
   viewportFit: 'cover',
   userScalable: true,
   // Prevent unwanted zoom on input focus (iOS)

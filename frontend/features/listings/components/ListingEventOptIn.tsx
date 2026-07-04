@@ -12,6 +12,7 @@ import {
   usePublishedEventsQuery,
   type PublishedCentralEvent,
 } from '@/features/events/hooks/usePublishedEventsQuery'
+import '@/features/listings/landlord-manage.css'
 
 type OptInRow = {
   event_id: string
@@ -130,43 +131,33 @@ export default function ListingEventOptIn({ listingId }: Props) {
   const returnTo = `/homeowner/manage?listing=${listingId}&panel=events`
 
   return (
-    <section className="card" style={{ marginTop: 'var(--space-4)', padding: 'var(--space-4)' }}>
-      <h4 style={{ margin: '0 0 var(--space-3)' }}>{t('eventOptInTitle')}</h4>
+    <section className="card listing-subpanel">
+      <div className="listing-subpanel-head">
+        <h4>{t('eventOptInTitle')}</h4>
+      </div>
       {!events?.length ? (
-        <p className="text-sm" style={{ color: 'var(--text-muted)', margin: 0 }}>
+        <p className="text-sm listing-subpanel-lead listing-subpanel-lead--empty">
           {t('eventOptInEmpty')}
         </p>
       ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+        <ul className="listing-subpanel-list listing-subpanel-list--flat">
           {events.map((event) => {
             const active = optIns[event.id]?.status === 'active'
             const termsDocId = termsDocByEvent[event.id]
             return (
-              <li
-                key={event.id}
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 12,
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 0',
-                  borderBottom: '1px solid var(--border-subtle)',
-                }}
-              >
+              <li key={event.id} className="listing-subpanel-list-item">
                 <div>
-                  <p style={{ margin: 0, fontWeight: 600 }}>{event.name}</p>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <p className="listing-subpanel-row-title">{event.name}</p>
+                  <p className="listing-subpanel-row-meta">
                     {event.start_date} – {event.end_date}
                     {event.arrangement_tag ? ` · ${event.arrangement_tag}` : ''}
                   </p>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <div className="listing-subpanel-actions">
                   {termsDocId ? (
                     <Link
                       href={`/homeowner/sign-terms?doc=${termsDocId}&returnTo=${encodeURIComponent(returnTo)}`}
-                      className="text-sm nav-link"
-                      style={{ fontWeight: 600 }}
+                      className="text-sm nav-link listing-text-link"
                     >
                       {t('eventOptInSignTermsCta')}
                     </Link>

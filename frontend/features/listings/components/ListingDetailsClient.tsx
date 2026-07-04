@@ -91,12 +91,8 @@ function DeferredChunkPlaceholder({ minHeight }: { minHeight: number }) {
     <div
       role="status"
       aria-busy="true"
-      style={{
-        minHeight,
-        borderRadius: 20,
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-subtle)',
-      }}
+      className="listing-chunk-placeholder"
+      data-min-height={String(minHeight)}
     />
   )
 }
@@ -127,6 +123,7 @@ import ListingDetailsAvailabilitySection from '@/features/listings/components/Li
 import ListingDetailsHandoverSection from '@/features/listings/components/ListingDetailsHandoverSection'
 import ListingDetailsHandoverModals from '@/features/listings/components/ListingDetailsHandoverModals'
 import type { ListingAvailabilityRow } from '@/app/lib/listingUiTypes'
+import '@/features/listings/listing-details-shared.css'
 
 export default function ListingDetailsClient() {
   const { id: idParam } = useParams()
@@ -291,29 +288,29 @@ export default function ListingDetailsClient() {
     if (!listing) {
       if (isNavView && currentUser) {
         return { error: (
-          <div style={{ textAlign: 'center', padding: 'var(--space-10)', maxWidth: '480px', margin: '0 auto' }}>
-            <h2 style={{ color: 'var(--text-main)', marginBottom: 'var(--space-3)' }}>{t('noAccessThisListing')}</h2>
-            <p style={{ color: 'var(--text-body)', marginBottom: 'var(--space-6)' }}>{t('listingNavEmptyListingBody')}</p>
-            <Link href={notFoundHref} className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <div className="listing-state-panel listing-state-panel--centered">
+            <h2 className="listing-state-title listing-state-title--spaced">{t('noAccessThisListing')}</h2>
+            <p className="listing-state-body listing-state-body--spaced">{t('listingNavEmptyListingBody')}</p>
+            <Link href={notFoundHref} className="button listing-state-back-link">
               <ArrowLeft size={18} /> {notFoundLabel}
             </Link>
           </div>
         ) }
       }
       return { error: (
-        <div style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-          <h2 style={{ color: 'var(--text-main)' }}>{t('listingNotFoundTitle')}</h2>
-          <p style={{ color: 'var(--text-body)', marginTop: 'var(--space-3)', maxWidth: '420px', marginInline: 'auto' }}>{t('listingNotFoundBody')}</p>
-          <Link href={notFoundHref} className="button" style={{ marginTop: 'var(--space-4)' }}>{notFoundLabel}</Link>
+        <div className="listing-state-panel listing-state-panel--narrow">
+          <h2 className="listing-state-title">{t('listingNotFoundTitle')}</h2>
+          <p className="listing-state-body">{t('listingNotFoundBody')}</p>
+          <Link href={notFoundHref} className="button listing-state-cta">{notFoundLabel}</Link>
         </div>
       ) }
     }
     if (regionAccessDenied) {
       return { error: (
-        <div style={{ textAlign: 'center', padding: 'var(--space-10)', maxWidth: '480px', margin: '0 auto' }}>
-          <h2 style={{ color: 'var(--text-main)', marginBottom: 'var(--space-3)' }}>{t('noAccessThisListing')}</h2>
-          <p style={{ color: 'var(--text-body)', marginBottom: 'var(--space-6)' }}>{t('listingInRegionDesc').replace('{city}', listing?.city ?? '')}</p>
-          <Link href="/nav/database" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+        <div className="listing-state-panel listing-state-panel--medium">
+          <h2 className="listing-state-title listing-state-title--spaced">{t('noAccessThisListing')}</h2>
+          <p className="listing-state-body listing-state-body--spaced">{t('listingInRegionDesc').replace('{city}', listing?.city ?? '')}</p>
+          <Link href="/nav/database" className="button listing-state-back-link">
             <ArrowLeft size={18} /> {t('backToHousingBank')}
           </Link>
         </div>
@@ -331,34 +328,14 @@ export default function ListingDetailsClient() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="confirm-remove-period-title"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 'var(--space-4)',
-          }}
+          className="listing-dialog-backdrop"
           onClick={() => setPendingDeletePeriod(null)}
         >
-          <div
-            className="card"
-            style={{
-              maxWidth: 400,
-              padding: 'var(--space-6)',
-              boxShadow: 'var(--shadow-lg, 0 10px 40px rgba(0,0,0,0.2))',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p
-              id="confirm-remove-period-title"
-              style={{ margin: '0 0 var(--space-4)', fontSize: '1rem' }}
-            >
+          <div className="card listing-dialog" onClick={(e) => e.stopPropagation()}>
+            <p id="confirm-remove-period-title" className="listing-dialog-title">
               {t('confirmRemovePeriod')}
             </p>
-            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end' }}>
+            <div className="listing-dialog-actions">
               <Button
                 type="button"
                 variant="secondary"
@@ -378,17 +355,7 @@ export default function ListingDetailsClient() {
         </div>
       )}
 
-      <div
-        className="listing-details-header"
-        style={{
-          marginBottom: 'var(--space-6)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 'var(--space-4)',
-        }}
-      >
+      <div className="listing-details-header">
         <Link
           href={
             isNavView
@@ -398,11 +365,6 @@ export default function ListingDetailsClient() {
               : getAppHubHref(viewerRole)
           }
           className="nav-link listing-details-back-link"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
         >
           <ArrowLeft size={18} />{' '}
           {isNavView
@@ -414,34 +376,13 @@ export default function ListingDetailsClient() {
       </div>
 
       {isNavView && ownerAgreementTerminated && (
-        <div
-          className="card"
-          style={{
-            marginBottom: 'var(--space-6)',
-            padding: 'var(--space-4)',
-            border: '1px solid rgba(245, 158, 11, 0.45)',
-            background: 'rgba(245, 158, 11, 0.08)',
-          }}
-        >
-          <p
-            style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-body)', lineHeight: 1.55 }}
-          >
-            {t('expiredOwnerNoMediationNav')}
-          </p>
+        <div className="card hrt-callout hrt-callout--warning listing-expired-banner listing-expired-banner--spaced">
+          <p>{t('expiredOwnerNoMediationNav')}</p>
         </div>
       )}
 
-      <div
-        className="listing-details-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isNavView ? '1.5fr 1fr' : '1fr',
-          gap: 'var(--space-8)',
-          alignItems: 'start',
-        }}
-      >
-        {/* Left Column – rekkefølge: adresse, boliginfo, prisnivåer, ledige perioder, deretter kontaktinfo, overtakelsesrapport, bilder */}
-        <div style={{ display: 'grid', gap: 'var(--space-6)' }}>
+      <div className={isNavView ? 'listing-details-grid listing-details-grid--nav' : 'listing-details-grid listing-details-grid--owner'}>
+        <div className="listing-details-col">
           <ListingDetailsAddressSection
             listing={listing}
             setListing={setListing}
@@ -479,56 +420,21 @@ export default function ListingDetailsClient() {
 
           {/* Utleier: synlig for alle som ikke er eier når man ikke er i nav-høyrekolonne (kart, view=owner, osv.) */}
           {!isOwner && !isNavView && (
-            <section
-              className="card listing-detail-card"
-              id="kontaktinfo"
-              style={{ padding: 'var(--space-6)' }}
-            >
-              <h3
-                style={{
-                  fontSize: '1rem',
-                  marginBottom: 'var(--space-4)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  color: 'var(--text-main)',
-                }}
-              >
-                <User size={18} style={{ color: 'var(--text-main)' }} /> {t('landlord')}
+            <section className="card listing-detail-card" id="kontaktinfo">
+              <h3 className="listing-section-heading">
+                <User size={18} aria-hidden /> {t('landlord')}
               </h3>
-              <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                  {listing.owner_name?.trim() || '–'}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    fontSize: '0.9rem',
-                    color: 'var(--text-body)',
-                  }}
-                >
-                  <Phone size={14} style={{ color: 'var(--color-accent)' }} />{' '}
-                  {listing.contact_phone?.trim() || '–'}
+              <div className="listing-contact-grid">
+                <div className="listing-contact-name">{listing.owner_name?.trim() || '–'}</div>
+                <div className="listing-contact-phone">
+                  <Phone size={14} aria-hidden /> {listing.contact_phone?.trim() || '–'}
                 </div>
                 {viewerIsKommuneStaff && listing.owner_id && !ownerAgreementTerminated && (
                   <Link
                     href={`/nav/messages?with=${listing.owner_id}`}
-                    className="button button-secondary"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 'var(--space-2)',
-                      padding: 'var(--space-2) var(--space-4)',
-                      fontSize: '0.9rem',
-                      textDecoration: 'none',
-                      marginTop: 'var(--space-1)',
-                      width: 'fit-content',
-                    }}
+                    className="button button-secondary listing-message-link"
                   >
-                    <MessageSquare size={18} /> {t('message')}
+                    <MessageSquare size={18} aria-hidden /> {t('message')}
                   </Link>
                 )}
               </div>
@@ -558,31 +464,11 @@ export default function ListingDetailsClient() {
           />
 
           {/* 3. Kontaktinfo for formidling */}
-          <section
-            id="kontaktinfo"
-            className="card no-hover listing-detail-card"
-            style={{ padding: 'var(--space-8)' }}
-          >
-            <h3
-              style={{
-                margin: '0 0 var(--space-4)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                color: 'var(--text-main)',
-              }}
-            >
-              <User size={20} style={{ color: 'var(--color-accent)' }} />{' '}
-              {t('contactInfoForFormidling')}
+          <section id="kontaktinfo" className="card no-hover listing-detail-card listing-detail-card--lg">
+            <h3 className="listing-section-heading listing-section-heading--lg">
+              <User size={20} aria-hidden /> {t('contactInfoForFormidling')}
             </h3>
-            <p
-              style={{
-                margin: '0 0 var(--space-4)',
-                color: 'var(--text-body)',
-                fontSize: '0.95rem',
-                lineHeight: 1.6,
-              }}
-            >
+            <p className="listing-section-lead">
               Boligutleier har rett å få kontaktinformasjon til leietakere i boligene sine.
               Boligutleier skriver ut mal for kontaktinfoskjema fra Boly i to eksemplarer og fyller
               ut dette med leietaker. Boligutleier og leietaker beholder et eksemplar hver.
@@ -592,13 +478,7 @@ export default function ListingDetailsClient() {
               download
               target="_blank"
               rel="noopener noreferrer"
-              className="button listing-full-width-mobile-cta"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                textDecoration: 'none',
-              }}
+              className="button listing-full-width-mobile-cta listing-download-cta"
             >
               <FileText size={18} /> {t('downloadContactInfoPdf')}
             </a>

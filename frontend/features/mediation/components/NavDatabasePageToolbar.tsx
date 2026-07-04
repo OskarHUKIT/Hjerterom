@@ -61,7 +61,7 @@ export default function NavDatabasePageToolbar({
   return (
     <>
 <div
-        className="db-header-row animate-delay-1"
+        className="db-header-row"
         style={{
           marginBottom: isMobile ? 'var(--space-3)' : 'var(--space-8)',
           display: 'flex',
@@ -216,7 +216,7 @@ export default function NavDatabasePageToolbar({
       </div>
 
       <div
-        className="db-tabs-row animate-delay-2"
+        className="db-tabs-row"
         style={{
           display: 'flex',
           gap: isMobile ? 'var(--space-2)' : 'var(--space-4)',

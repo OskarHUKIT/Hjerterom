@@ -78,12 +78,7 @@ export function ListingDetailsNavNotesPanel({
                   navNotes.map((note) => (
                     <div
                       key={note.id}
-                      style={{
-                        padding: 'var(--space-4)',
-                        background: 'var(--bg-card)',
-                        borderRadius: '12px',
-                        borderLeft: '4px solid var(--color-accent)',
-                      }}
+                      className="hrt-callout hrt-callout--accent"
                     >
                       <p style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-body)' }}>
                         {note.note_text}

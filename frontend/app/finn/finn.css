@@ -9,18 +9,13 @@
   --finn-text-muted: var(--text-muted);
   --finn-border: var(--border-subtle);
   --finn-accent: var(--color-accent);
-  --finn-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --finn-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --finn-shadow: var(--shadow-md);
 
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--bg-card) 90%, var(--color-accent) 10%) 0%,
-    var(--finn-bg) 45%,
-    var(--finn-bg) 100%
-  );
+  background: var(--finn-bg);
   color: var(--finn-text);
 }
 
@@ -33,8 +28,7 @@
   padding: var(--space-4) max(var(--space-4), env(safe-area-inset-left))
     var(--space-4) max(var(--space-4), env(safe-area-inset-right));
   border-bottom: 1px solid var(--finn-border);
-  background: color-mix(in srgb, var(--finn-bg-elevated) 92%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--finn-bg-elevated);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -64,15 +58,15 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px 14px;
   min-height: var(--touch-target, 44px);
-  border-radius: 999px;
+  border-radius: var(--hrt-radius-sm, 8px);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--finn-text-secondary);
   border: 1px solid transparent;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .finn-nav-link:hover {
@@ -180,12 +174,12 @@
 }
 
 .finn-card {
-  border-radius: 16px;
+  border-radius: var(--hrt-radius-lg, 16px);
   overflow: hidden;
   background: var(--finn-bg-elevated);
   border: 1px solid var(--finn-border);
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--finn-text) 5%, transparent);
-  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: var(--finn-shadow);
+  transition: border-color 0.15s, box-shadow 0.15s;
   text-decoration: none;
   color: var(--finn-text);
   display: flex;
@@ -193,17 +187,13 @@
 }
 
 .finn-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--finn-text) 10%, transparent);
+  border-color: color-mix(in srgb, var(--finn-accent) 30%, var(--finn-border));
+  box-shadow: var(--shadow-lg);
 }
 
 .finn-card-image {
   aspect-ratio: 4 / 3;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--finn-accent) 20%, var(--finn-bg-elevated)),
-    color-mix(in srgb, var(--color-accent) 12%, var(--finn-bg-muted))
-  );
+  background: var(--finn-bg-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -233,7 +223,7 @@
 
 .finn-price {
   font-weight: 700;
-  color: var(--finn-accent);
+  color: var(--finn-text);
   margin-top: auto;
 }
 
@@ -408,10 +398,9 @@
     padding: var(--space-2) max(var(--space-3), env(safe-area-inset-left))
       calc(var(--space-2) + env(safe-area-inset-bottom))
       max(var(--space-3), env(safe-area-inset-right));
-    background: color-mix(in srgb, var(--finn-bg-elevated) 96%, transparent);
-    backdrop-filter: blur(12px);
+    background: var(--finn-bg-elevated);
     border-top: 1px solid var(--finn-border);
-    box-shadow: 0 -4px 24px color-mix(in srgb, var(--finn-text) 6%, transparent);
+    box-shadow: 0 -2px 12px color-mix(in srgb, var(--finn-text) 4%, transparent);
   }
 
   .finn-nav-link {

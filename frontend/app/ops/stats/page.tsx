@@ -28,7 +28,7 @@ function MiniBar({ label, value, max }: { label: string; value: number; max: num
         <span>{value}</span>
       </div>
       <div className="ops-chart-bar-track">
-        <div className="ops-chart-bar-fill" style={{ width: `${pct}%` }} />
+        <div className="ops-chart-bar-fill" style={{ transform: `scaleX(${pct / 100})` }} />
       </div>
     </div>
   )
@@ -43,7 +43,7 @@ function FunnelStep({ label, value, max }: { label: string; value: number; max: 
         <span>{value} ({pct}%)</span>
       </div>
       <div className="ops-chart-bar-track ops-chart-bar-track--tall">
-        <div className="ops-chart-bar-fill" style={{ width: `${pct}%` }} />
+        <div className="ops-chart-bar-fill" style={{ transform: `scaleX(${pct / 100})` }} />
       </div>
     </div>
   )

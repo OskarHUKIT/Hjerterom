@@ -223,10 +223,12 @@ export default function ListingLaneCalendar({
                 ]
                   .filter(Boolean)
                   .join(' ')}
-                style={{
-                  background: bg,
-                  boxShadow: border ? `inset 0 0 0 ${border}` : undefined,
-                }}
+                style={
+                  {
+                    '--lane-cell-bg': bg,
+                    ...(border ? { '--lane-cell-shadow': `inset 0 0 0 ${border}` } : {}),
+                  } as React.CSSProperties
+                }
                 title={layerHint || undefined}
                 aria-label={`${cell.iso}${layerHint ? `, ${layerHint}` : ''}`}
                 aria-selected={cell.inSelection}
@@ -257,7 +259,7 @@ export default function ListingLaneCalendar({
           <div className="lane-calendar-selection-preview">
             <span
               className="lane-calendar-selection-swatch"
-              style={{ background: paintLanePreviewBg(paintLane, paintStatus) }}
+              style={{ '--swatch-bg': paintLanePreviewBg(paintLane, paintStatus) } as React.CSSProperties}
               aria-hidden
             />
             <span className="lane-calendar-selection-text">

@@ -23,6 +23,7 @@ import LandlordAvailabilityHub from '@/features/listings/components/LandlordAvai
 import ListingAvailabilityOverview from '@/features/listings/components/ListingAvailabilityOverview'
 import type { ListingEventOptInPeriod } from '@/features/listings/types/lanes'
 import { type Ref } from 'react'
+import '@/features/listings/landlord-manage.css'
 
 export type ManagePanel = 'calendar' | 'events' | 'tourism'
 
@@ -66,6 +67,12 @@ type LandlordListingCardProps = {
   onRefreshEvents: () => Promise<void>
 }
 
+function statusBadgeClass(todaySt: string) {
+  if (todaySt === 'Formidla') return 'hm-status-badge--formidlet'
+  if (todaySt === 'Utilgjengelig') return 'hm-status-badge--unavailable'
+  return 'hm-status-badge--available'
+}
+
 export default function LandlordListingCard({
   listing,
   availability,
@@ -105,139 +112,45 @@ export default function LandlordListingCard({
   }
 
   const isPanelOpen = openPanel?.listingId === listing.id
+  const calendarPanelActive = isPanelOpen && openPanel?.panel === 'calendar'
 
   return (
-    <div
-      className="card hm-listing-card"
-      style={{
-        padding: 'var(--space-4) var(--space-6)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-4)',
-      }}
-    >
-      <div
-        className="hm-listing-row"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 'var(--space-4)',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            gap: 'var(--space-4)',
-            alignItems: 'center',
-            flex: '1 1 200px',
-            minWidth: 0,
-          }}
-        >
-          <div
-            style={{
-              position: 'relative',
-              width: '100px',
-              height: '70px',
-              borderRadius: '10px',
-              overflow: 'hidden',
-              background: 'var(--bg-app)',
-              border: '1px solid var(--border-subtle)',
-            }}
-          >
+    <div className="card hm-listing-card">
+      <div className="hm-listing-row">
+        <div className="hm-listing-main">
+          <div className="hm-listing-thumb">
             {listing.image_url ? (
               <OptimizedPublicStorageImage
                 variant="fill"
                 src={listing.image_url}
                 alt=""
                 sizes="100px"
-                style={{ objectFit: 'cover' }}
+                className="hm-listing-thumb-img"
               />
             ) : (
-              <div
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--color-sky-blue)',
-                  opacity: 0.3,
-                }}
-              >
+              <div className="hm-listing-thumb-placeholder">
                 <HomeIcon size={30} />
               </div>
             )}
           </div>
           <div className="hm-listing-title-block">
-            <div
-              className="hm-listing-title-row"
-              style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}
-            >
+            <div className="hm-listing-title-row">
               <button
                 type="button"
                 onClick={() => router.push(`/listings/${listing.id}?view=owner`)}
-                style={{
-                  margin: 0,
-                  padding: 0,
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  font: 'inherit',
-                  color: 'inherit',
-                }}
+                className="hm-listing-title-link"
               >
-                <h3 style={{ margin: 0 }}>{listing.address}</h3>
+                <h3>{listing.address}</h3>
               </button>
-              {todaySt === 'Formidla' ? (
-                <span
-                  style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    color: 'var(--color-sky-blue)',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {t('formidlet')}
-                </span>
-              ) : todaySt === 'Utilgjengelig' ? (
-                <span
-                  style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    color: '#ef4444',
-                    textTransform: 'uppercase',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                  }}
-                >
-                  {t('unavailable')}
-                </span>
-              ) : (
-                <span
-                  style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    background: 'rgba(45, 212, 191, 0.15)',
-                    color: 'var(--color-teal)',
-                    textTransform: 'uppercase',
-                    border: '1px solid rgba(45, 212, 191, 0.3)',
-                  }}
-                >
-                  {t('available')}
-                </span>
-              )}
+              <span className={`hm-status-badge ${statusBadgeClass(todaySt)}`}>
+                {todaySt === 'Formidla'
+                  ? t('formidlet')
+                  : todaySt === 'Utilgjengelig'
+                    ? t('unavailable')
+                    : t('available')}
+              </span>
             </div>
-            <p className="text-sm" style={{ marginTop: '4px' }}>
+            <p className="text-sm hm-listing-meta">
               {isMobileLayout
                 ? `${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`
                 : `${translateType(listing.type)} • ${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`}
@@ -255,23 +168,12 @@ export default function LandlordListingCard({
           </div>
         </div>
 
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="hm-listing-actions-row" onClick={(e) => e.stopPropagation()}>
           {isMobileLayout ? (
             <button
               type="button"
-              className="button"
+              className="button hm-listing-actions-mobile"
               onClick={() => onOpenActionSheet(listing.id)}
-              style={{
-                width: '100%',
-                maxWidth: '100%',
-                flex: 1,
-                justifyContent: 'center',
-                padding: 'var(--space-3) var(--space-4)',
-                fontSize: '0.9rem',
-              }}
             >
               {t('manageListingActions')}
             </button>
@@ -279,30 +181,12 @@ export default function LandlordListingCard({
             <>
               {todaySt !== 'Formidla' && (
                 <>
-                  <div
-                    className="hm-status-actions"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 'var(--space-2)',
-                      minWidth: '200px',
-                    }}
-                  >
+                  <div className="hm-status-actions">
                     {isTodayAvailableOrUnset(listing) ? (
                       <button
                         type="button"
                         onClick={() => onOpenPeriodCalendar(listing.id, 'Utilgjengelig')}
-                        className="button"
-                        style={{
-                          padding: 'var(--space-2) var(--space-4)',
-                          fontSize: '0.85rem',
-                          borderRadius: '8px',
-                          width: '100%',
-                          background: 'rgba(239, 68, 68, 0.12)',
-                          color: '#ef4444',
-                          border: '1px solid rgba(239, 68, 68, 0.25)',
-                          cursor: 'pointer',
-                        }}
+                        className="button hm-btn-unavailable"
                       >
                         {t('manageRentalNav')}
                       </button>
@@ -310,17 +194,7 @@ export default function LandlordListingCard({
                       <button
                         type="button"
                         onClick={() => onOpenPeriodCalendar(listing.id, 'Tilgjengelig')}
-                        className="button"
-                        style={{
-                          padding: 'var(--space-2) var(--space-4)',
-                          fontSize: '0.85rem',
-                          borderRadius: '8px',
-                          width: '100%',
-                          background: 'rgba(32, 187, 175, 0.12)',
-                          color: 'var(--color-teal)',
-                          border: '1px solid rgba(32, 187, 175, 0.25)',
-                          cursor: 'pointer',
-                        }}
+                        className="button hm-btn-available"
                       >
                         {t('markAvailable')}
                       </button>
@@ -329,73 +203,33 @@ export default function LandlordListingCard({
                         <button
                           type="button"
                           onClick={() => onOpenPeriodCalendar(listing.id, 'Utilgjengelig')}
-                          className="button"
-                          style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            fontSize: '0.85rem',
-                            borderRadius: '8px',
-                            width: '100%',
-                            background: 'rgba(239, 68, 68, 0.12)',
-                            color: '#ef4444',
-                            border: '1px solid rgba(239, 68, 68, 0.25)',
-                            cursor: 'pointer',
-                          }}
+                          className="button hm-btn-unavailable"
                         >
                           {t('manageRentalNav')}
                         </button>
                         <button
                           type="button"
                           onClick={() => onOpenPeriodCalendar(listing.id, 'Tilgjengelig')}
-                          className="button"
-                          style={{
-                            padding: 'var(--space-2) var(--space-4)',
-                            fontSize: '0.85rem',
-                            borderRadius: '8px',
-                            width: '100%',
-                            background: 'rgba(32, 187, 175, 0.12)',
-                            color: 'var(--color-teal)',
-                            border: '1px solid rgba(32, 187, 175, 0.25)',
-                            cursor: 'pointer',
-                          }}
+                          className="button hm-btn-available"
                         >
                           {t('markAvailable')}
                         </button>
                       </>
                     )}
                   </div>
-                  <div
-                    style={{
-                      width: '1px',
-                      height: '32px',
-                      background: 'var(--border-subtle)',
-                      alignSelf: 'stretch',
-                    }}
-                  />
+                  <div className="hm-divider" />
                 </>
               )}
               {todaySt !== 'Formidla' && (
-                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <div className="hm-icon-actions">
                   <button
                     type="button"
                     onClick={() =>
-                      isPanelOpen && openPanel?.panel === 'calendar'
+                      calendarPanelActive
                         ? onClosePanel()
                         : onOpenListingPanel(listing.id, 'calendar')
                     }
-                    style={{
-                      padding: '8px',
-                      borderRadius: '8px',
-                      background:
-                        isPanelOpen && openPanel?.panel === 'calendar'
-                          ? 'rgba(59, 130, 246, 0.2)'
-                          : 'var(--bg-app)',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color:
-                        isPanelOpen && openPanel?.panel === 'calendar'
-                          ? 'var(--color-accent)'
-                          : 'var(--text-main)',
-                    }}
+                    className={`hm-icon-btn${calendarPanelActive ? ' hm-icon-btn--active' : ''}`}
                     title={t('managePanelCalendar')}
                     aria-label={t('managePanelCalendar')}
                   >
@@ -404,14 +238,7 @@ export default function LandlordListingCard({
                   <button
                     type="button"
                     onClick={() => router.push(`/listings/${listing.id}?view=owner`)}
-                    style={{
-                      padding: '8px',
-                      borderRadius: '8px',
-                      background: 'var(--bg-app)',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: 'var(--text-main)',
-                    }}
+                    className="hm-icon-btn"
                     title={t('editListing')}
                     aria-label={t('editListing')}
                   >
@@ -420,14 +247,7 @@ export default function LandlordListingCard({
                   <button
                     type="button"
                     onClick={() => onPendingDeleteListing({ id: listing.id, address: listing.address })}
-                    style={{
-                      padding: '8px',
-                      borderRadius: '8px',
-                      background: 'rgba(239, 68, 68, 0.05)',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#ef4444',
-                    }}
+                    className="hm-icon-btn hm-icon-btn--danger"
                     title={t('delete')}
                     aria-label={t('delete')}
                   >
@@ -441,21 +261,11 @@ export default function LandlordListingCard({
       </div>
 
       {todaySt !== 'Formidla' ? (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}
-        >
+        <div className="hm-panel-chips" onClick={(e) => e.stopPropagation()}>
           <button
             type="button"
-            className="button"
+            className="button hm-panel-chip"
             onClick={() => onOpenListingPanel(listing.id, 'calendar')}
-            style={{
-              padding: 'var(--space-2) var(--space-4)',
-              fontSize: '0.85rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
           >
             <CalendarDays size={16} aria-hidden />
             {t('managePanelCalendar')}
@@ -463,15 +273,8 @@ export default function LandlordListingCard({
           {tourism ? (
             <button
               type="button"
-              className="button button-secondary"
+              className="button button-secondary hm-panel-chip"
               onClick={() => onOpenListingPanel(listing.id, 'tourism')}
-              style={{
-                padding: 'var(--space-2) var(--space-4)',
-                fontSize: '0.85rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
             >
               <Compass size={16} aria-hidden />
               {listing.tourism_enabled ? t('managePanelTourism') : t('tourismEnableBannerCta')}
@@ -480,15 +283,8 @@ export default function LandlordListingCard({
           {centralEvents ? (
             <button
               type="button"
-              className="button button-secondary"
+              className="button button-secondary hm-panel-chip"
               onClick={() => onOpenListingPanel(listing.id, 'events')}
-              style={{
-                padding: 'var(--space-2) var(--space-4)',
-                fontSize: '0.85rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
             >
               <Sparkles size={16} aria-hidden />
               {t('managePanelEvents')}
@@ -498,48 +294,18 @@ export default function LandlordListingCard({
       ) : null}
 
       {todaySt === 'Formidla' && !isMobileLayout && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            padding: 'var(--space-4)',
-            background: 'rgba(59, 130, 246, 0.08)',
-            borderRadius: '12px',
-            border: '1px solid rgba(59, 130, 246, 0.25)',
-          }}
-        >
-          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+        <div className="hm-formidlet-banner" onClick={(e) => e.stopPropagation()}>
+          <div className="hm-formidlet-actions">
             <a
               href={publicContactInfoFormPdfUrl()}
               target="_blank"
               rel="noopener noreferrer"
               download
-              className="button"
-              style={{
-                padding: 'var(--space-2) var(--space-4)',
-                fontSize: '0.9rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                textDecoration: 'none',
-              }}
+              className="button hm-formidlet-link"
             >
               <FileText size={16} /> {t('contactInfoForm')}
             </a>
-            <Link
-              href={`/report/utleier/${listing.id}`}
-              className="button"
-              style={{
-                padding: 'var(--space-2) var(--space-4)',
-                fontSize: '0.9rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                textDecoration: 'none',
-                background: 'var(--color-teal)',
-                color: 'white',
-                border: 'none',
-              }}
-            >
+            <Link href={`/report/utleier/${listing.id}`} className="button hm-formidlet-handover-link">
               <FileText size={16} /> {t('fillHandoverReport')}
             </Link>
           </div>
@@ -547,35 +313,9 @@ export default function LandlordListingCard({
       )}
 
       {openPanel && isPanelOpen && (
-        <div
-          ref={listingPanelRef}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            padding: 'var(--space-4)',
-            background: 'rgba(59, 130, 246, 0.05)',
-            borderRadius: '12px',
-            border: '1px solid rgba(59, 130, 246, 0.1)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 'var(--space-3)',
-              flexWrap: 'wrap',
-              gap: 'var(--space-2)',
-            }}
-          >
-            <h4
-              style={{
-                margin: 0,
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
+        <div ref={listingPanelRef} className="hm-listing-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="hm-listing-panel-header">
+            <h4 className="hm-listing-panel-title">
               {openPanel.panel === 'events' ? (
                 <>
                   <Sparkles size={16} /> {t('managePanelEvents')}
@@ -590,16 +330,7 @@ export default function LandlordListingCard({
                 </>
               )}
             </h4>
-            <button
-              type="button"
-              onClick={onClosePanel}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-              }}
-            >
+            <button type="button" onClick={onClosePanel} className="hm-listing-panel-close">
               {t('close')}
             </button>
           </div>

@@ -32,12 +32,8 @@ export default function LandlordStripeConnect() {
 
   return (
     <section
-      className="card"
-      style={{
-        marginBottom: 'var(--space-6)',
-        padding: 'var(--space-5)',
-        borderLeft: '4px solid var(--color-teal)',
-      }}
+      className="card hrt-callout hrt-callout--teal"
+      style={{ marginBottom: 'var(--space-6)' }}
     >
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <CreditCard size={24} style={{ color: 'var(--color-teal)', flexShrink: 0 }} aria-hidden />

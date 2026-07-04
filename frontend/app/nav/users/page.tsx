@@ -600,9 +600,8 @@ function NavUsersContent() {
 
       <style jsx>{`
         .user-card:hover {
-          background: rgba(255, 255, 255, 0.05);
-          transform: translateY(-2px);
-          border-color: var(--color-sky-blue);
+          background: var(--hrt-primary-soft);
+          border-color: color-mix(in srgb, var(--color-accent) 35%, var(--border-subtle));
         }
       `}</style>
     </main>

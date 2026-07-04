@@ -188,8 +188,8 @@ export default function NavMessagesLandlordSidebar({
                         borderRadius: '10px',
                         background:
                           withEventId === ev.eventId
-                            ? 'rgba(168, 85, 247, 0.15)'
-                            : 'rgba(255,255,255,0.03)',
+                            ? 'var(--hrt-primary-soft)'
+                            : 'var(--bg-card)',
                         textDecoration: 'none',
                         color: 'inherit',
                       }}

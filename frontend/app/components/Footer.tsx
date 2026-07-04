@@ -100,15 +100,7 @@ export default function Footer() {
 
           {/* Contact Section */}
           <div className="footer-section">
-            <h3
-              style={{
-                fontSize: '1rem',
-                color: 'var(--text-main)',
-                marginBottom: 'var(--space-4)',
-              }}
-            >
-              {t('contactUs')}
-            </h3>
+            <p className="footer-section-title">{t('contactUs')}</p>
             <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
               <a href="mailto:info@bolynorge.no" className="footer-link">
                 <Mail size={16} /> info@bolynorge.no
@@ -118,15 +110,7 @@ export default function Footer() {
 
           {/* Legal Section */}
           <div className="footer-section">
-            <h3
-              style={{
-                fontSize: '1rem',
-                color: 'var(--text-main)',
-                marginBottom: 'var(--space-4)',
-              }}
-            >
-              {t('info')}
-            </h3>
+            <p className="footer-section-title">{t('info')}</p>
             <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
               <Link
                 prefetch={false}

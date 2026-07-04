@@ -157,4 +157,14 @@ Forventet: exit 0 (inkl. alle 21st-komponent-strenger etter NPD-5).
 | Ingen dock/shader/carousel på `/nav/*` | Visuell stikkprøve | ☐ |
 | Marketing blocks kun på `/` | `/login` og `/nav` har ikke hero #3 | ☐ |
 
+### NPD-5I — Token & a11y (implementert redesign)
+
+| Steg | Handling | Forventet | Status |
+|------|----------|-----------|--------|
+| 1 | `rg '#[0-9a-fA-F]{3,8}' frontend/features/listings --glob '*.tsx'` | 0 treff (unntak dokumentert) | ☐ |
+| 2 | Impeccable live `/` dark + light | Primary CTA ≥ 4.5:1 | ☐ |
+| 3 | Impeccable live `/homeowner/manage` | Ingen kontrast-blokkere | ☐ |
+| 4 | 320px viewport: manage + listing detail | Ingen horisontal scroll | ☐ |
+| 5 | `/nav/event/database` | Event-shell + theme/locale chrome | ☐ |
+
 **NPD-5 ferdig når:** alle ☑ over + sign-off §8 i `NPD_5_UI_DESIGN_REFRESH.md`.

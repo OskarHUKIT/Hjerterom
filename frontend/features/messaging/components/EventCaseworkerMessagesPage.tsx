@@ -186,7 +186,7 @@ export default function EventCaseworkerMessagesPage() {
                     borderRadius: 10,
                     textDecoration: 'none',
                     color: 'inherit',
-                    background: active ? 'rgba(168, 85, 247, 0.12)' : 'rgba(0,0,0,0.03)',
+                    background: active ? 'var(--hrt-primary-soft)' : 'var(--bg-card)',
                   }}
                 >
                   <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>

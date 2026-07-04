@@ -33,14 +33,8 @@ export function ListingDetailsNavStickySidebar({
   } = mediation
 
   return (
-          <div className="listing-details-sticky-sidebar" style={{ position: 'sticky', top: '20px' }}>
-            <div
-              className="card listing-nav-price-card"
-              style={{
-                border: '1px solid var(--border-subtle)',
-                background: 'var(--bg-card)',
-              }}
-            >
+    <div className="listing-details-sticky-sidebar">
+            <div className="card listing-nav-price-card">
               <div style={{ marginBottom: 'var(--space-6)' }}>
                 <div
                   style={{
@@ -373,63 +367,25 @@ export function ListingDetailsNavStickySidebar({
               </div>
             </div>
 
-            <div
-              className="card"
-              style={{
-                marginTop: 'var(--space-6)',
-                padding: 'var(--space-6)',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-subtle)',
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: '1rem',
-                  marginBottom: 'var(--space-4)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  color: 'var(--text-main)',
-                }}
-              >
-                <User size={18} style={{ color: 'var(--text-main)' }} /> {t('landlord')}
+            <div className="card listing-detail-card" style={{ marginTop: 'var(--space-6)' }}>
+              <h3 className="listing-section-heading">
+                <User size={18} aria-hidden /> {t('landlord')}
               </h3>
-              <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>
-                  {listing.owner_name}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    fontSize: '0.9rem',
-                    color: 'var(--text-body)',
-                  }}
-                >
-                  <Phone size={14} style={{ color: 'var(--color-accent)' }} />{' '}
-                  {listing.contact_phone}
+              <div className="listing-contact-grid">
+                <div className="listing-contact-name">{listing.owner_name}</div>
+                <div className="listing-contact-phone">
+                  <Phone size={14} aria-hidden /> {listing.contact_phone}
                 </div>
                 {listing.owner_id && !ownerAgreementTerminated && (
                   <Link
                     href={`/nav/messages?with=${listing.owner_id}`}
-                    className="button button-secondary"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 'var(--space-2)',
-                      padding: 'var(--space-2) var(--space-4)',
-                      fontSize: '0.9rem',
-                      textDecoration: 'none',
-                      marginTop: 'var(--space-1)',
-                    }}
+                    className="button button-secondary listing-message-link"
                   >
-                    <MessageSquare size={18} /> {t('message')}
+                    <MessageSquare size={18} aria-hidden /> {t('message')}
                   </Link>
                 )}
               </div>
             </div>
-          </div>
+    </div>
   )
 }

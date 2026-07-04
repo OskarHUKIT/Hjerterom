@@ -10,6 +10,14 @@ npd-5-{persona}-{route}-{theme}-{locale}.png
 
 Example: `npd-5-tina-nav-database-dark-no.png`
 
+Alternative (persona walkthrough):
+
+```
+p1-tina-nav-listing-dark.png
+p2-tommy-manage-light.png
+p5-guest-landing-320.png
+```
+
 ## Required sets (minimum)
 
 | Persona | Routes | Themes | Locales |
@@ -21,4 +29,4 @@ Example: `npd-5-tina-nav-database-dark-no.png`
 | los | `/los` | dark | no |
 | ops | `/ops/stats` | dark | no |
 
-Store in PR comment or this folder before marking NPD-5 DONE.
+Store in PR comment or this folder before marking NPD-5 DONE. Link deployment URL and git SHA in `NPD_5_UI_DESIGN_REFRESH.md` §8 when NPD-5 closes.

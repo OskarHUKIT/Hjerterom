@@ -41,6 +41,7 @@ import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 import PageSkeleton from '../../components/design-system/PageSkeleton'
+import './register.css'
 
 export default function HomeownerRegister() {
   const { t } = useLanguage()
@@ -579,66 +580,27 @@ export default function HomeownerRegister() {
 
   return (
     <main className="container">
-      <div style={{ marginBottom: 'var(--space-8)' }}>
-        <Link
-          href={backHref}
-          className="nav-link"
-          style={{
-            marginLeft: '-1rem',
-            marginBottom: 'var(--space-2)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-          }}
-        >
+      <div className="register-page-header">
+        <Link href={backHref} className="nav-link register-back-link">
           <ArrowLeft size={18} />{' '}
           {backHref === '/homeowner/manage' ? t('regBack') : t('backToHome')}
         </Link>
-        <h1 style={{ fontSize: 'var(--fluid-h1-hero)' }}>{t('regTitle')}</h1>
-        <p style={{ maxWidth: '700px', opacity: 0.8 }}>{t('regLead')}</p>
+        <h1 className="register-title">{t('regTitle')}</h1>
+        <p className="register-lead">{t('regLead')}</p>
         {socialKommuneActive === false && (
-          <div
-            className="card"
-            role="status"
-            style={{
-              marginTop: 'var(--space-4)',
-              maxWidth: '700px',
-              padding: 'var(--space-4)',
-              borderLeft: '4px solid var(--color-accent)',
-            }}
-          >
+          <div className="card hrt-callout hrt-callout--accent register-callout" role="status">
             <strong>{t('landlordNonSubscribedTitle')}</strong>
-            <p style={{ margin: 'var(--space-2) 0 0', lineHeight: 1.55 }}>{t('landlordNonSubscribedBody')}</p>
+            <p>{t('landlordNonSubscribedBody')}</p>
           </div>
         )}
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="register-form"
-        style={{ display: 'grid', gap: 'var(--space-6)' }}
-      >
-        <div
-          className="register-form-columns"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1.5fr 1fr',
-            gap: 'var(--space-8)',
-            alignItems: 'start',
-          }}
-        >
-          <div style={{ display: 'grid', gap: 'var(--space-6)' }}>
+      <form onSubmit={handleSubmit} className="register-form">
+        <div className="register-form-columns">
+          <div className="register-form-main-col">
             {/* Section 1: Basic Info & Kontakt */}
             <section className="form-section">
-              <h3
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  marginBottom: 'var(--space-5)',
-                  color: 'var(--color-sky-blue)',
-                }}
-              >
+              <h3 className="form-section-heading">
                 <User size={20} /> {t('regContactSection')}
               </h3>
               <div className="form-grid">
@@ -665,100 +627,42 @@ export default function HomeownerRegister() {
                   />
                 </div>
               </div>
-              <div
-                style={{
-                  marginTop: 'var(--space-5)',
-                  padding: 'var(--space-4)',
-                  background: 'var(--bg-subtle, rgba(0,0,0,0.04))',
-                  borderRadius: 12,
-                  border: '1px solid var(--border-subtle)',
-                }}
-              >
-                <label
-                  className="label"
-                  style={{ display: 'block', marginBottom: 'var(--space-3)' }}
-                >
-                  {t('paymentMethodLabel')}
-                </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 'var(--space-3)',
-                      cursor: 'pointer',
-                      color: 'var(--text-body)',
-                    }}
-                  >
+              <div className="form-subpanel">
+                <label className="label">{t('paymentMethodLabel')}</label>
+                <div className="form-radio-stack">
+                  <label className="form-radio-label">
                     <input
                       type="radio"
                       name="payment_method"
                       checked={formData.payment_method === 'faktura'}
                       onChange={() => setFormData({ ...formData, payment_method: 'faktura' })}
-                      style={{ marginTop: 4 }}
                     />
                     <span>{t('paymentMethodFaktura')}</span>
                   </label>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 'var(--space-3)',
-                      cursor: 'pointer',
-                      color: 'var(--text-body)',
-                    }}
-                  >
+                  <label className="form-radio-label">
                     <input
                       type="radio"
                       name="payment_method"
                       checked={formData.payment_method === 'konto'}
                       onChange={() => setFormData({ ...formData, payment_method: 'konto' })}
-                      style={{ marginTop: 4 }}
                     />
                     <span>{t('paymentMethodKonto')}</span>
                   </label>
                 </div>
-                <p
-                  style={{
-                    margin: 'var(--space-3) 0 0',
-                    fontSize: '0.8rem',
-                    color: 'var(--text-muted)',
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {t('paymentMethodKontoHint')}
-                </p>
+                <p className="form-hint">{t('paymentMethodKontoHint')}</p>
               </div>
-              <div style={{ marginTop: 'var(--space-4)' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '8px',
-                  }}
-                >
+              <div className="form-field-block">
+                <div className="form-field-header">
                   <label className="label">{t('regStreetLabel')}</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                  <div className="form-geocode-tools">
                     {geocodeLoading && (
-                      <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>
-                        {t('regGeocodeSearching')}
-                      </span>
+                      <span className="form-geocode-status">{t('regGeocodeSearching')}</span>
                     )}
                     {!geocodeLoading &&
                       formData.latitude != null &&
                       formData.longitude != null &&
                       !geocodeCandidates?.length && (
-                        <span
-                          style={{
-                            fontSize: '0.7rem',
-                            color: 'var(--color-teal)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
+                        <span className="form-geocode-ok">
                           <CheckCircle2 size={12} /> {t('regPositionSet')}
                         </span>
                       )}
@@ -766,22 +670,13 @@ export default function HomeownerRegister() {
                       type="button"
                       onClick={() => void runGeocode()}
                       title={t('regGeocodeTitle')}
-                      style={{
-                        fontSize: '0.75rem',
-                        padding: '6px 10px',
-                        borderRadius: 8,
-                        border: '1px solid var(--border-medium)',
-                        background: 'var(--bg-card)',
-                        color: 'var(--text-main)',
-                        cursor: 'pointer',
-                        fontWeight: 500,
-                      }}
+                      className="form-geocode-btn"
                     >
                       {t('regUpdateMapBtn')}
                     </button>
                   </div>
                 </div>
-                <div style={{ position: 'relative' }}>
+                <div className="form-address-wrap">
                   <input
                     type="text"
                     className="input"
@@ -801,32 +696,10 @@ export default function HomeownerRegister() {
                     autoComplete="street-address"
                   />
                   {addressSuggesting && (
-                    <span
-                      style={{ fontSize: '0.7rem', opacity: 0.75, display: 'block', marginTop: 4 }}
-                    >
-                      {t('regSearchingAddresses')}
-                    </span>
+                    <span className="form-address-hint">{t('regSearchingAddresses')}</span>
                   )}
                   {addressSuggestions && addressSuggestions.length > 0 && (
-                    <ul
-                      role="listbox"
-                      style={{
-                        position: 'absolute',
-                        zIndex: 20,
-                        left: 0,
-                        right: 0,
-                        top: '100%',
-                        margin: '4px 0 0',
-                        padding: 0,
-                        listStyle: 'none',
-                        background: 'var(--bg-card, #1e293b)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: 8,
-                        maxHeight: 220,
-                        overflowY: 'auto',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
-                      }}
-                    >
+                    <ul role="listbox" className="form-address-list">
                       {addressSuggestions.map((h, i) => (
                         <li key={`${h.lat}-${h.lon}-${i}`}>
                           <button
@@ -835,18 +708,7 @@ export default function HomeownerRegister() {
                             aria-selected={false}
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => applyAddressSuggestion(h)}
-                            style={{
-                              display: 'block',
-                              width: '100%',
-                              textAlign: 'left',
-                              padding: '10px 12px',
-                              border: 'none',
-                              borderBottom: '1px solid var(--border-subtle)',
-                              background: 'transparent',
-                              color: 'inherit',
-                              fontSize: '0.85rem',
-                              cursor: 'pointer',
-                            }}
+                            className="form-address-option"
                           >
                             {h.displayLabel}
                           </button>
@@ -873,16 +735,7 @@ export default function HomeownerRegister() {
                     required
                   />
                   {kommuneFromApiMissing && (
-                    <p
-                      style={{
-                        fontSize: '0.8rem',
-                        color: 'var(--color-warning, #b45309)',
-                        marginTop: 6,
-                        marginBottom: 0,
-                      }}
-                    >
-                      {t('regKommuneManualHint')}
-                    </p>
+                    <p className="form-warning form-warning--tight">{t('regKommuneManualHint')}</p>
                   )}
                 </div>
                 <div>
@@ -902,48 +755,17 @@ export default function HomeownerRegister() {
                   />
                 </div>
               </div>
-              {geocodeError && (
-                <p
-                  style={{
-                    fontSize: '0.8rem',
-                    color: 'var(--color-warning, #b45309)',
-                    marginTop: 'var(--space-2)',
-                  }}
-                >
-                  {geocodeError}
-                </p>
-              )}
+              {geocodeError && <p className="form-warning">{geocodeError}</p>}
               {geocodeCandidates && geocodeCandidates.length > 1 && (
-                <div
-                  role="group"
-                  aria-label={t('regAddressPickAria')}
-                  style={{
-                    marginTop: 'var(--space-3)',
-                    padding: 'var(--space-4)',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-subtle)',
-                    background: 'rgba(255,255,255,0.04)',
-                  }}
-                >
-                  <p style={{ fontSize: '0.85rem', marginBottom: 'var(--space-3)', opacity: 0.9 }}>
-                    {t('regGeocodeMultiHelp')}
-                  </p>
-                  <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+                <div role="group" aria-label={t('regAddressPickAria')} className="form-candidate-group">
+                  <p className="form-candidate-help">{t('regGeocodeMultiHelp')}</p>
+                  <div className="form-candidate-list">
                     {geocodeCandidates.map((h, i) => (
                       <button
                         key={`${h.lat}-${h.lon}-${i}`}
                         type="button"
                         onClick={() => selectGeocodeCandidate(i)}
-                        style={{
-                          textAlign: 'left',
-                          padding: 'var(--space-3)',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-subtle)',
-                          background: 'rgba(0,0,0,0.15)',
-                          color: 'inherit',
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                        }}
+                        className="form-candidate-btn"
                       >
                         {h.displayLabel}
                       </button>
@@ -955,15 +777,7 @@ export default function HomeownerRegister() {
 
             {/* Section 2: Boligdetaljer */}
             <section className="form-section">
-              <h3
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  marginBottom: 'var(--space-5)',
-                  color: 'var(--color-sky-blue)',
-                }}
-              >
+              <h3 className="form-section-heading">
                 <Building size={20} /> {t('regDetailsSection')}
               </h3>
               <div className="form-grid">
@@ -1011,16 +825,9 @@ export default function HomeownerRegister() {
                 </div>
               </div>
 
-              <div style={{ marginTop: 'var(--space-4)' }}>
+              <div className="form-field-block">
                 <label className="label">{t('regFloorLabel')}</label>
-                <div
-                  className="floor-detail-grid"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 'var(--space-2)',
-                  }}
-                >
+                <div className="floor-detail-grid">
                   {['Underetasje', '1', '2', '3', '4'].map((f) => {
                     const selected = formData.floor_detail.includes(f)
                     return (
@@ -1028,17 +835,7 @@ export default function HomeownerRegister() {
                         type="button"
                         key={f}
                         onClick={() => toggleMultiSelect('floor_detail', f)}
-                        style={{
-                          padding: 'var(--space-2)',
-                          background: selected ? 'var(--color-royal-blue)' : 'var(--bg-app)',
-                          border: selected
-                            ? '1px solid var(--color-royal-blue)'
-                            : '1px solid var(--border-subtle)',
-                          borderRadius: '8px',
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                          color: selected ? '#fff' : 'var(--text-main)',
-                        }}
+                        className={`form-chip${selected ? ' form-chip--selected' : ''}`}
                       >
                         {f}
                       </button>
@@ -1047,28 +844,12 @@ export default function HomeownerRegister() {
                 </div>
               </div>
 
-              <div style={{ marginTop: 'var(--space-6)' }}>
+              <div className="form-field-block--lg">
                 <label className="label">{t('regPhysicalAccess')}</label>
 
-                <div
-                  className="physical-access-info"
-                  style={{
-                    padding: 'var(--space-4)',
-                    background: 'rgba(59, 130, 246, 0.1)',
-                    borderRadius: '12px',
-                    fontSize: '0.85rem',
-                    marginBottom: 'var(--space-4)',
-                    border: '1px solid rgba(59, 130, 246, 0.2)',
-                    color: 'var(--text-body)',
-                  }}
-                >
-                  <h4
-                    className="physical-access-info-title"
-                    style={{ marginBottom: 'var(--space-2)', fontSize: '0.9rem' }}
-                  >
-                    {t('regPhysicalAccessHelpTitle')}
-                  </h4>
-                  <ul style={{ paddingLeft: '1.2rem', display: 'grid', gap: 'var(--space-1)' }}>
+                <div className="physical-access-info">
+                  <h4 className="physical-access-info-title">{t('regPhysicalAccessHelpTitle')}</h4>
+                  <ul className="physical-access-info-list">
                     <li>
                       <strong>Alt på ett plan:</strong> Ingen trapper eller høye dørstokker inne i
                       boenheten.
@@ -1092,7 +873,7 @@ export default function HomeownerRegister() {
                   </ul>
                 </div>
 
-                <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+                <div className="form-check-stack">
                   {[
                     'Ikke tilrettelagt og boligen har utendørs trapp',
                     'Ikke tilrettelagt og boligen har innendørs trapp',
@@ -1102,30 +883,19 @@ export default function HomeownerRegister() {
                     'Universell utforming',
                     'Omsorgsboligstandard',
                   ].map((a) => (
-                    <label
-                      key={a}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-3)',
-                        padding: 'var(--space-3)',
-                        background: 'rgba(255,255,255,0.03)',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                      }}
-                    >
+                    <label key={a} className="form-check-row">
                       <input
                         type="checkbox"
                         checked={formData.accessibility.includes(a)}
                         onChange={() => toggleMultiSelect('accessibility', a)}
                       />
-                      <span style={{ fontSize: '0.9rem' }}>{a}</span>
+                      <span>{a}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div style={{ marginTop: 'var(--space-6)' }}>
+              <div className="form-field-block--lg">
                 <label className="label">{t('regFurnishingLabel')}</label>
                 <select
                   className="input"
@@ -1141,7 +911,7 @@ export default function HomeownerRegister() {
                   </option>
                 </select>
               </div>
-              <div style={{ marginTop: 'var(--space-4)' }}>
+              <div className="form-field-block">
                 <label className="label">{t('regPetsLabel')}</label>
                 <select
                   className="input"
@@ -1162,17 +932,16 @@ export default function HomeownerRegister() {
                   <option value="Enkelte dyr er tillatt">Enkelte dyr er tillatt</option>
                 </select>
                 {formData.pet_policy === 'Enkelte dyr er tillatt' && (
-                  <div style={{ marginTop: 'var(--space-3)' }}>
+                  <div className="form-field-block">
                     <label className="label">{t('regPetsDetailLabel')}</label>
                     <textarea
-                      className="input"
+                      className="input form-textarea-tall"
                       rows={3}
                       placeholder={t('placeholderPetDetail')}
                       value={formData.pet_policy_detail}
                       onChange={(e) =>
                         setFormData({ ...formData, pet_policy_detail: e.target.value })
                       }
-                      style={{ width: '100%', minHeight: '72px', resize: 'vertical' }}
                     />
                   </div>
                 )}
@@ -1180,21 +949,9 @@ export default function HomeownerRegister() {
             </section>
           </div>
 
-          <div
-            className="register-form-sidebar"
-            style={{ display: 'grid', gap: 'var(--space-6)', position: 'sticky', top: '20px' }}
-          >
-            {/* Section 3: Pris og Vilkår */}
+          <div className="register-form-sidebar">
             <section className="form-section">
-              <h3
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  marginBottom: 'var(--space-5)',
-                  color: 'var(--color-sky-blue)',
-                }}
-              >
+              <h3 className="form-section-heading">
                 <Tag size={20} /> {t('regPriceSection')}
               </h3>
               <div className="form-grid">
@@ -1263,9 +1020,9 @@ export default function HomeownerRegister() {
                 </div>
               </div>
 
-              <div style={{ marginTop: 'var(--space-4)' }}>
+              <div className="form-field-block">
                 <label className="label">{t('regIncludesLabel')}</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                <div className="form-pill-row">
                   {['Ingenting inkludert', 'Strøm', 'Internett', 'Kabel-tv'].map((i) => {
                     const selected = formData.includes.includes(i)
                     return (
@@ -1273,17 +1030,7 @@ export default function HomeownerRegister() {
                         type="button"
                         key={i}
                         onClick={() => toggleMultiSelect('includes', i)}
-                        style={{
-                          padding: 'var(--space-2) var(--space-4)',
-                          background: selected ? 'var(--color-teal)' : 'var(--bg-app)',
-                          border: selected
-                            ? '1px solid var(--color-teal)'
-                            : '1px solid var(--border-subtle)',
-                          borderRadius: '20px',
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                          color: selected ? '#fff' : 'var(--text-main)',
-                        }}
+                        className={`form-pill${selected ? ' form-pill--selected' : ''}`}
                       >
                         {i}
                       </button>
@@ -1293,7 +1040,7 @@ export default function HomeownerRegister() {
               </div>
 
               {(parseFloat(String(formData.price_monthly_long)) || 0) > 0 && (
-                <div style={{ marginTop: 'var(--space-6)' }}>
+                <div className="form-deposit-grid">
                   <label className="label">{t('regDepositSection')}</label>
                   <input
                     type="number"
@@ -1304,25 +1051,13 @@ export default function HomeownerRegister() {
                     value={formData.deposit_amount}
                     onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
                   />
-                  <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+                  <div className="form-check-stack">
                     {[
                       'Godtar depositumsgaranti fra Nav',
                       'Godtar depositumsgaranti fra andre tilbydere',
                       'Godtar ordinært depositum',
                     ].map((g) => (
-                      <label
-                        key={g}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 'var(--space-3)',
-                          padding: 'var(--space-2)',
-                          background: 'rgba(255,255,255,0.03)',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontSize: '0.85rem',
-                        }}
-                      >
+                      <label key={g} className="form-check-row">
                         <input
                           type="checkbox"
                           checked={formData.deposit_guarantee.includes(g)}
@@ -1335,7 +1070,7 @@ export default function HomeownerRegister() {
                 </div>
               )}
 
-              <div className="form-grid" style={{ marginTop: 'var(--space-6)' }}>
+              <div className="form-grid form-grid-spaced">
                 <div>
                   <label className="label">{t('regParkingLabel')}</label>
                   <input
@@ -1365,116 +1100,53 @@ export default function HomeownerRegister() {
 
             {/* Section 4: Bilder & Annet */}
             <section className="form-section">
-              <h3
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)',
-                  marginBottom: 'var(--space-5)',
-                  color: 'var(--color-sky-blue)',
-                }}
-              >
+              <h3 className="form-section-heading">
                 <Camera size={20} /> {t('regImagesSection')}
               </h3>
-              <div
-                style={{
-                  border: '2px dashed var(--border-medium)',
-                  padding: 'var(--space-6)',
-                  textAlign: 'center',
-                  borderRadius: '16px',
-                  background: 'var(--bg-app)',
-                }}
-              >
-                <div
-                  className="image-previews-grid"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 'var(--space-2)',
-                    marginBottom: 'var(--space-4)',
-                  }}
-                >
+              <div className="register-upload-dropzone">
+                <div className="image-previews-grid">
                   {imagePreviews.map((p, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        position: 'relative',
-                        aspectRatio: '1/1',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                      }}
-                    >
+                    <div key={i} className="image-preview-item">
                       <OptimizedPublicStorageImage
                         variant="fill"
                         src={p}
                         alt={`${t('regImagesSection')} — forhåndsvisning ${i + 1}`}
                         sizes="(max-width: 768px) 33vw, 220px"
-                        style={{ objectFit: 'cover' }}
+                        className="image-preview-cover"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(i)}
-                        style={{
-                          position: 'absolute',
-                          top: 5,
-                          right: 5,
-                          background: '#ef4444',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: 24,
-                          height: 24,
-                          cursor: 'pointer',
-                        }}
+                        className="image-preview-remove"
+                        aria-label={t('regHouseRulesClear')}
                       >
                         ×
                       </button>
                     </div>
                   ))}
                 </div>
-                <label
-                  className="button"
-                  style={{
-                    backgroundColor: 'var(--color-muted-blue)',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                  }}
-                >
+                <label className="button button-accent register-upload-btn">
                   <input
                     type="file"
                     multiple
                     accept="image/*"
                     onChange={handleImageChange}
-                    style={{ display: 'none' }}
+                    className="sr-input"
                   />
                   {t('regUploadImages')}
                 </label>
               </div>
-              <div
-                style={{
-                  marginTop: 'var(--space-5)',
-                  padding: 'var(--space-4)',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-subtle)',
-                  background: 'var(--bg-card)',
-                }}
-              >
-                <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FileText size={18} style={{ color: 'var(--color-sky-blue)' }} />{' '}
-                  {t('regHouseRulesLabel')}
+              <div className="register-house-rules-panel">
+                <label className="label register-house-rules-heading">
+                  <FileText size={18} aria-hidden /> {t('regHouseRulesLabel')}
                 </label>
-                <p
-                  className="text-sm"
-                  style={{ margin: 'var(--space-2) 0 var(--space-3)', opacity: 0.85 }}
-                >
-                  {t('regHouseRulesHint')}
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
-                  <label className="button button-secondary" style={{ cursor: 'pointer' }}>
+                <p className="text-sm register-house-rules-hint">{t('regHouseRulesHint')}</p>
+                <div className="register-file-row">
+                  <label className="button button-secondary register-upload-btn">
                     <input
                       type="file"
                       accept="application/pdf"
-                      style={{ display: 'none' }}
+                      className="sr-input"
                       onChange={(e) => {
                         const f = e.target.files?.[0]
                         setHouseRulesFile(f ?? null)
@@ -1484,19 +1156,12 @@ export default function HomeownerRegister() {
                     {t('houseRulesChooseFile')}
                   </label>
                   {houseRulesFile && (
-                    <span className="text-sm" style={{ color: 'var(--text-body)' }}>
+                    <span className="text-sm register-file-name">
                       {houseRulesFile.name}
                       <button
                         type="button"
                         onClick={() => setHouseRulesFile(null)}
-                        style={{
-                          marginLeft: 8,
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--color-accent)',
-                          cursor: 'pointer',
-                          textDecoration: 'underline',
-                        }}
+                        className="register-file-clear"
                       >
                         {t('regHouseRulesClear')}
                       </button>
@@ -1504,80 +1169,40 @@ export default function HomeownerRegister() {
                   )}
                 </div>
               </div>
-              <div style={{ marginTop: 'var(--space-4)' }}>
+              <div className="form-field-block">
                 <label className="label">{t('regAdditionalInfo')}</label>
                 <textarea
                   className="input"
                   placeholder={t('placeholderMoreDetails')}
                   value={formData.additional_info}
                   onChange={(e) => setFormData({ ...formData, additional_info: e.target.value })}
-                ></textarea>
+                />
               </div>
             </section>
           </div>
         </div>
 
-        <div
-          className="register-form-footer"
-          style={{
-            marginTop: 'var(--space-4)',
-            padding: 'var(--space-5) var(--space-6)',
-            background: 'var(--bg-card)',
-            borderRadius: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-4)',
-            position: 'sticky',
-            bottom: '20px',
-            zIndex: 10,
-            backdropFilter: 'blur(16px)',
-            border: '1px solid var(--border-subtle)',
-            boxShadow: 'var(--shadow-md)',
-          }}
-        >
-          <label
-            style={{
-              display: 'flex',
-              gap: '12px',
-              cursor: 'pointer',
-              alignItems: 'flex-start',
-              color: 'var(--text-main)',
-            }}
-          >
+        <div className="register-form-footer">
+          <label className="register-insurance-label">
             <input
               type="checkbox"
               required
               checked={formData.has_insurance}
               onChange={(e) => setFormData({ ...formData, has_insurance: e.target.checked })}
-              style={{
-                width: '20px',
-                height: '20px',
-                flexShrink: 0,
-                marginTop: '2px',
-                accentColor: 'var(--color-royal-blue)',
-              }}
+              className="register-insurance-checkbox"
             />
-            <div style={{ fontSize: '0.85rem', lineHeight: 1.45 }}>
-              <span style={{ fontWeight: 700, display: 'block', color: 'var(--text-main)' }}>
-                {t('regInsuranceTitle')}
-              </span>
-              <span style={{ color: 'var(--text-body)', marginTop: '4px', display: 'block' }}>
-                {t('regInsuranceBody')}
-              </span>
+            <div className="register-insurance-copy">
+              <span className="register-insurance-title">{t('regInsuranceTitle')}</span>
+              <span className="register-insurance-body">{t('regInsuranceBody')}</span>
             </div>
           </label>
           <div className="form-primary-cta-row">
             <button
               type="submit"
-              className="button"
+              className="button register-submit-btn"
               disabled={loading || !formData.has_insurance}
-              style={{
-                padding: 'var(--space-4) var(--space-10)',
-                fontSize: '1.125rem',
-                borderRadius: '14px',
-              }}
             >
-              {loading ? <Save size={22} style={{ opacity: 0.6 }} /> : <Save size={22} />}
+              {loading ? <Save size={22} className="is-busy" /> : <Save size={22} />}
               {loading ? t('regSaving') : t('regPublish')}
             </button>
           </div>
