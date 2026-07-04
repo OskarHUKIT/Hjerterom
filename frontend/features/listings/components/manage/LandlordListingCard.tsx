@@ -1,13 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { Home as HomeIcon, FileText } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Home as HomeIcon, MoreHorizontal } from 'lucide-react'
 import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
-import { publicContactInfoFormPdfUrl } from '@/app/lib/storagePublicUrl'
-import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
-import { useLanguage } from '@/context/LanguageContext'
+import PropertyCard from '@/app/components/design-system/PropertyCard'
 import ListingStatusBadge from '@/app/components/design-system/ListingStatusBadge'
 import ListingAvailabilityOverview from '@/features/listings/components/ListingAvailabilityOverview'
+import LandlordListingCardMenu, {
+  type LandlordListingMenuItem,
+} from '@/features/listings/components/manage/LandlordListingCardMenu'
+import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
+import { useLanguage } from '@/context/LanguageContext'
 import type { ListingEventOptInPeriod } from '@/features/listings/types/lanes'
 import { buttonClassName } from '@/app/components/ui/Button'
 import '@/features/listings/landlord-manage.css'
@@ -27,6 +31,8 @@ type LandlordListingCardProps = {
   isMobileLayout: boolean
   centralEvents: boolean
   tourism: boolean
+  onOpenActionSheet: (listingId: string) => void
+  onPendingDeleteListing: (listing: { id: string; address: string }) => void
 }
 
 export default function LandlordListingCard({
@@ -36,9 +42,13 @@ export default function LandlordListingCard({
   isMobileLayout,
   centralEvents,
   tourism,
+  onOpenActionSheet,
+  onPendingDeleteListing,
 }: LandlordListingCardProps) {
   const { t } = useLanguage()
+  const router = useRouter()
   const todaySt = listingAvailabilityStatusToday(listing.id, availability)
+  const hubHref = `/homeowner/listings/${listing.id}`
 
   const translateType = (type: string) => {
     if (!type) return ''
@@ -52,76 +62,86 @@ export default function LandlordListingCard({
     return mapping[type] || type
   }
 
-  return (
-    <div className="card hm-listing-card">
-      <div className="hm-listing-row">
-        <div className="hm-listing-main">
-          <div className="hm-listing-thumb">
-            {listing.image_url ? (
-              <OptimizedPublicStorageImage
-                variant="fill"
-                src={listing.image_url}
-                alt=""
-                sizes="100px"
-                className="hm-listing-thumb-img"
-              />
-            ) : (
-              <div className="hm-listing-thumb-placeholder">
-                <HomeIcon size={30} />
-              </div>
-            )}
-          </div>
-          <div className="hm-listing-title-block">
-            <div className="hm-listing-title-row">
-              <h3 className="hm-listing-title-static">{listing.address}</h3>
-              <ListingStatusBadge availability={todaySt} />
-            </div>
-            <p className="text-sm hm-listing-meta">
-              {isMobileLayout
-                ? `${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`
-                : `${translateType(listing.type)} • ${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`}
-            </p>
-            {todaySt !== 'Formidla' ? (
-              <ListingAvailabilityOverview
-                listingId={listing.id}
-                periods={availability[listing.id] ?? []}
-                eventOptIns={eventOptIns}
-                tourismEnabled={Boolean(listing.tourism_enabled)}
-                showTourism={tourism}
-                showEvents={centralEvents}
-              />
-            ) : null}
-          </div>
-        </div>
+  const meta = isMobileLayout
+    ? `${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`
+    : `${translateType(listing.type)} • ${listing.bedrooms} ${t('bedroomsUnit')} • ${listing.size_sqm} m²`
 
-        <div className="hm-listing-actions-row" onClick={(e) => e.stopPropagation()}>
-          <Link
-            href={`/homeowner/listings/${listing.id}`}
-            className={buttonClassName('accent', 'hm-administrer-cta')}
-          >
-            {t('manageAdministrer')}
-          </Link>
-        </div>
-      </div>
+  const secondaryItems: LandlordListingMenuItem[] = [
+    {
+      id: 'messages',
+      label: t('messagesToKommuneShort'),
+      onSelect: () => router.push('/nav/messages'),
+    },
+    {
+      id: 'edit',
+      label: todaySt === 'Formidla' ? t('viewListing') : t('editListing'),
+      onSelect: () => router.push(`/listings/${listing.id}?view=owner`),
+    },
+    ...(todaySt !== 'Formidla'
+      ? [
+          {
+            id: 'delete',
+            label: t('delete'),
+            tone: 'danger' as const,
+            onSelect: () => onPendingDeleteListing({ id: listing.id, address: listing.address }),
+          },
+        ]
+      : []),
+  ]
 
-      {todaySt === 'Formidla' && !isMobileLayout && (
-        <div className="hm-formidlet-banner" onClick={(e) => e.stopPropagation()}>
-          <div className="hm-formidlet-actions">
-            <a
-              href={publicContactInfoFormPdfUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              download
-              className="button hm-formidlet-link"
-            >
-              <FileText size={16} /> {t('contactInfoForm')}
-            </a>
-            <Link href={`/report/utleier/${listing.id}`} className="button hm-formidlet-handover-link">
-              <FileText size={16} /> {t('fillHandoverReport')}
-            </Link>
-          </div>
-        </div>
-      )}
+  const thumb = listing.image_url ? (
+    <OptimizedPublicStorageImage
+      variant="fill"
+      src={listing.image_url}
+      alt=""
+      sizes="120px"
+      className="ds-property-card__thumb-img"
+    />
+  ) : (
+    <div className="ds-property-card__placeholder ds-property-card__placeholder--icon">
+      <HomeIcon size={30} aria-hidden />
     </div>
+  )
+
+  return (
+    <PropertyCard
+      layout="row"
+      className="hm-listing-card"
+      title={listing.address}
+      meta={meta}
+      image={thumb}
+      status={<ListingStatusBadge availability={todaySt} />}
+      footer={
+        todaySt !== 'Formidla' ? (
+          <ListingAvailabilityOverview
+            listingId={listing.id}
+            periods={availability[listing.id] ?? []}
+            eventOptIns={eventOptIns}
+            tourismEnabled={Boolean(listing.tourism_enabled)}
+            showTourism={tourism}
+            showEvents={centralEvents}
+          />
+        ) : null
+      }
+      actions={
+        <div className="hm-listing-card-actions">
+          <Link href={hubHref} className={buttonClassName('accent', 'hm-open-listing-cta')}>
+            {t('manageOpenListing')}
+          </Link>
+          {isMobileLayout ? (
+            <button
+              type="button"
+              className="hm-listing-card-actions__sheet-trigger"
+              aria-label={t('manageListingActions')}
+              onClick={() => onOpenActionSheet(listing.id)}
+            >
+              <MoreHorizontal size={18} aria-hidden />
+            </button>
+          ) : (
+            <LandlordListingCardMenu items={secondaryItems} label={t('manageListingActions')} />
+          )}
+        </div>
+      }
+    />
   )
 }

@@ -20,7 +20,7 @@ import {
 } from '@/app/components/PWAInstallPrompt'
 import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
-import { EmptyState } from '@/app/components/design-system'
+import { EmptyState, useToast } from '@/app/components/design-system'
 import EventTaskCards from '@/features/listings/components/EventTaskCards'
 import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
 import LandlordStripeConnect from '@/features/bookings/components/LandlordStripeConnect'
@@ -36,12 +36,15 @@ import LandlordManageFilters, {
   type ManageListingFilter,
 } from '@/features/listings/components/manage/LandlordManageFilters'
 import LandlordListingCard from '@/features/listings/components/manage/LandlordListingCard'
+import LandlordListingActionSheet from '@/features/listings/components/manage/LandlordListingActionSheet'
+import ConfirmDeleteDialog from '@/features/listings/components/ConfirmDeleteDialog'
 import LandlordNonSubscribedBanner from '@/features/listings/components/LandlordNonSubscribedBanner'
 import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import '@/features/listings/landlord-manage.css'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
+  const toast = useToast()
   const { flags: platformFlags } = usePlatformMode()
   const router = useRouter()
   const [showOverviewIntro, setShowOverviewIntro] = useState(false)
@@ -49,7 +52,9 @@ export default function HomeownerManage() {
   const onboardingRef = useRef<ListingsOnboardingCallbacks | null>(null)
   const {
     myListings,
+    setMyListings,
     availability,
+    setAvailability,
     eventOptInsByListing,
     loading,
     setLoading,
@@ -82,6 +87,56 @@ export default function HomeownerManage() {
   const [filter, setFilter] = useState<ManageListingFilter>('all')
   const filtersRowRef = useRef<HTMLDivElement>(null)
   const [isMobileLayout, setIsMobileLayout] = useState(false)
+  const [actionSheetListingId, setActionSheetListingId] = useState<string | null>(null)
+  const [pendingDeleteListing, setPendingDeleteListing] = useState<{
+    id: string
+    address: string
+  } | null>(null)
+
+  const actionSheetListing = actionSheetListingId
+    ? myListings.find((l) => l.id === actionSheetListingId) ?? null
+    : null
+
+  const executeDeleteListing = async () => {
+    if (!pendingDeleteListing) return
+    const { id, address } = pendingDeleteListing
+    const listingRow = myListings.find((l) => l.id === id)
+    if (listingRow && listingAvailabilityStatusToday(listingRow.id, availability) === 'Formidla') {
+      toast(t('ownerCannotEditListingWhenFormidlet'), 'error')
+      setPendingDeleteListing(null)
+      return
+    }
+
+    const prevListings = myListings
+    setMyListings((prev) => prev.filter((item) => item.id !== id))
+
+    try {
+      const { error } = await supabase.from('listings').delete().eq('id', id)
+      if (error) throw error
+
+      const user = await getAuthUserDeduped()
+      await supabase.from('audit_logs').insert([
+        {
+          user_id: user?.id,
+          action_type: 'DELETE_LISTING',
+          listing_address: address,
+          details: { address },
+        },
+      ])
+
+      setAvailability((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      setPendingDeleteListing(null)
+      toast(t('listingHubDeleted'), 'success')
+    } catch (err: unknown) {
+      setMyListings(prevListings)
+      toast(t('errDeleteGeneric') + (err instanceof Error ? err.message : ''), 'error')
+      setPendingDeleteListing(null)
+    }
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -190,6 +245,14 @@ export default function HomeownerManage() {
 
   return (
     <main className="container hm-manage-page">
+      <ConfirmDeleteDialog
+        pendingDeleteListing={pendingDeleteListing}
+        onCancelListing={() => setPendingDeleteListing(null)}
+        onConfirmListing={() => void executeDeleteListing()}
+        pendingDeletePeriod={null}
+        onCancelPeriod={() => {}}
+        onConfirmPeriod={() => {}}
+      />
       <LandlordNonSubscribedBanner city={primaryListingCity} />
       <PwaInstallPromptDialog
         open={pendingPwaBeforeOverview}
@@ -302,6 +365,8 @@ export default function HomeownerManage() {
                   isMobileLayout={isMobileLayout}
                   centralEvents={platformFlags.centralEvents}
                   tourism={platformFlags.tourism}
+                  onOpenActionSheet={setActionSheetListingId}
+                  onPendingDeleteListing={setPendingDeleteListing}
                 />
               ))
             ) : (
@@ -316,6 +381,16 @@ export default function HomeownerManage() {
             )}
           </div>
       </div>
+
+      {actionSheetListing ? (
+        <LandlordListingActionSheet
+          listing={actionSheetListing}
+          open={!!actionSheetListingId}
+          availability={availability}
+          onClose={() => setActionSheetListingId(null)}
+          onPendingDeleteListing={setPendingDeleteListing}
+        />
+      ) : null}
     </main>
   )
 }

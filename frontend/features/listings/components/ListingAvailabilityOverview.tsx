@@ -65,14 +65,16 @@ export default function ListingAvailabilityOverview({
       {chips.map(({ id, label, icon: Icon, active, muted }) => (
         <span
           key={id}
-          className={`listing-lane-chip${active ? ' listing-lane-chip--active' : ''}${muted ? ' listing-lane-chip--muted' : ''}`}
+          className={`listing-lane-overview-chip listing-lane-overview-chip--${id}${active ? ' listing-lane-overview-chip--active' : ''}${muted ? ' listing-lane-overview-chip--muted' : ''}`}
         >
           <Icon size={14} aria-hidden />
           {label}
         </span>
       ))}
       {todayStatus === 'Ikke markert' ? (
-        <span className="listing-lane-chip listing-lane-chip--unmarked">{t('availabilityUnmarked')}</span>
+        <span className="listing-lane-overview-chip listing-lane-chip--unmarked">
+          {t('availabilityUnmarked')}
+        </span>
       ) : null}
     </div>
   )

@@ -1,105 +1,92 @@
-/* Landlord manage — listing cards and inline panels */
+/* Landlord manage — Property Card listing rows and action menus */
 
 .hm-listing-card {
-  padding: var(--space-4) var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.hm-listing-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-}
-
-.hm-listing-main {
-  display: flex;
-  gap: var(--space-4);
-  align-items: center;
-  flex: 1 1 200px;
-  min-width: 0;
-}
-
-.hm-listing-thumb {
-  position: relative;
-  width: 100px;
-  height: 70px;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--bg-app);
-  border: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-}
-
-.hm-listing-thumb-img {
-  object-fit: cover;
-}
-
-.hm-listing-thumb-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-sky-blue);
-  opacity: 0.3;
-}
-
-.hm-listing-title-link {
-  margin: 0;
   padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-  color: inherit;
 }
 
-.hm-listing-title-link h3 {
-  margin: 0;
+.hm-listing-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
-.hm-listing-meta {
-  margin-top: 4px;
-}
-
-.hm-status-badge {
-  font-size: 0.7rem;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-}
-
-.hm-status-badge--formidlet {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--color-sky-blue);
-}
-
-.hm-status-badge--unavailable {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.hm-status-badge--available {
-  background: rgba(45, 212, 191, 0.15);
-  color: var(--color-teal);
-  border: 1px solid rgba(45, 212, 191, 0.3);
-}
-
-.hm-listing-title-static {
-  margin: 0;
-  font-size: 1.05rem;
-}
-
-.hm-administrer-cta {
+.hm-open-listing-cta {
   min-height: 44px;
   white-space: nowrap;
+}
+
+.hm-listing-card-actions__sheet-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-target-sm);
+  min-height: var(--touch-target-sm);
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-app);
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.hm-listing-card-menu {
+  position: relative;
+}
+
+.hm-listing-card-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-target-sm);
+  min-height: var(--touch-target-sm);
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-app);
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.hm-listing-card-menu__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 11rem;
+  padding: var(--space-1);
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12));
+}
+
+.hm-listing-card-menu__item {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hm-listing-card-menu__item:hover {
+  background: var(--bg-app);
+}
+
+.hm-listing-card-menu__item--danger {
+  color: #ef4444;
+}
+
+.hm-sheet-btn--primary {
+  background: var(--color-accent);
+  color: white;
+  border: none;
 }
 
 #bookings {
