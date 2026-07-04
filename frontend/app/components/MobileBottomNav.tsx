@@ -4,10 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { User as AuthUser } from '@supabase/supabase-js'
-import { Bell, Globe, Menu, Moon, Sun } from 'lucide-react'
+import { Bell, Globe, Menu } from 'lucide-react'
+import { CurtainThemeToggle } from '@/app/components/ui/curtain-theme-toggle'
 import { useLanguage } from '../../context/LanguageContext'
 import { usePlatformMode } from '../../context/PlatformModeContext'
-import { useTheme } from '../../context/ThemeContext'
 import {
   isKommuneAdminRole,
   isKommuneStaffRole,
@@ -28,7 +28,6 @@ type MobileBottomNavProps = {
 
 function MobileBottomNavAppearanceControls() {
   const { t, locale, setLocale } = useLanguage()
-  const { theme, toggleTheme } = useTheme()
   return (
     <div
       style={{
@@ -69,27 +68,7 @@ function MobileBottomNavAppearanceControls() {
           <option value="en">{t('english')}</option>
         </select>
       </div>
-      <button
-        type="button"
-        onClick={toggleTheme}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-2)',
-          width: '100%',
-          padding: '10px 12px',
-          minHeight: 'var(--touch-target)',
-          borderRadius: 8,
-          background: 'var(--bg-app)',
-          border: '1px solid var(--border-subtle)',
-          color: 'var(--text-main)',
-          cursor: 'pointer',
-          fontSize: '0.9rem',
-        }}
-      >
-        {theme === 'dark' ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}
-        {theme === 'dark' ? t('lightMode') : t('darkMode')}
-      </button>
+      <CurtainThemeToggle variant="menu" />
     </div>
   )
 }

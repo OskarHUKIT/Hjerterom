@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { supabase } from '../app/lib/supabase'
 
-type Theme = 'dark' | 'light'
+export type Theme = 'dark' | 'light'
 
 /** Legacy global key — migrated once to per-user storage, then removed. */
 export const THEME_STORAGE_KEY_LEGACY = 'boly-theme'

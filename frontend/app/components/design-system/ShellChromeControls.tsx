@@ -1,8 +1,8 @@
 'use client'
 
-import { Globe, Moon, Sun } from 'lucide-react'
+import { Globe } from 'lucide-react'
+import { CurtainThemeToggle } from '@/app/components/ui/curtain-theme-toggle'
 import { useLanguage } from '@/context/LanguageContext'
-import { useTheme } from '@/context/ThemeContext'
 import type { Locale } from '@/lib/translations'
 
 type ShellChromeControlsProps = {
@@ -15,7 +15,6 @@ type ShellChromeControlsProps = {
  */
 export default function ShellChromeControls({ className, compact }: ShellChromeControlsProps) {
   const { t, locale, setLocale } = useLanguage()
-  const { theme, toggleTheme } = useTheme()
 
   return (
     <div className={`shell-chrome-controls${className ? ` ${className}` : ''}`}>
@@ -32,15 +31,7 @@ export default function ShellChromeControls({ className, compact }: ShellChromeC
           <option value="en">{t('english')}</option>
         </select>
       </label>
-      <button
-        type="button"
-        onClick={toggleTheme}
-        className="shell-chrome-controls__theme"
-        aria-label={theme === 'dark' ? t('lightMode') : t('darkMode')}
-      >
-        {theme === 'dark' ? <Sun size={compact ? 14 : 16} aria-hidden /> : <Moon size={compact ? 14 : 16} aria-hidden />}
-        {!compact && <span>{theme === 'dark' ? t('lightMode') : t('darkMode')}</span>}
-      </button>
+      <CurtainThemeToggle variant="chrome" compact={compact} />
     </div>
   )
 }

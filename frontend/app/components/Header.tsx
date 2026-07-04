@@ -17,8 +17,6 @@ import {
   Menu,
   X,
   MessageSquare,
-  Sun,
-  Moon,
   Globe,
   Building2,
   Home,
@@ -26,7 +24,6 @@ import {
 } from 'lucide-react'
 import { useAuthSession } from '../../context/AuthSessionContext'
 import { useLanguage } from '../../context/LanguageContext'
-import { useTheme } from '../../context/ThemeContext'
 import { usePlatformMode } from '../../context/PlatformModeContext'
 import {
   isKommuneAdminRole,
@@ -36,6 +33,7 @@ import {
 import { devInfo, logError } from '@/app/lib/appLogger'
 import MobileBottomNav from './MobileBottomNav'
 import ShellChromeControls from './design-system/ShellChromeControls'
+import { CurtainThemeToggle } from './ui/curtain-theme-toggle'
 import { navItemsFor, isNavActive } from '../../lib/navConfig'
 
 export default function Header() {
@@ -43,7 +41,6 @@ export default function Header() {
   const pathname = usePathname()
   const { user, isReady: authReady } = useAuthSession()
   const { t, locale, setLocale } = useLanguage()
-  const { theme, toggleTheme } = useTheme()
   const { flags: platformFlags } = usePlatformMode()
   const platformNav = {
     centralEvents: platformFlags.centralEvents,
@@ -440,27 +437,7 @@ export default function Header() {
                       <option value="en">{t('english')}</option>
                     </select>
                   </div>
-                  <button
-                    type="button"
-                    onClick={toggleTheme}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-2)',
-                      width: '100%',
-                      padding: '10px 12px',
-                      minHeight: 'var(--touch-target)',
-                      borderRadius: 8,
-                      background: 'var(--bg-app)',
-                      border: '1px solid var(--border-subtle)',
-                      color: 'var(--text-main)',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                    }}
-                  >
-                    {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-                    {theme === 'dark' ? t('lightMode') : t('darkMode')}
-                  </button>
+                  <CurtainThemeToggle variant="menu" compact />
                 </div>
               </div>
 
