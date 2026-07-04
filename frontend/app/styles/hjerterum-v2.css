@@ -153,9 +153,9 @@ body::before {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--hrt-teal);
-  background: var(--hrt-teal-soft);
-  border: 1px solid color-mix(in srgb, var(--hrt-teal) 28%, transparent);
+  color: var(--text-body);
+  background: var(--hrt-surface-raised);
+  border: 1px solid var(--border-subtle);
 }
 
 .home-landing .hero-title {
@@ -443,8 +443,8 @@ body::before {
 
 .hrt-alert--success {
   background: var(--hrt-teal-soft);
-  border: 1px solid var(--hrt-teal);
-  color: var(--hrt-teal);
+  border: 1px solid color-mix(in srgb, var(--hrt-teal) 45%, transparent);
+  color: var(--text-main);
 }
 
 .hrt-alert--error {
@@ -627,12 +627,11 @@ a:focus-visible {
 /* ─── Footer polish ─── */
 .footer {
   border-top: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--bg-card) 75%, transparent);
-  backdrop-filter: blur(8px);
+  background: var(--bg-card);
 }
 
 [data-theme='light'] .footer {
-  background: color-mix(in srgb, #ffffff 90%, transparent);
+  background: var(--bg-card);
 }
 
 .footer-link {
