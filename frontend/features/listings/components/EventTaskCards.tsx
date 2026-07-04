@@ -38,12 +38,8 @@ export default function EventTaskCards({ listingIds }: Props) {
       {pending.map((event) => (
         <div
           key={event.id}
-          className="card"
-          style={{
-            padding: 'var(--space-5)',
-            borderLeft: '4px solid var(--color-royal-blue)',
-            background: 'rgba(59, 130, 246, 0.06)',
-          }}
+          className="card hrt-callout hrt-callout--info"
+          style={{ padding: 'var(--space-5)' }}
         >
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <Sparkles size={22} style={{ color: 'var(--color-royal-blue)', flexShrink: 0, marginTop: 2 }} aria-hidden />

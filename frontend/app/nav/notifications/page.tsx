@@ -564,12 +564,11 @@ export default function NavNotifications() {
             return (
               <div
                 key={notif.id}
-                className={`card notif-card ${notif.status}`}
+                className={`card notif-card hrt-callout ${notif.status === 'unread' ? 'hrt-callout--accent' : 'hrt-callout--teal'} ${notif.status}`}
                 style={{
                   padding: 'var(--space-6)',
                   opacity: notif.status === 'completed' ? 0.88 : 1,
-                  borderLeft: `4px solid ${notif.status === 'unread' ? 'var(--color-accent)' : 'var(--color-teal)'}`,
-                  transition: 'all 0.2s',
+                  transition: 'opacity 0.2s',
                 }}
               >
                 <div className="notif-card-inner">

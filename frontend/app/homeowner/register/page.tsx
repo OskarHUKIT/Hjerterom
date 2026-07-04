@@ -598,14 +598,9 @@ export default function HomeownerRegister() {
         <p style={{ maxWidth: '700px', opacity: 0.8 }}>{t('regLead')}</p>
         {socialKommuneActive === false && (
           <div
-            className="card"
+            className="card hrt-callout hrt-callout--accent"
             role="status"
-            style={{
-              marginTop: 'var(--space-4)',
-              maxWidth: '700px',
-              padding: 'var(--space-4)',
-              borderLeft: '4px solid var(--color-accent)',
-            }}
+            style={{ marginTop: 'var(--space-4)', maxWidth: '700px' }}
           >
             <strong>{t('landlordNonSubscribedTitle')}</strong>
             <p style={{ margin: 'var(--space-2) 0 0', lineHeight: 1.55 }}>{t('landlordNonSubscribedBody')}</p>

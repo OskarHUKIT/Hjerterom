@@ -16,7 +16,7 @@
   --touch-target: 44px;
   --touch-target-sm: 44px;
 
-  /* Core Colors — Option B: blå-forward; teal = suksess / formidling */
+  /* Core Colors: blå-forward; teal = suksess / formidling */
   --color-dark-navy: #0f172a;
   --color-royal-blue: #3b82f6;
   --color-muted-blue: #60a5fa;
@@ -49,7 +49,7 @@
   --space-8: 64px;
   --space-10: 80px;
 
-  /* Layout: høyde ca. sticky header (logo + padding) — brukes til min-hovedflate */
+  /* Layout: høyde ca. sticky header (logo + padding), brukes til min-hovedflate */
   --site-header-estimate: 5.5rem;
 
   /* Elevation */
@@ -191,39 +191,13 @@ body {
   position: relative;
 }
 
+/* Scenic background: CSS-only gradient mesh in styles/hjerterum-v2.css (no remote images) */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image:
-    linear-gradient(to bottom, rgba(2, 6, 23, 0.7) 0%, rgba(2, 6, 23, 0.95) 100%),
-    url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
-  background-size: cover;
-  background-position: center 70%;
-  background-repeat: no-repeat;
-}
-
-@media (max-width: 768px) {
-  body::before {
-    background-position: 42% 78%;
-  }
-}
-
-[data-theme='light'] body::before {
-  background-image:
-    linear-gradient(to bottom, rgba(248, 250, 252, 0.92) 0%, rgba(241, 245, 249, 0.95) 100%),
-    url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
-}
-
-@media (max-width: 768px) {
-  [data-theme='light'] body::before {
-    background-position: 42% 78%;
-    background-image:
-      linear-gradient(to bottom, rgba(248, 250, 252, 0.82) 0%, rgba(241, 245, 249, 0.94) 100%),
-      url('https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?auto=format&fit=crop&w=3000&q=80');
-  }
 }
 
 a {
@@ -372,10 +346,8 @@ body:has(.site-main--ops) {
 }
 
 .card:not(.no-hover):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.35);
-  border-color: rgba(59, 130, 246, 0.25);
-  background: rgba(15, 23, 42, 0.5);
+  border-color: color-mix(in srgb, var(--color-royal-blue) 28%, var(--border-subtle));
+  box-shadow: var(--shadow-md);
 }
 
 [data-theme='light'] .card {
@@ -384,9 +356,8 @@ body:has(.site-main--ops) {
 }
 
 [data-theme='light'] .card:not(.no-hover):hover {
-  background: rgba(255, 255, 255, 1);
-  border-color: rgba(59, 130, 246, 0.2);
-  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.1);
+  border-color: color-mix(in srgb, var(--color-accent) 25%, var(--border-subtle));
+  box-shadow: var(--shadow-md);
 }
 
 /* Innstillings-/filterpaneler: bruk temaets bakgrunn (ingen mørk override) */
@@ -653,8 +624,7 @@ body:has(.site-main--ops) {
 }
 
 .button:hover {
-  background-color: #2563eb;
-  transform: translateY(-1px);
+  background-color: var(--hrt-primary-hover, #5578f0);
   box-shadow: var(--shadow-md);
 }
 
@@ -666,7 +636,7 @@ body:has(.site-main--ops) {
 }
 
 .button:active {
-  transform: translateY(0);
+  opacity: 0.92;
 }
 
 /* Sekundær blå CTA (Option B — ikke formidling) */
@@ -3181,7 +3151,6 @@ body.mobile-bottom-nav-active .ds-toast-region {
   border-color: var(--color-royal-blue);
   background: color-mix(in srgb, var(--color-royal-blue) 12%, var(--bg-surface));
   color: var(--text-main);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
 }
 
 .avail-today-banner {

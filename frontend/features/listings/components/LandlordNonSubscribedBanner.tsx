@@ -36,13 +36,9 @@ export default function LandlordNonSubscribedBanner({ city }: LandlordNonSubscri
 
   return (
     <div
-      className="card"
+      className="card hrt-callout hrt-callout--accent"
       role="status"
-      style={{
-        marginBottom: 'var(--space-4)',
-        padding: 'var(--space-4)',
-        borderLeft: '4px solid var(--color-accent)',
-      }}
+      style={{ marginBottom: 'var(--space-4)' }}
     >
       <strong>{t('landlordNonSubscribedTitle')}</strong>
       <p style={{ margin: 'var(--space-2) 0 var(--space-3)', lineHeight: 1.55 }}>

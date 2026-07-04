@@ -9,18 +9,13 @@
   --finn-text-muted: var(--text-muted);
   --finn-border: var(--border-subtle);
   --finn-accent: var(--color-accent);
-  --finn-accent-soft: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --finn-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --finn-shadow: var(--shadow-md);
 
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--bg-card) 90%, var(--color-accent) 10%) 0%,
-    var(--finn-bg) 45%,
-    var(--finn-bg) 100%
-  );
+  background: var(--finn-bg);
   color: var(--finn-text);
 }
 

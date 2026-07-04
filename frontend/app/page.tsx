@@ -12,11 +12,26 @@ export default function Home() {
   const { flags } = usePlatformMode()
   const [showDemoPopup, setShowDemoPopup] = useState(false)
 
+  const heroTitle = t('heroTitle')
+  const heroAccent = t('heroTitleAccent')
+  const titleParts = heroAccent ? heroTitle.split(heroAccent) : [heroTitle]
+
   return (
     <main className="home-landing container">
       <div className="home-landing-layout">
         <div className="hero-section">
-          <h1 className="animate-delay-1 hero-title">{t('heroTitle')}</h1>
+          <p className="hrt-hero-eyebrow animate-delay-1">{t('heroEyebrow')}</p>
+          <h1 className="animate-delay-1 hero-title">
+            {titleParts.length > 1 ? (
+              <>
+                {titleParts[0]}
+                <em>{heroAccent}</em>
+                {titleParts.slice(1).join(heroAccent)}
+              </>
+            ) : (
+              heroTitle
+            )}
+          </h1>
           <p className="animate-delay-2 hero-lead">{t('heroDesc')}</p>
           <ul className="hrt-trust-row animate-delay-2" aria-label={t('homeTrustAria')}>
             <li className="hrt-trust-badge">
@@ -38,6 +53,7 @@ export default function Home() {
           <PortalCard
             icon={LogIn}
             title={t('homeLoginCardTitle')}
+            description={t('homeLoginCardDesc')}
             ctaLabel={t('homeLoginCardCta')}
             href="/login"
             variant="accent"
@@ -47,6 +63,7 @@ export default function Home() {
           <PortalCard
             icon={Presentation}
             title={t('homeDemoCardTitle')}
+            description={t('homeDemoCardDesc')}
             ctaLabel={t('homeDemoCardCta')}
             onClick={() => setShowDemoPopup(true)}
             variant="primary"
