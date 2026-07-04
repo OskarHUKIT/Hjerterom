@@ -7,6 +7,7 @@ import BottomSheet from '@/app/components/BottomSheet'
 import { publicContactInfoFormPdfUrl } from '@/app/lib/storagePublicUrl'
 import { listingAvailabilityStatusToday } from '@/app/lib/listingAvailabilityStatusToday'
 import { useLanguage } from '@/context/LanguageContext'
+import '@/features/listings/landlord-manage.css'
 
 type ManagePanel = 'calendar' | 'events' | 'tourism'
 
@@ -24,6 +25,70 @@ type LandlordListingActionSheetProps = {
   onOpenPeriodCalendar: (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => void
   onOpenListingPanel: (listingId: string, panel: ManagePanel) => void
   onPendingDeleteListing: (listing: { id: string; address: string }) => void
+}
+
+function AvailabilityToggleButtons({
+  listing,
+  todayStatus,
+  isTodayAvailableOrUnset,
+  onOpenPeriodCalendar,
+  onClose,
+  t,
+}: {
+  listing: { id: string }
+  todayStatus: string
+  isTodayAvailableOrUnset: (listing: { id: string }) => boolean
+  onOpenPeriodCalendar: (listingId: string, status: 'Tilgjengelig' | 'Utilgjengelig') => void
+  onClose: () => void
+  t: (key: string) => string
+}) {
+  const open = (status: 'Tilgjengelig' | 'Utilgjengelig') => {
+    onOpenPeriodCalendar(listing.id, status)
+    onClose()
+  }
+
+  if (isTodayAvailableOrUnset(listing)) {
+    return (
+      <button
+        type="button"
+        onClick={() => open('Utilgjengelig')}
+        className="button hm-btn-unavailable hm-btn-unavailable--sheet"
+      >
+        {t('manageRentalNav')}
+      </button>
+    )
+  }
+
+  if (todayStatus === 'Utilgjengelig') {
+    return (
+      <button
+        type="button"
+        onClick={() => open('Tilgjengelig')}
+        className="button hm-btn-available hm-btn-available--sheet"
+      >
+        {t('markAvailable')}
+      </button>
+    )
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => open('Utilgjengelig')}
+        className="button hm-btn-unavailable hm-btn-unavailable--sheet"
+      >
+        {t('manageRentalNav')}
+      </button>
+      <button
+        type="button"
+        onClick={() => open('Tilgjengelig')}
+        className="button hm-btn-available hm-btn-available--sheet"
+      >
+        {t('markAvailable')}
+      </button>
+    </>
+  )
 }
 
 export default function LandlordListingActionSheet({
@@ -51,7 +116,7 @@ export default function LandlordListingActionSheet({
       onClose={onClose}
       zIndex={2200}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+      <div className="hm-sheet-stack">
         {todayStatus === 'Formidla' && (
           <>
             <a
@@ -59,149 +124,40 @@ export default function LandlordListingActionSheet({
               target="_blank"
               rel="noopener noreferrer"
               download
-              className="button"
-              style={{
-                width: '100%',
-                justifyContent: 'center',
-                padding: 'var(--space-3) var(--space-4)',
-                fontSize: '0.9rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                textDecoration: 'none',
-                boxSizing: 'border-box',
-              }}
+              className="button hm-sheet-btn"
               onClick={onClose}
             >
               <FileText size={16} /> {t('contactInfoForm')}
             </a>
             <Link
               href={`/report/utleier/${listing.id}`}
-              className="button"
-              style={{
-                width: '100%',
-                justifyContent: 'center',
-                padding: 'var(--space-3) var(--space-4)',
-                fontSize: '0.9rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                textDecoration: 'none',
-                background: 'var(--color-teal)',
-                color: 'white',
-                border: 'none',
-                boxSizing: 'border-box',
-              }}
+              className="button hm-sheet-btn hm-sheet-btn--teal"
               onClick={onClose}
             >
               <FileText size={16} /> {t('fillHandoverReport')}
             </Link>
           </>
         )}
+
         {todayStatus !== 'Formidla' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            {isTodayAvailableOrUnset(listing) ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenPeriodCalendar(listing.id, 'Utilgjengelig')
-                  onClose()
-                }}
-                className="button"
-                style={{
-                  padding: 'var(--space-3) var(--space-4)',
-                  fontSize: '0.9rem',
-                  borderRadius: '8px',
-                  width: '100%',
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  color: '#ef4444',
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  cursor: 'pointer',
-                }}
-              >
-                {t('manageRentalNav')}
-              </button>
-            ) : todayStatus === 'Utilgjengelig' ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenPeriodCalendar(listing.id, 'Tilgjengelig')
-                  onClose()
-                }}
-                className="button"
-                style={{
-                  padding: 'var(--space-3) var(--space-4)',
-                  fontSize: '0.9rem',
-                  borderRadius: '8px',
-                  width: '100%',
-                  background: 'rgba(32, 187, 175, 0.12)',
-                  color: 'var(--color-teal)',
-                  border: '1px solid rgba(32, 187, 175, 0.25)',
-                  cursor: 'pointer',
-                }}
-              >
-                {t('markAvailable')}
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenPeriodCalendar(listing.id, 'Utilgjengelig')
-                    onClose()
-                  }}
-                  className="button"
-                  style={{
-                    padding: 'var(--space-3) var(--space-4)',
-                    fontSize: '0.9rem',
-                    borderRadius: '8px',
-                    width: '100%',
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    color: '#ef4444',
-                    border: '1px solid rgba(239, 68, 68, 0.25)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {t('manageRentalNav')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenPeriodCalendar(listing.id, 'Tilgjengelig')
-                    onClose()
-                  }}
-                  className="button"
-                  style={{
-                    padding: 'var(--space-3) var(--space-4)',
-                    fontSize: '0.9rem',
-                    borderRadius: '8px',
-                    width: '100%',
-                    background: 'rgba(32, 187, 175, 0.12)',
-                    color: 'var(--color-teal)',
-                    border: '1px solid rgba(32, 187, 175, 0.25)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {t('markAvailable')}
-                </button>
-              </>
-            )}
+          <div className="hm-sheet-group">
+            <AvailabilityToggleButtons
+              listing={listing}
+              todayStatus={todayStatus}
+              isTodayAvailableOrUnset={isTodayAvailableOrUnset}
+              onOpenPeriodCalendar={onOpenPeriodCalendar}
+              onClose={onClose}
+              t={t}
+            />
           </div>
         )}
+
         {todayStatus !== 'Formidla' && (centralEvents || tourism) && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          <div className="hm-sheet-group">
             {centralEvents ? (
               <button
                 type="button"
-                className="button button-secondary"
-                style={{
-                  width: '100%',
-                  justifyContent: 'center',
-                  padding: 'var(--space-3) var(--space-4)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
+                className="button button-secondary hm-sheet-btn"
                 onClick={() => {
                   onOpenListingPanel(listing.id, 'events')
                   onClose()
@@ -214,15 +170,7 @@ export default function LandlordListingActionSheet({
             {tourism ? (
               <button
                 type="button"
-                className="button button-secondary"
-                style={{
-                  width: '100%',
-                  justifyContent: 'center',
-                  padding: 'var(--space-3) var(--space-4)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
+                className="button button-secondary hm-sheet-btn"
                 onClick={() => {
                   onOpenListingPanel(listing.id, 'tourism')
                   onClose()
@@ -234,15 +182,7 @@ export default function LandlordListingActionSheet({
             ) : null}
             <button
               type="button"
-              className="button button-secondary"
-              style={{
-                width: '100%',
-                justifyContent: 'center',
-                padding: 'var(--space-3) var(--space-4)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
+              className="button button-secondary hm-sheet-btn"
               onClick={() => {
                 onOpenListingPanel(listing.id, 'calendar')
                 onClose()
@@ -253,19 +193,12 @@ export default function LandlordListingActionSheet({
             </button>
           </div>
         )}
+
         {todayStatus !== 'Formidla' && (
           <>
             <button
               type="button"
-              className="button button-secondary"
-              style={{
-                width: '100%',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-3) var(--space-4)',
-              }}
+              className="button button-secondary hm-sheet-btn"
               onClick={() => {
                 router.push(`/listings/${listing.id}?view=owner`)
                 onClose()
@@ -276,18 +209,7 @@ export default function LandlordListingActionSheet({
             </button>
             <button
               type="button"
-              className="button"
-              style={{
-                width: '100%',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-3) var(--space-4)',
-                background: 'rgba(239, 68, 68, 0.08)',
-                color: '#ef4444',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-              }}
+              className="button hm-sheet-btn hm-sheet-btn--danger"
               onClick={() => {
                 onPendingDeleteListing({ id: listing.id, address: listing.address })
                 onClose()
@@ -298,18 +220,11 @@ export default function LandlordListingActionSheet({
             </button>
           </>
         )}
+
         {todayStatus === 'Formidla' && (
           <button
             type="button"
-            className="button button-secondary"
-            style={{
-              width: '100%',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 'var(--space-2)',
-              padding: 'var(--space-3) var(--space-4)',
-            }}
+            className="button button-secondary hm-sheet-btn"
             onClick={() => {
               router.push(`/listings/${listing.id}?view=owner`)
               onClose()

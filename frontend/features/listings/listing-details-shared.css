@@ -1661,3 +1661,132 @@
     padding: var(--space-4);
   }
 }
+
+/* ─── Address section ─── */
+.listing-address-section {
+  padding: var(--space-6);
+  position: relative;
+}
+
+.listing-nav-notes-btn {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  min-width: var(--touch-target-sm);
+  min-height: var(--touch-target-sm);
+}
+
+.listing-nav-notes-btn--active {
+  background: var(--color-accent);
+  color: var(--text-on-dark);
+}
+
+.listing-nav-notes-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--color-teal);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.listing-address-title-input {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: var(--space-2);
+  color: var(--text-main);
+  border: none;
+  background: none;
+  width: 100%;
+  padding: 0;
+  outline: none;
+}
+
+.listing-address-title {
+  font-size: 2rem;
+  margin-bottom: var(--space-2);
+  color: var(--text-main);
+}
+
+.listing-address-title--nav {
+  padding-right: 48px;
+}
+
+.listing-formidlet-notice {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-body);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 12px;
+}
+
+.listing-city-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-royal-blue);
+  font-size: 1rem;
+}
+
+.listing-map-link {
+  display: flex;
+  align-items: center;
+  color: inherit;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.listing-map-pin {
+  color: var(--color-royal-blue);
+  flex-shrink: 0;
+}
+
+.listing-city-inputs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.listing-city-input {
+  font-weight: 600;
+  color: var(--color-royal-blue);
+  -webkit-text-fill-color: var(--color-royal-blue);
+  border: none;
+  background: none;
+  padding: 0;
+  outline: none;
+}
+
+.listing-city-input--city {
+  width: 120px;
+}
+
+.listing-city-input--postal {
+  width: 80px;
+}
+
+.listing-city-read {
+  font-weight: 600;
+  color: var(--color-royal-blue);
+}

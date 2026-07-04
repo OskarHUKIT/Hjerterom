@@ -2,6 +2,7 @@
 
 import { type Ref } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
+import '@/features/listings/landlord-manage.css'
 
 export type ManageListingFilter =
   | 'Alle'
@@ -37,20 +38,7 @@ export default function LandlordManageFilters({
 
   return (
     <>
-      <div
-        ref={filtersRowRef}
-        className="hm-filters-row hm-filters-panel"
-        style={{
-          marginBottom: 'var(--space-4)',
-          padding: 'var(--space-3) var(--space-4)',
-          borderRadius: '16px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 'var(--space-3)',
-        }}
-      >
+      <div ref={filtersRowRef} className="hm-filters-row hm-filters-panel">
         <div className="hm-filters-buttons">
           {(
             ['Alle', 'Tilgjengelig', 'Ikke markert', 'Utilgjengelig', 'Formidla'] as const
@@ -63,40 +51,18 @@ export default function LandlordManageFilters({
                 onFilterChange(f)
                 onScrollFiltersIntoViewMobile()
               }}
-              style={{
-                padding: 'var(--space-2) var(--space-4)',
-                borderRadius: '20px',
-                fontSize: '0.85rem',
-                fontWeight: filter === f ? 600 : 500,
-                cursor: 'pointer',
-                background: filter === f ? 'var(--color-royal-blue)' : 'transparent',
-                border: filter === f ? '1px solid var(--color-royal-blue)' : '1px solid var(--border-medium)',
-                color: filter === f ? 'white' : 'var(--text-main)',
-                transition: 'all 0.15s ease',
-                boxShadow: filter === f ? '0 1px 4px rgba(59, 130, 246, 0.3)' : 'none',
-              }}
+              className="hm-filter-chip"
             >
               {filterLabel(f)}
             </button>
           ))}
         </div>
-        <div style={{ fontSize: '0.85rem', opacity: 0.6 }}>
+        <div className="hm-filter-count">
           {t('showing')} {filteredCount} {t('propertiesPlural')}
         </div>
       </div>
 
-      {filter !== 'Alle' && (
-        <p
-          style={{
-            fontSize: '0.8rem',
-            color: 'var(--text-muted)',
-            marginTop: '-0.5rem',
-            marginBottom: 'var(--space-4)',
-          }}
-        >
-          {t('manageFilterActiveHint')}
-        </p>
-      )}
+      {filter !== 'Alle' && <p className="hm-filter-hint">{t('manageFilterActiveHint')}</p>}
     </>
   )
 }

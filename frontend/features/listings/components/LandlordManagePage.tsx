@@ -47,6 +47,7 @@ import LandlordListingCard, {
 } from '@/features/listings/components/manage/LandlordListingCard'
 import LandlordListingActionSheet from '@/features/listings/components/manage/LandlordListingActionSheet'
 import LandlordNonSubscribedBanner from '@/features/listings/components/LandlordNonSubscribedBanner'
+import '@/features/listings/landlord-manage.css'
 
 export default function HomeownerManage() {
   const { t } = useLanguage()
@@ -324,7 +325,7 @@ export default function HomeownerManage() {
 
   if (shouldShowManageFullScreenSpinner(pageGate, loading, fetchError)) {
     return (
-      <main className="container" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center' }}>
+      <main className="container hm-page-loading">
         <LoadingPlaceholder minHeight={160} />
       </main>
     )
@@ -349,63 +350,17 @@ export default function HomeownerManage() {
             skipLinkLabel={t('onboardingSkipIntro')}
             onSkip={() => void dismissLandlordWelcome()}
           >
-            <p
-              style={{
-                margin: '0 0 var(--space-4)',
-                fontSize: '1rem',
-                color: 'var(--text-body)',
-                lineHeight: 1.55,
-              }}
-            >
-              {t('landlordWelcomeIntro')}
-            </p>
-            <ul
-              style={{
-                margin: '0 0 var(--space-5)',
-                paddingLeft: '1.25rem',
-                color: 'var(--text-body)',
-                lineHeight: 1.65,
-                fontSize: '0.95rem',
-              }}
-            >
-              <li style={{ marginBottom: 'var(--space-2)' }}>
-                {t('landlordWelcomeBulletRegister')}
-              </li>
-              <li style={{ marginBottom: 'var(--space-2)' }}>
-                {t('landlordWelcomeBulletMessages')}
-              </li>
+            <p className="hm-onboard-lead">{t('landlordWelcomeIntro')}</p>
+            <ul className="hm-onboard-list">
+              <li className="hm-onboard-list-item">{t('landlordWelcomeBulletRegister')}</li>
+              <li className="hm-onboard-list-item">{t('landlordWelcomeBulletMessages')}</li>
               <li>{t('landlordWelcomeBulletSign')}</li>
             </ul>
-            <div
-              style={{
-                marginBottom: 'var(--space-6)',
-                padding: 'var(--space-4)',
-                borderRadius: 12,
-                background: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.25)',
-              }}
-            >
-              <h2
-                style={{
-                  margin: '0 0 var(--space-2)',
-                  fontSize: '0.85rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: 'var(--color-accent)',
-                }}
-              >
+            <div className="hm-onboard-callout hm-onboard-callout--blue">
+              <h2 className="hm-onboard-callout-title hm-onboard-callout-title--blue">
                 {t('landlordWelcomeOrderTitle')}
               </h2>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: '0.95rem',
-                  color: 'var(--text-main)',
-                  lineHeight: 1.55,
-                }}
-              >
-                {t('landlordWelcomeOrderBody')}
-              </p>
+              <p className="hm-onboard-callout-body">{t('landlordWelcomeOrderBody')}</p>
             </div>
           </LandlordOnboardingModal>
         )}
@@ -443,54 +398,17 @@ export default function HomeownerManage() {
         skipLinkLabel={t('onboardingSkipIntro')}
         onSkip={() => void dismissOverviewIntro()}
       >
-        <p
-          style={{
-            margin: '0 0 var(--space-4)',
-            fontSize: '1rem',
-            color: 'var(--text-body)',
-            lineHeight: 1.55,
-          }}
-        >
-          {t('landlordOverviewLead')}
-        </p>
-        <ul
-          style={{
-            margin: '0 0 var(--space-5)',
-            paddingLeft: '1.25rem',
-            color: 'var(--text-body)',
-            lineHeight: 1.65,
-            fontSize: '0.95rem',
-          }}
-        >
-          <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordOverviewBullet1')}</li>
-          <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordOverviewBullet2')}</li>
+        <p className="hm-onboard-lead">{t('landlordOverviewLead')}</p>
+        <ul className="hm-onboard-list">
+          <li className="hm-onboard-list-item">{t('landlordOverviewBullet1')}</li>
+          <li className="hm-onboard-list-item">{t('landlordOverviewBullet2')}</li>
           <li>{t('landlordOverviewBullet3')}</li>
         </ul>
-        <div
-          style={{
-            marginBottom: 'var(--space-6)',
-            padding: 'var(--space-4)',
-            borderRadius: 12,
-            background: 'rgba(45, 212, 191, 0.1)',
-            border: '1px solid rgba(45, 212, 191, 0.28)',
-          }}
-        >
-          <h2
-            style={{
-              margin: '0 0 var(--space-2)',
-              fontSize: '0.85rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: 'var(--color-teal)',
-            }}
-          >
+        <div className="hm-onboard-callout hm-onboard-callout--teal">
+          <h2 className="hm-onboard-callout-title hm-onboard-callout-title--teal">
             {t('landlordOverviewExpectTitle')}
           </h2>
-          <p
-            style={{ margin: 0, fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.55 }}
-          >
-            {t('landlordOverviewExpectBody')}
-          </p>
+          <p className="hm-onboard-callout-body">{t('landlordOverviewExpectBody')}</p>
         </div>
       </LandlordOnboardingModal>
 
@@ -505,27 +423,10 @@ export default function HomeownerManage() {
         skipLinkLabel={t('onboardingSkipIntro')}
         onSkip={() => void dismissMineBoligerIntro()}
       >
-        <p
-          style={{
-            margin: '0 0 var(--space-4)',
-            fontSize: '1rem',
-            color: 'var(--text-body)',
-            lineHeight: 1.55,
-          }}
-        >
-          {t('landlordMineBoligerLead')}
-        </p>
-        <ul
-          style={{
-            margin: '0 0 var(--space-6)',
-            paddingLeft: '1.25rem',
-            color: 'var(--text-body)',
-            lineHeight: 1.65,
-            fontSize: '0.95rem',
-          }}
-        >
-          <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordMineBoligerBullet1')}</li>
-          <li style={{ marginBottom: 'var(--space-2)' }}>{t('landlordMineBoligerBullet2')}</li>
+        <p className="hm-onboard-lead">{t('landlordMineBoligerLead')}</p>
+        <ul className="hm-onboard-list hm-onboard-list--spaced">
+          <li className="hm-onboard-list-item">{t('landlordMineBoligerBullet1')}</li>
+          <li className="hm-onboard-list-item">{t('landlordMineBoligerBullet2')}</li>
           <li>{t('landlordMineBoligerBullet3')}</li>
         </ul>
       </LandlordOnboardingModal>
@@ -542,30 +443,11 @@ export default function HomeownerManage() {
         }
       />
 
-      <div
-        className="hm-header-row"
-        style={{
-          marginBottom: 'var(--space-8)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          flexWrap: 'wrap',
-          gap: 'var(--space-4)',
-        }}
-      >
+      <div className="hm-header-row">
         <div>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 5vw, 2.75rem)', margin: 0 }}>{t('myProperties')}</h1>
+          <h1 className="hm-page-title">{t('myProperties')}</h1>
         </div>
-        <Link
-          href="/homeowner/register"
-          className="button"
-          style={{
-            padding: 'var(--space-4) var(--space-8)',
-            borderRadius: '14px',
-            fontSize: '1.1rem',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <Link href="/homeowner/register" className="button hm-register-cta">
           <Plus size={22} /> <span className="hm-btn-label">{t('registerNewProperty')}</span>
         </Link>
       </div>
@@ -578,88 +460,25 @@ export default function HomeownerManage() {
         <LandlordBookingRequests listingIds={myListings.map((l) => l.id)} />
       ) : null}
 
-      <div
-        className="hm-layout"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '280px 1fr',
-          gap: 'var(--space-8)',
-          alignItems: 'start',
-        }}
-      >
-        <aside className="hm-sidebar" style={{ display: 'grid', gap: 'var(--space-4)' }}>
-          <div className="card hm-nav-card" style={{ padding: 'var(--space-2)' }}>
-            <div
-              style={{
-                width: '100%',
-                padding: 'var(--space-3) var(--space-4)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-3)',
-                background: 'rgba(59, 130, 246, 0.1)',
-                color: 'var(--color-sky-blue)',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-              }}
-            >
+      <div className="hm-layout">
+        <aside className="hm-sidebar">
+          <div className="card hm-nav-card">
+            <div className="hm-nav-item hm-nav-item--active">
               <HomeIcon size={18} />
               <span className="hm-nav-label-long">{t('myPropertiesTab')}</span>
               <span className="hm-nav-label-short">{t('myPropertiesTabShort')}</span>
             </div>
-            <Link
-              href="/homeowner/agreements"
-              style={{
-                width: '100%',
-                padding: 'var(--space-3) var(--space-4)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-3)',
-                color: 'var(--text-main)',
-                textDecoration: 'none',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-              }}
-            >
+            <Link href="/homeowner/agreements" className="hm-nav-item">
               <FileText size={18} />
               <span className="hm-nav-label-long">{t('landlordAgreementsTitle')}</span>
               <span className="hm-nav-label-short">{t('agreementSigned')}</span>
             </Link>
-            <Link
-              href="/homeowner/sign-terms"
-              style={{
-                width: '100%',
-                padding: 'var(--space-3) var(--space-4)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-3)',
-                color: 'var(--text-main)',
-                textDecoration: 'none',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-              }}
-            >
+            <Link href="/homeowner/sign-terms" className="hm-nav-item">
               <FileText size={18} />
               <span className="hm-nav-label-long">{t('signTermsNav')}</span>
               <span className="hm-nav-label-short">{t('signTermsNavShort')}</span>
             </Link>
-            <Link
-              href="/nav/messages"
-              style={{
-                width: '100%',
-                padding: 'var(--space-3) var(--space-4)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-3)',
-                color: 'var(--text-main)',
-                textDecoration: 'none',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-              }}
-            >
+            <Link href="/nav/messages" className="hm-nav-item">
               <MessageSquare size={18} />
               <span className="hm-nav-label-long">{t('messagesToKommune')}</span>
               <span className="hm-nav-label-short">{t('messagesToKommuneShort')}</span>
@@ -676,25 +495,13 @@ export default function HomeownerManage() {
             onScrollFiltersIntoViewMobile={scrollFiltersIntoViewMobile}
           />
 
-          <div
-            style={{
-              display: 'grid',
-              gap: 'var(--space-4)',
-              gridTemplateColumns: 'minmax(0, 1fr)',
-            }}
-          >
+          <div className="hm-listings-grid">
             {loading ? (
               <LoadingPlaceholder minHeight={120} />
             ) : fetchError ? (
-              <div className="card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
-                <Info size={36} style={{ margin: '0 auto var(--space-3)', opacity: 0.45 }} />
-                <p
-                  style={{
-                    margin: '0 0 var(--space-4)',
-                    color: 'var(--text-body)',
-                    lineHeight: 1.55,
-                  }}
-                >
+              <div className="card hm-error-card">
+                <Info size={36} className="hm-error-icon" />
+                <p className="hm-error-text">
                   {fetchError === 'timeout' ? t('manageDataLoadTimeout') : fetchError}
                 </p>
                 <button type="button" className="button" onClick={() => void fetchData()}>
