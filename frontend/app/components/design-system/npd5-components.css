@@ -89,8 +89,17 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-royal-blue) 35%, transparent);
 }
 
-[data-theme='light'] .ds-selector-chip--selected {
-  color: var(--bg-card);
+[data-theme='light'] .homeowner-sidebar-link--active {
+  color: var(--color-royal-blue);
+  background: color-mix(in srgb, var(--color-royal-blue) 12%, transparent);
+}
+
+[data-theme='light'] .ds-status-badge--success {
+  color: color-mix(in srgb, var(--ds-success) 85%, #000);
+}
+
+[data-theme='light'] .ds-status-badge--danger {
+  color: color-mix(in srgb, var(--ds-danger) 85%, #000);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -101,26 +110,32 @@
 
 @media (max-width: 768px) {
   .hm-filters-chips.ds-selector-chips {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    overflow-y: visible;
     width: 100%;
-    padding-bottom: 2px;
-  }
-
-  .hm-filters-chips.ds-selector-chips::-webkit-scrollbar {
-    display: none;
+    min-width: 0;
+    max-width: 100%;
+    padding-bottom: 0;
   }
 
   .hm-filters-panel {
     flex-direction: column;
     align-items: stretch;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .hm-filter-count {
     flex-shrink: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .hm-filters-chips .ds-selector-chip {
+    min-height: 40px;
+    padding: 0 var(--space-3);
+    font-size: 0.8125rem;
   }
 }
 

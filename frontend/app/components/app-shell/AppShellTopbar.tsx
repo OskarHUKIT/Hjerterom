@@ -133,9 +133,16 @@ export default function AppShellTopbar({
           <h1 className="app-shell-topbar__title">{pageTitle}</h1>
         </div>
         <div className="app-shell-topbar__right">
-          {!hideChromeControls ? (
+          {hideChromeControls ? (
+            homeownerShell ? (
+              <ShellChromeControls
+                compact
+                className="app-shell-topbar-chrome app-shell-topbar-chrome--homeowner"
+              />
+            ) : null
+          ) : (
             <ShellChromeControls compact className="app-shell-topbar-chrome" />
-          ) : null}
+          )}
           <div className="app-shell-user-menu" ref={menuRef}>
             <button
               type="button"

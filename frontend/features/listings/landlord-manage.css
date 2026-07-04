@@ -1,5 +1,12 @@
 /* Landlord manage — Property Card listing rows and action menus */
 
+.hm-manage-page {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+  box-sizing: border-box;
+}
+
 .hm-listing-card {
   padding: 0;
 }
@@ -429,11 +436,20 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-3);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.hm-filters-row {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .hm-filters-chips {
   flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
 }
 
 .hm-filter-count {
