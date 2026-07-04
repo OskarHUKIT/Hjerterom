@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   ChevronDown,
   LogOut,
+  Menu,
   Shield,
   ShieldCheck,
   User,
@@ -17,6 +18,9 @@ import { useLanguage } from '@/context/LanguageContext'
 import Logo from '../Logo'
 import ShellChromeControls from '../design-system/ShellChromeControls'
 import { isNavActive, type NavItemDef } from '@/lib/navConfig'
+import { isHomeownerShellRoute } from '../homeowner-shell/isHomeownerShellRoute'
+import { isHomeownerNavActive, homeownerNavItems } from '@/lib/homeownerNavConfig'
+import { usePlatformMode } from '@/context/PlatformModeContext'
 
 type AppShellTopbarProps = {
   logoHref: string
@@ -24,18 +28,30 @@ type AppShellTopbarProps = {
   sidebarItems: NavItemDef[]
   hasSignedTerms: boolean
   user: NonNullable<ReturnType<typeof import('@/context/AuthSessionContext').useAuthSession>['user']>
+  hideChromeControls?: boolean
+  showHomeownerMenuButton?: boolean
+  onOpenHomeownerMenu?: () => void
 }
 
 function pageTitleFromPath(
   pathname: string | null,
   items: NavItemDef[],
-  t: ReturnType<typeof useLanguage>['t']
+  t: ReturnType<typeof useLanguage>['t'],
+  homeownerShell: boolean,
+  stripeBookings: boolean
 ): string {
+  if (homeownerShell) {
+    const match = homeownerNavItems({ stripeBookings }).find((item) =>
+      isHomeownerNavActive(pathname, item.href)
+    )
+    if (match) return t(match.labelKey as Parameters<typeof t>[0])
+  }
   const match = items.find((item) => isNavActive(pathname, item.href))
   if (match) return t(match.labelKey as Parameters<typeof t>[0])
   if (pathname?.startsWith('/homeowner/register')) return t('registerNewProperty')
   if (pathname?.startsWith('/homeowner/agreements')) return t('landlordAgreementsTitle')
   if (pathname?.startsWith('/homeowner/sign-terms')) return t('signTermsNav')
+  if (pathname?.startsWith('/homeowner/listings/')) return t('myProperties')
   return t('housingBank')
 }
 
@@ -45,12 +61,17 @@ export default function AppShellTopbar({
   sidebarItems,
   hasSignedTerms,
   user,
+  hideChromeControls,
+  showHomeownerMenuButton,
+  onOpenHomeownerMenu,
 }: AppShellTopbarProps) {
   const pathname = usePathname()
   const { t } = useLanguage()
+  const { flags } = usePlatformMode()
   const [menuOpen, setMenuOpen] = useState(false)
   const [logoutPending, setLogoutPending] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const homeownerShell = isHomeownerShellRoute(pathname)
 
   useEffect(() => {
     if (!menuOpen) return
@@ -63,7 +84,13 @@ export default function AppShellTopbar({
     return () => window.removeEventListener('click', closeMenu)
   }, [menuOpen])
 
-  const pageTitle = pageTitleFromPath(pathname, sidebarItems, t)
+  const pageTitle = pageTitleFromPath(
+    pathname,
+    sidebarItems,
+    t,
+    homeownerShell,
+    flags.stripeBookings
+  )
 
   const handleLogout = () => {
     setLogoutPending(true)
@@ -90,13 +117,25 @@ export default function AppShellTopbar({
     <>
       <header className="app-shell-topbar">
         <div className="app-shell-topbar__left">
+          {showHomeownerMenuButton ? (
+            <button
+              type="button"
+              className="homeowner-topbar-menu-btn"
+              aria-label={t('homeownerSidebarOpen')}
+              onClick={() => onOpenHomeownerMenu?.()}
+            >
+              <Menu size={20} aria-hidden />
+            </button>
+          ) : null}
           <Link prefetch={false} href={logoHref} className="app-shell-topbar__logo">
             <Logo />
           </Link>
           <h1 className="app-shell-topbar__title">{pageTitle}</h1>
         </div>
         <div className="app-shell-topbar__right">
-          <ShellChromeControls compact className="app-shell-topbar-chrome" />
+          {!hideChromeControls ? (
+            <ShellChromeControls compact className="app-shell-topbar-chrome" />
+          ) : null}
           <div className="app-shell-user-menu" ref={menuRef}>
             <button
               type="button"

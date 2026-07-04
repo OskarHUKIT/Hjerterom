@@ -7,8 +7,6 @@ import {
   Plus,
   Home as HomeIcon,
   Info,
-  FileText,
-  MessageSquare,
   Sparkles,
   LayoutDashboard,
 } from 'lucide-react'
@@ -256,36 +254,12 @@ export default function HomeownerManage() {
       ) : null}
       {platformFlags.stripeBookings ? <LandlordStripeConnect /> : null}
       {platformFlags.stripeBookings ? (
-        <LandlordBookingRequests listingIds={myListings.map((l) => l.id)} />
+        <div id="bookings">
+          <LandlordBookingRequests listingIds={myListings.map((l) => l.id)} />
+        </div>
       ) : null}
 
-      <div className="hm-layout">
-        <aside className="hm-sidebar">
-          <div className="card hm-nav-card">
-            <div className="hm-nav-item hm-nav-item--active">
-              <HomeIcon size={18} />
-              <span className="hm-nav-label-long">{t('myPropertiesTab')}</span>
-              <span className="hm-nav-label-short">{t('myPropertiesTabShort')}</span>
-            </div>
-            <Link href="/homeowner/agreements" className="hm-nav-item">
-              <FileText size={18} />
-              <span className="hm-nav-label-long">{t('landlordAgreementsTitle')}</span>
-              <span className="hm-nav-label-short">{t('agreementSigned')}</span>
-            </Link>
-            <Link href="/homeowner/sign-terms" className="hm-nav-item">
-              <FileText size={18} />
-              <span className="hm-nav-label-long">{t('signTermsNav')}</span>
-              <span className="hm-nav-label-short">{t('signTermsNavShort')}</span>
-            </Link>
-            <Link href="/nav/messages" className="hm-nav-item">
-              <MessageSquare size={18} />
-              <span className="hm-nav-label-long">{t('messagesToKommune')}</span>
-              <span className="hm-nav-label-short">{t('messagesToKommuneShort')}</span>
-            </Link>
-          </div>
-        </aside>
-
-        <div>
+      <div>
           <LandlordManageFilters
             filter={filter}
             onFilterChange={setFilter}
@@ -330,7 +304,6 @@ export default function HomeownerManage() {
               />
             )}
           </div>
-        </div>
       </div>
     </main>
   )

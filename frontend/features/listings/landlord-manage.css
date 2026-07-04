@@ -102,6 +102,10 @@
   white-space: nowrap;
 }
 
+#bookings {
+  scroll-margin-top: calc(var(--space-6) + 56px);
+}
+
 .hm-listing-actions-row {
   display: flex;
   align-items: center;
