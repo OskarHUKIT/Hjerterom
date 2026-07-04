@@ -40,6 +40,17 @@ function uploadProgressLabel(t: (key: TranslationKey) => string, pct: number) {
   return t('uploadProgress').replace('{pct}', String(Math.round(pct)))
 }
 
+function uploadCardLabels(t: (key: TranslationKey) => string) {
+  return {
+    browseLabel: t('uploadBrowseFile'),
+    dropzoneTitle: t('uploadChooseOrDrop'),
+    uploadingLabel: t('uploadStatusUploading'),
+    completedLabel: t('uploadStatusCompleted'),
+    errorLabel: t('uploadStatusError'),
+    queuedLabel: t('uploadQueued'),
+  }
+}
+
 function galleryStatusVariant(showGalleryFormidlet: boolean, status?: string | null) {
   if (showGalleryFormidlet) return 'info' as const
   if (status === 'Tilgjengelig') return 'success' as const
@@ -156,6 +167,7 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
           title={t('uploadDropzoneTitle')}
           hint={uploadHint(t)}
           progressLabel={(pct) => uploadProgressLabel(t, pct)}
+          {...uploadCardLabels(t)}
           maxFiles={MAX_LISTING_IMAGES}
           currentCount={0}
           disabled={uploading}
@@ -176,6 +188,7 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
           title={uploading ? t('listingImageUploading') : t('listingImageAddPhotos')}
           hint={uploadHint(t)}
           progressLabel={(pct) => uploadProgressLabel(t, pct)}
+          {...uploadCardLabels(t)}
           maxFiles={MAX_LISTING_IMAGES}
           currentCount={allImages.length}
           disabled={uploading || allImages.length >= MAX_LISTING_IMAGES}

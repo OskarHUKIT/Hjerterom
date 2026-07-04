@@ -337,6 +337,7 @@ export default function HomeownerRegister() {
     progress: 100,
     status: 'queued' as const,
     previewUrl: imagePreviews[index],
+    file,
   }))
 
   const uploadHint = t('uploadDropzoneHint').replace('{max}', String(MAX_LISTING_IMAGES))
@@ -1313,6 +1314,11 @@ export default function HomeownerRegister() {
                   hint={uploadHint}
                   progressLabel={uploadProgressText}
                   queuedLabel={t('uploadQueued')}
+                  browseLabel={t('uploadBrowseFile')}
+                  dropzoneTitle={t('uploadChooseOrDrop')}
+                  uploadingLabel={t('uploadStatusUploading')}
+                  completedLabel={t('uploadStatusCompleted')}
+                  errorLabel={t('uploadStatusError')}
                   maxFiles={MAX_LISTING_IMAGES}
                   currentCount={imageFiles.length}
                   stagedItems={stagedPhotoItems}
