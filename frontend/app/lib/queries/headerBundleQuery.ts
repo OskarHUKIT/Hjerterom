@@ -10,6 +10,8 @@ export type HeaderBundle = {
   hasSignedTerms: boolean
   landlordBootstrapHref: string
   unreadCount: number
+  unreadMessageCount: number
+  losInboxNewCount: number
 }
 
 export async function fetchHeaderBundle(
@@ -35,6 +37,19 @@ export async function fetchHeaderBundle(
 
   const unreadQuery = supabase.rpc('count_my_unread_notifications')
 
+  const unreadMessagesQuery = supabase
+    .from('chat_messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('receiver_id', userId)
+    .eq('is_read', false)
+
+  const losInboxQuery = isKommuneStaffRole(userRole)
+    ? supabase
+        .from('los_handoffs')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'new')
+    : Promise.resolve({ count: 0, error: null })
+
   const landlordHrefPromise =
     isKommuneStaffRole(userRole) || agreementRes.data
       ? Promise.resolve('/homeowner/manage')
@@ -42,12 +57,21 @@ export async function fetchHeaderBundle(
           reuseProfileRole: userRole,
         })
 
-  const [{ data: unreadCountRaw, error: unreadError }, landlordBootstrapHref] = await Promise.all([
+  const [
+    { data: unreadCountRaw, error: unreadError },
+    { count: unreadMessageCountRaw, error: unreadMessagesError },
+    { count: losInboxNewCountRaw, error: losInboxError },
+    landlordBootstrapHref,
+  ] = await Promise.all([
     unreadQuery,
+    unreadMessagesQuery,
+    losInboxQuery,
     landlordHrefPromise,
   ])
 
   if (unreadError) throw unreadError
+  if (unreadMessagesError) throw unreadMessagesError
+  if (losInboxError) throw losInboxError
 
   return {
     role: userRole,
@@ -55,5 +79,7 @@ export async function fetchHeaderBundle(
     hasSignedTerms,
     landlordBootstrapHref,
     unreadCount: typeof unreadCountRaw === 'number' ? unreadCountRaw : 0,
+    unreadMessageCount: typeof unreadMessageCountRaw === 'number' ? unreadMessageCountRaw : 0,
+    losInboxNewCount: typeof losInboxNewCountRaw === 'number' ? losInboxNewCountRaw : 0,
   }
 }

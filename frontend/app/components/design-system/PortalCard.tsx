@@ -35,7 +35,7 @@ export default function PortalCard({
   const ctaClass = buttonClassName(variant === 'primary' ? 'primary' : 'accent')
 
   return (
-    <article className="hrt-portal-card no-hover">
+    <article className="hrt-portal-card">
       <div className="hrt-portal-card__row">
         <div className={`hrt-portal-icon ${ICON_TONE[variant]}`} aria-hidden>
           <Icon size={24} />

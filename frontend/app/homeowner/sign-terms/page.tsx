@@ -11,7 +11,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '../../lib/supabase'
-import { useConfirm, useToast } from '@/app/components/design-system'
+import { useConfirm, useToast, IdentityVerificationDialog } from '@/app/components/design-system'
 import { useLanguage } from '../../../context/LanguageContext'
 import {
   readPendingFirstListingDraft,
@@ -77,6 +77,7 @@ function SignTermsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
+  const [identityDialogOpen, setIdentityDialogOpen] = useState(false)
   const [pageReady, setPageReady] = useState(false)
   const [isSigned, setIsSigned] = useState(false)
   const [signCity, setSignCity] = useState('')
@@ -822,7 +823,7 @@ function SignTermsContent() {
           )}
 
           <button
-            onClick={handleSign}
+            onClick={() => setIdentityDialogOpen(true)}
             disabled={!canProceedToSign || loading}
             className="button"
             style={{
@@ -886,6 +887,19 @@ function SignTermsContent() {
           <span style={{ fontSize: '0.8rem' }}>Sikker signering levert av BankID</span>
         </div>
       </div>
+      <IdentityVerificationDialog
+        open={identityDialogOpen}
+        onClose={() => setIdentityDialogOpen(false)}
+        onConfirm={() => {
+          setIdentityDialogOpen(false)
+          void handleSign()
+        }}
+        title={t('signTermsIdentityDialogTitle')}
+        body={t('signTermsIdentityDialogBody')}
+        confirmLabel={t('signTermsIdentityDialogConfirm')}
+        cancelLabel={t('signTermsIdentityDialogCancel')}
+        busy={loading}
+      />
     </main>
   )
 }

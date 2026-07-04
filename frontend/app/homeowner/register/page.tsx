@@ -41,6 +41,8 @@ import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 import PageSkeleton from '../../components/design-system/PageSkeleton'
+import { Stepper, FileUploadZone } from '@/app/components/design-system'
+import { Button } from '@/app/components/ui/Button'
 import './register.css'
 
 export default function HomeownerRegister() {
@@ -54,6 +56,7 @@ export default function HomeownerRegister() {
   const [hasSignedTerms, setHasSignedTerms] = useState<boolean | null>(null)
   const [backHref, setBackHref] = useState('/')
   const [socialKommuneActive, setSocialKommuneActive] = useState<boolean | null>(null)
+  const [registerStep, setRegisterStep] = useState(0)
 
   const [formData, setFormData] = useState({
     owner_name: '',
@@ -146,14 +149,10 @@ export default function HomeownerRegister() {
     }
   }, [formData.city])
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files)
-      setImageFiles([...imageFiles, ...files])
-
-      const newPreviews = files.map((file) => URL.createObjectURL(file))
-      setImagePreviews([...imagePreviews, ...newPreviews])
-    }
+  const handleImageFiles = (files: File[]) => {
+    if (!files.length) return
+    setImageFiles([...imageFiles, ...files])
+    setImagePreviews([...imagePreviews, ...files.map((file) => URL.createObjectURL(file))])
   }
 
   const removeImage = (index: number) => {
@@ -593,13 +592,44 @@ export default function HomeownerRegister() {
             <p>{t('landlordNonSubscribedBody')}</p>
           </div>
         )}
+        <Stepper
+          currentStep={registerStep}
+          steps={[
+            { id: 'contact', label: t('regStepContact') },
+            { id: 'details', label: t('regStepDetails') },
+            { id: 'price', label: t('regStepPrice') },
+            { id: 'photos', label: t('regStepPhotos') },
+          ]}
+        />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              savePendingFirstListingDraft({ ...formData, v: 'draft-only' })
+              toast(t('regDraftSaved'), 'success')
+            }}
+          >
+            {t('regSaveDraft')}
+          </Button>
+          {registerStep > 0 ? (
+            <Button type="button" variant="secondary" onClick={() => setRegisterStep((s) => Math.max(0, s - 1))}>
+              ←
+            </Button>
+          ) : null}
+          {registerStep < 3 ? (
+            <Button type="button" variant="accent" onClick={() => setRegisterStep((s) => Math.min(3, s + 1))}>
+              →
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="register-form">
         <div className="register-form-columns">
           <div className="register-form-main-col">
             {/* Section 1: Basic Info & Kontakt */}
-            <section className="form-section">
+            <section className="form-section" hidden={registerStep !== 0}>
               <h3 className="form-section-heading">
                 <User size={20} /> {t('regContactSection')}
               </h3>
@@ -776,7 +806,7 @@ export default function HomeownerRegister() {
             </section>
 
             {/* Section 2: Boligdetaljer */}
-            <section className="form-section">
+            <section className="form-section" hidden={registerStep !== 1}>
               <h3 className="form-section-heading">
                 <Building size={20} /> {t('regDetailsSection')}
               </h3>
@@ -950,7 +980,7 @@ export default function HomeownerRegister() {
           </div>
 
           <div className="register-form-sidebar">
-            <section className="form-section">
+            <section className="form-section" hidden={registerStep !== 2}>
               <h3 className="form-section-heading">
                 <Tag size={20} /> {t('regPriceSection')}
               </h3>
@@ -1099,7 +1129,7 @@ export default function HomeownerRegister() {
             </section>
 
             {/* Section 4: Bilder & Annet */}
-            <section className="form-section">
+            <section className="form-section" hidden={registerStep !== 3}>
               <h3 className="form-section-heading">
                 <Camera size={20} /> {t('regImagesSection')}
               </h3>
@@ -1125,16 +1155,12 @@ export default function HomeownerRegister() {
                     </div>
                   ))}
                 </div>
-                <label className="button button-accent register-upload-btn">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="sr-input"
-                  />
-                  {t('regUploadImages')}
-                </label>
+                <FileUploadZone
+                  title={t('regUploadImages')}
+                  hint={t('listingImageDropzoneHint')}
+                  accept="image/*"
+                  onFiles={handleImageFiles}
+                />
               </div>
               <div className="register-house-rules-panel">
                 <label className="label register-house-rules-heading">

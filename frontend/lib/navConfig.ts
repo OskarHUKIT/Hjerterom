@@ -4,8 +4,15 @@ import { Bell, Building2, Home, MessageSquare } from 'lucide-react'
 /** Who sees this nav item in the app shell. */
 export type NavAudience = 'kommune' | 'landlord'
 
-/** Where the item is rendered (header drawer vs mobile bottom tabs). */
-export type NavSurface = 'headerDesktop' | 'mobileTab' | 'mobileMore'
+/** Where the item is rendered (header drawer vs mobile bottom tabs vs app shell sidebar). */
+export type NavSurface =
+  | 'headerDesktop'
+  | 'mobileTab'
+  | 'mobileMore'
+  | 'sidebarDesktop'
+  | 'sidebarMobile'
+
+export type NavBadge = 'notifications' | 'messages' | 'losInbox'
 
 export type NavItemId =
   | 'database'
@@ -30,7 +37,7 @@ export type NavItemDef = {
   /** Only kommune_admin */
   adminOnly?: boolean
   /** Show unread badge from header bundle */
-  badge?: 'notifications'
+  badge?: NavBadge
 }
 
 /** Single source of truth for app navigation (Header + MobileBottomNav). */
@@ -41,7 +48,7 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     labelKey: 'housingBank',
     icon: Building2,
     audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileTab'],
+    surfaces: ['headerDesktop', 'mobileTab', 'sidebarDesktop', 'sidebarMobile'],
   },
   {
     id: 'users',
@@ -49,7 +56,7 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     labelKey: 'navLandlords',
     icon: Building2,
     audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileMore'],
+    surfaces: ['headerDesktop', 'mobileMore', 'sidebarDesktop'],
   },
   {
     id: 'messages',
@@ -57,7 +64,8 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     labelKey: 'messages',
     icon: MessageSquare,
     audiences: ['kommune', 'landlord'],
-    surfaces: ['headerDesktop', 'mobileTab'],
+    surfaces: ['headerDesktop', 'mobileTab', 'sidebarDesktop', 'sidebarMobile'],
+    badge: 'messages',
   },
   {
     id: 'expired',
@@ -65,7 +73,7 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     labelKey: 'expired',
     icon: Building2,
     audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileMore'],
+    surfaces: ['headerDesktop', 'mobileMore', 'sidebarDesktop'],
   },
   {
     id: 'termsDocuments',
@@ -73,7 +81,7 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     labelKey: 'termsDocumentsNav',
     icon: Building2,
     audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileMore'],
+    surfaces: ['headerDesktop', 'mobileMore', 'sidebarDesktop'],
     adminOnly: true,
   },
   {
@@ -82,7 +90,7 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     labelKey: 'navEventInquiriesTitle',
     icon: Building2,
     audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileMore'],
+    surfaces: ['headerDesktop', 'mobileMore', 'sidebarDesktop'],
   },
   {
     id: 'losInbox',
@@ -90,7 +98,8 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     labelKey: 'navLosInboxTitle',
     icon: Building2,
     audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileMore'],
+    surfaces: ['headerDesktop', 'mobileMore', 'sidebarDesktop', 'sidebarMobile'],
+    badge: 'losInbox',
   },
   {
     id: 'notifications',
@@ -98,7 +107,7 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     labelKey: 'notifications',
     icon: Bell,
     audiences: ['kommune', 'landlord'],
-    surfaces: ['headerDesktop', 'mobileTab'],
+    surfaces: ['headerDesktop', 'mobileTab', 'sidebarDesktop', 'sidebarMobile'],
     badge: 'notifications',
   },
   {
@@ -108,7 +117,7 @@ export const APP_NAV_ITEMS: NavItemDef[] = [
     shortLabelKey: 'myPropertiesTabShort',
     icon: Home,
     audiences: ['landlord'],
-    surfaces: ['headerDesktop', 'mobileTab'],
+    surfaces: ['headerDesktop', 'mobileTab', 'sidebarDesktop', 'sidebarMobile'],
   },
 ]
 
@@ -134,4 +143,31 @@ export function navItemsFor(
 export function isNavActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false
   return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+/** Desktop sidebar: primary tabs + secondary «more» items in one list. */
+export function navItemsForSidebar(
+  audience: NavAudience,
+  opts?: {
+    isAdmin?: boolean
+    platform?: { centralEvents?: boolean; los?: boolean }
+  }
+): NavItemDef[] {
+  return APP_NAV_ITEMS.filter((item) => {
+    if (!item.audiences.includes(audience)) return false
+    if (!item.surfaces.includes('sidebarDesktop')) return false
+    if (item.adminOnly && !opts?.isAdmin) return false
+    if (item.id === 'eventInquiries' && opts?.platform?.centralEvents === false) return false
+    if (item.id === 'losInbox' && opts?.platform?.los === false) return false
+    return true
+  })
+}
+
+export function navBadgeCount(
+  badge: NavBadge,
+  counts: { notifications: number; messages: number; losInbox: number }
+): number {
+  if (badge === 'notifications') return counts.notifications
+  if (badge === 'messages') return counts.messages
+  return counts.losInbox
 }

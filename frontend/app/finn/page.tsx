@@ -1,12 +1,12 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { MapPin, Search } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { EmptyState, PageSkeleton } from '@/app/components/design-system'
+import { EmptyState, PageSkeleton, PropertyCard, RangeDatePicker } from '@/app/components/design-system'
 import { QK } from '@/app/lib/queries/queryKeys'
 import FinnTourismMap from '@/features/tourism/components/FinnTourismMap'
 import { buttonClassName } from '@/app/components/ui/Button'
@@ -50,6 +50,15 @@ export default function FinnSearchPage() {
     checkOut: '',
   })
   const [applied, setApplied] = useState<FinnSearchFilters>({})
+  const [mapOpen, setMapOpen] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 769px)')
+    const sync = () => setMapOpen(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   const { data: listings = [], isPending: loading } = useQuery({
     queryKey: finnListingsQueryKey(applied),
@@ -89,20 +98,15 @@ export default function FinnSearchPage() {
             autoComplete="address-level2"
           />
         </label>
-        <label>
-          {t('finnFilterCheckIn')}
-          <input
-            type="date"
-            value={filters.checkIn ?? ''}
-            onChange={(e) => setFilters((f) => ({ ...f, checkIn: e.target.value }))}
-          />
-        </label>
-        <label>
-          {t('finnFilterCheckOut')}
-          <input
-            type="date"
-            value={filters.checkOut ?? ''}
-            onChange={(e) => setFilters((f) => ({ ...f, checkOut: e.target.value }))}
+        <label style={{ gridColumn: 'span 2' }}>
+          {t('finnFilterCheckIn')} / {t('finnFilterCheckOut')}
+          <RangeDatePicker
+            checkIn={filters.checkIn ?? ''}
+            checkOut={filters.checkOut ?? ''}
+            onChange={({ checkIn, checkOut }) => setFilters((f) => ({ ...f, checkIn, checkOut }))}
+            checkInLabel={t('finnFilterCheckIn')}
+            checkOutLabel={t('finnFilterCheckOut')}
+            placeholder={t('finnDateRangePlaceholder')}
           />
         </label>
         <button type="submit" className={buttonClassName('accent')} style={{ alignSelf: 'flex-end' }}>
@@ -110,7 +114,18 @@ export default function FinnSearchPage() {
         </button>
       </form>
 
-      <FinnTourismMap city={applied.city?.trim() || undefined} />
+      <button
+        type="button"
+        className={`button finn-map-toggle${mapOpen ? '' : ''}`}
+        onClick={() => setMapOpen((v) => !v)}
+        aria-expanded={mapOpen}
+      >
+        {mapOpen ? t('finnMapHide') : t('finnMapShow')}
+      </button>
+
+      <div className={`finn-map-panel${mapOpen ? '' : ' finn-map-panel--collapsed'}`}>
+        <FinnTourismMap city={applied.city?.trim() || undefined} />
+      </div>
 
       {loading ? (
         <PageSkeleton minHeight={240} />
@@ -132,32 +147,22 @@ export default function FinnSearchPage() {
           </p>
           <div className="finn-grid">
             {listings.map((listing) => (
-              <Link key={listing.id} href={`/finn/listing/${listing.id}`} className="finn-card">
-                <div className="finn-card-image">
-                  {listing.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={listing.image_url}
-                      alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    t('finnNoPhoto')
-                  )}
-                </div>
-                <div className="finn-card-body">
-                  <h2>{listing.address}</h2>
-                  <p className="finn-card-meta">
-                    {listing.city}
-                    {listing.beds ? ` · ${listing.beds} ${t('finnBeds')}` : ''}
-                  </p>
-                  {listing.tourism_nightly_price_cents ? (
-                    <p className="finn-price">
-                      {formatFinnNightlyPrice(listing.tourism_nightly_price_cents)}
-                    </p>
-                  ) : null}
-                </div>
-              </Link>
+              <PropertyCard
+                key={listing.id}
+                href={`/finn/listing/${listing.id}`}
+                title={listing.address}
+                meta={`${listing.city}${listing.beds ? ` · ${listing.beds} ${t('finnBeds')}` : ''}`}
+                priceLabel={
+                  listing.tourism_nightly_price_cents
+                    ? t('finnFromPrice').replace(
+                        '{price}',
+                        formatFinnNightlyPrice(listing.tourism_nightly_price_cents) ?? ''
+                      )
+                    : undefined
+                }
+                imageUrl={listing.image_url}
+                placeholder={t('finnNoPhoto')}
+              />
             ))}
           </div>
         </>

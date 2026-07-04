@@ -33,6 +33,8 @@ type Props = {
   onSelectionChange: (start: string | null, end: string | null) => void
   onApply: () => void | Promise<void>
   applying?: boolean
+  /** When set, lane tabs are hidden (e.g. parent mode tabs already pick the lane). */
+  hideLaneSelector?: boolean
 }
 
 const WEEKDAYS_NO = ['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø']
@@ -52,6 +54,7 @@ export default function ListingLaneCalendar({
   onSelectionChange,
   onApply,
   applying,
+  hideLaneSelector,
 }: Props) {
   const { t, locale } = useLanguage()
   const [month, setMonth] = useState(() => {
@@ -119,13 +122,15 @@ export default function ListingLaneCalendar({
         <p className="lane-calendar-lead">{t('laneCalendarLead')}</p>
       </div>
 
-      <LaneSegmentedSelect
-        value={paintLane}
-        onChange={onPaintLaneChange}
-        tourismEnabled={tourismEnabled}
-        showTourism={showTourism}
-        showEvents={showEvents}
-      />
+      {!hideLaneSelector ? (
+        <LaneSegmentedSelect
+          value={paintLane}
+          onChange={onPaintLaneChange}
+          tourismEnabled={tourismEnabled}
+          showTourism={showTourism}
+          showEvents={showEvents}
+        />
+      ) : null}
 
       {paintLane !== 'event' ? (
         <div className="lane-calendar-status-row">
