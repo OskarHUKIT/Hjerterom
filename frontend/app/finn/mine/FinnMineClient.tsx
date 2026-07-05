@@ -4,16 +4,21 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Mail, CalendarCheck, Star } from 'lucide-react'
+import { Mail, CalendarCheck, Star, AlertCircle } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { usePlatformMode } from '@/context/PlatformModeContext'
-import { PageSkeleton, PortalPageShell, useConfirm, useToast, BookingTimeline, bookingTimelineActiveIndex } from '@/app/components/design-system'
+import { PageSkeleton, PortalPageShell, useConfirm, useToast } from '@/app/components/design-system'
 import { QK } from '@/app/lib/queries/queryKeys'
 import { Button, buttonClassName } from '@/app/components/ui/Button'
 import { formatDateNo } from '@/app/lib/dateFormat'
 import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
 import BookingGuestListPanel from '@/features/tourism/components/BookingGuestListPanel'
+import { StatusTimeline } from '@/components/shared/status-timeline'
+import {
+  buildBookingStatusTimelineSteps,
+  bookingTimelineTimestampsFromRow,
+} from '@/features/bookings/lib/buildBookingStatusTimelineSteps'
 
 type BookingRow = {
   id: string
@@ -21,6 +26,8 @@ type BookingRow = {
   check_out: string
   status: string
   listing_id: string
+  created_at: string | null
+  updated_at: string | null
   listings: { address: string; city: string } | { address: string; city: string }[] | null
 }
 
@@ -30,12 +37,13 @@ type FinnMineBookingsData = {
 }
 
 async function fetchFinnMineBookings(uid: string, em: string): Promise<FinnMineBookingsData> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('bookings')
-    .select('id, check_in, check_out, status, listing_id, listings(address, city)')
+    .select('id, check_in, check_out, status, listing_id, created_at, updated_at, listings(address, city)')
     .or(`guest_user_id.eq.${uid},guest_email.eq.${em}`)
     .order('created_at', { ascending: false })
     .limit(20)
+  if (error) throw error
   const bookings = (data ?? []) as BookingRow[]
   const ids = bookings.map((b) => b.id)
   let reviewedIds = new Set<string>()
@@ -72,6 +80,7 @@ export default function FinnMineClient() {
   const {
     data: bookingsData,
     isPending: bookingsLoading,
+    isError: bookingsError,
     refetch: refetchBookings,
   } = useQuery({
     queryKey: [...QK.finnMineBookings, userId, userEmail],
@@ -203,12 +212,6 @@ export default function FinnMineClient() {
     void refetchBookings()
   }
 
-  const statusLabel = (status: string) => {
-    const key = `finnBookingStatus_${status}` as Parameters<typeof t>[0]
-    const translated = t(key)
-    return translated === key ? status : translated
-  }
-
   const pageLoading = authLoading || (!!userEmail && bookingsLoading)
 
   return (
@@ -284,7 +287,29 @@ export default function FinnMineClient() {
           <p className="finn-card-meta" style={{ marginBottom: 'var(--space-4)' }}>
             {t('finnMineLoggedInAs')} <strong style={{ color: 'var(--finn-text)' }}>{userEmail}</strong>
           </p>
-          {bookings.length === 0 ? (
+          {bookingsError ? (
+            <div
+              className="finn-card"
+              role="alert"
+              style={{
+                maxWidth: 560,
+                padding: 'var(--space-4)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-3)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
+                <AlertCircle size={20} style={{ color: 'var(--color-danger, #f87171)', flexShrink: 0 }} aria-hidden />
+                <p style={{ margin: 0, lineHeight: 1.55, color: 'var(--finn-text-secondary)' }}>
+                  {t('finnMineBookingsLoadError')}
+                </p>
+              </div>
+              <Button type="button" variant="secondary" onClick={() => void refetchBookings()}>
+                {t('retryLoad')}
+              </Button>
+            </div>
+          ) : bookings.length === 0 ? (
             <div className="finn-empty">
               <CalendarCheck size={36} style={{ marginBottom: 12, opacity: 0.5 }} aria-hidden />
               <p>{t('finnMineNoBookings')}</p>
@@ -310,14 +335,14 @@ export default function FinnMineClient() {
                   <p className="finn-card-meta" style={{ margin: '0 0 8px' }}>
                     {listing?.city} · {formatDateNo(b.check_in)} – {formatDateNo(b.check_out)}
                   </p>
-                  <BookingTimeline
-                    activeIndex={bookingTimelineActiveIndex(b.status)}
-                    steps={[
-                      { id: 'requested', label: t('finnTimelineRequested'), description: t('finnTimelineRequestedDesc') },
-                      { id: 'accepted', label: t('finnTimelineAccepted'), description: t('finnTimelineAcceptedDesc') },
-                      { id: 'paid', label: t('finnTimelinePaid'), description: t('finnTimelinePaidDesc') },
-                      { id: 'stay', label: t('finnTimelineStay'), description: t('finnTimelineStayDesc') },
-                    ]}
+                  <StatusTimeline
+                    steps={buildBookingStatusTimelineSteps(
+                      b.status,
+                      t,
+                      bookingTimelineTimestampsFromRow(b)
+                    )}
+                    ariaLabel={t('statusTimelineAriaLabel')}
+                    className="mt-2"
                   />
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
                     {(b.status === 'accepted' || b.status === 'pending') && (
