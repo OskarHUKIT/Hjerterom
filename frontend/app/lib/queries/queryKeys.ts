@@ -14,5 +14,6 @@ export const QK = {
   eventStaffAccess: ['eventStaff', 'access'] as const,
   finnListings: ['finn', 'listings'] as const,
   finnMineBookings: ['finn', 'mine', 'bookings'] as const,
+  landlordBookings: ['homeowner', 'bookings'] as const,
   appUserProfile: ['app'] as const,
 }

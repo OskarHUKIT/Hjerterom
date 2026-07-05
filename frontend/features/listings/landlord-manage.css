@@ -96,8 +96,35 @@
   border: none;
 }
 
-#bookings {
+#bookings,
+.hm-bookings-link {
   scroll-margin-top: calc(var(--space-6) + 56px);
+}
+
+.hm-bookings-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.hm-bookings-link:hover {
+  border-color: var(--color-teal, #14b8a6);
+}
+
+.hm-bookings-link-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.hm-bookings-link-desc {
+  font-size: 0.9rem;
+  opacity: 0.75;
+  line-height: 1.45;
 }
 
 .landlord-booking-row-head {

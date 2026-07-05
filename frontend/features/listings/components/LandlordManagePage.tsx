@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Building2,
   KeyRound,
+  CalendarDays,
 } from 'lucide-react'
 import { getAuthUserDeduped } from '@/app/lib/supabase'
 import { landlordOnboardingKey, LANDLORD_ONBOARDING_PREFIX } from '@/app/lib/landlordOnboarding'
@@ -24,7 +25,6 @@ import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import { EmptyState, InteractiveEmptyState } from '@/app/components/design-system'
 import EventTaskCards from '@/features/listings/components/EventTaskCards'
-import LandlordBookingRequests from '@/features/bookings/components/LandlordBookingRequests'
 import LandlordStripeConnect from '@/features/bookings/components/LandlordStripeConnect'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import { shouldShowManageFullScreenSpinner } from '@/features/listings/lib/landlordManagePageGate'
@@ -271,9 +271,13 @@ export default function HomeownerManage() {
       ) : null}
       {platformFlags.stripeBookings ? <LandlordStripeConnect /> : null}
       {platformFlags.stripeBookings ? (
-        <div id="bookings">
-          <LandlordBookingRequests listingIds={myListings.map((l) => l.id)} />
-        </div>
+        <Link href="/homeowner/bookings" className="card hm-bookings-link">
+          <CalendarDays size={22} aria-hidden />
+          <div>
+            <div className="hm-bookings-link-title">{t('homeownerNavBookings')}</div>
+            <div className="hm-bookings-link-desc">{t('landlordBookingsManageLinkDesc')}</div>
+          </div>
+        </Link>
       ) : null}
 
       <div>
