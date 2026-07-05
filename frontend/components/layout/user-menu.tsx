@@ -15,6 +15,8 @@ export type UserMenuProps = {
   hasSignedTerms?: boolean
   /** Where to send the user after logout (default `/`). */
   logoutRedirect?: string
+  /** Finn uses full signOut; main app uses local scope. */
+  logoutScope?: 'local' | 'global'
   className?: string
 }
 
@@ -27,6 +29,7 @@ export default function UserMenu({
   navRole,
   hasSignedTerms = false,
   logoutRedirect = '/',
+  logoutScope = 'local',
   className,
 }: UserMenuProps) {
   const { t } = useLanguage()
@@ -51,7 +54,11 @@ export default function UserMenu({
     devInfo('[Boly/auth] logout: local signOut + redirect')
     void (async () => {
       try {
-        await supabase.auth.signOut({ scope: 'local' })
+        if (logoutScope === 'global') {
+          await supabase.auth.signOut()
+        } else {
+          await supabase.auth.signOut({ scope: 'local' })
+        }
       } catch (e) {
         logError('signOut:', e)
       }

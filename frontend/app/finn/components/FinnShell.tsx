@@ -122,6 +122,7 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
             user={user}
             navRole="leietaker"
             logoutRedirect="/finn"
+            logoutScope="global"
             className="finn-user-menu"
           />
         ) : null}
@@ -156,6 +157,7 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
               user={user}
               navRole="leietaker"
               logoutRedirect="/finn"
+              logoutScope="global"
               className="finn-user-menu"
             />
           ) : null}
