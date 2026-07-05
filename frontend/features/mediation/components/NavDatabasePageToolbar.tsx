@@ -5,28 +5,41 @@ import {
   Filter,
   MapPin,
   LayoutList,
-  CheckCircle2,
-  XCircle,
   ShieldCheck,
   Calendar,
   Settings,
   List,
-  CircleDashed,
+  Map as MapIcon,
 } from 'lucide-react'
-import { isKommuneStaffRole } from '@/app/lib/kommuneRoles'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { TranslationKey } from '@/lib/translations'
 import type { NavDbViewMode } from '@/features/mediation/constants/navDatabase'
+import type { NavDatabaseStatusCounts } from '@/features/mediation/lib/navDatabaseFetch'
+
+export type NavDatabaseActiveTab =
+  | 'Alle'
+  | 'Tilgjengelig'
+  | 'Utilgjengelig'
+  | 'Formidlet'
+  | 'Ikke markert'
 
 export type NavDatabasePageToolbarProps = {
   isMobile: boolean
   overviewBack: { href: string; label: string } | null
   viewMode: NavDbViewMode
-  userRole: string | null
-  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
+  kommuneCanEdit: boolean
+  activeTab: NavDatabaseActiveTab
+  statusCounts: NavDatabaseStatusCounts
+  filterActiveCount: number
   showFilters: boolean
   showColumnSettings: boolean
   onViewModeChange: (mode: NavDbViewMode) => void
-  onActiveTabChange: (tab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert') => void
+  onActiveTabChange: (tab: NavDatabaseActiveTab) => void
   onShowFiltersChange: (open: boolean) => void
   onShowColumnSettingsChange: (open: boolean) => void
   onClearFocusListingFromUrl: () => void
@@ -35,12 +48,21 @@ export type NavDatabasePageToolbarProps = {
   t: (key: TranslationKey) => string
 }
 
+type StatusTabDef = {
+  id: NavDatabaseActiveTab
+  labelKey: TranslationKey
+  count: number
+  dotClass?: string
+}
+
 export default function NavDatabasePageToolbar({
   isMobile,
   overviewBack,
   viewMode,
-  userRole,
+  kommuneCanEdit,
   activeTab,
+  statusCounts,
+  filterActiveCount,
   showFilters,
   showColumnSettings,
   onViewModeChange,
@@ -52,371 +74,202 @@ export default function NavDatabasePageToolbar({
   startViewTransition,
   t,
 }: NavDatabasePageToolbarProps) {
-  const setViewMode = onViewModeChange
-  const setActiveTab = onActiveTabChange
-  const setShowFilters = onShowFiltersChange
-  const setShowColumnSettings = onShowColumnSettingsChange
-  const clearFocusListingFromUrl = onClearFocusListingFromUrl
-  const persistMobileDbView = onPersistMobileDbView
+  const setView = (mode: NavDbViewMode) => {
+    startViewTransition(() => {
+      if (mode !== 'map') onClearFocusListingFromUrl()
+      onViewModeChange(mode)
+      if (isMobile && mode !== 'table') onPersistMobileDbView(mode)
+    })
+  }
+
+  const statusTabs: StatusTabDef[] = [
+    { id: 'Alle', labelKey: 'dbStatusAll', count: statusCounts.all },
+    {
+      id: 'Tilgjengelig',
+      labelKey: 'available',
+      count: statusCounts.tilgjengelig,
+      dotClass: 'ds-lane-dot--tilgjengelig',
+    },
+    {
+      id: 'Utilgjengelig',
+      labelKey: 'unavailable',
+      count: statusCounts.utilgjengelig,
+      dotClass: 'ds-lane-dot--utilgjengelig',
+    },
+    {
+      id: 'Formidlet',
+      labelKey: 'formidlet',
+      count: statusCounts.formidlet,
+      dotClass: 'ds-lane-dot--formidlet',
+    },
+    {
+      id: 'Ikke markert',
+      labelKey: 'availabilityUnmarked',
+      count: statusCounts.ikkeMarkert,
+      dotClass: 'ds-lane-dot--ikke-markert',
+    },
+  ]
+
+  const desktopViewOptions: { mode: NavDbViewMode; labelKey: TranslationKey; icon: React.ReactNode }[] =
+    [
+      { mode: 'timeline', labelKey: 'dbViewTimeline', icon: <Calendar size={13} aria-hidden /> },
+      { mode: 'table', labelKey: 'dbViewTable', icon: <LayoutList size={13} aria-hidden /> },
+      { mode: 'map', labelKey: 'dbViewMap', icon: <MapIcon size={13} aria-hidden /> },
+    ]
+
+  const mobileViewOptions: { mode: NavDbViewMode; labelKey: TranslationKey; icon: React.ReactNode }[] =
+    [
+      { mode: 'list', labelKey: 'dbViewList', icon: <List size={13} aria-hidden /> },
+      { mode: 'map', labelKey: 'dbViewMap', icon: <MapPin size={13} aria-hidden /> },
+    ]
+
+  const handleStatusTab = (tab: NavDatabaseActiveTab) => {
+    onActiveTabChange(tab)
+  }
+
   return (
-    <>
-<div
-        className="db-header-row"
-        style={{
-          marginBottom: isMobile ? 'var(--space-3)' : 'var(--space-8)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: isMobile ? 'var(--space-2)' : 'var(--space-4)',
-        }}
-      >
-        <div style={{ minWidth: 0 }}>
-          {overviewBack && (
+    <div className="nav-db-page">
+      <header className="nav-db-page-header">
+        <div>
+          {overviewBack ? (
             <Link
               href={overviewBack.href}
               className="nav-link"
               style={{
-                marginLeft: '-1rem',
-                marginBottom: isMobile ? 0 : 'var(--space-2)',
+                marginLeft: '-0.5rem',
+                marginBottom: 'var(--space-2)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 'var(--space-2)',
-                fontSize: isMobile ? '0.85rem' : undefined,
+                fontSize: '0.85rem',
               }}
             >
               ← {overviewBack.label}
             </Link>
-          )}
-          <h1
-            style={{
-              fontSize: isMobile ? 'clamp(1.35rem, 5vw, 1.75rem)' : 'clamp(1.5rem, 5vw, 2.75rem)',
-              margin: isMobile ? '2px 0 0' : undefined,
-              lineHeight: isMobile ? 1.2 : undefined,
-            }}
-          >
-            {t('housingBank')}
-          </h1>
+          ) : null}
+          <div className="nav-db-page-header__title-row">
+            <h1 className="nav-db-page-header__title">{t('housingBank')}</h1>
+            <span className="nav-db-count-badge">
+              {t('dbListingCount').replace('{count}', String(statusCounts.all))}
+            </span>
+          </div>
+          <p className="nav-db-page-header__subtitle">{t('dbPageSubtitle')}</p>
         </div>
-        {!isMobile && (
-          <div className="db-view-btns" style={{ display: 'flex', gap: 'var(--space-2)' }}>
-            <button
-              type="button"
-              onClick={() =>
-                startViewTransition(() => {
-                  clearFocusListingFromUrl()
-                  setViewMode('table')
-                })
-              }
-              style={{
-                padding: 'var(--space-3)',
-                borderRadius: '10px',
-                background: viewMode === 'table' ? 'var(--color-accent)' : 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)',
-                cursor: 'pointer',
-                color: viewMode === 'table' ? 'white' : 'var(--text-main)',
-              }}
-              title={t('dbViewTable')}
-            >
-              <LayoutList size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => startViewTransition(() => setViewMode('map'))}
-              style={{
-                padding: 'var(--space-3)',
-                borderRadius: '10px',
-                background: viewMode === 'map' ? 'var(--color-accent)' : 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)',
-                cursor: 'pointer',
-                color: viewMode === 'map' ? 'white' : 'var(--text-main)',
-              }}
-              title={t('dbViewMap')}
-            >
-              <MapPin size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                startViewTransition(() => {
-                  clearFocusListingFromUrl()
-                  setViewMode('timeline')
-                })
-              }
-              style={{
-                padding: 'var(--space-3)',
-                borderRadius: '10px',
-                background: viewMode === 'timeline' ? 'var(--color-accent)' : 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)',
-                cursor: 'pointer',
-                color: viewMode === 'timeline' ? 'white' : 'var(--text-main)',
-              }}
-              title={t('dbViewTimeline')}
-            >
-              <Calendar size={20} />
-            </button>
-          </div>
-        )}
-        {isMobile && (
-          <div
-            className="db-view-btns"
-            style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', width: '100%' }}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                startViewTransition(() => {
-                  clearFocusListingFromUrl()
-                  setViewMode('list')
-                  persistMobileDbView('list')
-                })
-              }}
-              style={{
-                padding: 'var(--space-3)',
-                borderRadius: '10px',
-                minHeight: 'var(--touch-target)',
-                minWidth: 'var(--touch-target)',
-                background: viewMode === 'list' ? 'var(--color-accent)' : 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)',
-                cursor: 'pointer',
-                color: viewMode === 'list' ? 'white' : 'var(--text-main)',
-              }}
-              title={t('dbViewList')}
-              aria-pressed={viewMode === 'list'}
-              aria-label={t('dbViewList')}
-            >
-              <List size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                startViewTransition(() => {
-                  setViewMode('map')
-                  persistMobileDbView('map')
-                })
-              }}
-              style={{
-                padding: 'var(--space-3)',
-                borderRadius: '10px',
-                minHeight: 'var(--touch-target)',
-                minWidth: 'var(--touch-target)',
-                background: viewMode === 'map' ? 'var(--color-accent)' : 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)',
-                cursor: 'pointer',
-                color: viewMode === 'map' ? 'white' : 'var(--text-main)',
-              }}
-              title={t('dbViewMap')}
-              aria-pressed={viewMode === 'map'}
-              aria-label={t('dbViewMap')}
-            >
-              <MapPin size={20} />
-            </button>
-          </div>
-        )}
-      </div>
+        {kommuneCanEdit ? (
+          <span className="nav-db-edit-badge">
+            <ShieldCheck size={12} aria-hidden />
+            {t('dbEditAccessBadge')}
+          </span>
+        ) : null}
+      </header>
 
-      <div
-        className="db-tabs-row"
-        style={{
-          display: 'flex',
-          gap: isMobile ? 'var(--space-2)' : 'var(--space-4)',
-          marginBottom: isMobile ? 'var(--space-3)' : 'var(--space-6)',
-          borderBottom: '1px solid var(--border-subtle)',
-          paddingBottom: 'var(--space-1)',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          rowGap: isMobile ? 'var(--space-2)' : 'var(--space-4)',
-        }}
-      >
-        <div
-          className="tabs-scroll"
-          style={{
-            display: 'flex',
-            gap: 'var(--space-4)',
-            flex: '1 1 auto',
-            minWidth: 0,
-            overflowX: 'auto',
-            paddingBottom: '4px',
-            alignItems: 'flex-end',
-          }}
-        >
-          {viewMode === 'map' ? null : viewMode !== 'timeline' ? (
-            (['Tilgjengelig', 'Ikke markert', 'Utilgjengelig', 'Formidlet'] as const).map((tab) => {
-              const tabLabel =
-                tab === 'Tilgjengelig'
-                  ? t('available')
-                  : tab === 'Ikke markert'
-                    ? t('availabilityUnmarked')
-                    : tab === 'Utilgjengelig'
-                      ? t('unavailable')
-                      : t('formidlet')
-              const iconOnly = isKommuneStaffRole(userRole) && isMobile
+      <div className="nav-db-toolbar">
+        {!isMobile ? (
+          <div className="ds-segmented-group ds-segmented-group--view" role="group" aria-label={t('dbTimelineControls')}>
+            {desktopViewOptions.map(({ mode, labelKey, icon }) => {
+              const active = viewMode === mode
               return (
                 <button
-                  key={tab}
+                  key={mode}
                   type="button"
-                  onClick={() => setActiveTab(tab)}
-                  aria-label={tabLabel}
-                  title={tabLabel}
-                  style={{
-                    padding: iconOnly ? 'var(--space-3)' : 'var(--space-3) var(--space-4)',
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    background: 'none',
-                    border: 'none',
-                    color: activeTab === tab ? 'var(--color-sky-blue)' : 'var(--text-muted)',
-                    borderBottom:
-                      activeTab === tab
-                        ? '2px solid var(--color-sky-blue)'
-                        : '2px solid transparent',
-                    transition: 'all 0.2s',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: iconOnly ? 0 : 8,
-                  }}
+                  className={`ds-segmented-group__btn${active ? ' ds-segmented-group__btn--active' : ''}`}
+                  aria-pressed={active}
+                  onClick={() => setView(mode)}
                 >
-                  {tab === 'Tilgjengelig' && (
-                    <CheckCircle2
-                      size={iconOnly ? 22 : 16}
-                      style={{ color: activeTab === tab ? 'var(--color-teal)' : undefined }}
-                      aria-hidden
-                    />
-                  )}
-                  {tab === 'Ikke markert' && (
-                    <CircleDashed
-                      size={iconOnly ? 22 : 16}
-                      style={{ color: activeTab === tab ? 'var(--text-muted)' : undefined }}
-                      aria-hidden
-                    />
-                  )}
-                  {tab === 'Utilgjengelig' && (
-                    <XCircle
-                      size={iconOnly ? 22 : 16}
-                      style={{ color: activeTab === tab ? '#ef4444' : undefined }}
-                      aria-hidden
-                    />
-                  )}
-                  {tab === 'Formidlet' && (
-                    <ShieldCheck
-                      size={iconOnly ? 22 : 16}
-                      style={{ color: activeTab === tab ? 'var(--color-sky-blue)' : undefined }}
-                      aria-hidden
-                    />
-                  )}
-                  {!iconOnly && tabLabel}
+                  {icon}
+                  <span>{t(labelKey)}</span>
                 </button>
               )
-            })
-          ) : (
-            <div
-              style={{
-                padding: 'var(--space-3) 0',
-                color: 'var(--color-sky-blue)',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <Calendar size={18} /> {t('dbAvailabilityCalendarTitle')}
-            </div>
-          )}
-        </div>
-        <div
-          className="db-action-btns"
-          style={{
-            display: 'flex',
-            gap: isMobile ? 'var(--space-2)' : 'var(--space-2)',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-          }}
-        >
-          {isMobile ? (
-            <button
-              type="button"
-              onClick={() => {
-                setShowFilters(!showFilters)
-                setShowColumnSettings(false)
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: 'var(--space-2) var(--space-3)',
-                borderRadius: '12px',
-                background: showFilters ? 'var(--color-accent)' : 'var(--bg-app)',
-                border: '1px solid var(--border-subtle)',
-                color: showFilters ? 'white' : 'var(--text-main)',
-                cursor: 'pointer',
-                fontWeight: 600,
-                minHeight: 'var(--touch-target)',
-              }}
-            >
-              <Filter size={18} />{' '}
-              <span className="btn-label">
-                {showFilters ? t('dbFilterClose') : t('dbFilterOpen')}
-              </span>
-            </button>
-          ) : (
-            <>
-              {viewMode !== 'map' && (
+            })}
+          </div>
+        ) : (
+          <div className="ds-segmented-group ds-segmented-group--view" role="group" aria-label={t('dbMobileTools')}>
+            {mobileViewOptions.map(({ mode, labelKey, icon }) => {
+              const active = viewMode === mode
+              return (
                 <button
+                  key={mode}
                   type="button"
+                  className={`ds-segmented-group__btn${active ? ' ds-segmented-group__btn--active' : ''}`}
+                  aria-pressed={active}
+                  onClick={() => setView(mode)}
+                >
+                  {icon}
+                  <span>{t(labelKey)}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        <div className="nav-db-toolbar__actions">
+          <button
+            type="button"
+            className="nav-db-ghost-btn"
+            aria-pressed={showFilters}
+            onClick={() => {
+              onShowFiltersChange(!showFilters)
+              onShowColumnSettingsChange(false)
+            }}
+          >
+            <Filter size={14} aria-hidden />
+            <span>{showFilters ? t('dbFilterClose') : t('dbFilterOpen')}</span>
+            {filterActiveCount > 0 ? (
+              <span className={`ds-badge-count${showFilters ? ' ds-badge-count--active' : ''}`}>
+                {filterActiveCount}
+              </span>
+            ) : null}
+          </button>
+
+          {!isMobile && viewMode !== 'map' ? (
+            <TooltipProvider delay={200}>
+              <Tooltip>
+                <TooltipTrigger
+                  className="nav-db-ghost-btn nav-db-ghost-btn--icon"
+                  aria-pressed={showColumnSettings}
+                  aria-label={t('dbColumnSettingsTooltip')}
                   onClick={() => {
-                    setShowColumnSettings(!showColumnSettings)
-                    setShowFilters(false)
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: 'var(--space-2) var(--space-5)',
-                    borderRadius: '12px',
-                    background: showColumnSettings ? 'var(--color-accent)' : 'var(--bg-app)',
-                    border: '1px solid var(--border-subtle)',
-                    color: showColumnSettings ? 'white' : 'var(--text-main)',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    minHeight: 'var(--touch-target)',
+                    onShowColumnSettingsChange(!showColumnSettings)
+                    onShowFiltersChange(false)
                   }}
                 >
-                  <Settings size={18} />{' '}
-                  <span className="btn-label">{t('dbCustomizeColumns')}</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowFilters(!showFilters)
-                  setShowColumnSettings(false)
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: 'var(--space-2) var(--space-5)',
-                  borderRadius: '12px',
-                  background: showFilters ? 'var(--color-accent)' : 'var(--bg-app)',
-                  border: '1px solid var(--border-subtle)',
-                  color: showFilters ? 'white' : 'var(--text-main)',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  minHeight: 'var(--touch-target)',
-                }}
-              >
-                <Filter size={18} />{' '}
-                <span className="btn-label">
-                  {showFilters ? t('dbFilterClose') : t('dbFilterOpen')}
-                </span>
-              </button>
-            </>
-          )}
+                  <Settings size={14} aria-hidden />
+                </TooltipTrigger>
+                <TooltipContent>{t('dbColumnSettingsTooltip')}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : null}
         </div>
       </div>
-    </>
+
+      {viewMode !== 'map' ? (
+        <div className="ds-tab-pills" role="tablist" aria-label={t('dbMapShowStatuses')}>
+          {statusTabs.map((tab) => {
+            const active = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={`ds-tab-pill${active ? ' ds-tab-pill--active' : ''}`}
+                onClick={() => handleStatusTab(tab.id)}
+              >
+                {tab.dotClass ? <span className={`ds-lane-dot ${tab.dotClass}`} aria-hidden /> : null}
+                <span>{t(tab.labelKey)}</span>
+                <span className="ds-badge-count">{tab.count}</span>
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <p
+          className="nav-db-page-header__subtitle"
+          style={{ marginBottom: 'var(--space-4)' }}
+        >
+          {t('dbMapModeHint')}
+        </p>
+      )}
+    </div>
   )
 }

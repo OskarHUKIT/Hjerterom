@@ -14,6 +14,7 @@ import {
 import type { ListingAvailabilityRow, NavDatabaseListingRow } from '@/app/lib/listingUiTypes'
 import type { ListingDayAvailabilityStatus } from '@/app/lib/listingAvailabilityStatusToday'
 import type { NavDbColumn } from '@/features/mediation/lib/navDatabaseColumns'
+import type { NavDatabaseActiveTab } from '@/features/mediation/components/NavDatabasePageToolbar'
 import type { ReactNode } from 'react'
 
 type NavDatabaseTableViewProps = {
@@ -21,7 +22,7 @@ type NavDatabaseTableViewProps = {
   availability: Record<string, ListingAvailabilityRow[]>
   visibleColumnIds: string[]
   allColumns: NavDbColumn[]
-  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
+  activeTab: NavDatabaseActiveTab
   kommuneCanEdit: boolean
   isMobile: boolean
   translateValue: (
@@ -81,7 +82,7 @@ export default function NavDatabaseTableView({
   })
 
   return (
-    <div className="card db-table-wrapper" style={{ padding: 0, overflow: 'hidden' }}>
+    <div className="card db-table-wrapper nav-db-view-card" style={{ padding: 0, overflow: 'hidden' }}>
       <div
         ref={scrollRef}
         style={{
@@ -132,6 +133,14 @@ export default function NavDatabaseTableView({
             {virtualizer.getVirtualItems().map((vRow) => {
               const l = listings[vRow.index]
               const i = vRow.index
+              const rowStatus = getStatusForToday(l.id, availability)
+              const showTilgjengeligActions =
+                kommuneCanEdit &&
+                (activeTab === 'Tilgjengelig' ||
+                  (activeTab === 'Alle' && rowStatus === 'Tilgjengelig'))
+              const showFormidletActions =
+                kommuneCanEdit &&
+                (activeTab === 'Formidlet' || (activeTab === 'Alle' && rowStatus === 'Formidla'))
               return (
                 <tr
                   key={l.id}
@@ -178,7 +187,7 @@ export default function NavDatabaseTableView({
                       >
                         <Eye size={16} />
                       </Link>
-                      {activeTab === 'Tilgjengelig' && kommuneCanEdit && (
+                      {showTilgjengeligActions && (
                         <button
                           type="button"
                           onClick={() => openFormidletModal(l)}
@@ -195,7 +204,7 @@ export default function NavDatabaseTableView({
                           <ShieldCheck size={16} />
                         </button>
                       )}
-                      {activeTab === 'Formidlet' && kommuneCanEdit && (
+                      {showFormidletActions && (
                         <>
                           <button
                             type="button"

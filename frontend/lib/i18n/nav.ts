@@ -5,6 +5,14 @@
 export const navTranslations = {
   no: {
     housingBank: "Boligbank",
+    dbPageSubtitle:
+      "Private utleiere i din kommune-region. Søk, filtrer og formidle boliger til brukere.",
+    dbListingCount: "{count} boliger",
+    dbStatusAll: "Alle",
+    dbEditAccessBadge: "Redigeringstilgang",
+    dbActiveFilters: "Aktive:",
+    dbMoreFilters: "Flere filtre",
+    dbColumnSettingsTooltip: "Kolonneinnstillinger",
     users: "Brukere",
     navLandlords: "Utleiere",
     navLandlordsDesc: "Oversikt over alle registrerte utleiere i Boligbank.",
@@ -309,6 +317,14 @@ export const navTranslations = {
   },
   se: {
     housingBank: "Beaivvášbánccu",
+    dbPageSubtitle:
+      "Priváhta goddánuslohkkit du suohkanregiuvnnas. Oza, filtter ja formide bohtosiid geavaheaddjiide.",
+    dbListingCount: "{count} bohtosiid",
+    dbStatusAll: "Buot",
+    dbEditAccessBadge: "Rievddadanbeaivi",
+    dbActiveFilters: "Aktiiva:",
+    dbMoreFilters: "Eambbo filttera",
+    dbColumnSettingsTooltip: "Sulliid heivehusat",
     users: "Bruhkat",
     navLandlords: "Goddánuslohkkit",
     navLandlordsDesc: "Ovdánahtti buot registrereduvvon goddánuslohkiid Beaivvášbánccus.",
@@ -608,6 +624,14 @@ export const navTranslations = {
   },
   en: {
     housingBank: "Boligbank",
+    dbPageSubtitle:
+      "Private landlords in your municipality region. Search, filter and mediate homes to users.",
+    dbListingCount: "{count} homes",
+    dbStatusAll: "All",
+    dbEditAccessBadge: "Edit access",
+    dbActiveFilters: "Active:",
+    dbMoreFilters: "More filters",
+    dbColumnSettingsTooltip: "Column settings",
     users: "Users",
     navLandlords: "Landlords",
     navLandlordsDesc: "Overview of all registered landlords in Boligbank.",

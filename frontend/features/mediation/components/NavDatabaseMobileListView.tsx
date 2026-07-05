@@ -6,6 +6,7 @@ import { ShieldCheck, Eye, CalendarPlus, RotateCcw } from 'lucide-react'
 import type { NavDatabaseListingRow, ListingAvailabilityRow } from '@/app/lib/listingUiTypes'
 import type { ListingDayAvailabilityStatus } from '@/app/lib/listingAvailabilityStatusToday'
 import type { NavDbColumn } from '@/features/mediation/lib/navDatabaseColumns'
+import type { NavDatabaseActiveTab } from '@/features/mediation/components/NavDatabasePageToolbar'
 import type { TranslationKey } from '@/lib/translations'
 
 export type NavDatabaseMobileListViewProps = {
@@ -13,7 +14,7 @@ export type NavDatabaseMobileListViewProps = {
   availability: Record<string, ListingAvailabilityRow[]>
   visibleColumns: string[]
   allColumns: NavDbColumn[]
-  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
+  activeTab: NavDatabaseActiveTab
   kommuneCanEdit: boolean
   translateValue: (
     colId: string,
@@ -51,7 +52,16 @@ export default function NavDatabaseMobileListView({
   const ALL_COLUMNS = allColumns
   return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              {listings.map((l) => (
+              {listings.map((l) => {
+                const rowStatus = getStatusForToday(l.id, availability)
+                const showTilgjengeligActions =
+                  kommuneCanEdit &&
+                  (activeTab === 'Tilgjengelig' ||
+                    (activeTab === 'Alle' && rowStatus === 'Tilgjengelig'))
+                const showFormidletActions =
+                  kommuneCanEdit &&
+                  (activeTab === 'Formidlet' || (activeTab === 'Alle' && rowStatus === 'Formidla'))
+                return (
                 <div
                   key={l.id}
                   className="card"
@@ -141,7 +151,7 @@ export default function NavDatabaseMobileListView({
                     >
                       <Eye size={18} />
                     </Link>
-                    {activeTab === 'Tilgjengelig' && kommuneCanEdit && (
+                    {showTilgjengeligActions && (
                       <button
                         type="button"
                         onClick={() => openFormidletModal(l)}
@@ -164,7 +174,7 @@ export default function NavDatabaseMobileListView({
                         <ShieldCheck size={18} />
                       </button>
                     )}
-                    {activeTab === 'Formidlet' && kommuneCanEdit && (
+                    {showFormidletActions && (
                       <>
                         <button
                           type="button"
@@ -212,7 +222,7 @@ export default function NavDatabaseMobileListView({
                     )}
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
 
   )

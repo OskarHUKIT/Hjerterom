@@ -64,6 +64,7 @@ import FormidletExtendModal, {
 } from '@/features/mediation/components/FormidletExtendModal'
 import NavDatabaseFilters, {
   DEFAULT_NAV_DATABASE_FILTERS,
+  countActiveNavDatabaseFilters,
 } from '@/features/mediation/components/NavDatabaseFilters'
 import {
   type NavDbViewMode,
@@ -78,7 +79,9 @@ import { useNavDatabaseTranslate } from '@/features/mediation/hooks/useNavDataba
 import NavDatabaseColumnSettings from '@/features/mediation/components/NavDatabaseColumnSettings'
 import NavDatabaseMobileListView from '@/features/mediation/components/NavDatabaseMobileListView'
 import NavDatabaseTimelineView from '@/features/mediation/components/NavDatabaseTimelineView'
-import NavDatabasePageToolbar from '@/features/mediation/components/NavDatabasePageToolbar'
+import NavDatabasePageToolbar, {
+  type NavDatabaseActiveTab,
+} from '@/features/mediation/components/NavDatabasePageToolbar'
 
 function navDbErrMessage(err: unknown): string {
   return supabaseErrorMessage(err)
@@ -139,9 +142,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
   const [searchTerm, setSearchTerm] = useState('')
   // ... rest of state ...
 
-  const [activeTab, setActiveTab] = useState<
-    'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
-  >('Tilgjengelig')
+  const [activeTab, setActiveTab] = useState<NavDatabaseActiveTab>('Alle')
   const [viewMode, setViewMode] = useState<NavDbViewMode>(() => {
     if (typeof window === 'undefined') return 'timeline'
     return new URLSearchParams(window.location.search).get('focusListing')?.trim() ? 'map' : 'timeline'
@@ -367,6 +368,13 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
 
   const listings = listingsQuery.data?.listings ?? []
   const availability = listingsQuery.data?.availability ?? {}
+  const statusCounts = listingsQuery.data?.statusCounts ?? {
+    all: 0,
+    tilgjengelig: 0,
+    utilgjengelig: 0,
+    formidlet: 0,
+    ikkeMarkert: 0,
+  }
   const kommuneFetchError = listingsQuery.data?.fetchError ?? null
   const waitingForKommuneRegion =
     isAuthorized === true &&
@@ -399,7 +407,30 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
           : s === 'Ikke markert'
             ? 'Ikke markert'
             : 'Tilgjengelig'
+
+    if (viewMode === 'timeline' && activeTab !== 'Alle') {
+      return activeTab === status
+    }
+
     return effectiveMapTimelineStatusFilter.includes(status)
+  }
+
+  const filterActiveCount = countActiveNavDatabaseFilters(
+    filters,
+    searchTerm,
+    eventFilterId,
+    platformFlags.centralEvents
+  )
+
+  const handleActiveTabChange = (tab: NavDatabaseActiveTab) => {
+    setActiveTab(tab)
+    if (viewMode === 'timeline' || viewMode === 'map') {
+      if (tab === 'Alle') {
+        setMapStatusFilter(['Tilgjengelig', 'Ikke markert', 'Utilgjengelig', 'Formidlet'])
+      } else {
+        setMapStatusFilter([tab])
+      }
+    }
   }
 
   if (!isEventPortal && accessError) {
@@ -541,12 +572,14 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
         isMobile={isMobile}
         overviewBack={overviewBack}
         viewMode={viewMode}
-        userRole={userRole}
+        kommuneCanEdit={kommuneCanEdit}
         activeTab={activeTab}
+        statusCounts={statusCounts}
+        filterActiveCount={filterActiveCount}
         showFilters={showFilters}
         showColumnSettings={showColumnSettings}
         onViewModeChange={setViewMode}
-        onActiveTabChange={setActiveTab}
+        onActiveTabChange={handleActiveTabChange}
         onShowFiltersChange={setShowFilters}
         onShowColumnSettingsChange={setShowColumnSettings}
         onClearFocusListingFromUrl={clearFocusListingFromUrl}
@@ -554,19 +587,6 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
         startViewTransition={startViewTransition}
         t={t}
       />
-      {viewMode === 'map' && (
-        <p
-          className="text-sm"
-          style={{
-            margin: '0 0 var(--space-4)',
-            color: 'var(--text-muted)',
-            lineHeight: 1.5,
-            maxWidth: 720,
-          }}
-        >
-          {t('dbMapModeHint')}
-        </p>
-      )}
 
       <NavDatabaseColumnSettings
         open={showColumnSettings && viewMode !== 'map'}
@@ -596,6 +616,7 @@ export default function NavDatabasePage({ portalMode = 'kommune' }: NavDatabaseP
         onReset={() => {
           setSearchTerm('')
           setFilters(DEFAULT_NAV_DATABASE_FILTERS)
+          setEventFilterId('Alle')
         }}
       />
 

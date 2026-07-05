@@ -70,8 +70,8 @@ export default function NavDatabaseTimelineView({
               />
               <div
                 ref={timelineScrollRef}
-                className="card"
-                style={{ padding: 'var(--space-6)', overflowX: 'auto', position: 'relative' }}
+                className="nav-db-view-card"
+                style={{ padding: 'var(--space-4)', overflowX: 'auto', position: 'relative' }}
               >
                 <button
                   type="button"

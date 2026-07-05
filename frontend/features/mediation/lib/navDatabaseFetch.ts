@@ -39,12 +39,21 @@ export type FetchNavDatabaseListingsParams = {
   sortField: string
   sortOrder: 'asc' | 'desc'
   viewMode: NavDbViewMode
-  activeTab: 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
+  activeTab: 'Alle' | 'Tilgjengelig' | 'Utilgjengelig' | 'Formidlet' | 'Ikke markert'
   rpcErrorHint: string
+}
+
+export type NavDatabaseStatusCounts = {
+  all: number
+  tilgjengelig: number
+  utilgjengelig: number
+  formidlet: number
+  ikkeMarkert: number
 }
 
 export type NavDatabaseListingsFetchResult = NavDatabaseListingsPayload & {
   fetchError: string | null
+  statusCounts: NavDatabaseStatusCounts
 }
 
 async function fetchTerminatedOwnerIds(): Promise<Set<string>> {
@@ -270,12 +279,34 @@ async function fetchAvailabilityMap(
   return availMap
 }
 
+function computeStatusCounts(
+  filtered: NavDatabaseListingRow[],
+  availMap: Record<string, ListingAvailabilityRow[]>
+): NavDatabaseStatusCounts {
+  const counts: NavDatabaseStatusCounts = {
+    all: filtered.length,
+    tilgjengelig: 0,
+    utilgjengelig: 0,
+    formidlet: 0,
+    ikkeMarkert: 0,
+  }
+  for (const listing of filtered) {
+    const status = listingAvailabilityStatusToday(listing.id, availMap)
+    if (status === 'Tilgjengelig') counts.tilgjengelig += 1
+    else if (status === 'Utilgjengelig') counts.utilgjengelig += 1
+    else if (status === 'Formidla') counts.formidlet += 1
+    else if (status === 'Ikke markert') counts.ikkeMarkert += 1
+  }
+  return counts
+}
+
 function applyTabStatusFilter(
   filtered: NavDatabaseListingRow[],
   availMap: Record<string, ListingAvailabilityRow[]>,
   params: FetchNavDatabaseListingsParams
 ): NavDatabaseListingRow[] {
   if (params.viewMode !== 'table' && params.viewMode !== 'list') return filtered
+  if (params.activeTab === 'Alle') return filtered
 
   const todayStatus = (lid: string) => listingAvailabilityStatusToday(lid, availMap)
   if (params.activeTab === 'Tilgjengelig') {
@@ -340,6 +371,7 @@ export async function fetchNavDatabaseListings(
   filtered = await applyEventFilter(filtered, params.eventFilterId)
 
   const availMap = await fetchAvailabilityMap(filtered)
+  const statusCounts = computeStatusCounts(filtered, availMap)
   filtered = applyTabStatusFilter(filtered, availMap, params)
   filtered = sortListings(filtered, params.sortField, params.sortOrder)
 
@@ -347,5 +379,6 @@ export async function fetchNavDatabaseListings(
     listings: filtered,
     availability: availMap,
     fetchError,
+    statusCounts,
   }
 }
