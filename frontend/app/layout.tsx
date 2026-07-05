@@ -21,11 +21,11 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Hjerterum',
+  title: 'Hjerterom',
   description:
-    'Hjerterum – boligformidling, arrangement og turisme mellom kommune, utleiere og gjester i Nord-Norge',
+    'Hjerterom – boligformidling, arrangement og turisme mellom kommune, utleiere og gjester i Nord-Norge',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, title: 'Hjerterum' },
+  appleWebApp: { capable: true, title: 'Hjerterom' },
   icons: {
     icon: [{ url: '/BolyMobilIcon.png', sizes: '1024x1024', type: 'image/png' }],
     apple: '/BolyMobilIcon.png',

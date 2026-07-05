@@ -270,6 +270,17 @@
   background-image: none !important;
 }
 
+.hrt-landing-hero__brand-line {
+  display: block;
+  font-size: clamp(2.5rem, 5.2vw + 0.5rem, 4.5rem);
+  line-height: 1.05;
+  margin-bottom: 0.15em;
+}
+
+.hrt-landing-hero__title-line {
+  display: block;
+}
+
 .hrt-landing-hero__content {
   padding-bottom: clamp(2rem, 6vw, 4rem);
 }

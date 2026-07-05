@@ -13,52 +13,6 @@ type LandingHeroProps = {
   activeModule: LandingHeroModule
 }
 
-function HeroMotif() {
-  return (
-    <div className="hrt-landing-hero__motif" aria-hidden>
-      <svg viewBox="0 0 400 400" className="hrt-landing-hero__motif-svg">
-        <rect
-          x="70"
-          y="70"
-          width="260"
-          height="260"
-          rx="18"
-          stroke="var(--hrt-primary)"
-          strokeOpacity="0.35"
-          strokeWidth="1.5"
-          fill="none"
-          transform="rotate(8 200 200)"
-        />
-        <rect
-          x="110"
-          y="110"
-          width="180"
-          height="180"
-          rx="14"
-          stroke="var(--hrt-teal)"
-          strokeOpacity="0.35"
-          strokeWidth="1.5"
-          fill="none"
-          transform="rotate(-6 200 200)"
-        />
-        <path
-          d="M200 300c-58-38-96-74-96-118 0-30 22-52 50-52 22 0 38 12 46 30 8-18 24-30 46-30 28 0 50 22 50 52 0 44-38 80-96 118Z"
-          fill="none"
-          stroke="var(--hrt-warm)"
-          strokeWidth="2"
-          strokeOpacity="0.55"
-        />
-        <path
-          d="M200 300c-58-38-96-74-96-118 0-30 22-52 50-52 22 0 38 12 46 30 8-18 24-30 46-30 28 0 50 22 50 52 0 44-38 80-96 118Z"
-          fill="var(--hrt-heart)"
-          fillOpacity="0.06"
-        />
-        <circle cx="200" cy="200" r="150" stroke="var(--text-main)" strokeOpacity="0.06" fill="none" />
-      </svg>
-    </div>
-  )
-}
-
 function HeroSkeleton() {
   const { t } = useLanguage()
 
@@ -78,17 +32,35 @@ function HeroSkeleton() {
   )
 }
 
+function HeroTitle({ brandLine, title, titleAccent }: { brandLine?: string; title: string; titleAccent: string }) {
+  const [titleBefore, accent, titleAfter] = splitHeroTitle(title, titleAccent)
+
+  return (
+    <>
+      {brandLine ? <span className="hrt-landing-hero__brand-line">{brandLine}</span> : null}
+      <span className="hrt-landing-hero__title-line">
+        {accent ? (
+          <>
+            {titleBefore}
+            <span className="hrt-landing-hero__title-accent">{accent}</span>
+            {titleAfter}
+          </>
+        ) : (
+          title
+        )}
+      </span>
+    </>
+  )
+}
+
 export default function LandingHero({ activeModule }: LandingHeroProps) {
   const { t } = useLanguage()
   const { flags, isLoading } = usePlatformMode()
 
   const content = resolveHeroContent(activeModule, flags, t)
-  const [titleBefore, titleAccent, titleAfter] = splitHeroTitle(content.title, content.titleAccent)
 
   return (
     <section className="hrt-landing-hero" aria-labelledby="landing-hero-title">
-      <HeroMotif />
-
       {isLoading ? (
         <HeroSkeleton />
       ) : (
@@ -99,16 +71,12 @@ export default function LandingHero({ activeModule }: LandingHeroProps) {
           </p>
 
           <h1 id="landing-hero-title" className="hrt-landing-hero__title">
-            <span key={content.title}>
-              {titleAccent ? (
-                <>
-                  {titleBefore}
-                  <span className="hrt-landing-hero__title-accent">{titleAccent}</span>
-                  {titleAfter}
-                </>
-              ) : (
-                content.title
-              )}
+            <span key={`${content.brandLine ?? ''}-${content.title}`}>
+              <HeroTitle
+                brandLine={content.brandLine}
+                title={content.title}
+                titleAccent={content.titleAccent}
+              />
             </span>
           </h1>
 

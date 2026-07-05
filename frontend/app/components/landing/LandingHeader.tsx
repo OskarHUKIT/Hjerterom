@@ -42,7 +42,7 @@ export default function LandingHeader() {
               />
             </svg>
           </span>
-          <span className="landing-header__name">Hjerterum</span>
+          <span className="landing-header__name">Hjerterom</span>
           <span className="landing-header__badge">Boly</span>
         </Link>
 
