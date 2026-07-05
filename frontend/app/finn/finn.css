@@ -688,15 +688,27 @@
   margin-bottom: 12px;
 }
 
-.finn-listing-card__media img {
+.finn-listing-card__media img,
+.finn-listing-card__cover-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.5s ease;
 }
 
-.finn-listing-card:hover .finn-listing-card__media img {
+.finn-listing-card:hover .finn-listing-card__media img,
+.finn-listing-card:hover .finn-listing-card__cover-img {
   transform: scale(1.04);
+}
+
+.finn-detail-hero-cell {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+
+.finn-detail-hero-img {
+  object-fit: cover;
 }
 
 .finn-listing-card__wishlist {

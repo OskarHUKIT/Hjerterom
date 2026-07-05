@@ -316,7 +316,7 @@ export const listingsTranslations = {
     listingGalleryNext: "Neste bilde",
     listingImageDropzoneTitle: "Legg til bilder",
     listingImageDropzoneHint:
-      "Klikk for å velge fra enheten. Du kan laste opp flere filer samtidig (f.eks. JPG eller PNG).",
+      "JPG, PNG eller WebP — maks 10 MB per bilde. Første bilde blir forsiden.",
     uploadDropzoneTitle: "Last opp bilder",
     uploadDropzoneHint:
       "Dra bilder hit eller klikk for å velge. Kun bildefiler (JPG, PNG, WebP). Maks {max} bilder.",
@@ -326,6 +326,14 @@ export const listingsTranslations = {
     listingImageEmptyViewer: "Ingen bilder er lagt ut ennå.",
     listingImageUploading: "Laster opp …",
     listingImageAddPhotos: "Legg til bilder",
+    listingPhotoCover: "Forside",
+    listingPhotoAltLabel: "Alternativ tekst for bildet",
+    listingPhotoAltPlaceholder: "Beskriv bildet for skjermlesere",
+    listingPhotoDelete: "Slett bilde",
+    listingPhotoBrowse: "Velg filer",
+    listingPhotoGridItem: "Bilde {n}",
+    uploadErrorType: "Kun JPG, PNG og WebP er tillatt.",
+    uploadErrorSize: "Bildet er for stort (maks 10 MB).",
     listingRequestChangePlaceholder: "Forklar hva som må endres eller suppleres …",
     listingTenantLinkHelp:
       "Bruk «Ny lenke» hvis leietaker sier at lenken er ugyldig – send deretter den nye lenken.",
@@ -896,7 +904,7 @@ export const listingsTranslations = {
     listingGalleryNext: "Boahtte govva",
     listingImageDropzoneTitle: "Lasit govaid",
     listingImageDropzoneHint:
-      "Coahkkal válljet ovttasbarggus. Sáhttát lasihit máŋga fiilla ovtta áiggi (ovd. JPG dahje PNG).",
+      "JPG, PNG dahje WebP — maks 10 MB juohke govva. Vuosttaš govva lea ovdagovva.",
     uploadDropzoneTitle: "Nammat govaid",
     uploadDropzoneHint:
       "Sirdde govaid dán dahje deip válljet. Dušše govagovat (JPG, PNG, WebP). Maks {max} govva.",
@@ -906,6 +914,14 @@ export const listingsTranslations = {
     listingImageEmptyViewer: "Ii leat lasihuvvon govaid.",
     listingImageUploading: "Viežžá …",
     listingImageAddPhotos: "Lasit govaid",
+    listingPhotoCover: "Ovdagovva",
+    listingPhotoAltLabel: "Alternatiiva teaksta govvaide",
+    listingPhotoAltPlaceholder: "Čilge govva skárrálassii",
+    listingPhotoDelete: "Sihko govva",
+    listingPhotoBrowse: "Vállje fiillaid",
+    listingPhotoGridItem: "Govva {n}",
+    uploadErrorType: "Dušše JPG, PNG ja WebP leat lohpolaš.",
+    uploadErrorSize: "Govva lea menddo stuoris (maks 10 MB).",
     listingRequestChangePlaceholder: "Čilge maid ferte rievdadit dahje lasihit …",
     listingTenantLinkHelp:
       "Geavat «Ođđa liŋkka» jos báhkki dadjá ahte liŋka ii leat dohkálaš – sádde dalle ođđa liŋkka.",
@@ -1467,7 +1483,7 @@ export const listingsTranslations = {
     listingGalleryNext: "Next image",
     listingImageDropzoneTitle: "Add photos",
     listingImageDropzoneHint:
-      "Click to choose from your device. You can upload several files at once (e.g. JPG or PNG).",
+      "JPG, PNG or WebP — max 10 MB each. The first photo becomes the cover.",
     uploadDropzoneTitle: "Upload photos",
     uploadDropzoneHint:
       "Drag photos here or click to choose. Image files only (JPG, PNG, WebP). Max {max} photos.",
@@ -1477,6 +1493,14 @@ export const listingsTranslations = {
     listingImageEmptyViewer: "No photos have been added yet.",
     listingImageUploading: "Uploading…",
     listingImageAddPhotos: "Add photos",
+    listingPhotoCover: "Cover",
+    listingPhotoAltLabel: "Alternative text for the image",
+    listingPhotoAltPlaceholder: "Describe the photo for screen readers",
+    listingPhotoDelete: "Delete photo",
+    listingPhotoBrowse: "Browse files",
+    listingPhotoGridItem: "Photo {n}",
+    uploadErrorType: "Only JPG, PNG and WebP are allowed.",
+    uploadErrorSize: "The photo is too large (max 10 MB).",
     listingRequestChangePlaceholder: "Explain what needs to be changed or added…",
     listingTenantLinkHelp:
       "Use “New link” if the tenant says the link is invalid—then send them the new link.",

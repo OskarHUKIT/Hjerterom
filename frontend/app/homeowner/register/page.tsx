@@ -42,7 +42,9 @@ import { isKommuneStaffRole } from '../../lib/kommuneRoles'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 import PageSkeleton from '../../components/design-system/PageSkeleton'
-import { Stepper, FileUploadCard, SignTermsLink } from '@/app/components/design-system'
+import { Stepper, SignTermsLink } from '@/app/components/design-system'
+import ListingPhotoManager from '@/features/listings/components/ListingPhotoManager'
+import '@/features/listings/listing-photo-manager.css'
 import { useSignTermsIdentityGate } from '@/features/auth/hooks/useSignTermsIdentityGate'
 import { buildSignTermsHref } from '@/features/auth/lib/signTermsNavigation'
 import { Button } from '@/app/components/ui/Button'
@@ -57,7 +59,7 @@ import {
 } from '@/features/listings/components/register/registerPropertySections'
 import {
   MAX_LISTING_IMAGES,
-  filterListingImageFiles,
+  persistListingImages,
   uploadListingImagesToStorage,
 } from '@/features/listings/lib/listingImageUpload'
 import { usePlatformMode } from '@/context/PlatformModeContext'
@@ -77,8 +79,8 @@ export default function HomeownerRegister() {
   const router = useRouter()
   const { flags: platformFlags } = usePlatformMode()
   const [loading, setLoading] = useState(false)
-  const [imageFiles, setImageFiles] = useState<File[]>([])
-  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const stagedPhotoFilesRef = useRef<File[]>([])
+  const stagedPhotoAltsRef = useRef<string[]>([])
   const [houseRulesFile, setHouseRulesFile] = useState<File | null>(null)
   const [hasSignedTerms, setHasSignedTerms] = useState<boolean | null>(null)
   const [backHref, setBackHref] = useState('/')
@@ -303,35 +305,10 @@ export default function HomeownerRegister() {
     }
   }, [formData.city])
 
-  const handleImageFiles = (files: File[]) => {
-    const images = filterListingImageFiles(files)
-    if (!images.length && files.length) {
-      toast(t('uploadError'), 'error')
-      return
-    }
-    const room = MAX_LISTING_IMAGES - imageFiles.length
-    if (room <= 0) {
-      toast(t('uploadError'), 'error')
-      return
-    }
-    const batch = images.slice(0, room)
-    if (batch.length < images.length) {
-      toast(t('uploadError'), 'error')
-    }
-    if (!batch.length) return
-    setImageFiles((prev) => [...prev, ...batch])
-    setImagePreviews((prev) => [...prev, ...batch.map((file) => URL.createObjectURL(file))])
-  }
-
-  const removeImage = (index: number) => {
-    const newFiles = [...imageFiles]
-    newFiles.splice(index, 1)
-    setImageFiles(newFiles)
-
-    const newPreviews = [...imagePreviews]
-    newPreviews.splice(index, 1)
-    setImagePreviews(newPreviews)
-  }
+  const handleStagedPhotosChange = useCallback((files: File[], alts: string[]) => {
+    stagedPhotoFilesRef.current = files
+    stagedPhotoAltsRef.current = alts
+  }, [])
 
   const toggleMultiSelect = (field: string, value: string) => {
     setFormData((prev) => {
@@ -344,22 +321,7 @@ export default function HomeownerRegister() {
     })
   }
 
-  const uploadImages = async (files: File[]) => {
-    if (!files.length) return []
-    return uploadListingImagesToStorage(supabase, files)
-  }
-
-  const stagedPhotoItems = imageFiles.map((file, index) => ({
-    id: String(index),
-    name: file.name,
-    progress: 100,
-    status: 'queued' as const,
-    previewUrl: imagePreviews[index],
-  }))
-
   const uploadHint = t('uploadDropzoneHint').replace('{max}', String(MAX_LISTING_IMAGES))
-  const uploadProgressText = (pct: number) =>
-    t('uploadProgress').replace('{pct}', String(Math.round(pct)))
 
   const runGeocode = useCallback(async () => {
     const fd = formRef.current
@@ -569,15 +531,7 @@ export default function HomeownerRegister() {
       }
 
       let imageUrls: string[] = []
-      if (imageFiles.length > 0) {
-        try {
-          imageUrls = await uploadImages(imageFiles)
-        } catch {
-          toast(t('uploadError'), 'error')
-          setLoading(false)
-          return
-        }
-      }
+      let imageAlts: string[] = []
 
       const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n))
       const sizeSqm = clamp(parseFloat(String(formData.size_sqm)) || 0, 1, 9999)
@@ -608,8 +562,9 @@ export default function HomeownerRegister() {
         tourism_enabled: Boolean(tourism_enabled),
         deposit_guarantee: longTermOn ? formData.deposit_guarantee : [],
         floor_number: floorNumber,
-        image_url: imageUrls[0] ?? null,
-        image_urls: imageUrls,
+        image_url: null,
+        image_urls: [],
+        image_alts: [],
         is_available: true,
         status: 'Tilgjengelig',
         size_sqm: sizeSqm,
@@ -660,6 +615,17 @@ export default function HomeownerRegister() {
       const listingId = inserted?.id
       if (!listingId) {
         throw new Error(t('regSaveNoIdError'))
+      }
+
+      const stagedFiles = stagedPhotoFilesRef.current
+      if (stagedFiles.length > 0) {
+        try {
+          imageUrls = await uploadListingImagesToStorage(supabase, listingId, stagedFiles)
+          imageAlts = stagedPhotoAltsRef.current.slice(0, imageUrls.length)
+          await persistListingImages(supabase, listingId, imageUrls, imageAlts)
+        } catch {
+          toast(t('uploadError'), 'error')
+        }
       }
 
       if (houseRulesFile) {
@@ -1342,17 +1308,17 @@ export default function HomeownerRegister() {
                 <Camera size={20} /> {t('regImagesSection')}
               </h3>
               <div className="register-upload-dropzone">
-                <FileUploadCard
-                  title={t('uploadDropzoneTitle')}
-                  hint={uploadHint}
-                  progressLabel={uploadProgressText}
-                  queuedLabel={t('uploadQueued')}
-                  maxFiles={MAX_LISTING_IMAGES}
-                  currentCount={imageFiles.length}
-                  stagedItems={stagedPhotoItems}
-                  onFilesSelected={handleImageFiles}
-                  onRemoveStaged={(id) => removeImage(Number(id))}
-                  onUploadError={() => toast(t('uploadError'), 'error')}
+                <ListingPhotoManager
+                  mode="staging"
+                  maxImages={MAX_LISTING_IMAGES}
+                  fallbackAlt={formData.address || t('regImagesSection')}
+                  onStagedChange={handleStagedPhotosChange}
+                  onError={(code) => {
+                    if (code === 'invalid_type') toast(t('uploadErrorType'), 'error')
+                    else if (code === 'too_large') toast(t('uploadErrorSize'), 'error')
+                    else toast(t('uploadError'), 'error')
+                  }}
+                  t={t}
                 />
               </div>
               <div className="register-house-rules-panel">

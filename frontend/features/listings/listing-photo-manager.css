@@ -1,0 +1,134 @@
+.listing-photo-manager {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.listing-photo-manager__upload {
+  max-width: none;
+  width: 100%;
+}
+
+.listing-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 160px), 1fr));
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.listing-photo-grid__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-raised, var(--bg-card));
+}
+
+.listing-photo-grid__item:focus-visible {
+  outline: 2px solid var(--color-sky-blue, var(--focus-ring));
+  outline-offset: 2px;
+}
+
+.listing-photo-grid__thumb-wrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm, 6px);
+  overflow: hidden;
+  background: var(--bg-muted);
+}
+
+.listing-photo-grid__thumb,
+.listing-photo-grid__thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.listing-photo-grid__cover-badge {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+  padding: 2px 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-royal-blue) 85%, transparent);
+  color: var(--text-on-accent, #fff);
+}
+
+.listing-photo-grid__alt-label {
+  display: block;
+}
+
+.listing-photo-grid__alt-input {
+  width: 100%;
+  font-size: 0.8125rem;
+}
+
+.listing-photo-grid__actions {
+  display: flex;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+.listing-photo-grid__delete {
+  color: var(--color-danger, #c0392b);
+}
+
+.listing-cover-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-royal-blue) 22%, var(--bg-muted)) 0%,
+    color-mix(in srgb, var(--color-sky-blue) 18%, var(--bg-muted)) 50%,
+    var(--bg-muted) 100%
+  );
+  color: color-mix(in srgb, var(--color-sky-blue) 70%, var(--text-muted));
+}
+
+.listing-cover-placeholder__icon {
+  opacity: 0.55;
+}
+
+.listing-cover-placeholder__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.listing-image-placeholder--branded {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-royal-blue) 18%, var(--bg-muted)) 0%,
+    var(--bg-muted) 100%
+  );
+}
+
+.finn-listing-card__media .listing-cover-placeholder,
+.ds-property-card__image .listing-cover-placeholder {
+  aspect-ratio: 4 / 3;
+}
+
+.finn-card .listing-cover-placeholder {
+  aspect-ratio: 4 / 3;
+  max-height: 280px;
+}
+
+@media (max-width: 768px) {
+  .listing-photo-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -8,6 +8,7 @@ export type FinnListingDetail = {
   cancellation_policy: string | null
   image_url: string | null
   image_urls: unknown
+  image_alts?: unknown
   type: string | null
   beds: number | null
   map_lat: number | null

@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { Heart, Star } from 'lucide-react'
+import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
 import { useLanguage } from '@/context/LanguageContext'
 import { useToast } from '@/app/components/design-system'
+import { ListingCoverPlaceholder } from '@/features/listings/components/ListingPhotoManager'
 import type { FinnListingCard } from '@/features/tourism/types/finn'
 import { formatFinnNightlyPrice } from '@/features/tourism/types/finn'
 
@@ -39,23 +41,15 @@ export default function FinnTourismListingCard({
       <Link href={href} className="finn-listing-card">
         <div className="finn-listing-card__media">
           {listing.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={listing.image_url} alt={listing.address} loading="lazy" />
+            <OptimizedPublicStorageImage
+              variant="fill"
+              src={listing.image_url}
+              alt={listing.address}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
+              className="finn-listing-card__cover-img"
+            />
           ) : (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'var(--finn-bg-muted)',
-                color: 'var(--finn-text-muted)',
-                fontSize: '0.85rem',
-              }}
-            >
-              {t('finnNoPhoto')}
-            </div>
+            <ListingCoverPlaceholder label={t('finnNoPhoto')} />
           )}
           {onToggleWishlist ? (
             <button

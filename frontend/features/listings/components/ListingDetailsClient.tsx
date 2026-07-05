@@ -216,6 +216,7 @@ export default function ListingDetailsClient() {
     handleRegenerateTenantLink,
     handleUploadListingImage,
     handleReorderListingImage,
+    gateUpload,
     handleHouseRulesFileChange,
     handleHouseRulesRemove,
     handleAddNote,
@@ -518,16 +519,30 @@ export default function ListingDetailsClient() {
 
           <ListingDetailsOwnerGallery
             listing={listing}
-            allImages={allImages}
             canOwnerEditListingDetail={canOwnerEditListingDetail}
             showGalleryFormidlet={showGalleryFormidlet}
             isOwner={isOwner}
             isNavView={isNavView}
-            uploading={uploading}
             isSaving={isSaving}
-            onUploadImage={handleUploadListingImage}
-            onUploadError={() => toast(t('uploadError'), 'error')}
-            onReorderImage={handleReorderListingImage}
+            gateUpload={gateUpload}
+            onPhotosUpdated={(payload) => {
+              const prevCount = allImages.length
+              setListing({
+                ...listing,
+                image_urls: payload.image_urls,
+                image_alts: payload.image_alts,
+                image_url: payload.image_url,
+              })
+              if (payload.image_urls.length > prevCount) {
+                toast(t('imagesAdded'), 'success')
+              }
+            }}
+            onUploadError={(code) => {
+              if (code === 'invalid_type') toast(t('uploadErrorType'), 'error')
+              else if (code === 'too_large') toast(t('uploadErrorSize'), 'error')
+              else if (code === 'gate') return
+              else toast(t('uploadError'), 'error')
+            }}
             t={t}
           />
           <ListingDetailsOwnerAdminLink isNavView={isNavView} isOwner={isOwner} />

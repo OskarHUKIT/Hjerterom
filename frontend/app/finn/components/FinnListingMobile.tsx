@@ -8,6 +8,9 @@ import { useLanguage } from '@/context/LanguageContext'
 import { GalleryGrid, PageSkeleton } from '@/app/components/design-system'
 import { buttonClassName } from '@/app/components/ui/Button'
 import BookingRequestForm from '@/features/tourism/components/BookingRequestForm'
+import { ListingCoverPlaceholder } from '@/features/listings/components/ListingPhotoManager'
+import { buildListingImageEntries } from '@/features/listings/lib/listingImageMetadata'
+import '@/features/listings/listing-photo-manager.css'
 import { normalizeListingImageUrls } from '@/features/listings/lib/listingDetailsUtils'
 import { useFinnListingDetail } from './useFinnListingDetail'
 
@@ -47,7 +50,9 @@ export default function FinnListingMobile() {
 
   const images = normalizeListingImageUrls(listing.image_urls)
   const heroImages = images.length > 0 ? images : listing.image_url ? [listing.image_url] : []
-  const galleryImages = heroImages.map((src) => ({ src, alt: listing.address }))
+  const galleryImages = buildListingImageEntries(heroImages, listing.image_alts, listing.address).map(
+    (e) => ({ src: e.url, alt: e.alt || listing.address })
+  )
 
   return (
     <article className="finn-anim-fade-up">
@@ -61,7 +66,7 @@ export default function FinnListingMobile() {
             nextLabel={t('finnGalleryNext')}
           />
         ) : (
-          <div className="finn-card-image">{t('finnNoPhoto')}</div>
+          <ListingCoverPlaceholder label={t('finnNoPhoto')} className="finn-card-image" />
         )}
         <button
           type="button"

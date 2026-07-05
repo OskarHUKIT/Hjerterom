@@ -7,6 +7,9 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { EmptyState, PageHero, PageSkeleton, PropertyCard, RangeDatePicker } from '@/app/components/design-system'
+import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
+import { ListingCoverPlaceholder } from '@/features/listings/components/ListingPhotoManager'
+import '@/features/listings/listing-photo-manager.css'
 import { QK } from '@/app/lib/queries/queryKeys'
 import FinnTourismMap from '@/features/tourism/components/FinnTourismMap'
 import { buttonClassName } from '@/app/components/ui/Button'
@@ -157,8 +160,19 @@ export default function FinnSearchDesktop() {
                       )
                     : undefined
                 }
-                imageUrl={listing.image_url}
-                placeholder={t('finnNoPhoto')}
+                image={
+                  listing.image_url ? (
+                    <OptimizedPublicStorageImage
+                      variant="fill"
+                      src={listing.image_url}
+                      alt={listing.address}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
+                      className="ds-property-card__thumb-img"
+                    />
+                  ) : (
+                    <ListingCoverPlaceholder label={t('finnNoPhoto')} />
+                  )
+                }
               />
             ))}
           </div>

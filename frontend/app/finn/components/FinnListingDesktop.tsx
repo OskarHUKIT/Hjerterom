@@ -4,9 +4,15 @@ import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useLanguage } from '@/context/LanguageContext'
 import { PageSkeleton } from '@/app/components/design-system'
+import { OptimizedPublicStorageImage } from '@/app/components/OptimizedPublicStorageImage'
 import { buttonClassName } from '@/app/components/ui/Button'
 import BookingRequestForm from '@/features/tourism/components/BookingRequestForm'
+import { ListingCoverPlaceholder } from '@/features/listings/components/ListingPhotoManager'
+import {
+  buildListingImageEntries,
+} from '@/features/listings/lib/listingImageMetadata'
 import { normalizeListingImageUrls } from '@/features/listings/lib/listingDetailsUtils'
+import '@/features/listings/listing-photo-manager.css'
 import { useFinnListingDetail } from './useFinnListingDetail'
 
 export default function FinnListingDesktop() {
@@ -43,6 +49,11 @@ export default function FinnListingDesktop() {
 
   const images = normalizeListingImageUrls(listing.image_urls)
   const heroImages = images.length > 0 ? images : listing.image_url ? [listing.image_url] : []
+  const imageEntries = buildListingImageEntries(
+    heroImages,
+    listing.image_alts,
+    listing.address
+  )
 
   return (
     <article>
@@ -57,18 +68,21 @@ export default function FinnListingDesktop() {
       <div className="finn-card" style={{ maxWidth: 720, marginBottom: 'var(--space-8)' }}>
         {heroImages.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: heroImages.length > 1 ? '1fr 1fr' : '1fr', gap: 4 }}>
-            {heroImages.slice(0, 4).map((url) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={url}
-                src={url}
-                alt=""
-                style={{ width: '100%', maxHeight: 280, objectFit: 'cover' }}
-              />
+            {imageEntries.slice(0, 4).map((entry) => (
+              <div key={entry.url} className="finn-detail-hero-cell">
+                <OptimizedPublicStorageImage
+                  variant="fill"
+                  src={entry.url}
+                  alt={entry.alt || listing.address}
+                  sizes="(max-width: 720px) 100vw, 720px"
+                  priority={entry.url === heroImages[0]}
+                  className="finn-detail-hero-img"
+                />
+              </div>
             ))}
           </div>
         ) : (
-          <div className="finn-card-image">{t('finnNoPhoto')}</div>
+          <ListingCoverPlaceholder label={t('finnNoPhoto')} className="finn-card-image" />
         )}
         <div className="finn-card-body" style={{ padding: 'var(--space-6)' }}>
           <h1 style={{ margin: '0 0 8px', fontSize: '1.5rem' }}>{listing.address}</h1>

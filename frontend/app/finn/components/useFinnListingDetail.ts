@@ -19,7 +19,7 @@ export function useFinnListingDetail(id: string | undefined, eventId: string | n
       const { data } = await supabase
         .from('listings')
         .select(
-          'id, address, city, description, tourism_nightly_price_cents, tourism_instant_book, cancellation_policy, image_url, image_urls, type, beds, tourism_enabled, map_lat, map_lng'
+          'id, address, city, description, tourism_nightly_price_cents, tourism_instant_book, cancellation_policy, image_url, image_urls, image_alts, type, beds, tourism_enabled, map_lat, map_lng'
         )
         .eq('id', id)
         .eq('tourism_enabled', true)

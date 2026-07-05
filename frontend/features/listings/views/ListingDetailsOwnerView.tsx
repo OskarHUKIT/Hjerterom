@@ -1,43 +1,34 @@
 'use client'
 
-import { useCallback } from 'react'
 import Link from 'next/link'
 import {
   CalendarDays,
-  ChevronDown,
-  ChevronUp,
   Edit3,
   FileText,
   ImagePlus,
 } from 'lucide-react'
 import StatusBadge from '@/app/components/design-system/StatusBadge'
-import GalleryGrid from '@/app/components/design-system/GalleryGrid'
-import FileUploadCard from '@/app/components/design-system/FileUploadCard'
-import { MAX_LISTING_IMAGES } from '@/features/listings/lib/listingImageUpload'
+import { supabase } from '@/app/lib/supabase'
+import ListingPhotoManager from '@/features/listings/components/ListingPhotoManager'
+import '@/features/listings/listing-photo-manager.css'
 import type { ListingDetailsRecord } from '@/app/lib/listingUiTypes'
 import type { TranslationKey } from '@/lib/translations'
 
 export type ListingDetailsOwnerGalleryProps = {
   listing: ListingDetailsRecord
-  allImages: string[]
   canOwnerEditListingDetail: boolean
   showGalleryFormidlet: boolean
   isOwner: boolean
   isNavView: boolean
-  uploading: boolean
   isSaving: string | null
-  onUploadImage: (file: File, onProgress: (pct: number) => void) => Promise<void>
-  onUploadError: () => void
-  onReorderImage: (fromIndex: number, direction: -1 | 1) => void
+  gateUpload: () => boolean
+  onPhotosUpdated: (payload: {
+    image_urls: string[]
+    image_alts: string[]
+    image_url: string | null
+  }) => void
+  onUploadError: (code?: string) => void
   t: (key: TranslationKey) => string
-}
-
-function uploadHint(t: (key: TranslationKey) => string) {
-  return t('uploadDropzoneHint').replace('{max}', String(MAX_LISTING_IMAGES))
-}
-
-function uploadProgressLabel(t: (key: TranslationKey) => string, pct: number) {
-  return t('uploadProgress').replace('{pct}', String(Math.round(pct)))
 }
 
 function galleryStatusVariant(showGalleryFormidlet: boolean, status?: string | null) {
@@ -49,36 +40,20 @@ function galleryStatusVariant(showGalleryFormidlet: boolean, status?: string | n
 export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProps) {
   const {
     listing,
-    allImages,
     canOwnerEditListingDetail,
     showGalleryFormidlet,
     isOwner,
     isNavView,
-    uploading,
     isSaving,
-    onUploadImage,
+    gateUpload,
+    onPhotosUpdated,
     onUploadError,
-    onReorderImage,
     t,
   } = props
 
-  const uploadFile = useCallback(
-    async (file: File, onProgress: (pct: number) => void) => {
-      try {
-        await onUploadImage(file, onProgress)
-      } catch {
-        onUploadError()
-      }
-    },
-    [onUploadImage, onUploadError]
-  )
-
-  const galleryImages = allImages.map((src, idx) => ({
-    src,
-    alt: listing?.address
-      ? `${listing.address} (${idx + 1}/${allImages.length})`
-      : `${idx + 1}/${allImages.length}`,
-  }))
+  const fallbackAlt = listing?.address
+    ? `${listing.address}`
+    : t('regImagesSection')
 
   const showHubCalendarLink = isOwner && !isNavView && Boolean(listing?.id)
 
@@ -108,59 +83,29 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
         </div>
       ) : null}
 
-      {allImages.length > 0 ? (
-        <GalleryGrid
-          variant="block"
-          className="listing-gallery-grid-block"
-          images={galleryImages}
-          closeLabel={t('close')}
-          prevLabel={t('listingGalleryPrev')}
-          nextLabel={t('listingGalleryNext')}
-          renderItemFooter={
-            canOwnerEditListingDetail && allImages.length > 1
-              ? (idx) => (
-                  <>
-                    <button
-                      type="button"
-                      className="listing-gallery-reorder-btn"
-                      disabled={isSaving === 'image_urls' || idx === 0}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void onReorderImage(idx, -1)
-                      }}
-                      title={t('listingImageMoveEarlier')}
-                      aria-label={t('listingImageMoveEarlier')}
-                    >
-                      <ChevronUp size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="listing-gallery-reorder-btn"
-                      disabled={isSaving === 'image_urls' || idx >= allImages.length - 1}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void onReorderImage(idx, 1)
-                      }}
-                      title={t('listingImageMoveLater')}
-                      aria-label={t('listingImageMoveLater')}
-                    >
-                      <ChevronDown size={14} />
-                    </button>
-                  </>
-                )
-              : undefined
-          }
+      {canOwnerEditListingDetail ? (
+        <ListingPhotoManager
+          mode="immediate"
+          listingId={String(listing?.id ?? '')}
+          supabase={supabase}
+          imageUrls={listing?.image_urls}
+          imageAlts={listing?.image_alts}
+          fallbackAlt={fallbackAlt}
+          disabled={showGalleryFormidlet}
+          saving={isSaving === 'image_urls'}
+          beforeUpload={gateUpload}
+          onPersist={onPhotosUpdated}
+          onError={(code) => onUploadError(code)}
+          t={t}
         />
-      ) : canOwnerEditListingDetail ? (
-        <FileUploadCard
-          title={t('uploadDropzoneTitle')}
-          hint={uploadHint(t)}
-          progressLabel={(pct) => uploadProgressLabel(t, pct)}
-          maxFiles={MAX_LISTING_IMAGES}
-          currentCount={0}
-          disabled={uploading}
-          uploadFile={uploadFile}
-          onUploadError={onUploadError}
+      ) : listing?.image_urls || listing?.image_url ? (
+        <ListingPhotoManager
+          mode="immediate"
+          imageUrls={listing?.image_urls ?? (listing?.image_url ? [listing.image_url] : [])}
+          imageAlts={listing?.image_alts}
+          fallbackAlt={fallbackAlt}
+          disabled
+          t={t}
         />
       ) : (
         <div className="listing-image-placeholder" aria-label={t('listingImageEmptyViewer')}>
@@ -170,20 +115,6 @@ export function ListingDetailsOwnerGallery(props: ListingDetailsOwnerGalleryProp
           <span className="listing-image-placeholder-title">{t('listingImageEmptyViewer')}</span>
         </div>
       )}
-
-      {canOwnerEditListingDetail && allImages.length > 0 ? (
-        <FileUploadCard
-          title={uploading ? t('listingImageUploading') : t('listingImageAddPhotos')}
-          hint={uploadHint(t)}
-          progressLabel={(pct) => uploadProgressLabel(t, pct)}
-          maxFiles={MAX_LISTING_IMAGES}
-          currentCount={allImages.length}
-          disabled={uploading || allImages.length >= MAX_LISTING_IMAGES}
-          uploadFile={uploadFile}
-          onUploadError={onUploadError}
-          className="listing-gallery-upload-zone"
-        />
-      ) : null}
 
       {showHubCalendarLink ? (
         <Link

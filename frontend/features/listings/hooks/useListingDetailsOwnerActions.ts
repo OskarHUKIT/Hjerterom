@@ -9,7 +9,7 @@ import { listingDetailsErrMessage as errMessage } from '@/features/listings/lib/
 import {
   filterListingImageFiles,
   MAX_LISTING_IMAGES,
-  persistListingImageUrls,
+  persistListingImages,
   uploadListingImageToStorage,
 } from '@/features/listings/lib/listingImageUpload'
 import { useTermsGate } from '@/features/auth/hooks/useTermsGate'
@@ -258,13 +258,20 @@ export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerAction
 
     setUploading(true)
     try {
-      const url = await uploadListingImageToStorage(supabase, file, onProgress)
+      const url = await uploadListingImageToStorage(supabase, id, file, onProgress)
       const updatedImageUrls = [...allImagesRef.current, url]
+      const existingAlts = Array.isArray(listing?.image_alts) ? [...listing.image_alts] : []
+      const updatedAlts = [...existingAlts, '']
 
-      await persistListingImageUrls(supabase, id, updatedImageUrls)
+      await persistListingImages(supabase, id, updatedImageUrls, updatedAlts)
 
       allImagesRef.current = updatedImageUrls
-      setListing({ ...listing, image_urls: updatedImageUrls, image_url: updatedImageUrls[0] })
+      setListing({
+        ...listing,
+        image_urls: updatedImageUrls,
+        image_alts: updatedAlts,
+        image_url: updatedImageUrls[0],
+      })
       toast(t('imagesAdded'), 'success')
     } catch (err: unknown) {
       if (err instanceof Error && ['gate', 'formidla', 'max_files', 'invalid_type'].includes(err.message)) {
@@ -298,19 +305,24 @@ export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerAction
     }
     if (!gateEdit()) return
     const next = [...allImages]
+    const alts = Array.isArray(listing?.image_alts) ? [...listing.image_alts] : []
+    while (alts.length < next.length) alts.push('')
     const [moved] = next.splice(fromIndex, 1)
+    const [movedAlt] = alts.splice(fromIndex, 1)
     next.splice(toIndex, 0, moved)
+    alts.splice(toIndex, 0, movedAlt ?? '')
     setIsSaving('image_urls')
     try {
       const { error } = await supabase
         .from('listings')
         .update({
           image_urls: next,
+          image_alts: alts,
           image_url: next[0] ?? null,
         })
         .eq('id', id)
       if (error) throw error
-      setListing({ ...listing, image_urls: next, image_url: next[0] ?? null })
+      setListing({ ...listing, image_urls: next, image_alts: alts, image_url: next[0] ?? null })
     } catch (err: unknown) {
       toast(t('errorSaving') + errMessage(err))
     } finally {
@@ -503,6 +515,7 @@ export function useListingDetailsOwnerActions(args: UseListingDetailsOwnerAction
     handleUploadListingImage,
     handleUploadMore,
     handleReorderListingImage,
+    gateUpload,
     handleHouseRulesFileChange,
     handleHouseRulesRemove,
     handleAddNote,
