@@ -47,3 +47,5 @@ export function isRegisterPriceComplete(formData: RegisterPropertyFormSlice): bo
   const maxOccCheck = parseInt(String(formData.max_occupants), 10)
   return priceMinSum > 0 && maxOccCheck >= 1 && req(formData.parking_info)
 }
+
+export type RegisterPropertySectionId = 'contact' | 'details' | 'price'
