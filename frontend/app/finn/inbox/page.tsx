@@ -1,5 +1,10 @@
 import FinnInboxClient from './FinnInboxClient'
+import FinnMobileOnlyGate from '../components/FinnMobileOnlyGate'
 
 export default function FinnInboxPage() {
-  return <FinnInboxClient />
+  return (
+    <FinnMobileOnlyGate desktopRedirect="/finn/mine">
+      <FinnInboxClient />
+    </FinnMobileOnlyGate>
+  )
 }

@@ -8,11 +8,9 @@
   --finn-text-secondary: var(--text-body);
   --finn-text-muted: var(--text-muted);
   --finn-border: var(--border-subtle);
-  --finn-lane: var(--color-teal);
-  --finn-accent: var(--color-teal);
-  --finn-accent-soft: color-mix(in srgb, var(--color-teal) 12%, transparent);
+  --finn-accent: var(--color-accent);
+  --finn-accent-soft: color-mix(in srgb, var(--color-accent) 12%, transparent);
   --finn-shadow: var(--shadow-md);
-  --finn-bottom-nav-h: 64px;
 
   min-height: 100dvh;
   display: flex;
@@ -21,23 +19,17 @@
   color: var(--finn-text);
 }
 
-.finn-shell--app {
-  max-width: 28rem;
-  margin-inline: auto;
-  min-height: 100dvh;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
+/* Responsive visibility — desktop default unchanged */
+.finn-mobile-only {
+  display: none !important;
 }
 
-.finn-shell--detail .finn-bottom-nav,
-.finn-shell--auth .finn-bottom-nav {
-  display: none;
+.finn-desktop-only {
+  display: block;
 }
 
-.finn-shell--detail .finn-main,
-.finn-shell--auth .finn-main {
-  padding-bottom: 0;
+.finn-header.finn-desktop-only {
+  display: flex;
 }
 
 .finn-header {
@@ -45,15 +37,12 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  padding: max(12px, env(safe-area-inset-top)) max(var(--space-3), env(safe-area-inset-right))
-    var(--space-3) max(var(--space-3), env(safe-area-inset-left));
+  gap: var(--space-4);
+  padding: var(--space-4) max(var(--space-4), env(safe-area-inset-left))
+    var(--space-4) max(var(--space-4), env(safe-area-inset-right));
   position: sticky;
   top: 0;
   z-index: 50;
-  background: color-mix(in srgb, var(--finn-bg) 90%, transparent);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--finn-border);
 }
 
 .finn-brand {
@@ -107,9 +96,8 @@
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 max(var(--space-3), env(safe-area-inset-left))
-    calc(var(--finn-bottom-nav-h) + var(--space-6) + env(safe-area-inset-bottom))
-    max(var(--space-3), env(safe-area-inset-right));
+  padding: var(--space-6) max(var(--space-4), env(safe-area-inset-left))
+    var(--space-10) max(var(--space-4), env(safe-area-inset-right));
   box-sizing: border-box;
 }
 
@@ -379,67 +367,56 @@
   margin-left: auto;
 }
 
-/* Mobile-first navigation */
+/* ── Mobile-only Finn app shell (≤768px) ── */
 @media (max-width: 768px) {
-  .finn-header {
-    flex-direction: row;
-    flex-wrap: wrap;
-    padding-bottom: var(--space-3);
+  .finn-mobile-only {
+    display: block !important;
   }
 
-  .finn-chrome-controls {
-    order: 3;
-    width: 100%;
-    justify-content: flex-end;
-    margin-left: 0;
+  .finn-desktop-only {
+    display: none !important;
   }
 
-  .finn-brand-text {
-    font-size: 1rem;
-  }
-
-  .finn-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 60;
+  .finn-header.finn-mobile-only {
+    display: flex;
     flex-wrap: nowrap;
-    justify-content: space-around;
-    gap: 0;
-    padding: var(--space-2) max(var(--space-3), env(safe-area-inset-left))
-      calc(var(--space-2) + env(safe-area-inset-bottom))
-      max(var(--space-3), env(safe-area-inset-right));
-    background: var(--finn-bg-elevated);
-    border-top: 1px solid var(--finn-border);
-    box-shadow: 0 -2px 12px color-mix(in srgb, var(--finn-text) 4%, transparent);
+    gap: var(--space-2);
+    padding: max(12px, env(safe-area-inset-top)) max(var(--space-3), env(safe-area-inset-right))
+      var(--space-3) max(var(--space-3), env(safe-area-inset-left));
+    background: color-mix(in srgb, var(--finn-bg) 90%, transparent);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--finn-border);
   }
 
-  .finn-nav-link {
-    flex: 1;
-    flex-direction: column;
-    justify-content: center;
-    gap: 2px;
-    padding: var(--space-2) var(--space-1);
-    min-height: var(--touch-target, 44px);
-    border-radius: var(--hrt-radius-sm, 10px);
-    font-size: 0.72rem;
-  }
-
-  .finn-nav-link span {
-    line-height: 1.2;
+  .finn-shell {
+    --finn-lane: var(--color-teal);
+    --finn-accent: var(--color-teal);
+    --finn-accent-soft: color-mix(in srgb, var(--color-teal) 12%, transparent);
+    --finn-bottom-nav-h: 64px;
+    max-width: 28rem;
+    margin-inline: auto;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
   }
 
   .finn-main {
-    padding-bottom: calc(var(--space-10) + env(safe-area-inset-bottom));
+    padding: 0 max(var(--space-3), env(safe-area-inset-left))
+      calc(var(--finn-bottom-nav-h) + var(--space-6) + env(safe-area-inset-bottom))
+      max(var(--space-3), env(safe-area-inset-right));
   }
 
-  .finn-footer {
+  .finn-shell--detail .finn-main {
+    padding-bottom: 0;
+  }
+
+  .finn-chrome-controls {
+    margin-left: auto;
+  }
+
+  .finn-footer.finn-mobile-only {
     padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
   }
-}
-
-/* ── Mobile tourism app shell (Finn v2) ── */
 
 .finn-brand-mark {
   display: inline-flex;
@@ -1149,6 +1126,47 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+.finn-map-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--finn-text-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.finn-listing-overlay-btn {
+  position: absolute;
+  top: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: none;
+  background: color-mix(in srgb, #000 30%, transparent);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.finn-listing-overlay-btn--left {
+  left: 12px;
+}
+
+.finn-listing-overlay-btn--right {
+  right: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .finn-anim-fade-up,
   .finn-listing-card__media img {
@@ -1158,21 +1176,4 @@
     transition: none !important;
   }
 }
-
-@media (min-width: 769px) {
-  .finn-shell--app {
-    max-width: 42rem;
-  }
-
-  .finn-bottom-nav {
-    max-width: 42rem;
-  }
-
-  .finn-sheet {
-    max-width: 42rem;
-  }
-
-  .finn-detail-cta {
-    max-width: 42rem;
-  }
 }
