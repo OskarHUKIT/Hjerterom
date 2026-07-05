@@ -10,6 +10,8 @@ import type { Locale } from '@/lib/translations'
 import Logo from '@/app/components/Logo'
 import FeaturePortalGate from '@/app/components/FeaturePortalGate'
 import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
+import UserMenu from '@/components/layout/user-menu'
+import { useAuthSession } from '@/context/AuthSessionContext'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import FinnBrandMark from './FinnBrandMark'
@@ -56,6 +58,7 @@ async function fetchFinnUnreadHint(userId: string, email: string): Promise<numbe
 export default function FinnShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t, locale, setLocale } = useLanguage()
+  const { user } = useAuthSession()
   const { flags } = usePlatformMode()
   const mode = shellMode(pathname)
 
@@ -114,6 +117,14 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
           <span className="finn-brand-text">{t('finnBrand')}</span>
         </Link>
         <ShellChromeControls compact className="finn-chrome-controls" />
+        {user ? (
+          <UserMenu
+            user={user}
+            navRole="leietaker"
+            logoutRedirect="/finn"
+            className="finn-user-menu"
+          />
+        ) : null}
         <nav className="finn-nav finn-nav--desktop" aria-label={t('finnMainNav')}>
           {FINN_DESKTOP_NAV.filter(({ href }) => {
             if (href === '/finn/mine') return true
@@ -138,7 +149,17 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
       {/* Mobile header */}
       <header className="finn-header finn-mobile-only">
         <FinnBrandMark />
-        <ShellChromeControls compact className="finn-chrome-controls" />
+        <div className="finn-mobile-header-actions">
+          <ShellChromeControls compact className="finn-chrome-controls" />
+          {user ? (
+            <UserMenu
+              user={user}
+              navRole="leietaker"
+              logoutRedirect="/finn"
+              className="finn-user-menu"
+            />
+          ) : null}
+        </div>
       </header>
 
       <main className="finn-main">

@@ -11,6 +11,7 @@ export type HomeownerNavItem = {
   badge?: HomeownerNavBadge
 }
 
+/** @deprecated Use `appShellNavConfig` via the unified app shell. */
 export function homeownerNavItems(opts: { stripeBookings?: boolean }): HomeownerNavItem[] {
   const items: HomeownerNavItem[] = [
     {
@@ -37,7 +38,7 @@ export function homeownerNavItems(opts: { stripeBookings?: boolean }): Homeowner
   if (opts.stripeBookings) {
     items.push({
       id: 'bookings',
-      href: '/homeowner/manage#bookings',
+      href: '/homeowner/bookings',
       labelKey: 'homeownerNavBookings',
       icon: CalendarDays,
     })
@@ -46,14 +47,14 @@ export function homeownerNavItems(opts: { stripeBookings?: boolean }): Homeowner
   return items
 }
 
+/** @deprecated Use `isAppShellNavActive` from `appShellNavConfig`. */
 export function isHomeownerNavActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false
   if (href === '/homeowner/manage') {
     return pathname === '/homeowner/manage' || pathname.startsWith('/homeowner/listings/')
   }
-  if (href.includes('#')) {
-    const [path] = href.split('#')
-    return pathname === path || pathname.startsWith(`${path}/`)
+  if (href === '/homeowner/bookings') {
+    return pathname === '/homeowner/bookings' || pathname.startsWith('/homeowner/bookings/')
   }
   return pathname === href || pathname.startsWith(`${href}/`)
 }

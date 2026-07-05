@@ -7,19 +7,19 @@ import { Menu } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { kommuneNavUsesAccountsLabel } from '@/app/lib/kommuneRoles'
 import {
-  isNavActive,
-  type NavBadge as NavBadgeKind,
-  type NavItemDef,
-} from '@/lib/navConfig'
+  isAppShellNavActive,
+  type AppShellNavBadge,
+  type AppShellNavItem,
+} from '@/lib/appShellNavConfig'
 import BottomSheet from '../BottomSheet'
 import NavBadge from './NavBadge'
 
 type AppShellMobileNavProps = {
-  tabItems: NavItemDef[]
-  moreItems: NavItemDef[]
+  tabItems: AppShellNavItem[]
+  moreItems: AppShellNavItem[]
   navRole: string | null
   showLandlordMore: boolean
-  badgeFor: (badge?: NavBadgeKind) => number
+  badgeFor: (badge?: AppShellNavBadge) => number
 }
 
 function MobileMoreLinks({
@@ -27,7 +27,7 @@ function MobileMoreLinks({
   navRole,
   onNavigate,
 }: {
-  items: NavItemDef[]
+  items: AppShellNavItem[]
   navRole: string | null
   onNavigate: () => void
 }) {
@@ -86,7 +86,7 @@ export default function AppShellMobileNav({
 
   if (!isMobile) return null
 
-  const labelFor = (item: NavItemDef) =>
+  const labelFor = (item: AppShellNavItem) =>
     t((item.shortLabelKey ?? item.labelKey) as Parameters<typeof t>[0])
 
   const hasMore = moreItems.length > 0 || showLandlordMore
@@ -99,7 +99,7 @@ export default function AppShellMobileNav({
     <>
       <nav className="app-shell-mobile-nav" aria-label={t('mainNavigation')}>
         {tabItems.map((item) => {
-          const active = isNavActive(pathname, item.href)
+          const active = isAppShellNavActive(pathname, item)
           const Icon = item.icon
           const count = item.badge ? badgeFor(item.badge) : 0
           return (
@@ -112,7 +112,9 @@ export default function AppShellMobileNav({
             >
               <span className="app-shell-mobile-tab__icon">
                 <Icon size={22} aria-hidden />
-                {count > 0 ? <NavBadge count={count} className="app-shell-nav-badge--mobile" /> : null}
+                {count > 0 ? (
+                  <NavBadge count={count} className="app-shell-nav-badge--mobile" />
+                ) : null}
               </span>
               <span className="app-shell-mobile-tab__label">{labelFor(item)}</span>
             </Link>
@@ -191,6 +193,14 @@ export default function AppShellMobileNav({
               onClick={() => setMoreOpen(false)}
             >
               {t('landlordAgreementsTitle')}
+            </Link>
+            <Link
+              prefetch={false}
+              href="/homeowner/bookings"
+              className="button app-shell-more-link"
+              onClick={() => setMoreOpen(false)}
+            >
+              {t('homeownerNavBookings')}
             </Link>
             <Link
               prefetch={false}

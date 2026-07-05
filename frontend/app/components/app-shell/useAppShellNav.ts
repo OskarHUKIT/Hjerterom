@@ -7,12 +7,17 @@ import { usePlatformMode } from '@/context/PlatformModeContext'
 import { isKommuneAdminRole, isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { fetchHeaderBundle, headerBundleQueryKey } from '@/app/lib/queries/headerBundleQuery'
 import {
-  navItemsForSidebar,
-  navItemsFor,
-  type NavAudience,
-  type NavBadge,
-  navBadgeCount,
-} from '@/lib/navConfig'
+  appShellLogoHref,
+  appShellMobileMoreItems,
+  appShellMobileTabItems,
+  appShellNavBadgeCount,
+  appShellNavItems,
+  resolveAppShellRole,
+  type AppShellNavBadge,
+  type AppShellNavItem,
+  type AppShellPlatformFlags,
+  type AppShellRole,
+} from '@/lib/appShellNavConfig'
 
 export type AppShellBadgeCounts = {
   notifications: number
@@ -94,61 +99,65 @@ export function useAppShellNav() {
     !loading &&
     (isKommuneStaffRole(navRole) || showLandlordFullNav)
 
-  const audience: NavAudience | null = isKommuneStaffRole(navRole)
-    ? 'kommune'
-    : showLandlordFullNav
-      ? 'landlord'
-      : null
+  const shellRole: AppShellRole | null = resolveAppShellRole(navRole, hasSignedTerms)
 
-  const platformNav = {
-    social: platformFlags.social,
-    centralEvents: platformFlags.centralEvents,
-    los: platformFlags.los,
-  }
+  const platform: AppShellPlatformFlags = useMemo(
+    () => ({
+      social: platformFlags.social,
+      centralEvents: platformFlags.centralEvents,
+      los: platformFlags.los,
+      stripeBookings: platformFlags.stripeBookings,
+    }),
+    [
+      platformFlags.social,
+      platformFlags.centralEvents,
+      platformFlags.los,
+      platformFlags.stripeBookings,
+    ]
+  )
 
-  const sidebarItems = useMemo(() => {
-    if (!audience) return []
-    return navItemsForSidebar(audience, {
-      isAdmin: isKommuneAdminRole(navRole),
-      platform: platformNav,
-    })
-  }, [audience, navRole, platformFlags.social, platformFlags.centralEvents, platformFlags.los])
+  const navOpts = useMemo(() => ({ platform }), [platform])
 
-  const mobileTabItems = useMemo(() => {
-    if (!audience) return []
-    return navItemsFor(audience, 'mobileTab', {
-      isAdmin: isKommuneAdminRole(navRole),
-      platform: platformNav,
-    })
-  }, [audience, navRole, platformFlags.social, platformFlags.centralEvents, platformFlags.los])
+  const sidebarItems: AppShellNavItem[] = useMemo(
+    () => appShellNavItems(shellRole, navOpts),
+    [shellRole, navOpts]
+  )
 
-  const mobileMoreItems = useMemo(() => {
-    if (!audience || audience !== 'kommune') return []
-    return navItemsFor('kommune', 'mobileMore', {
-      isAdmin: isKommuneAdminRole(navRole),
-      platform: platformNav,
-    })
-  }, [audience, navRole, platformFlags.social, platformFlags.centralEvents, platformFlags.los])
+  const mobileTabItems: AppShellNavItem[] = useMemo(
+    () => appShellMobileTabItems(shellRole, navOpts),
+    [shellRole, navOpts]
+  )
+
+  const mobileMoreItems: AppShellNavItem[] = useMemo(
+    () => appShellMobileMoreItems(shellRole, navOpts),
+    [shellRole, navOpts]
+  )
 
   const logoHref = !user
     ? '/'
-    : isKommuneStaffRole(navRole)
-      ? platformFlags.social
-        ? '/nav/database'
-        : platformFlags.centralEvents
-          ? '/nav/event-inquiries'
-          : '/nav/messages'
-      : hasSignedTerms
-        ? '/homeowner/manage'
-        : landlordBootstrapHref
+    : shellRole
+      ? appShellLogoHref(shellRole, platform, landlordBootstrapHref)
+      : isKommuneStaffRole(navRole)
+        ? appShellLogoHref('municipality-caseworker', platform, landlordBootstrapHref)
+        : hasSignedTerms
+          ? '/homeowner/manage'
+          : landlordBootstrapHref
 
-  const badgeFor = (badge?: NavBadge) =>
-    badge ? navBadgeCount(badge, badgeCounts) : 0
+  const badgeFor = (badge?: AppShellNavBadge) =>
+    badge ? appShellNavBadgeCount(badge, badgeCounts) : 0
+
+  const audience =
+    shellRole === 'landlord'
+      ? ('landlord' as const)
+      : shellRole === 'municipality-admin' || shellRole === 'municipality-caseworker'
+        ? ('kommune' as const)
+        : null
 
   return {
     user,
     loading,
     navRole,
+    shellRole,
     eligible,
     audience,
     sidebarItems,
@@ -159,5 +168,7 @@ export function useAppShellNav() {
     showLandlordFullNav,
     badgeFor,
     badgeCounts,
+    platform,
+    isAdmin: isKommuneAdminRole(navRole),
   }
 }

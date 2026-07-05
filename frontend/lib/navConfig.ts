@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import { Bell, Building2, Home, MessageSquare } from 'lucide-react'
+import { APP_SHELL_NAV_BY_ROLE, type AppShellNavItem } from './appShellNavConfig'
 
 /** Who sees this nav item in the app shell. */
 export type NavAudience = 'kommune' | 'landlord'
@@ -29,104 +30,74 @@ export type NavItemDef = {
   id: NavItemId
   href: string
   labelKey: string
-  /** Short label for cramped mobile tabs */
   shortLabelKey?: string
   icon: LucideIcon
   audiences: NavAudience[]
   surfaces: NavSurface[]
-  /** Only kommune_admin */
   adminOnly?: boolean
-  /** Show unread badge from header bundle */
   badge?: NavBadge
 }
 
-/** Single source of truth for app navigation (Header + MobileBottomNav). */
-export const APP_NAV_ITEMS: NavItemDef[] = [
-  {
-    id: 'database',
-    href: '/nav/database',
-    labelKey: 'housingBank',
-    icon: Building2,
-    audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileTab', 'sidebarDesktop', 'sidebarMobile'],
-  },
-  {
-    id: 'users',
-    href: '/nav/users',
-    labelKey: 'navLandlords',
-    icon: Building2,
-    audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileMore', 'sidebarDesktop'],
-  },
-  {
-    id: 'messages',
-    href: '/nav/messages',
-    labelKey: 'messages',
-    icon: MessageSquare,
-    audiences: ['kommune', 'landlord'],
-    surfaces: ['headerDesktop', 'mobileTab', 'sidebarDesktop', 'sidebarMobile'],
-    badge: 'messages',
-  },
-  {
-    id: 'expired',
-    href: '/nav/expired',
-    labelKey: 'expired',
-    icon: Building2,
-    audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileMore', 'sidebarDesktop'],
-  },
-  {
-    id: 'termsDocuments',
-    href: '/nav/terms-documents',
-    labelKey: 'termsDocumentsNav',
-    icon: Building2,
-    audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileMore', 'sidebarDesktop'],
-    adminOnly: true,
-  },
-  {
-    id: 'eventInquiries',
-    href: '/nav/event-inquiries',
-    labelKey: 'navEventInquiriesTitle',
-    icon: Building2,
-    audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileMore', 'sidebarDesktop'],
-  },
-  {
-    id: 'losInbox',
-    href: '/nav/los-inbox',
-    labelKey: 'navLosInboxTitle',
-    icon: Building2,
-    audiences: ['kommune'],
-    surfaces: ['headerDesktop', 'mobileMore', 'sidebarDesktop', 'sidebarMobile'],
-    badge: 'losInbox',
-  },
-  {
-    id: 'notifications',
-    href: '/nav/notifications',
-    labelKey: 'notifications',
-    icon: Bell,
-    audiences: ['kommune', 'landlord'],
-    surfaces: ['headerDesktop', 'mobileTab', 'sidebarDesktop', 'sidebarMobile'],
-    badge: 'notifications',
-  },
-  {
-    id: 'manage',
-    href: '/homeowner/manage',
-    labelKey: 'myProperties',
-    shortLabelKey: 'myPropertiesTabShort',
-    icon: Home,
-    audiences: ['landlord'],
-    surfaces: ['headerDesktop', 'mobileTab', 'sidebarDesktop', 'sidebarMobile'],
-  },
-]
+function shellItemToNavDef(item: AppShellNavItem, audience: NavAudience): NavItemDef | null {
+  const id = item.id as NavItemId
+  const validIds: NavItemId[] = [
+    'database',
+    'messages',
+    'notifications',
+    'manage',
+    'users',
+    'expired',
+    'termsDocuments',
+    'eventInquiries',
+    'losInbox',
+  ]
+  if (!validIds.includes(id)) return null
+
+  const surfaces: NavSurface[] = ['headerDesktop', 'sidebarDesktop', 'sidebarMobile']
+  if (id === 'database' || id === 'messages' || id === 'notifications' || id === 'manage') {
+    surfaces.push('mobileTab')
+  }
+  if (
+    id === 'users' ||
+    id === 'expired' ||
+    id === 'termsDocuments' ||
+    id === 'eventInquiries' ||
+    id === 'losInbox'
+  ) {
+    surfaces.push('mobileMore')
+  }
+
+  return {
+    id,
+    href: item.href,
+    labelKey: item.labelKey,
+    shortLabelKey: item.shortLabelKey,
+    icon: item.icon,
+    audiences: [audience],
+    surfaces,
+    adminOnly: item.adminOnly,
+    badge: item.badge,
+  }
+}
+
+function buildLegacyNavItems(): NavItemDef[] {
+  const kommune = APP_SHELL_NAV_BY_ROLE['municipality-admin']
+    .map((item) => shellItemToNavDef(item, 'kommune'))
+    .filter((item): item is NavItemDef => item != null)
+  const landlord = APP_SHELL_NAV_BY_ROLE.landlord
+    .map((item) => shellItemToNavDef(item, 'landlord'))
+    .filter((item): item is NavItemDef => item != null)
+  return [...kommune, ...landlord]
+}
+
+/** Legacy nav list — derived from `appShellNavConfig` for Header / MobileBottomNav. */
+export const APP_NAV_ITEMS: NavItemDef[] = buildLegacyNavItems()
 
 export function navItemsFor(
   audience: NavAudience,
   surface: NavSurface,
   opts?: {
     isAdmin?: boolean
-    /** Hide nav when modules are off (from platform_settings). */
     platform?: { social?: boolean; centralEvents?: boolean; los?: boolean }
   }
 ): NavItemDef[] {
@@ -152,10 +123,15 @@ export function navItemsFor(
 
 export function isNavActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false
+  if (href === '/homeowner/manage') {
+    return pathname === '/homeowner/manage' || pathname.startsWith('/homeowner/listings/')
+  }
+  if (href === '/homeowner/bookings') {
+    return pathname === '/homeowner/bookings' || pathname.startsWith('/homeowner/bookings/')
+  }
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-/** Desktop sidebar: primary tabs + secondary «more» items in one list. */
 export function navItemsForSidebar(
   audience: NavAudience,
   opts?: {

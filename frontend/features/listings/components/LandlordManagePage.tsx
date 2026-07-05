@@ -86,6 +86,13 @@ export default function HomeownerManage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (window.location.hash === '#bookings') {
+      router.replace('/homeowner/bookings')
+    }
+  }, [router])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
     const mq = window.matchMedia('(max-width: 768px)')
     const sync = () => setIsMobileLayout(mq.matches)
     sync()

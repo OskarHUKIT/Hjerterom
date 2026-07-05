@@ -367,6 +367,25 @@
   margin-left: auto;
 }
 
+.finn-header.finn-desktop-only {
+  gap: var(--space-3);
+}
+
+.finn-user-menu {
+  flex-shrink: 0;
+}
+
+.finn-mobile-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.finn-mobile-header-actions .finn-chrome-controls {
+  margin-left: 0;
+}
+
 /* ── Mobile-only Finn app shell (≤768px) ── */
 @media (max-width: 768px) {
   .finn-mobile-only {
