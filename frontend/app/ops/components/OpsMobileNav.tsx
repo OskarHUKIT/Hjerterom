@@ -6,7 +6,13 @@ import { Megaphone, MoreHorizontal } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import { OPS_MOBILE_PRIMARY, isOpsNavActive } from '../lib/opsNav'
 
-export default function OpsMobileNav({ onOpenMenu }: { onOpenMenu: () => void }) {
+export default function OpsMobileNav({
+  onOpenMenu,
+  termsPending = 0,
+}: {
+  onOpenMenu: () => void
+  termsPending?: number
+}) {
   const pathname = usePathname()
   const { t } = useLanguage()
 
@@ -21,7 +27,7 @@ export default function OpsMobileNav({ onOpenMenu }: { onOpenMenu: () => void })
             href={item.href}
             className={`ops-mobile-nav-item${active ? ' ops-mobile-nav-item--active' : ''}`}
           >
-            <Icon size={20} aria-hidden />
+            <Icon size={22} aria-hidden />
             <span>{t(item.labelKey)}</span>
           </Link>
         )
@@ -32,16 +38,29 @@ export default function OpsMobileNav({ onOpenMenu }: { onOpenMenu: () => void })
           isOpsNavActive(pathname ?? '', '/ops/broadcasts') ? ' ops-mobile-nav-item--active' : ''
         }`}
       >
-        <Megaphone size={20} aria-hidden />
+        <Megaphone size={22} aria-hidden />
         <span>{t('opsNavBroadcasts')}</span>
       </Link>
       <button
         type="button"
-        className="ops-mobile-nav-item ops-mobile-nav-item--menu"
+        className={`ops-mobile-nav-item ops-mobile-nav-item--menu${
+          !OPS_MOBILE_PRIMARY.some((item) =>
+            isOpsNavActive(pathname ?? '', item.href, item.exact),
+          ) &&
+          !isOpsNavActive(pathname ?? '', '/ops/broadcasts') &&
+          pathname?.startsWith('/ops')
+            ? ' ops-mobile-nav-item--active'
+            : ''
+        }`}
         onClick={onOpenMenu}
         aria-label={t('opsOpenMenu')}
       >
-        <MoreHorizontal size={20} aria-hidden />
+        <span className="ops-mobile-nav-icon-wrap">
+          <MoreHorizontal size={22} aria-hidden />
+          {termsPending > 0 ? (
+            <span className="ops-mobile-nav-badge">{termsPending > 9 ? '9+' : termsPending}</span>
+          ) : null}
+        </span>
         <span>{t('opsMoreNav')}</span>
       </button>
     </nav>
