@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { CalendarDays } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
 import { EmptyState, PageSkeleton } from '@/app/components/design-system'
+import { EventTravelCard } from '@/features/events/components/EventTravelCard'
 import type { FinnPublishedEvent } from '@/features/tourism/types/finn'
 
 export default function FinnEventsIndexPage() {
@@ -20,7 +20,7 @@ export default function FinnEventsIndexPage() {
       const { data, error } = await supabase
         .from('central_events')
         .select(
-          'id, slug, name, description_public, start_date, end_date, routing_mode, arrangement_tag'
+          'id, slug, name, description_public, start_date, end_date, routing_mode, arrangement_tag, cover_image_url'
         )
         .eq('status', 'published')
         .order('start_date', { ascending: true })
@@ -51,24 +51,16 @@ export default function FinnEventsIndexPage() {
           description={t('finnEventsEmptyDesc')}
         />
       ) : (
-        <ul className="finn-event-list">
+        <div className="finn-grid finn-event-card-grid">
           {events.map((event) => (
-            <li key={event.id}>
-              <Link href={`/finn/arrangement/${event.slug}`} className="finn-event-item">
-                <h2 style={{ margin: '0 0 8px', fontSize: '1.2rem' }}>{event.name}</h2>
-                {event.description_public ? (
-                  <p style={{ margin: '0 0 12px', color: '#64748b', lineHeight: 1.5 }}>
-                    {event.description_public}
-                  </p>
-                ) : null}
-                <p className="finn-card-meta" style={{ margin: 0 }}>
-                  {event.start_date} – {event.end_date}
-                  {event.arrangement_tag ? ` · ${event.arrangement_tag}` : ''}
-                </p>
-              </Link>
-            </li>
+            <EventTravelCard
+              key={event.id}
+              event={event}
+              actionLabel={t('finnEventViewCta')}
+              overviewFallback={t('finnEventOverviewFallback')}
+            />
           ))}
-        </ul>
+        </div>
       )}
     </>
   )
