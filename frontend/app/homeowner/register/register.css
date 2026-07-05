@@ -586,6 +586,11 @@
   align-items: center;
 }
 
+.register-property-accordion {
+  display: grid;
+  gap: var(--space-2);
+}
+
 .register-agreements-sign-link {
   display: inline-flex;
   margin-top: var(--space-3);

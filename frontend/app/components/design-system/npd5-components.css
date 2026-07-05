@@ -1446,6 +1446,11 @@ a.ds-property-card:hover {
   transform: rotate(180deg);
 }
 
+.ds-accordion-chevron__complete {
+  color: var(--color-teal);
+  flex-shrink: 0;
+}
+
 .ds-accordion-chevron__panel {
   padding: 0 var(--space-4) var(--space-4);
   border-top: 1px solid var(--border-subtle);

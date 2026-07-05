@@ -48,6 +48,13 @@ import { buildSignTermsHref } from '@/features/auth/lib/signTermsNavigation'
 import { Button } from '@/app/components/ui/Button'
 import SharedAvailabilityCalendar from '@/features/listings/components/SharedAvailabilityCalendar'
 import RegisterLanesStep from '@/features/listings/components/register/RegisterLanesStep'
+import RegisterPropertyStepLayout from '@/features/listings/components/register/RegisterPropertyStepLayout'
+import {
+  isRegisterContactComplete,
+  isRegisterDetailsComplete,
+  isRegisterPriceComplete,
+  type RegisterPropertySectionId,
+} from '@/features/listings/components/register/registerPropertySections'
 import {
   MAX_LISTING_IMAGES,
   filterListingImageFiles,
@@ -77,6 +84,8 @@ export default function HomeownerRegister() {
   const [backHref, setBackHref] = useState('/')
   const [socialKommuneActive, setSocialKommuneActive] = useState<boolean | null>(null)
   const [registerStep, setRegisterStep] = useState(0)
+  const [propertySectionFocus, setPropertySectionFocus] =
+    useState<RegisterPropertySectionId | null>(null)
   const [eventInterest, setEventInterest] = useState(false)
   const { requestSignTerms, SignTermsIdentityDialog } = useSignTermsIdentityGate()
   const [tourismTermsDocId, setTourismTermsDocId] = useState<string | null>(null)
@@ -200,10 +209,12 @@ export default function HomeownerRegister() {
       !req(fd.postal_code)
     ) {
       toast(t('regValidationRequiredFields'), 'error')
+      setPropertySectionFocus('contact')
       return false
     }
     if (fd.latitude == null || fd.longitude == null || Number.isNaN(Number(fd.latitude))) {
       toast(t('regValidationGeocode'), 'error')
+      setPropertySectionFocus('contact')
       return false
     }
     const priceMinSum =
@@ -213,13 +224,20 @@ export default function HomeownerRegister() {
       (parseFloat(String(fd.price_monthly_long)) || 0)
     if (priceMinSum <= 0) {
       toast(t('regValidationPrice'), 'error')
+      setPropertySectionFocus('price')
       return false
     }
     const sizeSqmCheck = parseFloat(String(fd.size_sqm)) || 0
     const bedroomsCheck = parseInt(String(fd.bedrooms), 10)
     const maxOccCheck = parseInt(String(fd.max_occupants), 10)
-    if (sizeSqmCheck <= 0 || Number.isNaN(bedroomsCheck) || bedroomsCheck < 0 || maxOccCheck < 1) {
+    if (sizeSqmCheck <= 0 || Number.isNaN(bedroomsCheck) || bedroomsCheck < 0) {
       toast(t('regValidationSizeOccupants'), 'error')
+      setPropertySectionFocus('details')
+      return false
+    }
+    if (maxOccCheck < 1) {
+      toast(t('regValidationSizeOccupants'), 'error')
+      setPropertySectionFocus('price')
       return false
     }
     return true
@@ -801,13 +819,18 @@ export default function HomeownerRegister() {
       </div>
 
       <form onSubmit={handleSubmit} className="register-form">
-        <div className="register-form-columns">
-          <div className="register-form-main-col" hidden={registerStep !== 0}>
-            {/* Section 1: Basic Info & Kontakt */}
-            <section className="form-section" hidden={registerStep !== 0}>
-              <h3 className="form-section-heading">
-                <User size={20} /> {t('regContactSection')}
-              </h3>
+        {registerStep === 0 ? (
+          <RegisterPropertyStepLayout
+            focusSectionId={propertySectionFocus}
+            onFocusHandled={() => setPropertySectionFocus(null)}
+            sections={[
+              {
+                id: 'contact',
+                title: t('regContactSection'),
+                icon: <User size={20} aria-hidden />,
+                isComplete: isRegisterContactComplete(formData),
+                content: (
+                  <>
               <div className="form-grid">
                 <div>
                   <label className="label">{t('regOwnerLabel')}</label>
@@ -978,13 +1001,16 @@ export default function HomeownerRegister() {
                   </div>
                 </div>
               )}
-            </section>
-
-            {/* Section 2: Boligdetaljer */}
-            <section className="form-section" hidden={registerStep !== 0}>
-              <h3 className="form-section-heading">
-                <Building size={20} /> {t('regDetailsSection')}
-              </h3>
+                  </>
+                ),
+              },
+              {
+                id: 'details',
+                title: t('regDetailsSection'),
+                icon: <Building size={20} aria-hidden />,
+                isComplete: isRegisterDetailsComplete(formData),
+                content: (
+                  <>
               <div className="form-grid">
                 <div>
                   <label className="label">{t('regTypeLabel')}</label>
@@ -1151,14 +1177,16 @@ export default function HomeownerRegister() {
                   </div>
                 )}
               </div>
-            </section>
-          </div>
-
-          <div className="register-form-sidebar">
-            <section className="form-section" hidden={registerStep !== 0}>
-              <h3 className="form-section-heading">
-                <Tag size={20} /> {t('regPriceSection')}
-              </h3>
+                  </>
+                ),
+              },
+              {
+                id: 'price',
+                title: t('regPriceSection'),
+                icon: <Tag size={20} aria-hidden />,
+                isComplete: isRegisterPriceComplete(formData),
+                content: (
+                  <>
               <div className="form-grid">
                 <div>
                   <label className="label">{t('regDailyPrice')}</label>
@@ -1301,9 +1329,15 @@ export default function HomeownerRegister() {
                   />
                 </div>
               </div>
-            </section>
+                  </>
+                ),
+              },
+            ]}
+          />
+        ) : null}
 
-            <section className="form-section" hidden={registerStep !== 2}>
+        {registerStep === 2 ? (
+            <section className="form-section">
               <h3 className="form-section-heading">
                 <Camera size={20} /> {t('regImagesSection')}
               </h3>
@@ -1364,8 +1398,10 @@ export default function HomeownerRegister() {
                 />
               </div>
             </section>
+        ) : null}
 
-            <section className="form-section" hidden={registerStep !== 1}>
+        {registerStep === 1 ? (
+            <section className="form-section">
               <h3 className="form-section-heading">
                 <Compass size={20} /> {t('regLanesSection')}
               </h3>
@@ -1391,8 +1427,10 @@ export default function HomeownerRegister() {
                 showEvents={platformFlags.centralEvents}
               />
             </section>
+        ) : null}
 
-            <section className="form-section" hidden={registerStep !== 3}>
+        {registerStep === 3 ? (
+            <section className="form-section">
               <h3 className="form-section-heading">
                 <CalendarDays size={20} /> {t('regAvailabilitySection')}
               </h3>
@@ -1423,8 +1461,10 @@ export default function HomeownerRegister() {
                 tourismEnabled={Boolean(formData.tourism_enabled)}
               />
             </section>
+        ) : null}
 
-            <section className="form-section" hidden={registerStep !== 4}>
+        {registerStep === 4 ? (
+            <section className="form-section">
               <h3 className="form-section-heading">
                 <ShieldCheck size={20} /> {t('regAgreementsSection')}
               </h3>
@@ -1441,8 +1481,7 @@ export default function HomeownerRegister() {
                 </SignTermsLink>
               ) : null}
             </section>
-          </div>
-        </div>
+        ) : null}
 
         <div className="register-form-footer" hidden={registerStep !== 4}>
           <label className="register-insurance-label">

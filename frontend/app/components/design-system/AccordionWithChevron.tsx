@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, type ReactNode } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { CheckCircle2, ChevronDown } from 'lucide-react'
 
 export type AccordionChevronItem = {
   id: string
@@ -11,6 +11,8 @@ export type AccordionChevronItem = {
   icon?: ReactNode
   content: ReactNode
   hidden?: boolean
+  /** Optional completion badge in the trigger (e.g. register form sections). */
+  isComplete?: boolean
 }
 
 type Props = {
@@ -80,6 +82,13 @@ export default function AccordionWithChevron({
               <span className="ds-accordion-chevron__trigger-main">
                 {item.icon}
                 <span>{item.title}</span>
+                {item.isComplete ? (
+                  <CheckCircle2
+                    size={16}
+                    aria-hidden
+                    className="ds-accordion-chevron__complete"
+                  />
+                ) : null}
               </span>
               <ChevronDown
                 size={18}
