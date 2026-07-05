@@ -693,6 +693,19 @@ body::before {
   box-shadow: var(--shadow-lg);
 }
 
+.login-page .login-card__aurora {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.login-page .login-card .auth-card {
+  position: relative;
+  z-index: 1;
+}
+
 .hrt-login-header {
   text-align: center;
   margin-bottom: var(--space-8);
@@ -1221,8 +1234,18 @@ a:focus-visible {
   max-width: min(920px, 100%);
 }
 
+.hrt-login-portals--single {
+  display: flex;
+  justify-content: center;
+}
+
+.hrt-login-portals--single > .hrt-portal-card {
+  width: 100%;
+  max-width: 440px;
+}
+
 @media (min-width: 640px) {
-  .hrt-login-portals {
+  .hrt-login-portals:not(.hrt-login-portals--single) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

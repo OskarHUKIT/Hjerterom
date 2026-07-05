@@ -232,16 +232,11 @@ export function appShellNavBadgeCount(
 }
 
 export function appShellLogoHref(
-  role: AppShellRole | null,
-  platform: AppShellPlatformFlags,
-  landlordBootstrapHref: string
+  _role: AppShellRole | null,
+  _platform: AppShellPlatformFlags,
+  _landlordBootstrapHref: string
 ): string {
-  if (!role) return '/'
-  if (role === 'landlord') return '/homeowner/manage'
-  if (role === 'event-caseworker') return '/nav/event/database'
-  if (platform.social !== false) return '/nav/database'
-  if (platform.centralEvents !== false) return '/nav/event-inquiries'
-  return '/nav/messages'
+  return '/'
 }
 
 /** Mobile bottom tabs — primary items per role. */

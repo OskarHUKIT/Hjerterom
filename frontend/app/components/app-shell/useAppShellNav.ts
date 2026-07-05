@@ -7,7 +7,6 @@ import { usePlatformMode } from '@/context/PlatformModeContext'
 import { isKommuneAdminRole, isKommuneStaffRole } from '@/app/lib/kommuneRoles'
 import { fetchHeaderBundle, headerBundleQueryKey } from '@/app/lib/queries/headerBundleQuery'
 import {
-  appShellLogoHref,
   appShellMobileMoreItems,
   appShellMobileTabItems,
   appShellNavBadgeCount,
@@ -133,15 +132,7 @@ export function useAppShellNav() {
     [shellRole, navOpts]
   )
 
-  const logoHref = !user
-    ? '/'
-    : shellRole
-      ? appShellLogoHref(shellRole, platform, landlordBootstrapHref)
-      : isKommuneStaffRole(navRole)
-        ? appShellLogoHref('municipality-caseworker', platform, landlordBootstrapHref)
-        : hasSignedTerms
-          ? '/homeowner/manage'
-          : landlordBootstrapHref
+  const logoHref = '/'
 
   const badgeFor = (badge?: AppShellNavBadge) =>
     badge ? appShellNavBadgeCount(badge, badgeCounts) : 0

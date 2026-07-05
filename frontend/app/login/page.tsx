@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import AuthCard from '@/features/auth/components/AuthCard'
+import { LazyAuroraBackground } from '@/components/ui/lazy-aurora-background'
 import { Compass, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import PortalCard from '../components/design-system/PortalCard'
@@ -21,15 +22,28 @@ function LoginPageContent() {
   const redirectTo = safeRedirect(searchParams.get('redirect'))
   const signupMode =
     searchParams.get('signup') === '1' || searchParams.get('signup') === 'true'
+  const portalCount = (flags.finn ? 1 : 0) + (flags.los ? 1 : 0)
 
   return (
     <main className="login-page">
       <div className="card login-card relative isolate overflow-hidden">
-        <AuthCard context="landlord" redirectTo={redirectTo} initialSignUp={signupMode} />
+        <LazyAuroraBackground
+          className="login-card__aurora"
+          intensity={0.35}
+          showRadialGradient={false}
+        />
+        <AuthCard
+          context="landlord"
+          redirectTo={redirectTo}
+          initialSignUp={signupMode}
+          showAurora={false}
+        />
       </div>
 
       {flags.finn || flags.los ? (
-        <div className="hrt-login-portals">
+        <div
+          className={`hrt-login-portals${portalCount === 1 ? ' hrt-login-portals--single' : ''}`}
+        >
           {flags.finn ? (
             <PortalCard
               icon={Compass}

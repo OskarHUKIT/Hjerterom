@@ -47,6 +47,8 @@ export type AuthCardProps = {
   redirectTo?: string
   /** Compact layout for dialog embedding (no logo row). */
   compact?: boolean
+  /** Aurora backdrop inside the card (disable when parent shell provides it). */
+  showAurora?: boolean
   /** Open sign-up form initially (e.g. ?signup=1). */
   initialSignUp?: boolean
   /** Called after successful sign-in instead of router navigation. */
@@ -58,6 +60,7 @@ export default function AuthCard({
   context,
   redirectTo,
   compact = false,
+  showAurora = true,
   initialSignUp = false,
   onAuthenticated,
   className,
@@ -355,7 +358,13 @@ export default function AuthCard({
     <div className={`auth-card${compact ? ' auth-card--compact' : ''}${className ? ` ${className}` : ''}`}>
       {!compact ? (
         <>
-          <LazyAuroraBackground className="auth-card__aurora" intensity={0.35} />
+          {showAurora ? (
+            <LazyAuroraBackground
+              className="auth-card__aurora"
+              intensity={0.35}
+              showRadialGradient={false}
+            />
+          ) : null}
           <div className="auth-card__chrome">
             <Logo />
             <ShellChromeControls compact className="login-chrome-controls" />

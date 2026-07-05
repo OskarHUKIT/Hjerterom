@@ -10,7 +10,6 @@ import Logo from './Logo'
 import {
   User,
   LogOut,
-  LogIn,
   ChevronDown,
   ShieldCheck,
   Bell,
@@ -178,13 +177,7 @@ export default function Header() {
     (isKommuneStaffRole(navRoleForLinks) || showLandlordFullNav) && isMobileLayout
   const hideGuestLoginButtonInHeader = isMobileLayout && pathname?.startsWith('/login')
 
-  const logoHref = !user
-    ? '/'
-    : isKommuneStaffRole(navRoleForLinks)
-      ? '/nav/database'
-      : hasSignedTerms
-        ? '/homeowner/manage'
-        : landlordBootstrapHref
+  const logoHref = '/'
 
   const navContent = (
     <>
@@ -452,21 +445,10 @@ export default function Header() {
           {!hideGuestLoginButtonInHeader && (
             <Link
               href="/login"
-              className="button"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '0.85rem',
-                padding: '0 var(--space-5)',
-                minHeight: 'var(--touch-target-sm)',
-                height: 'var(--touch-target-sm)',
-                boxSizing: 'border-box',
-                borderRadius: '10px',
-              }}
+              className="button header-guest-login-btn"
               onClick={closeMobileNav}
             >
-              <LogIn size={16} style={{ marginRight: '6px' }} /> {t('logIn')}
+              {t('logIn')}
             </Link>
           )}
         </div>

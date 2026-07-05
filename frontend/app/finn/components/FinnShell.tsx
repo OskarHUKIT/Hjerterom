@@ -112,7 +112,7 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
     <div className={shellClass}>
       {/* Desktop header — unchanged from pre-mobile rebuild */}
       <header className="finn-header finn-desktop-only hrt-glass-header">
-        <Link href="/finn" className="finn-brand" aria-label={t('finnBrand')}>
+        <Link href="/" className="finn-brand" aria-label={t('goHome')}>
           <Logo />
           <span className="finn-brand-text">{t('finnBrand')}</span>
         </Link>
