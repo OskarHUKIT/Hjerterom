@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { buildNavMessagesHref } from '@/app/lib/returnNav'
 import { logError } from '@/app/lib/appLogger'
+import { getAuthUserDeduped, supabase } from '@/app/lib/supabase'
 import { formatAuditLogDescription } from '../../lib/auditLogFormat'
 import { formatDateNo, formatDateTimeNo } from '../../lib/dateFormat'
 import { DateInput } from '../../components/DateInput'
@@ -71,7 +72,10 @@ export default function UserProfileClient({ overrideId }: UserProfileClientProps
   const { t } = useLanguage()
   const toast = useToast()
   const params = useParams()
-  const id = overrideId ?? params.id
+  const paramId = params.id
+  const id =
+    overrideId ??
+    (typeof paramId === 'string' ? paramId : Array.isArray(paramId) ? paramId[0] : undefined)
 
   const [user, setUser] = useState<any>(null)
   const [listings, setListings] = useState<any[]>([])

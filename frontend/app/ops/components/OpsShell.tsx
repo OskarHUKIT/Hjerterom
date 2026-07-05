@@ -36,7 +36,7 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
   const [termsPending, setTermsPending] = useState(0)
 
   useEffect(() => {
-    if (access.data?.kind !== 'authorized') return
+    if (access.data?.kind !== 'ok') return
     let cancelled = false
     void (async () => {
       try {

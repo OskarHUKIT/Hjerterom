@@ -32,6 +32,7 @@ import {
 } from '../../lib/kommuneRoles'
 import { getOverviewBackLink } from '../../lib/overviewBackNav'
 import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
+import UserProfileClient from './UserProfileClient'
 
 function NavUsersContent() {
   const { t } = useLanguage()
