@@ -4,10 +4,10 @@ export type LandingHeroModule = 'default' | 'kommune' | 'landlord' | 'finn' | 'l
 
 export type HeroContent = {
   eyebrow: string
-  /** Default hero only — product name on its own line. */
-  brandLine?: string
   title: string
   titleAccent: string
+  /** Default hero: accent word on its own line below the title. */
+  accentOnOwnLine?: boolean
   description: string
 }
 
@@ -26,9 +26,9 @@ export function buildDefaultEyebrow(flags: EffectiveModuleFlags, t: TranslateFn)
 function defaultHero(flags: EffectiveModuleFlags, t: TranslateFn): HeroContent {
   return {
     eyebrow: buildDefaultEyebrow(flags, t),
-    brandLine: t('heroTitleBrand'),
-    title: t('heroTitleLine2'),
+    title: t('heroTitleLine1'),
     titleAccent: t('heroTitleAccent'),
+    accentOnOwnLine: true,
     description: t('heroDesc'),
   }
 }

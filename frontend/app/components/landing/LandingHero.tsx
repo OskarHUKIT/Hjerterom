@@ -32,24 +32,40 @@ function HeroSkeleton() {
   )
 }
 
-function HeroTitle({ brandLine, title, titleAccent }: { brandLine?: string; title: string; titleAccent: string }) {
+function HeroTitle({
+  title,
+  titleAccent,
+  accentOnOwnLine,
+}: {
+  title: string
+  titleAccent: string
+  accentOnOwnLine?: boolean
+}) {
+  if (accentOnOwnLine && titleAccent) {
+    return (
+      <>
+        <span className="hrt-landing-hero__title-line">{title}</span>
+        <span className="hrt-landing-hero__title-accent hrt-landing-hero__title-accent-line">
+          {titleAccent}
+        </span>
+      </>
+    )
+  }
+
   const [titleBefore, accent, titleAfter] = splitHeroTitle(title, titleAccent)
 
   return (
-    <>
-      <span className="hrt-landing-hero__title-line">
-        {accent ? (
-          <>
-            {titleBefore}
-            <span className="hrt-landing-hero__title-accent">{accent}</span>
-            {titleAfter}
-          </>
-        ) : (
-          title
-        )}
-      </span>
-      {brandLine ? <span className="hrt-landing-hero__brand-line">{brandLine}</span> : null}
-    </>
+    <span className="hrt-landing-hero__title-line">
+      {accent ? (
+        <>
+          {titleBefore}
+          <span className="hrt-landing-hero__title-accent">{accent}</span>
+          {titleAfter}
+        </>
+      ) : (
+        title
+      )}
+    </span>
   )
 }
 
@@ -71,11 +87,11 @@ export default function LandingHero({ activeModule }: LandingHeroProps) {
           </p>
 
           <h1 id="landing-hero-title" className="hrt-landing-hero__title">
-            <span key={`${content.brandLine ?? ''}-${content.title}`}>
+            <span key={`${content.title}-${content.titleAccent}`}>
               <HeroTitle
-                brandLine={content.brandLine}
                 title={content.title}
                 titleAccent={content.titleAccent}
+                accentOnOwnLine={content.accentOnOwnLine}
               />
             </span>
           </h1>
