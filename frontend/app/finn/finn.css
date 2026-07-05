@@ -243,6 +243,15 @@
   gap: var(--space-4);
 }
 
+.finn-event-card-grid {
+  align-items: stretch;
+}
+
+.finn-event-card-grid > * {
+  max-width: none;
+  width: 100%;
+}
+
 .finn-event-item {
   display: block;
   padding: var(--space-5);

@@ -17,6 +17,7 @@ export type FinnPublishedEvent = {
   end_date: string
   routing_mode: 'saksbehandler' | 'turisme'
   arrangement_tag: string | null
+  cover_image_url?: string | null
 }
 
 export type FinnSearchFilters = {
