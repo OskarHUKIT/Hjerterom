@@ -1,29 +1,13 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Sans, Fraunces, Geist } from 'next/font/google'
+import './styles/arboria.css'
 import './globals.css'
 import './styles/hjerterum-v2.css'
+import './styles/landing.css'
 import SiteChrome from './components/SiteChrome'
 import SkipLink from './components/design-system/SkipLink'
 import PushSubscription from './components/PushSubscription'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import { Providers } from './providers'
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
-const fontSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
-})
-
-const fontDisplay = Fraunces({
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-  weight: ['400', '600', '700'],
-})
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -63,11 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const supabaseOrigin = supabaseOriginForHints()
 
   return (
-    <html
-      lang="nb"
-      suppressHydrationWarning
-      className={cn(fontSans.variable, fontDisplay.variable, "font-sans", geist.variable)}
-    >
+    <html lang="nb" suppressHydrationWarning>
       <head>
         {supabaseOrigin ? (
           <>

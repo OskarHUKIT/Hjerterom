@@ -1,6 +1,6 @@
 import type { EffectiveModuleFlags } from '@/lib/platformSettings'
 
-export type LandingHeroModule = 'default' | 'login' | 'demo' | 'finn' | 'los'
+export type LandingHeroModule = 'default' | 'kommune' | 'landlord' | 'finn' | 'los'
 
 export type HeroContent = {
   eyebrow: string
@@ -36,19 +36,19 @@ export function resolveHeroContent(
   t: TranslateFn
 ): HeroContent {
   switch (module) {
-    case 'login':
+    case 'kommune':
       return {
-        eyebrow: t('heroModuleLoginEyebrow'),
-        title: t('heroModuleLoginTitle'),
-        titleAccent: t('heroModuleLoginTitleAccent'),
-        description: t('heroModuleLoginDesc'),
+        eyebrow: t('heroModuleKommuneEyebrow'),
+        title: t('heroModuleKommuneTitle'),
+        titleAccent: t('heroModuleKommuneTitleAccent'),
+        description: t('heroModuleKommuneDesc'),
       }
-    case 'demo':
+    case 'landlord':
       return {
-        eyebrow: t('heroModuleDemoEyebrow'),
-        title: t('heroModuleDemoTitle'),
-        titleAccent: t('heroModuleDemoTitleAccent'),
-        description: t('heroModuleDemoDesc'),
+        eyebrow: t('heroModuleLandlordEyebrow'),
+        title: t('heroModuleLandlordTitle'),
+        titleAccent: t('heroModuleLandlordTitleAccent'),
+        description: t('heroModuleLandlordDesc'),
       }
     case 'finn':
       if (!flags.finn) return defaultHero(flags, t)

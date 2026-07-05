@@ -59,29 +59,6 @@ function HeroMotif() {
   )
 }
 
-function FjordSilhouette() {
-  return (
-    <svg
-      className="hrt-landing-hero__fjord"
-      viewBox="0 0 1440 300"
-      preserveAspectRatio="none"
-      aria-hidden
-    >
-      <path d="M0 220 L220 90 L400 190 L620 60 L860 200 L1080 100 L1260 180 L1440 130 L1440 300 L0 300 Z" />
-      <path
-        className="hrt-landing-hero__fjord-mid"
-        d="M0 260 L260 160 L500 240 L760 140 L1000 250 L1250 170 L1440 230 L1440 300 L0 300 Z"
-        opacity="0.85"
-      />
-      <path
-        className="hrt-landing-hero__fjord-front"
-        d="M0 290 L300 250 L620 290 L940 245 L1260 288 L1440 260 L1440 300 L0 300 Z"
-        opacity="0.9"
-      />
-    </svg>
-  )
-}
-
 function HeroSkeleton() {
   const { t } = useLanguage()
 
@@ -110,12 +87,7 @@ export default function LandingHero({ activeModule }: LandingHeroProps) {
 
   return (
     <section className="hrt-landing-hero" aria-labelledby="landing-hero-title">
-      <div className="hrt-landing-hero__grain" aria-hidden />
-      <div className="hrt-landing-hero__blob hrt-landing-hero__blob--indigo" aria-hidden />
-      <div className="hrt-landing-hero__blob hrt-landing-hero__blob--teal" aria-hidden />
-      <div className="hrt-landing-hero__blob hrt-landing-hero__blob--rose" aria-hidden />
       <HeroMotif />
-      <FjordSilhouette />
 
       {isLoading ? (
         <HeroSkeleton />

@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Header from './Header'
 import Footer from './Footer'
+import LandingHeader from './landing/LandingHeader'
 import AppShell, { isAppShellRoute } from './app-shell/AppShell'
 import { useAppShellNav } from './app-shell/useAppShellNav'
 
@@ -26,6 +27,7 @@ function AppShellOrClassic({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { eligible, loading } = useAppShellNav()
   const useShell = isAppShellRoute(pathname) && eligible
+  const isLanding = pathname === '/'
 
   if (useShell) {
     return <AppShell>{children}</AppShell>
@@ -33,8 +35,12 @@ function AppShellOrClassic({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <Header />
-      <div id="main-content" tabIndex={-1} className="site-main">
+      {isLanding ? <LandingHeader /> : <Header />}
+      <div
+        id="main-content"
+        tabIndex={-1}
+        className={`site-main${isLanding ? ' site-main--landing' : ''}`}
+      >
         {children}
       </div>
       {!loading || !isAppShellRoute(pathname) ? <Footer /> : null}
