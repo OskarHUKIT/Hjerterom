@@ -21,6 +21,7 @@ import {
 } from '@/lib/appShellNavConfig'
 import '@/app/components/app-shell/app-shell.css'
 import '@/app/components/homeowner-shell/homeowner-shell.css'
+import MobilePageTransition from '@/components/layout/mobile-page-transition'
 
 type AppShellProps = {
   children: React.ReactNode
@@ -128,9 +129,8 @@ export default function AppShell({ children }: AppShellProps) {
   const {
     user,
     navRole,
+    shellRole,
     sidebarItems,
-    mobileTabItems,
-    mobileMoreItems,
     logoHref,
     hasSignedTerms,
     showLandlordFullNav,
@@ -183,14 +183,14 @@ export default function AppShell({ children }: AppShellProps) {
             onOpenMobileNav={() => setMobileNavOpen(true)}
           />
           <div id="main-content" tabIndex={-1} className="site-main app-shell-content">
-            {children}
+            <MobilePageTransition>{children}</MobilePageTransition>
           </div>
           <AppShellMobileNav
-            tabItems={mobileTabItems}
-            moreItems={mobileMoreItems}
+            shellRole={shellRole}
             navRole={navRole}
             showLandlordMore={audience === 'landlord' && showLandlordFullNav}
             badgeFor={badgeFor}
+            badgeCounts={badgeCounts}
           />
         </div>
       </div>

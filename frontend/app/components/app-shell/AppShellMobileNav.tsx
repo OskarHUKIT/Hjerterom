@@ -1,218 +1,115 @@
 'use client'
 
+// mobile-decision: App-shell mobile nav delegates to unified MobileShell — config from mobileShellNavConfig.
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { Menu } from 'lucide-react'
+import { useMemo } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
-import { kommuneNavUsesAccountsLabel } from '@/app/lib/kommuneRoles'
+import { usePlatformMode } from '@/context/PlatformModeContext'
+import MobileShell, { defaultBadgeFor } from '@/components/layout/mobile-shell'
+import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
 import {
-  isAppShellNavActive,
+  appShellNavBadgeCount,
   type AppShellNavBadge,
-  type AppShellNavItem,
+  type AppShellRole,
 } from '@/lib/appShellNavConfig'
-import BottomSheet from '../BottomSheet'
-import NavBadge from './NavBadge'
+import {
+  appShellRoleToMobileContext,
+  mobileShellMoreItems,
+  mobileShellTabs,
+} from '@/lib/mobileShellNavConfig'
 
 type AppShellMobileNavProps = {
-  tabItems: AppShellNavItem[]
-  moreItems: AppShellNavItem[]
+  shellRole: AppShellRole | null
   navRole: string | null
   showLandlordMore: boolean
   badgeFor: (badge?: AppShellNavBadge) => number
-}
-
-function MobileMoreLinks({
-  items,
-  navRole,
-  onNavigate,
-}: {
-  items: AppShellNavItem[]
-  navRole: string | null
-  onNavigate: () => void
-}) {
-  const { t } = useLanguage()
-  return (
-    <>
-      {items.map((item) => (
-        <Link
-          key={item.id}
-          prefetch={false}
-          href={item.href}
-          className="button app-shell-more-link"
-          onClick={onNavigate}
-        >
-          {item.id === 'users' && kommuneNavUsesAccountsLabel(navRole)
-            ? t('navAccounts')
-            : t(item.labelKey as Parameters<typeof t>[0])}
-        </Link>
-      ))}
-    </>
-  )
+  badgeCounts: { notifications: number; messages: number; losInbox: number }
 }
 
 export default function AppShellMobileNav({
-  tabItems,
-  moreItems,
+  shellRole,
   navRole,
   showLandlordMore,
   badgeFor,
+  badgeCounts,
 }: AppShellMobileNavProps) {
-  const pathname = usePathname()
   const { t } = useLanguage()
-  const [isMobile, setIsMobile] = useState(false)
-  const [moreOpen, setMoreOpen] = useState(false)
+  const { flags } = usePlatformMode()
 
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)')
-    const sync = () => setIsMobile(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
-  }, [])
-
-  useEffect(() => {
-    if (!isMobile) {
-      document.body.classList.remove('app-shell-mobile-nav-active')
-      return
-    }
-    document.body.classList.add('app-shell-mobile-nav-active')
-    return () => document.body.classList.remove('app-shell-mobile-nav-active')
-  }, [isMobile])
-
-  useEffect(() => {
-    setMoreOpen(false)
-  }, [pathname])
-
-  if (!isMobile) return null
-
-  const labelFor = (item: AppShellNavItem) =>
-    t((item.shortLabelKey ?? item.labelKey) as Parameters<typeof t>[0])
-
-  const hasMore = moreItems.length > 0 || showLandlordMore
-  const moreBadgeCount = moreItems.reduce(
-    (sum, item) => sum + (item.badge ? badgeFor(item.badge) : 0),
-    0
+  const platform = useMemo(
+    () => ({
+      social: flags.social,
+      centralEvents: flags.centralEvents,
+      los: flags.los,
+      stripeBookings: flags.stripeBookings,
+    }),
+    [flags.social, flags.centralEvents, flags.los, flags.stripeBookings]
   )
+
+  const context = appShellRoleToMobileContext(shellRole)
+  if (!context) return null
+
+  const tabs = mobileShellTabs(context, platform, {
+    isAdmin: shellRole === 'municipality-admin',
+  })
+  const moreItems = mobileShellMoreItems(context, shellRole, platform, {
+    isAdmin: shellRole === 'municipality-admin',
+  })
+
+  const shellBadgeFor = (badge?: Parameters<typeof defaultBadgeFor>[0]) => {
+    if (badge === 'bookings') {
+      return 0
+    }
+    if (badge === 'messages' || badge === 'notifications' || badge === 'losInbox') {
+      return badgeFor(badge as AppShellNavBadge)
+    }
+    return defaultBadgeFor(badge, {
+      messages: badgeCounts.messages,
+      notifications: badgeCounts.notifications,
+      losInbox: badgeCounts.losInbox,
+      bookings: 0,
+      trips: 0,
+      terms: 0,
+    })
+  }
+
+  const landlordMore = showLandlordMore ? (
+    <>
+      <Link prefetch={false} href="/homeowner/register" className="button mobile-shell-more-link">
+        {t('registerNewProperty')}
+      </Link>
+      <Link prefetch={false} href="/homeowner/agreements" className="button mobile-shell-more-link">
+        {t('landlordAgreementsTitle')}
+      </Link>
+      <Link prefetch={false} href="/homeowner/sign-terms" className="button mobile-shell-more-link">
+        {t('signTermsNav')}
+      </Link>
+      <ShellChromeControls variant="menu" />
+    </>
+  ) : null
+
+  const kommuneMore =
+    context === 'kommune' ? (
+      <>
+        {navRole === 'kommune_ansatt' ? (
+          <Link prefetch={false} href="/nav/kommune-access" className="button mobile-shell-more-link">
+            {t('kommuneAccess')}
+          </Link>
+        ) : null}
+        <ShellChromeControls variant="menu" />
+      </>
+    ) : null
 
   return (
-    <>
-      <nav className="app-shell-mobile-nav" aria-label={t('mainNavigation')}>
-        {tabItems.map((item) => {
-          const active = isAppShellNavActive(pathname, item)
-          const Icon = item.icon
-          const count = item.badge ? badgeFor(item.badge) : 0
-          return (
-            <Link
-              key={item.id}
-              prefetch={false}
-              href={item.href}
-              className={`app-shell-mobile-tab${active ? ' app-shell-mobile-tab--active' : ''}`}
-              aria-current={active ? 'page' : undefined}
-            >
-              <span className="app-shell-mobile-tab__icon">
-                <Icon size={22} aria-hidden />
-                {count > 0 ? (
-                  <NavBadge count={count} className="app-shell-nav-badge--mobile" />
-                ) : null}
-              </span>
-              <span className="app-shell-mobile-tab__label">{labelFor(item)}</span>
-            </Link>
-          )
-        })}
-        {hasMore ? (
-          <button
-            type="button"
-            className={`app-shell-mobile-tab app-shell-mobile-tab--more${moreOpen ? ' app-shell-mobile-tab--active' : ''}`}
-            onClick={() => setMoreOpen(true)}
-            aria-expanded={moreOpen}
-            aria-haspopup="dialog"
-          >
-            <span className="app-shell-mobile-tab__icon">
-              <Menu size={22} aria-hidden />
-              {moreBadgeCount > 0 ? (
-                <NavBadge count={moreBadgeCount} className="app-shell-nav-badge--mobile" />
-              ) : null}
-            </span>
-            <span className="app-shell-mobile-tab__label">{t('navMore')}</span>
-          </button>
-        ) : null}
-      </nav>
-
-      {moreOpen && moreItems.length > 0 ? (
-        <BottomSheet
-          open={moreOpen}
-          title={t('navMore')}
-          titleId="app-shell-mobile-more"
-          closeLabel={t('close')}
-          onClose={() => setMoreOpen(false)}
-          zIndex={2000}
-        >
-          <div className="app-shell-more-sheet">
-            <MobileMoreLinks
-              items={moreItems}
-              navRole={navRole}
-              onNavigate={() => setMoreOpen(false)}
-            />
-            {navRole === 'kommune_ansatt' ? (
-              <Link
-                prefetch={false}
-                href="/nav/kommune-access"
-                className="button app-shell-more-link"
-                onClick={() => setMoreOpen(false)}
-              >
-                {t('kommuneAccess')}
-              </Link>
-            ) : null}
-          </div>
-        </BottomSheet>
-      ) : null}
-
-      {moreOpen && showLandlordMore ? (
-        <BottomSheet
-          open={moreOpen}
-          title={t('navMore')}
-          titleId="app-shell-mobile-more-landlord"
-          closeLabel={t('close')}
-          onClose={() => setMoreOpen(false)}
-          zIndex={2000}
-        >
-          <div className="app-shell-more-sheet">
-            <Link
-              prefetch={false}
-              href="/homeowner/register"
-              className="button app-shell-more-link"
-              onClick={() => setMoreOpen(false)}
-            >
-              {t('registerNewProperty')}
-            </Link>
-            <Link
-              prefetch={false}
-              href="/homeowner/agreements"
-              className="button app-shell-more-link"
-              onClick={() => setMoreOpen(false)}
-            >
-              {t('landlordAgreementsTitle')}
-            </Link>
-            <Link
-              prefetch={false}
-              href="/homeowner/bookings"
-              className="button app-shell-more-link"
-              onClick={() => setMoreOpen(false)}
-            >
-              {t('homeownerNavBookings')}
-            </Link>
-            <Link
-              prefetch={false}
-              href="/homeowner/sign-terms"
-              className="button app-shell-more-link"
-              onClick={() => setMoreOpen(false)}
-            >
-              {t('signTermsNav')}
-            </Link>
-          </div>
-        </BottomSheet>
-      ) : null}
-    </>
+    <MobileShell
+      context={context}
+      tabs={tabs}
+      moreItems={moreItems}
+      moreExtra={landlordMore ?? kommuneMore}
+      badgeFor={shellBadgeFor}
+      navRole={navRole}
+    />
   )
 }
+
+export { appShellNavBadgeCount }

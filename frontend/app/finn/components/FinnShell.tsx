@@ -15,7 +15,8 @@ import { useAuthSession } from '@/context/AuthSessionContext'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
 import FinnBrandMark from './FinnBrandMark'
-import FinnBottomNav from './FinnBottomNav'
+import FinnMobileShellNav from './FinnMobileShellNav'
+import MobilePageTransition from '@/components/layout/mobile-page-transition'
 
 const FINN_LOCALE_KEY = 'hjerterum-finn-locale'
 
@@ -41,6 +42,7 @@ function shellMode(pathname: string | null): 'app' | 'detail' | 'auth' {
   ) {
     return 'detail'
   }
+  if (pathname === '/finn/map' || pathname.startsWith('/finn/map/')) return 'app'
   return 'app'
 }
 
@@ -165,12 +167,14 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="finn-main">
-        <FeaturePortalGate feature="finn">{children}</FeaturePortalGate>
+        <FeaturePortalGate feature="finn">
+          <MobilePageTransition>{children}</MobilePageTransition>
+        </FeaturePortalGate>
       </main>
 
       {mode === 'app' ? (
         <div className="finn-mobile-only">
-          <FinnBottomNav unreadCount={unreadCount} />
+          <FinnMobileShellNav unreadCount={unreadCount} />
         </div>
       ) : null}
 

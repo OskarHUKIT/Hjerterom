@@ -38,6 +38,19 @@ export default function LosFloatingWidgetMount() {
   const { t } = useLanguage()
   const { flags, isLoading } = usePlatformMode()
   const [isOpen, setIsOpen] = useState(false)
+  const [isMobileFinn, setIsMobileFinn] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const sync = () => {
+      const mobile = mq.matches
+      const onFinn = pathname === '/finn' || (pathname?.startsWith('/finn/') ?? false)
+      setIsMobileFinn(mobile && onFinn)
+    }
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [pathname])
 
   const chat = useLosChat({
     autoStart: false,
@@ -51,7 +64,8 @@ export default function LosFloatingWidgetMount() {
     flags.los &&
     isPublicLosWidgetRoute(pathname) &&
     !isProtectedDashboard(pathname) &&
-    !isLosFullPage(pathname)
+    !isLosFullPage(pathname) &&
+    !isMobileFinn
 
   useEffect(() => {
     if (isOpen && visible) void initSession()

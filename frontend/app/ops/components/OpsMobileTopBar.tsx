@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ArrowLeft, Menu, Moon, Sun } from 'lucide-react'
+import { ArrowLeft, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
 import { useTheme } from '@/context/ThemeContext'
@@ -14,10 +14,9 @@ const LOCALES: Locale[] = ['no', 'se', 'en']
 
 type OpsMobileTopBarProps = {
   title: string
-  onOpenMenu: () => void
 }
 
-export default function OpsMobileTopBar({ title, onOpenMenu }: OpsMobileTopBarProps) {
+export default function OpsMobileTopBar({ title }: OpsMobileTopBarProps) {
   const pathname = usePathname() ?? ''
   const router = useRouter()
   const { t, locale, setLocale } = useLanguage()
@@ -38,17 +37,18 @@ export default function OpsMobileTopBar({ title, onOpenMenu }: OpsMobileTopBarPr
 
   return (
     <header className={`ops-mobile-topbar${scrolled ? ' ops-mobile-topbar--scrolled' : ''}`}>
-      <button
-        type="button"
-        className="ops-icon-btn"
-        aria-label={isRoot ? t('opsOpenMenu') : t('back')}
-        onClick={() => {
-          if (isRoot) onOpenMenu()
-          else router.back()
-        }}
-      >
-        {isRoot ? <Menu size={22} aria-hidden /> : <ArrowLeft size={22} aria-hidden />}
-      </button>
+      {!isRoot ? (
+        <button
+          type="button"
+          className="ops-icon-btn"
+          aria-label={t('back')}
+          onClick={() => router.back()}
+        >
+          <ArrowLeft size={22} aria-hidden />
+        </button>
+      ) : (
+        <span className="ops-icon-btn ops-icon-btn--spacer" aria-hidden />
+      )}
 
       <div className="ops-mobile-topbar-title-wrap">
         <h1 className="ops-mobile-topbar-title">{title}</h1>

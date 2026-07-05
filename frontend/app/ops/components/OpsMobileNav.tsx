@@ -1,68 +1,81 @@
 'use client'
 
+// mobile-decision: Ops mobile nav — Dashboard · Accounts · elevated Send alert · Events · Mer (user needs CRUD on phone).
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Megaphone, MoreHorizontal } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
+import { useMemo } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
-import { OPS_MOBILE_PRIMARY, isOpsNavActive } from '../lib/opsNav'
+import { usePlatformMode } from '@/context/PlatformModeContext'
+import MobileShell from '@/components/layout/mobile-shell'
+import { mobileShellTabs } from '@/lib/mobileShellNavConfig'
+import { OPS_NAV_GROUPS } from '../lib/opsNav'
+import OpsBadge from './OpsBadge'
 
-export default function OpsMobileNav({
-  onOpenMenu,
-  termsPending = 0,
-}: {
-  onOpenMenu: () => void
+type OpsMobileNavProps = {
+  onOpenMenu?: () => void
   termsPending?: number
-}) {
-  const pathname = usePathname()
-  const { t } = useLanguage()
+}
 
-  return (
-    <nav className="ops-mobile-nav" aria-label={t('opsConsoleTitle')}>
-      {OPS_MOBILE_PRIMARY.map((item) => {
-        const Icon = item.icon
-        const active = isOpsNavActive(pathname ?? '', item.href, item.exact)
+export default function OpsMobileNav({ termsPending = 0 }: OpsMobileNavProps) {
+  const { t } = useLanguage()
+  const { flags } = usePlatformMode()
+
+  const tabs = useMemo(
+    () =>
+      mobileShellTabs('ops', {
+        centralEvents: flags.centralEvents,
+      }),
+    [flags.centralEvents]
+  )
+
+  const moreExtra = (
+    <>
+      {OPS_NAV_GROUPS.map((group) => {
+        const items = group.items.filter(
+          (item) => !item.requiresCentralEvents || flags.centralEvents
+        )
+        if (items.length === 0) return null
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`ops-mobile-nav-item${active ? ' ops-mobile-nav-item--active' : ''}`}
-          >
-            <Icon size={22} aria-hidden />
-            <span>{t(item.labelKey)}</span>
-          </Link>
+          <div key={group.groupKey} className="ops-mobile-sheet-group">
+            <p className="ops-label-uc ops-mobile-sheet-group-label">{t(group.groupKey)}</p>
+            {items.map((item) => {
+              const badge = item.termsBadge ? termsPending : undefined
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="button mobile-shell-more-link"
+                  style={{ justifyContent: 'space-between' }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    {t(item.labelKey)}
+                    {badge != null && badge > 0 ? (
+                      <OpsBadge tone="warning" dot>
+                        {badge > 99 ? '99+' : badge}
+                      </OpsBadge>
+                    ) : null}
+                  </span>
+                  <ChevronRight size={16} aria-hidden />
+                </Link>
+              )
+            })}
+          </div>
         )
       })}
-      <Link
-        href="/ops/broadcasts"
-        className={`ops-mobile-nav-item${
-          isOpsNavActive(pathname ?? '', '/ops/broadcasts') ? ' ops-mobile-nav-item--active' : ''
-        }`}
-      >
-        <Megaphone size={22} aria-hidden />
-        <span>{t('opsNavBroadcasts')}</span>
+      <Link href="/" className="button mobile-shell-more-link">
+        {t('opsExitToApp')}
       </Link>
-      <button
-        type="button"
-        className={`ops-mobile-nav-item ops-mobile-nav-item--menu${
-          !OPS_MOBILE_PRIMARY.some((item) =>
-            isOpsNavActive(pathname ?? '', item.href, item.exact),
-          ) &&
-          !isOpsNavActive(pathname ?? '', '/ops/broadcasts') &&
-          pathname?.startsWith('/ops')
-            ? ' ops-mobile-nav-item--active'
-            : ''
-        }`}
-        onClick={onOpenMenu}
-        aria-label={t('opsOpenMenu')}
-      >
-        <span className="ops-mobile-nav-icon-wrap">
-          <MoreHorizontal size={22} aria-hidden />
-          {termsPending > 0 ? (
-            <span className="ops-mobile-nav-badge">{termsPending > 9 ? '9+' : termsPending}</span>
-          ) : null}
-        </span>
-        <span>{t('opsMoreNav')}</span>
-      </button>
-    </nav>
+    </>
+  )
+
+  return (
+    <MobileShell
+      context="ops"
+      tabs={tabs}
+      moreExtra={moreExtra}
+      badgeFor={(badge) => (badge === 'terms' ? termsPending : 0)}
+      ariaLabel={t('opsConsoleTitle')}
+      className="ops-mobile-shell-nav"
+    />
   )
 }

@@ -5,6 +5,8 @@ import { useEffect } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
 import FeaturePortalGate from '@/app/components/FeaturePortalGate'
 import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
+import MobilePageTransition from '@/components/layout/mobile-page-transition'
+import LosMobileShellNav from './LosMobileShellNav'
 
 export default function LosShell({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage()
@@ -29,11 +31,14 @@ export default function LosShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="los-main">
-        <FeaturePortalGate feature="los">{children}</FeaturePortalGate>
+        <FeaturePortalGate feature="los">
+          <MobilePageTransition>{children}</MobilePageTransition>
+        </FeaturePortalGate>
       </main>
-      <footer className="los-footer">
+      <footer className="los-footer los-footer--desktop">
         <Link href="/los/personvern">{t('losPrivacyLink')}</Link>
       </footer>
+      <LosMobileShellNav />
     </div>
   )
 }

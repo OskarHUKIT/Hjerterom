@@ -2,12 +2,11 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
-import BottomSheet from '../../components/BottomSheet'
+import MobilePageTransition from '@/components/layout/mobile-page-transition'
 import OpsMobileNav from './OpsMobileNav'
 import OpsMobileTopBar from './OpsMobileTopBar'
 import OpsSidebar from './OpsSidebar'
@@ -16,8 +15,6 @@ import { CommandPaletteTrigger } from '@/components/layout/command-palette-provi
 import { OpsPageSkeleton } from './OpsSkeleton'
 import { opsGetDashboardStats } from '@/app/lib/opsApi'
 import { flattenOpsNav, isOpsNavActive } from '../lib/opsNav'
-import { OPS_NAV_GROUPS } from '../lib/opsNav'
-import { ArrowLeft } from 'lucide-react'
 
 function currentPageLabel(
   pathname: string,
@@ -34,7 +31,6 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
   const { t } = useLanguage()
   const access = useAuthGate({ mode: 'ops' })
   const { flags } = usePlatformMode()
-  const [menuOpen, setMenuOpen] = useState(false)
   const [termsPending, setTermsPending] = useState(0)
 
   useEffect(() => {
@@ -101,66 +97,14 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <OpsMobileTopBar title={pageTitle} onOpenMenu={() => setMenuOpen(true)} />
+          <OpsMobileTopBar title={pageTitle} />
 
-          <div className="ops-content">{children}</div>
-          <OpsMobileNav onOpenMenu={() => setMenuOpen(true)} termsPending={termsPending} />
+          <div className="ops-content">
+            <MobilePageTransition>{children}</MobilePageTransition>
+          </div>
+          <OpsMobileNav termsPending={termsPending} />
         </div>
       </div>
-
-      <BottomSheet
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        title={t('opsMoreNav')}
-        closeLabel={t('close')}
-      >
-        <div className="ops-mobile-sheet">
-          {OPS_NAV_GROUPS.map((group) => {
-            const items = group.items.filter(
-              (item) => !item.requiresCentralEvents || flags.centralEvents,
-            )
-            if (items.length === 0) return null
-            return (
-              <div key={group.groupKey} className="ops-mobile-sheet-group">
-                <p className="ops-label-uc ops-mobile-sheet-group-label">{t(group.groupKey)}</p>
-                {items.map((item) => {
-                  const active = isOpsNavActive(pathname ?? '', item.href, item.exact)
-                  const badge = item.termsBadge ? termsPending : undefined
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMenuOpen(false)}
-                      className={`ops-mobile-sheet-link${active ? ' ops-mobile-sheet-link--active' : ''}`}
-                    >
-                      <span className="ops-mobile-sheet-link-label">
-                        {t(item.labelKey)}
-                        {badge != null && badge > 0 ? (
-                          <OpsBadge tone="warning" dot>
-                            {badge > 99 ? '99+' : badge}
-                          </OpsBadge>
-                        ) : null}
-                      </span>
-                      <ChevronRight size={16} aria-hidden className="ops-mobile-sheet-chevron" />
-                    </Link>
-                  )
-                })}
-              </div>
-            )
-          })}
-          <div className="ops-mobile-sheet-group">
-            <p className="ops-label-uc ops-mobile-sheet-group-label">{t('opsExitToApp')}</p>
-            <Link
-              href="/"
-              onClick={() => setMenuOpen(false)}
-              className="ops-mobile-sheet-link ops-mobile-sheet-link--exit"
-            >
-              <span className="ops-mobile-sheet-link-label">{t('opsExitToApp')}</span>
-              <ArrowLeft size={16} aria-hidden className="ops-mobile-sheet-chevron" />
-            </Link>
-          </div>
-        </div>
-      </BottomSheet>
     </div>
   )
 }

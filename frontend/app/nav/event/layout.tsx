@@ -8,7 +8,9 @@ import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
 import ShellLogoutButton from '@/app/components/design-system/ShellLogoutButton'
 import { CommandPaletteTrigger } from '@/components/layout/command-palette-provider'
+import MobilePageTransition from '@/components/layout/mobile-page-transition'
 import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
+import EventMobileShellNav from './components/EventMobileShellNav'
 
 const NAV = [
   { href: '/nav/event/database', icon: MapIcon, labelKey: 'eventNavDatabase' as const },
@@ -35,7 +37,7 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="event-staff-shell">
-      <header className="event-staff-header hrt-glass-header">
+      <header className="event-staff-header hrt-glass-header event-staff-header--desktop">
         <span className="event-staff-badge">
           <Ticket size={14} aria-hidden />
           {t('eventStaffBadge')}
@@ -62,7 +64,24 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
           <ShellLogoutButton compact />
         </div>
       </header>
-      <main className="event-staff-main">{children}</main>
+
+      <header className="event-staff-header-mobile event-staff-header--mobile">
+        <span className="event-staff-badge">
+          <Ticket size={14} aria-hidden />
+          {t('eventStaffBadge')}
+        </span>
+        <div className="event-staff-header-actions">
+          <CommandPaletteTrigger compact />
+          <ShellChromeControls compact className="event-staff-chrome" />
+          <ShellLogoutButton compact />
+        </div>
+      </header>
+
+      <main className="event-staff-main">
+        <MobilePageTransition>{children}</MobilePageTransition>
+      </main>
+
+      <EventMobileShellNav />
     </div>
   )
 }

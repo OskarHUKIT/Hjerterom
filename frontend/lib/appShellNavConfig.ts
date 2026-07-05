@@ -5,6 +5,7 @@ import {
   CalendarDays,
   FileText,
   Home,
+  Inbox,
   Map as MapIcon,
   MessageSquare,
   TimerOff,
@@ -66,6 +67,14 @@ const LANDLORD_ITEMS: AppShellNavItem[] = [
 ]
 
 const MUNICIPALITY_ITEMS: AppShellNavItem[] = [
+  {
+    id: 'inbox',
+    href: '/nav/inbox',
+    labelKey: 'navInboxTitle',
+    shortLabelKey: 'mobileNavInbox',
+    icon: Inbox,
+    requiresPlatform: 'social',
+  },
   {
     id: 'database',
     href: '/nav/database',
@@ -204,10 +213,24 @@ export function appShellNavItems(
 export function isAppShellNavActive(pathname: string | null, item: AppShellNavItem): boolean {
   if (!pathname) return false
 
-  if (item.id === 'manage') {
+  if (item.id === 'inbox') {
+    return pathname === '/nav/inbox' || pathname.startsWith('/nav/inbox/')
+  }
+
+  if (item.id === 'home' || item.id === 'manage') {
+    if (pathname.startsWith('/homeowner/listings/')) {
+      return item.id === 'manage'
+    }
+    if (pathname.startsWith('/homeowner/manage') && pathname.includes('view=boliger')) {
+      return false
+    }
+    return pathname === '/homeowner/manage' || pathname.startsWith('/homeowner/manage?')
+  }
+
+  if (item.id === 'properties') {
     return (
-      pathname === '/homeowner/manage' ||
-      pathname.startsWith('/homeowner/listings/')
+      pathname.startsWith('/homeowner/listings/') ||
+      (pathname.startsWith('/homeowner/manage') && pathname.includes('view=boliger'))
     )
   }
 
@@ -239,23 +262,22 @@ export function appShellLogoHref(
   return '/'
 }
 
-/** Mobile bottom tabs — primary items per role. */
+/** Mobile bottom tabs — delegates to mobileShellNavConfig (legacy callers). */
 export function appShellMobileTabItems(
   role: AppShellRole | null,
   opts?: { platform?: AppShellPlatformFlags }
 ): AppShellNavItem[] {
-  const items = appShellNavItems(role, opts)
   if (role === 'landlord') {
-    const tabIds = ['manage', 'messages']
-    if (opts?.platform?.stripeBookings) tabIds.push('bookings')
+    const items = appShellNavItems(role, opts)
+    const tabIds = ['manage', 'bookings', 'messages']
     return items.filter((item) => tabIds.includes(item.id))
   }
   if (role === 'municipality-admin' || role === 'municipality-caseworker') {
-    return items.filter((item) =>
-      ['database', 'messages', 'notifications', 'losInbox'].includes(item.id)
+    return appShellNavItems(role, opts).filter((item) =>
+      ['inbox', 'database', 'messages', 'notifications'].includes(item.id)
     )
   }
-  return items
+  return appShellNavItems(role, opts)
 }
 
 /** Mobile «more» sheet — secondary municipality items. */
