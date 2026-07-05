@@ -6,6 +6,7 @@ import { CalendarDays, Map as MapIcon, MessageSquare, Ticket } from 'lucide-reac
 import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
+import ShellLogoutButton from '@/app/components/design-system/ShellLogoutButton'
 import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 
 const NAV = [
@@ -38,7 +39,6 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
           <Ticket size={14} aria-hidden />
           {t('eventStaffBadge')}
         </span>
-        <ShellChromeControls compact className="event-staff-chrome" />
         <nav className="event-staff-nav" aria-label={t('eventNavDatabase')}>
           {NAV.map(({ href, icon: Icon, labelKey }) => {
             const active = pathname === href || (href !== '/nav/event' && pathname?.startsWith(href))
@@ -55,6 +55,10 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
             )
           })}
         </nav>
+        <div className="event-staff-header-actions">
+          <ShellChromeControls compact className="event-staff-chrome" />
+          <ShellLogoutButton compact />
+        </div>
       </header>
       <main className="event-staff-main">{children}</main>
     </div>

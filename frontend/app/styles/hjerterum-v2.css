@@ -947,6 +947,31 @@ a:focus-visible {
   flex: 1;
 }
 
+.event-staff-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.hrt-logout-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200000;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.hrt-logout-card {
+  padding: var(--space-6);
+  max-width: 360px;
+  text-align: center;
+  font-weight: 600;
+}
+
 .event-staff-nav-link {
   display: inline-flex;
   align-items: center;
