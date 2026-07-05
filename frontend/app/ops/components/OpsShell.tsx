@@ -2,16 +2,17 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 import BottomSheet from '../../components/BottomSheet'
 import OpsMobileNav from './OpsMobileNav'
+import OpsMobileTopBar from './OpsMobileTopBar'
 import OpsSidebar from './OpsSidebar'
+import OpsBadge from './OpsBadge'
 import { OpsPageSkeleton } from './OpsSkeleton'
-import { Badge } from '@/components/ui/badge'
 import { opsGetDashboardStats } from '@/app/lib/opsApi'
 import { flattenOpsNav, isOpsNavActive } from '../lib/opsNav'
 import { OPS_NAV_GROUPS } from '../lib/opsNav'
@@ -72,21 +73,13 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
   const pageTitle = currentPageLabel(pathname ?? '', flags.centralEvents, t)
 
   return (
-    <div className="ops-root">
+    <div className="ops-root ops-root--mobile-grid">
       <div className="ops-shell">
         <OpsSidebar termsPending={termsPending} />
 
         <div className="ops-main">
-          <header className="ops-topbar">
+          <header className="ops-topbar ops-desktop-only">
             <div className="ops-topbar-left">
-              <button
-                type="button"
-                className="ops-mobile-menu-btn ops-mobile-only"
-                onClick={() => setMenuOpen(true)}
-                aria-label={t('opsOpenMenu')}
-              >
-                <Menu size={22} />
-              </button>
               <div className="ops-topbar-copy">
                 <p className="ops-topbar-kicker">{t('opsConsoleKicker')}</p>
                 <h2 className="ops-topbar-title">{pageTitle}</h2>
@@ -95,9 +88,9 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
             <div className="ops-topbar-actions">
               {termsPending > 0 ? (
                 <Link href="/ops/terms" className="ops-topbar-alert">
-                  <Badge variant="destructive">
+                  <OpsBadge tone="warning" dot>
                     {t('opsPendingTermsCount').replace('{count}', String(termsPending))}
-                  </Badge>
+                  </OpsBadge>
                 </Link>
               ) : null}
               <Link href="/ops/platform" className="ops-topbar-mode-link">
@@ -106,53 +99,65 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
+          <OpsMobileTopBar title={pageTitle} onOpenMenu={() => setMenuOpen(true)} />
+
           <div className="ops-content">{children}</div>
-          <OpsMobileNav onOpenMenu={() => setMenuOpen(true)} />
+          <OpsMobileNav onOpenMenu={() => setMenuOpen(true)} termsPending={termsPending} />
         </div>
       </div>
 
       <BottomSheet
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
-        title={t('opsConsoleTitle')}
+        title={t('opsMoreNav')}
         closeLabel={t('close')}
       >
-        <nav className="ops-mobile-sheet-nav">
-          {OPS_NAV_GROUPS.flatMap((group) =>
-            group.items
-              .filter((item) => !item.requiresCentralEvents || flags.centralEvents)
-              .map((item) => {
-                const Icon = item.icon
-                const active = isOpsNavActive(pathname ?? '', item.href, item.exact)
-                const badge = item.termsBadge ? termsPending : undefined
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMenuOpen(false)}
-                    className={`ops-nav-link${active ? ' ops-nav-link--active' : ''}`}
-                  >
-                    <Icon size={18} aria-hidden />
-                    <span>{t(item.labelKey)}</span>
-                    {badge != null && badge > 0 ? (
-                      <Badge variant="destructive" className="ops-nav-link-badge">
-                        {badge > 99 ? '99+' : badge}
-                      </Badge>
-                    ) : null}
-                  </Link>
-                )
-              }),
-          )}
-          <Link
-            href="/"
-            onClick={() => setMenuOpen(false)}
-            className="ops-sidebar-exit"
-            style={{ marginTop: 'var(--space-2)' }}
-          >
-            <ArrowLeft size={16} aria-hidden />
-            {t('opsExitToApp')}
-          </Link>
-        </nav>
+        <div className="ops-mobile-sheet">
+          {OPS_NAV_GROUPS.map((group) => {
+            const items = group.items.filter(
+              (item) => !item.requiresCentralEvents || flags.centralEvents,
+            )
+            if (items.length === 0) return null
+            return (
+              <div key={group.groupKey} className="ops-mobile-sheet-group">
+                <p className="ops-label-uc ops-mobile-sheet-group-label">{t(group.groupKey)}</p>
+                {items.map((item) => {
+                  const active = isOpsNavActive(pathname ?? '', item.href, item.exact)
+                  const badge = item.termsBadge ? termsPending : undefined
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMenuOpen(false)}
+                      className={`ops-mobile-sheet-link${active ? ' ops-mobile-sheet-link--active' : ''}`}
+                    >
+                      <span className="ops-mobile-sheet-link-label">
+                        {t(item.labelKey)}
+                        {badge != null && badge > 0 ? (
+                          <OpsBadge tone="warning" dot>
+                            {badge > 99 ? '99+' : badge}
+                          </OpsBadge>
+                        ) : null}
+                      </span>
+                      <ChevronRight size={16} aria-hidden className="ops-mobile-sheet-chevron" />
+                    </Link>
+                  )
+                })}
+              </div>
+            )
+          })}
+          <div className="ops-mobile-sheet-group">
+            <p className="ops-label-uc ops-mobile-sheet-group-label">{t('opsExitToApp')}</p>
+            <Link
+              href="/"
+              onClick={() => setMenuOpen(false)}
+              className="ops-mobile-sheet-link ops-mobile-sheet-link--exit"
+            >
+              <span className="ops-mobile-sheet-link-label">{t('opsExitToApp')}</span>
+              <ArrowLeft size={16} aria-hidden className="ops-mobile-sheet-chevron" />
+            </Link>
+          </div>
+        </div>
       </BottomSheet>
     </div>
   )

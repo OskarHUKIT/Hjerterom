@@ -3,24 +3,25 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { Mail, Plus, Send } from 'lucide-react'
 import { useLanguage } from '@/context/LanguageContext'
 import type { TranslationKey } from '@/lib/translations'
 import OpsGdprBanner from '../components/OpsGdprBanner'
 import OpsPageHeader from '../components/OpsPageHeader'
 import OpsEmptyState from '../components/OpsEmptyState'
 import OpsDataTable from '../components/OpsDataTable'
+import OpsBadge from '../components/OpsBadge'
+import OpsFab from '../components/OpsFab'
+import OpsSegmentedControl from '../components/OpsSegmentedControl'
 import { OpsTableSkeleton } from '../components/OpsSkeleton'
 import { Button } from '@/app/components/ui/Button'
-import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDateTimeNo } from '@/app/lib/dateFormat'
 import { opsListBroadcasts, type BroadcastListItem } from '@/app/lib/opsApi'
 
 function segmentSummary(
   segment: BroadcastListItem['segment'],
-  t: (key: TranslationKey) => string
+  t: (key: TranslationKey) => string,
 ): string {
   const roles = segment.roles ?? []
   if (roles.length === 0) return '—'
@@ -47,6 +48,7 @@ export default function OpsBroadcastsPage() {
   const [items, setItems] = useState<BroadcastListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [segment, setSegment] = useState<'draft' | 'sent'>('draft')
 
   useEffect(() => {
     let cancelled = false
@@ -67,6 +69,7 @@ export default function OpsBroadcastsPage() {
 
   const drafts = useMemo(() => items.filter((i) => i.status === 'draft'), [items])
   const sent = useMemo(() => items.filter((i) => i.status === 'sent'), [items])
+  const visible = segment === 'draft' ? drafts : sent
 
   if (loading) return <OpsTableSkeleton rows={6} cols={5} />
   if (error) {
@@ -83,7 +86,7 @@ export default function OpsBroadcastsPage() {
         title={t('opsBroadcastsTitle')}
         lead={t('opsBroadcastsLead')}
         actions={
-          <Link href="/ops/broadcasts/new">
+          <Link href="/ops/broadcasts/new" className="ops-desktop-only">
             <Button variant="primary">
               <Plus size={16} aria-hidden style={{ marginRight: 6 }} />
               {t('opsBroadcastNew')}
@@ -91,10 +94,24 @@ export default function OpsBroadcastsPage() {
           </Link>
         }
       />
-      <OpsGdprBanner />
-      <Alert>
-        <AlertDescription>{t('opsBroadcastOneWayHint')}</AlertDescription>
-      </Alert>
+
+      <div className="ops-desktop-only">
+        <OpsGdprBanner />
+        <Alert>
+          <AlertDescription>{t('opsBroadcastOneWayHint')}</AlertDescription>
+        </Alert>
+      </div>
+
+      <div className="ops-mobile-only">
+        <OpsSegmentedControl
+          value={segment}
+          onChange={(value) => setSegment(value as 'draft' | 'sent')}
+          options={[
+            { value: 'draft', label: t('opsBroadcastStatusDraft') },
+            { value: 'sent', label: t('opsBroadcastStatusSent') },
+          ]}
+        />
+      </div>
 
       {items.length === 0 ? (
         <OpsEmptyState
@@ -107,85 +124,107 @@ export default function OpsBroadcastsPage() {
         />
       ) : (
         <>
-          {drafts.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('opsBroadcastDraftsSection')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {drafts.map((row) => (
-                  <div
-                    key={row.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
-                  >
-                    <div>
-                      <Link href={broadcastHref(row)} className="ops-link font-medium">
+          <div className="ops-mobile-only">
+            {visible.length === 0 ? (
+              <OpsEmptyState title={t('opsNoResults')} />
+            ) : (
+              visible.map((row) => (
+                <Link key={row.id} href={broadcastHref(row)} className="ops-mobile-list-card">
+                  <div className="ops-mobile-list-card-head">
+                    <p className="ops-mobile-list-card-title">{row.title_no || '—'}</p>
+                    <OpsBadge tone={row.status === 'sent' ? 'success' : 'neutral'} dot>
+                      {row.status === 'sent'
+                        ? t('opsBroadcastStatusSent')
+                        : t('opsBroadcastStatusDraft')}
+                    </OpsBadge>
+                  </div>
+                  <div className="ops-mobile-broadcast-meta">
+                    <span className="inline-flex items-center gap-1">
+                      <Send size={13} aria-hidden />
+                      Push
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Mail size={13} aria-hidden />
+                      E-post
+                    </span>
+                    {row.recipient_count ? <span>· {row.recipient_count}</span> : null}
+                  </div>
+                  <p className="ops-mobile-list-card-slug mt-1">
+                    {segmentSummary(row.segment, t)} ·{' '}
+                    {formatDateTimeNo(row.sent_at ?? row.created_at)}
+                  </p>
+                </Link>
+              ))
+            )}
+          </div>
+
+          <div className="ops-desktop-only">
+            {drafts.length > 0 ? (
+              <section className="ops-panel ops-panel--pad-md">
+                <h2 className="ops-panel-title">{t('opsBroadcastDraftsSection')}</h2>
+                <div className="ops-card-list mt-4">
+                  {drafts.map((row) => (
+                    <Link key={row.id} href={broadcastHref(row)} className="ops-list-card">
+                      <div className="ops-list-card-head">
+                        <div>
+                          <p className="ops-list-card-title">{row.title_no || '—'}</p>
+                          <p className="ops-meta">{segmentSummary(row.segment, t)}</p>
+                        </div>
+                        <OpsBadge tone="neutral">{t('opsBroadcastStatusDraft')}</OpsBadge>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {sent.length > 0 ? (
+              <OpsDataTable
+                rows={sent}
+                onRowClick={(row) => router.push(broadcastHref(row))}
+                columns={[
+                  {
+                    key: 'title',
+                    header: t('opsBroadcastTitle'),
+                    render: (row) => (
+                      <Link
+                        href={broadcastHref(row)}
+                        className="ops-link"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {row.title_no || '—'}
                       </Link>
-                      <p className="ops-meta text-sm">{segmentSummary(row.segment, t)}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{t('opsBroadcastStatusDraft')}</Badge>
-                      <Link href={broadcastHref(row)}>
-                        <Button variant="secondary">{t('opsBroadcastContinueDraft')}</Button>
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {sent.length > 0 ? (
-            <OpsDataTable
-              rows={sent}
-              onRowClick={(row) => router.push(broadcastHref(row))}
-            columns={[
-              {
-                key: 'title',
-                header: t('opsBroadcastTitle'),
-                render: (row) => (
-                  <Link
-                    href={broadcastHref(row)}
-                    className="ops-link"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {row.title_no || '—'}
-                  </Link>
-                ),
-              },
-              {
-                key: 'status',
-                header: t('opsKommuneStatus'),
-                render: (row) => (
-                  <Badge variant={row.status === 'sent' ? 'default' : 'secondary'}>
-                    {row.status === 'sent'
-                      ? t('opsBroadcastStatusSent')
-                      : t('opsBroadcastStatusDraft')}
-                  </Badge>
-                ),
-              },
-              {
-                key: 'segment',
-                header: t('opsBroadcastStepAudience'),
-                render: (row) => <span className="ops-meta">{segmentSummary(row.segment, t)}</span>,
-              },
-              {
-                key: 'recipients',
-                header: t('opsBroadcastRecipients'),
-                render: (row) => (row.status === 'sent' ? row.recipient_count : '—'),
-              },
-              {
-                key: 'sent',
-                header: t('opsBroadcastSentAt'),
-                render: (row) =>
-                  row.sent_at ? formatDateTimeNo(row.sent_at) : formatDateTimeNo(row.created_at),
-              },
-            ]}
-          />
-          ) : null}
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    header: t('opsKommuneStatus'),
+                    render: () => <OpsBadge tone="success">{t('opsBroadcastStatusSent')}</OpsBadge>,
+                  },
+                  {
+                    key: 'segment',
+                    header: t('opsBroadcastStepAudience'),
+                    render: (row) => <span className="ops-meta">{segmentSummary(row.segment, t)}</span>,
+                  },
+                  {
+                    key: 'recipients',
+                    header: t('opsBroadcastRecipients'),
+                    render: (row) => row.recipient_count ?? '—',
+                  },
+                  {
+                    key: 'sent',
+                    header: t('opsBroadcastSentAt'),
+                    render: (row) =>
+                      row.sent_at ? formatDateTimeNo(row.sent_at) : formatDateTimeNo(row.created_at),
+                  },
+                ]}
+              />
+            ) : null}
+          </div>
         </>
       )}
+
+      <OpsFab href="/ops/broadcasts/new" label={t('opsBroadcastNew')} />
     </div>
   )
 }
