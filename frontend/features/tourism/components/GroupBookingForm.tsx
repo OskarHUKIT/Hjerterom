@@ -63,7 +63,7 @@ export default function GroupBookingForm({ eventId, primaryListingId, nightlyPri
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!userId) {
-      toast(t('finnBookingAuthRequired'), 'error')
+      toast(t('finnBookingErrorAuthRequired'), 'error')
       return
     }
     if (!form.acceptTerms || !form.name.trim() || !form.email.trim()) {
