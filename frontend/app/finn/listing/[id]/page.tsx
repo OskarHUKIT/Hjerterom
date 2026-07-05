@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
+import { ArrowLeft, Heart, Star } from 'lucide-react'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { PageSkeleton } from '@/app/components/design-system'
-import { buttonClassName } from '@/app/components/ui/Button'
+import { GalleryGrid, PageSkeleton } from '@/app/components/design-system'
 import BookingRequestForm from '@/features/tourism/components/BookingRequestForm'
 import { normalizeListingImageUrls } from '@/features/listings/lib/listingDetailsUtils'
 
@@ -36,6 +36,7 @@ type EventContext = {
 export default function FinnListingDetailPage() {
   const params = useParams<{ id: string }>()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const eventId = searchParams.get('event')
   const id = params?.id
   const { t } = useLanguage()
@@ -44,6 +45,7 @@ export default function FinnListingDetailPage() {
   const [eventOptInOk, setEventOptInOk] = useState(true)
   const [loading, setLoading] = useState(true)
   const [reviewSummary, setReviewSummary] = useState<{ count: number; avg_rating: number } | null>(null)
+  const [showBooking, setShowBooking] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -110,10 +112,10 @@ export default function FinnListingDetailPage() {
 
   if (!listing) {
     return (
-      <div className="finn-empty">
+      <div className="finn-empty" style={{ paddingTop: 24 }}>
         <p>{t('finnListingNotFound')}</p>
-        <Link href="/finn" className={buttonClassName('secondary')}>
-          {t('finnNavSearch')}
+        <Link href="/finn" className="finn-footer-link">
+          {t('finnBackToSearch')}
         </Link>
       </div>
     )
@@ -125,96 +127,150 @@ export default function FinnListingDetailPage() {
       : null
 
   const eventBlocksBooking =
-    Boolean(eventContext) &&
-    (eventContext?.routing_mode !== 'turisme' || !eventOptInOk)
+    Boolean(eventContext) && (eventContext?.routing_mode !== 'turisme' || !eventOptInOk)
 
   const bookableEventId =
     eventContext?.routing_mode === 'turisme' && eventOptInOk ? eventContext.id : null
 
   const images = normalizeListingImageUrls(listing.image_urls)
   const heroImages = images.length > 0 ? images : listing.image_url ? [listing.image_url] : []
+  const galleryImages = heroImages.map((src) => ({ src, alt: listing.address }))
 
   return (
-    <article>
-      <Link href="/finn" className="finn-footer-link" style={{ marginBottom: 'var(--space-4)', display: 'inline-flex' }}>
-        ← {t('finnBackToSearch')}
-      </Link>
-      {eventContext ? (
-        <p className="finn-badge" style={{ marginBottom: 'var(--space-3)', display: 'inline-block' }}>
-          {t('finnEventBookingContext').replace('{name}', eventContext.name)}
-        </p>
-      ) : null}
-      <div className="finn-card" style={{ maxWidth: 720, marginBottom: 'var(--space-8)' }}>
-        {heroImages.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: heroImages.length > 1 ? '1fr 1fr' : '1fr', gap: 4 }}>
-            {heroImages.slice(0, 4).map((url) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={url}
-                src={url}
-                alt=""
-                style={{ width: '100%', maxHeight: 280, objectFit: 'cover' }}
-              />
-            ))}
-          </div>
+    <article className="finn-anim-fade-up">
+      <div style={{ position: 'relative', aspectRatio: '4 / 3' }}>
+        {galleryImages.length > 0 ? (
+          <GalleryGrid
+            images={galleryImages}
+            variant="simple"
+            closeLabel={t('close')}
+            prevLabel={t('finnGalleryPrev')}
+            nextLabel={t('finnGalleryNext')}
+          />
         ) : (
           <div className="finn-card-image">{t('finnNoPhoto')}</div>
         )}
-        <div className="finn-card-body" style={{ padding: 'var(--space-6)' }}>
-          <h1 style={{ margin: '0 0 8px', fontSize: '1.5rem' }}>{listing.address}</h1>
-          <p className="finn-card-meta">
-            {listing.city}
-            {listing.type ? ` · ${listing.type}` : ''}
-            {listing.beds ? ` · ${listing.beds} ${t('finnBeds')}` : ''}
-          </p>
-          {reviewSummary ? (
-            <p className="finn-card-meta" style={{ marginBottom: 8 }}>
-              ★ {reviewSummary.avg_rating} · {reviewSummary.count} {t('finnReviews')}
-            </p>
-          ) : null}
-          {price ? (
-            <p className="finn-price" style={{ fontSize: '1.25rem', margin: 'var(--space-4) 0' }}>
-              {t('finnFromPrice').replace('{price}', price)} / {t('finnPerNight')}
-            </p>
-          ) : null}
-          {listing.tourism_instant_book ? (
-            <span className="finn-badge" style={{ marginBottom: 8, display: 'inline-block' }}>
-              {t('finnInstantBookBadge')}
-            </span>
-          ) : null}
-          {listing.cancellation_policy ? (
-            <p className="finn-card-meta" style={{ margin: '0 0 var(--space-4)' }}>
-              {t('finnCancellationPolicy')}:{' '}
-              {t(`finnCancellation_${listing.cancellation_policy}` as Parameters<typeof t>[0])}
-            </p>
-          ) : null}
-          {listing.description ? (
-            <p style={{ lineHeight: 1.6, margin: 'var(--space-4) 0 0', color: 'var(--finn-text-secondary)' }}>
-              {listing.description}
-            </p>
-          ) : null}
-        </div>
+        <button
+          type="button"
+          onClick={() => router.push('/finn')}
+          aria-label={t('finnBackToSearch')}
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: 12,
+            width: 40,
+            height: 40,
+            borderRadius: 999,
+            border: 'none',
+            background: 'color-mix(in srgb, #000 30%, transparent)',
+            backdropFilter: 'blur(4px)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 2,
+          }}
+        >
+          <ArrowLeft size={20} aria-hidden />
+        </button>
+        <button
+          type="button"
+          aria-label={t('finnWishlistSave')}
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            width: 40,
+            height: 40,
+            borderRadius: 999,
+            border: 'none',
+            background: 'color-mix(in srgb, #000 30%, transparent)',
+            backdropFilter: 'blur(4px)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            zIndex: 2,
+          }}
+        >
+          <Heart size={20} aria-hidden />
+        </button>
       </div>
 
-      {eventBlocksBooking ? (
-        <div className="finn-empty">
-          <p>{t('finnEventBookingNotAllowed')}</p>
-          {eventContext ? (
-            <Link href={`/finn/arrangement/${eventContext.slug}`} className={buttonClassName('secondary')}>
-              {t('finnNavEvents')}
-            </Link>
+      <div style={{ padding: '16px 0 96px' }}>
+        {eventContext ? (
+          <p className="finn-badge" style={{ marginBottom: 12, display: 'inline-block' }}>
+            {t('finnEventBookingContext').replace('{name}', eventContext.name)}
+          </p>
+        ) : null}
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <h1 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, lineHeight: 1.35 }}>{listing.address}</h1>
+          {reviewSummary ? (
+            <span className="finn-listing-card__rating">
+              <Star size={16} fill="currentColor" aria-hidden />
+              {reviewSummary.avg_rating.toFixed(2)}
+            </span>
           ) : null}
         </div>
-      ) : (
-        <BookingRequestForm
-          listingId={listing.id}
-          eventId={bookableEventId}
-          nightlyPriceCents={listing.tourism_nightly_price_cents}
-          listingAddress={`${listing.address}, ${listing.city}`}
-          instantBook={listing.tourism_instant_book}
-          cancellationPolicy={listing.cancellation_policy}
-        />
-      )}
+        <p className="finn-card-meta" style={{ margin: '4px 0' }}>
+          {listing.city}
+        </p>
+        <p className="finn-card-meta">
+          {listing.type ?? ''}
+          {listing.beds ? ` · ${listing.beds} ${t('finnBeds')}` : ''}
+          {reviewSummary ? ` · ${reviewSummary.count} ${t('finnReviews')}` : ''}
+        </p>
+
+        <div style={{ marginTop: 12 }}>
+          <span className="finn-listing-card__badge finn-listing-card__badge--lane">{t('finnLaneTourismBadge')}</span>
+        </div>
+
+        {listing.description ? (
+          <p style={{ margin: '16px 0', fontSize: '0.875rem', lineHeight: 1.6, color: 'var(--finn-text-secondary)' }}>
+            {listing.description}
+          </p>
+        ) : null}
+
+        {listing.tourism_instant_book ? (
+          <span className="finn-badge" style={{ display: 'inline-block', marginBottom: 8 }}>
+            {t('finnInstantBookBadge')}
+          </span>
+        ) : null}
+
+        {showBooking && !eventBlocksBooking ? (
+          <div style={{ marginTop: 16 }}>
+            <BookingRequestForm
+              listingId={listing.id}
+              eventId={bookableEventId}
+              nightlyPriceCents={listing.tourism_nightly_price_cents}
+              listingAddress={`${listing.address}, ${listing.city}`}
+              instantBook={listing.tourism_instant_book}
+              cancellationPolicy={listing.cancellation_policy}
+            />
+          </div>
+        ) : eventBlocksBooking ? (
+          <div className="finn-empty" style={{ marginTop: 16 }}>
+            <p>{t('finnEventBookingNotAllowed')}</p>
+          </div>
+        ) : null}
+      </div>
+
+      {!eventBlocksBooking && price ? (
+        <div className="finn-detail-cta">
+          <div>
+            <p style={{ margin: 0, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <strong style={{ fontSize: '1.125rem' }}>{price}</strong>
+              <span style={{ fontSize: '0.75rem', color: 'var(--finn-text-muted)' }}>/ {t('finnPerNight')}</span>
+            </p>
+          </div>
+          <button type="button" className="finn-cta-primary" style={{ width: 'auto', padding: '12px 24px' }} onClick={() => setShowBooking(true)}>
+            {t('finnReserveCta')}
+          </button>
+        </div>
+      ) : null}
     </article>
   )
 }

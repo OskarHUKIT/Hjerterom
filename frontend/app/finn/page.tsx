@@ -1,17 +1,28 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
-import Link from 'next/link'
-import { MapPin, Search } from 'lucide-react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
+import { Map, Search } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { EmptyState, PageHero, PageSkeleton, PropertyCard, RangeDatePicker } from '@/app/components/design-system'
+import { EmptyState, PageSkeleton } from '@/app/components/design-system'
 import { QK } from '@/app/lib/queries/queryKeys'
 import FinnTourismMap from '@/features/tourism/components/FinnTourismMap'
-import { buttonClassName } from '@/app/components/ui/Button'
 import type { FinnListingCard, FinnSearchFilters } from '@/features/tourism/types/finn'
-import { formatFinnNightlyPrice } from '@/features/tourism/types/finn'
+import FinnSearchSheet from './components/FinnSearchSheet'
+import FinnTourismListingCard from './components/FinnTourismListingCard'
+
+const WISHLIST_KEY = 'hjerterum-finn-wishlist'
+
+type SearchState = FinnSearchFilters & { guests?: number }
+
+const FILTER_PRESETS = [
+  { id: 'all', city: '' },
+  { id: 'tromso', city: 'Tromsø' },
+  { id: 'kvaloya', city: 'Kvaløya' },
+  { id: 'sommaroy', city: 'Sommarøy' },
+  { id: 'lyngen', city: 'Lyngen' },
+] as const
 
 function finnListingsQueryKey(filters: FinnSearchFilters) {
   return [...QK.finnListings, filters] as const
@@ -42,83 +53,133 @@ async function fetchTourismListings(applied: FinnSearchFilters): Promise<FinnLis
   return []
 }
 
+function formatSearchMeta(
+  filters: SearchState,
+  t: (key: Parameters<ReturnType<typeof useLanguage>['t']>[0]) => string
+): string {
+  const city = filters.city?.trim() || t('finnSearchAnywhere')
+  const dates =
+    filters.checkIn && filters.checkOut
+      ? `${filters.checkIn} – ${filters.checkOut}`
+      : t('finnSearchAnyDates')
+  const guests = String(filters.guests ?? 2)
+  return `${city} · ${dates} · ${guests} ${t('finnSearchGuestsShort')}`
+}
+
 export default function FinnSearchPage() {
   const { t } = useLanguage()
-  const [filters, setFilters] = useState<FinnSearchFilters>({
-    city: '',
-    checkIn: '',
-    checkOut: '',
-  })
-  const [applied, setApplied] = useState<FinnSearchFilters>({})
+  const [filters, setFilters] = useState<SearchState>({ city: 'Tromsø', guests: 2 })
+  const [applied, setApplied] = useState<SearchState>({ city: 'Tromsø', guests: 2 })
   const [mapOpen, setMapOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [activePreset, setActivePreset] = useState<string>('tromso')
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 769px)')
-    const sync = () => setMapOpen(mq.matches)
-    sync()
-    mq.addEventListener('change', sync)
-    return () => mq.removeEventListener('change', sync)
+    try {
+      const raw = localStorage.getItem(WISHLIST_KEY)
+      if (raw) setWishlist(new Set(JSON.parse(raw) as string[]))
+    } catch {
+      /* ignore */
+    }
   }, [])
 
-  const { data: listings = [], isPending: loading } = useQuery({
+  const toggleWishlist = useCallback((id: string) => {
+    setWishlist((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      try {
+        localStorage.setItem(WISHLIST_KEY, JSON.stringify([...next]))
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  }, [])
+
+  const { data: listings = [], isPending: loading, isError } = useQuery({
     queryKey: finnListingsQueryKey(applied),
     queryFn: () => fetchTourismListings(applied),
     staleTime: 30_000,
   })
 
   const resultCount = listings.length
+  const cityLabel = applied.city?.trim() || t('finnSearchDefaultRegion')
 
-  const subtitle = useMemo(() => {
-    if (applied.city?.trim()) {
-      return t('finnResultsInCity').replace('{city}', applied.city.trim())
-    }
-    return t('finnSearchLead')
-  }, [applied.city, t])
+  const filterLabels = useMemo(
+    () => ({
+      all: t('finnFilterAll'),
+      tromso: t('finnFilterCityCentre'),
+      kvaloya: t('finnFilterFjord'),
+      sommaroy: t('finnFilterArctic'),
+      lyngen: t('finnFilterAurora'),
+    }),
+    [t]
+  )
 
-  const onSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    setApplied({ ...filters })
+  const applyPreset = (id: (typeof FILTER_PRESETS)[number]['id']) => {
+    setActivePreset(id)
+    const preset = FILTER_PRESETS.find((p) => p.id === id)
+    if (!preset) return
+    const next = { ...filters, city: preset.city }
+    setFilters(next)
+    setApplied(next)
   }
 
   return (
-    <>
-      <PageHero title={t('finnHeroTitle')} lead={subtitle} />
+    <div style={{ paddingTop: 12 }}>
+      <div style={{ padding: '0 0 8px' }}>
+        <div className="finn-search-card">
+          <button
+            type="button"
+            className="finn-search-trigger"
+            onClick={() => setSheetOpen(true)}
+            aria-expanded={sheetOpen}
+          >
+            <Search size={18} style={{ color: 'var(--finn-text-muted)', flexShrink: 0 }} aria-hidden />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <p className="finn-search-trigger__title">{t('finnSearchWhereTo')}</p>
+              <p className="finn-search-trigger__meta">{formatSearchMeta(applied, t)}</p>
+            </span>
+            <span className="finn-search-trigger__action" aria-hidden>
+              <Search size={16} strokeWidth={2.5} />
+            </span>
+          </button>
+        </div>
+      </div>
 
-      <form className="finn-search-bar" onSubmit={onSearch}>
-        <label>
-          {t('finnFilterCity')}
-          <input
-            type="text"
-            value={filters.city ?? ''}
-            onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}
-            placeholder={t('finnFilterCityPlaceholder')}
-            autoComplete="address-level2"
-          />
-        </label>
-        <label style={{ gridColumn: 'span 2' }}>
-          {t('finnFilterCheckIn')} / {t('finnFilterCheckOut')}
-          <RangeDatePicker
-            checkIn={filters.checkIn ?? ''}
-            checkOut={filters.checkOut ?? ''}
-            onChange={({ checkIn, checkOut }) => setFilters((f) => ({ ...f, checkIn, checkOut }))}
-            checkInLabel={t('finnFilterCheckIn')}
-            checkOutLabel={t('finnFilterCheckOut')}
-            placeholder={t('finnDateRangePlaceholder')}
-          />
-        </label>
-        <button type="submit" className={buttonClassName('accent')} style={{ alignSelf: 'flex-end' }}>
-          <Search size={18} aria-hidden /> {t('finnSearchCta')}
+      <div className="finn-filter-scroll" style={{ padding: '4px 0 12px' }}>
+        <div className="finn-filter-row">
+          {FILTER_PRESETS.map(({ id }) => (
+            <button
+              key={id}
+              type="button"
+              className={`finn-filter-chip${activePreset === id ? ' finn-filter-chip--active' : ''}`}
+              onClick={() => applyPreset(id)}
+            >
+              {filterLabels[id]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="finn-results-bar" style={{ padding: '4px 0 8px' }}>
+        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--finn-text-secondary)' }}>
+          <strong style={{ color: 'var(--finn-text)' }}>{resultCount}</strong>{' '}
+          {t('finnResultsInCity').replace('{city}', cityLabel)}
+        </p>
+        <button
+          type="button"
+          className="finn-bottom-nav__btn"
+          style={{ flex: 'none', opacity: 1, minHeight: 36, padding: '4px 8px', fontSize: '0.75rem' }}
+          onClick={() => setMapOpen((v) => !v)}
+          aria-expanded={mapOpen}
+        >
+          <Map size={14} aria-hidden />
+          {mapOpen ? t('finnMapHide') : t('finnMapShow')}
         </button>
-      </form>
-
-      <button
-        type="button"
-        className={`button finn-map-toggle${mapOpen ? '' : ''}`}
-        onClick={() => setMapOpen((v) => !v)}
-        aria-expanded={mapOpen}
-      >
-        {mapOpen ? t('finnMapHide') : t('finnMapShow')}
-      </button>
+      </div>
 
       <div className={`finn-map-panel${mapOpen ? '' : ' finn-map-panel--collapsed'}`}>
         <FinnTourismMap city={applied.city?.trim() || undefined} />
@@ -126,45 +187,37 @@ export default function FinnSearchPage() {
 
       {loading ? (
         <PageSkeleton minHeight={240} />
+      ) : isError ? (
+        <EmptyState title={t('finnSearchErrorTitle')} description={t('finnSearchErrorDesc')} />
       ) : resultCount === 0 ? (
-        <EmptyState
-          icon={<MapPin size={28} aria-hidden />}
-          title={t('finnEmptyTitle')}
-          description={t('finnEmptyDesc')}
-          action={
-            <Link href="/finn/arrangement" className={buttonClassName('secondary')}>
-              {t('finnNavEvents')}
-            </Link>
-          }
-        />
+        <EmptyState title={t('finnEmptyTitle')} description={t('finnEmptyDesc')} />
       ) : (
-        <>
-          <p className="finn-card-meta" style={{ marginBottom: 'var(--space-4)' }}>
-            {t('finnResultCount').replace('{count}', String(resultCount))}
-          </p>
-          <div className="finn-grid">
-            {listings.map((listing) => (
-              <PropertyCard
-                key={listing.id}
-                href={`/finn/listing/${listing.id}`}
-                title={listing.address}
-                meta={`${listing.city}${listing.beds ? ` · ${listing.beds} ${t('finnBeds')}` : ''}`}
-                priceLabel={
-                  listing.tourism_nightly_price_cents
-                    ? t('finnFromPrice').replace(
-                        '{price}',
-                        formatFinnNightlyPrice(listing.tourism_nightly_price_cents) ?? ''
-                      )
-                    : undefined
-                }
-                imageUrl={listing.image_url}
-                placeholder={t('finnNoPhoto')}
-              />
-            ))}
-          </div>
-        </>
+        <div className="finn-listing-stack">
+          {listings.map((listing, i) => (
+            <FinnTourismListingCard
+              key={listing.id}
+              listing={listing}
+              href={`/finn/listing/${listing.id}`}
+              staggerClass={`finn-stagger-${Math.min(i + 1, 4)}`}
+              wishlisted={wishlist.has(listing.id)}
+              onToggleWishlist={toggleWishlist}
+            />
+          ))}
+        </div>
       )}
 
-    </>
+      <FinnSearchSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        filters={filters}
+        onChange={setFilters}
+        onApply={() => {
+          setApplied({ ...filters })
+          const preset = FILTER_PRESETS.find((p) => p.city === (filters.city?.trim() ?? ''))
+          setActivePreset(preset?.id ?? 'all')
+        }}
+        resultCount={resultCount}
+      />
+    </div>
   )
 }

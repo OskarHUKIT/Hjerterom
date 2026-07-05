@@ -239,9 +239,9 @@ export default function FinnMineClient() {
           </Button>
         </div>
       ) : null}
-      <div className="finn-hero">
-        <h1>{t('finnMineTitle')}</h1>
-        <p>{t('finnMineLead')}</p>
+      <div style={{ paddingTop: 16 }}>
+        <h2 className="finn-page-title">{t('finnNavTrips')}</h2>
+        <p className="finn-page-lead">{t('finnTripsLead')}</p>
       </div>
 
       {!flags.tourism ? (

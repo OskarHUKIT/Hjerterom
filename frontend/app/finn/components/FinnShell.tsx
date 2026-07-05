@@ -1,36 +1,66 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarDays, Compass, User } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '@/context/LanguageContext'
 import type { Locale } from '@/lib/translations'
-import Logo from '@/app/components/Logo'
 import FeaturePortalGate from '@/app/components/FeaturePortalGate'
 import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
-import { usePlatformMode } from '@/context/PlatformModeContext'
+import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
+import FinnBrandMark from './FinnBrandMark'
+import FinnBottomNav from './FinnBottomNav'
 
 const FINN_LOCALE_KEY = 'hjerterum-finn-locale'
 
-const FINN_NAV = [
-  { href: '/finn', labelKey: 'finnNavSearch', icon: Compass },
-  { href: '/finn/arrangement', labelKey: 'finnNavEvents', icon: CalendarDays },
-  { href: '/finn/mine', labelKey: 'finnNavMine', icon: User },
-] as const
+function shellMode(pathname: string | null): 'app' | 'detail' | 'auth' {
+  if (!pathname) return 'app'
+  if (pathname.startsWith('/finn/login') || pathname.startsWith('/finn/vilkar')) return 'auth'
+  if (
+    pathname.startsWith('/finn/listing/') ||
+    pathname.startsWith('/finn/book/') ||
+    pathname.startsWith('/finn/arrangement/')
+  ) {
+    return 'detail'
+  }
+  return 'app'
+}
 
-function isFinnActive(pathname: string | null, href: string): boolean {
-  if (!pathname) return false
-  if (href === '/finn') return pathname === '/finn' || pathname === '/finn/'
-  return pathname === href || pathname.startsWith(`${href}/`)
+async function fetchFinnUnreadHint(userId: string, email: string): Promise<number> {
+  const { data: bookings } = await supabase
+    .from('bookings')
+    .select('id')
+    .or(`guest_user_id.eq.${userId},guest_email.eq.${email}`)
+    .in('status', ['pending', 'accepted', 'paid', 'completed'])
+    .limit(1)
+
+  return (bookings ?? []).length > 0 ? 1 : 0
 }
 
 export default function FinnShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { t, locale, setLocale } = useLanguage()
-  const { flags } = usePlatformMode()
+  const { locale, setLocale, t } = useLanguage()
+  const mode = shellMode(pathname)
 
-  /** Tourist portal defaults to English when no Finn-specific preference is stored. */
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['finn', 'unread-messages'],
+    queryFn: async () => {
+      const user = await getAuthUserDeduped()
+      if (!user?.id || !user.email) return 0
+      return fetchFinnUnreadHint(user.id, user.email)
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
+
+  const shellClass = useMemo(() => {
+    const parts = ['finn-shell', 'finn-shell--app']
+    if (mode === 'detail') parts.push('finn-shell--detail')
+    if (mode === 'auth') parts.push('finn-shell--auth')
+    return parts.join(' ')
+  }, [mode])
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem(FINN_LOCALE_KEY)
@@ -60,47 +90,27 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <div className="finn-shell">
-      <header className="finn-header hrt-glass-header">
-        <Link href="/finn" className="finn-brand" aria-label={t('finnBrand')}>
-          <Logo />
-          <span className="finn-brand-text">{t('finnBrand')}</span>
-        </Link>
+    <div className={shellClass}>
+      <header className="finn-header">
+        <FinnBrandMark />
         <ShellChromeControls compact className="finn-chrome-controls" />
-        <nav className="finn-nav" aria-label={t('finnMainNav')}>
-          {FINN_NAV.filter(({ href }) => {
-            if (href === '/finn/mine') return true
-            return flags.finn
-          }).map(({ href, labelKey, icon: Icon }) => {
-            const active = isFinnActive(pathname, href)
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`finn-nav-link${active ? ' finn-nav-link--active' : ''}`}
-                aria-current={active ? 'page' : undefined}
-              >
-                <Icon size={18} aria-hidden />
-                <span>{t(labelKey)}</span>
-              </Link>
-            )
-          })}
-        </nav>
       </header>
       <main className="finn-main">
         <FeaturePortalGate feature="finn">{children}</FeaturePortalGate>
       </main>
-      <footer className="finn-footer">
-        <p>{t('finnFooterTagline')}</p>
-        <div className="finn-footer-links">
-          <Link href="/finn/vilkar" className="finn-footer-link">
-            {t('finnTermsLink')}
-          </Link>
-          <Link href="/" className="finn-footer-link">
-            {t('finnFooterAppLink')}
-          </Link>
-        </div>
-      </footer>
+      {mode === 'app' ? <FinnBottomNav unreadCount={unreadCount} /> : null}
+      {mode === 'auth' ? (
+        <footer className="finn-footer">
+          <div className="finn-footer-links">
+            <Link href="/finn/vilkar" className="finn-footer-link">
+              {t('finnTermsLink')}
+            </Link>
+            <Link href="/" className="finn-footer-link">
+              {t('finnFooterAppLink')}
+            </Link>
+          </div>
+        </footer>
+      ) : null}
     </div>
   )
 }
