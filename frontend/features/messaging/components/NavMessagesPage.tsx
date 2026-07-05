@@ -27,6 +27,7 @@ import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 import ChatComposer, { MAX_IMAGES_PER_MESSAGE } from '@/features/messaging/components/ChatComposer'
 import ChatMessageBubble from '@/features/messaging/components/ChatMessageBubble'
 import GuestBookingChatPanel from '@/features/messaging/components/GuestBookingChatPanel'
+import BookingStatusTimelinePanel from '@/features/bookings/components/BookingStatusTimelinePanel'
 import MessageQuickRepliesPanel from '@/features/messaging/components/MessageQuickRepliesPanel'
 import {
   sendEventCaseworkerBroadcast,
@@ -608,6 +609,10 @@ export default function NavMessagesPage() {
                       : ''}
                   </span>
                 </div>
+                <BookingStatusTimelinePanel
+                  bookingId={withBookingId}
+                  className="mb-4 rounded-lg border border-boly-border-subtle bg-boly-bg-card p-4"
+                />
                 <GuestBookingChatPanel bookingId={withBookingId} />
               </div>
             ) : (
