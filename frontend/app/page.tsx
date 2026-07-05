@@ -1,133 +1,185 @@
 'use client'
 
-import { useState } from 'react'
-import { LogIn, Presentation, Compass, MessageCircle, Shield, Accessibility, MapPin, Building2, Home as HomeIcon } from 'lucide-react'
+import { useCallback, useState, type FocusEvent } from 'react'
+import {
+  LogIn,
+  Presentation,
+  Compass,
+  MessageCircle,
+  Building2,
+  Home as HomeIcon,
+} from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
 import { usePlatformMode } from '../context/PlatformModeContext'
 import PortalCard from './components/design-system/PortalCard'
 import FeatureSection from './components/design-system/FeatureSection'
 import Modal from './components/design-system/Modal'
+import LandingHero from './components/landing/LandingHero'
+import type { LandingHeroModule } from '@/lib/landingHeroContent'
+
+function PortalWrap({
+  moduleId,
+  activeModule,
+  onActivate,
+  onDeactivate,
+  children,
+}: {
+  moduleId: LandingHeroModule
+  activeModule: LandingHeroModule
+  onActivate: (module: LandingHeroModule) => void
+  onDeactivate: () => void
+  children: React.ReactNode
+}) {
+  const handleBlur = useCallback(
+    (event: FocusEvent<HTMLDivElement>) => {
+      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+        onDeactivate()
+      }
+    },
+    [onDeactivate]
+  )
+
+  return (
+    <div
+      className="home-portal-wrap"
+      data-active={activeModule === moduleId ? 'true' : undefined}
+      onMouseEnter={() => onActivate(moduleId)}
+      onMouseLeave={onDeactivate}
+      onFocus={() => onActivate(moduleId)}
+      onBlur={handleBlur}
+    >
+      {children}
+    </div>
+  )
+}
 
 export default function Home() {
   const { t } = useLanguage()
   const { flags } = usePlatformMode()
   const [showDemoPopup, setShowDemoPopup] = useState(false)
+  const [activeModule, setActiveModule] = useState<LandingHeroModule>('default')
 
-  const heroTitle = t('heroTitle')
-  const heroAccent = t('heroTitleAccent')
-  const titleParts = heroAccent ? heroTitle.split(heroAccent) : [heroTitle]
+  const activateModule = useCallback((module: LandingHeroModule) => {
+    setActiveModule(module)
+  }, [])
+
+  const deactivateModule = useCallback(() => {
+    setActiveModule('default')
+  }, [])
 
   return (
-    <main className="home-landing container">
-      <div className="home-landing-layout">
-        <div className="hero-section">
-          <p className="hrt-hero-eyebrow">{t('heroEyebrow')}</p>
-          <h1 className="hero-title">
-            {titleParts.length > 1 ? (
-              <>
-                {titleParts[0]}
-                <em>{heroAccent}</em>
-                {titleParts.slice(1).join(heroAccent)}
-              </>
-            ) : (
-              heroTitle
-            )}
-          </h1>
-          <p className="hero-lead">{t('heroDesc')}</p>
-          <ul className="hrt-trust-row" aria-label={t('homeTrustAria')}>
-            <li className="hrt-trust-badge">
-              <Shield size={16} aria-hidden />
-              {t('homeTrustSecure')}
-            </li>
-            <li className="hrt-trust-badge">
-              <Accessibility size={16} aria-hidden />
-              {t('homeTrustA11y')}
-            </li>
-            <li className="hrt-trust-badge">
-              <MapPin size={16} aria-hidden />
-              {t('homeTrustNordic')}
-            </li>
-          </ul>
-        </div>
+    <main className="home-landing">
+      <LandingHero activeModule={activeModule} />
 
+      <div className="home-landing-portals">
         <div className="grid-portal">
-          <PortalCard
-            icon={LogIn}
-            title={t('homeLoginCardTitle')}
-            description={t('homeLoginCardDesc')}
-            ctaLabel={t('homeLoginCardCta')}
-            href="/login"
-            variant="accent"
-            ariaLabel={t('homeLoginCardLinkAria')}
-          />
+          <PortalWrap
+            moduleId="login"
+            activeModule={activeModule}
+            onActivate={activateModule}
+            onDeactivate={deactivateModule}
+          >
+            <PortalCard
+              icon={LogIn}
+              title={t('homeLoginCardTitle')}
+              description={t('homeLoginCardDesc')}
+              ctaLabel={t('homeLoginCardCta')}
+              href="/login"
+              variant="accent"
+              ariaLabel={t('homeLoginCardLinkAria')}
+            />
+          </PortalWrap>
 
-          <PortalCard
-            icon={Presentation}
-            title={t('homeDemoCardTitle')}
-            description={t('homeDemoCardDesc')}
-            ctaLabel={t('homeDemoCardCta')}
-            onClick={() => setShowDemoPopup(true)}
-            variant="primary"
-          />
+          <PortalWrap
+            moduleId="demo"
+            activeModule={activeModule}
+            onActivate={activateModule}
+            onDeactivate={deactivateModule}
+          >
+            <PortalCard
+              icon={Presentation}
+              title={t('homeDemoCardTitle')}
+              description={t('homeDemoCardDesc')}
+              ctaLabel={t('homeDemoCardCta')}
+              onClick={() => setShowDemoPopup(true)}
+              variant="primary"
+            />
+          </PortalWrap>
 
           {flags.finn ? (
-            <PortalCard
-              icon={Compass}
-              title={t('homeFinnCardTitle')}
-              description={t('homeFinnCardDesc')}
-              ctaLabel={t('homeFinnCardCta')}
-              href="/finn"
-              variant="accent"
-            />
+            <PortalWrap
+              moduleId="finn"
+              activeModule={activeModule}
+              onActivate={activateModule}
+              onDeactivate={deactivateModule}
+            >
+              <PortalCard
+                icon={Compass}
+                title={t('homeFinnCardTitle')}
+                description={t('homeFinnCardDesc')}
+                ctaLabel={t('homeFinnCardCta')}
+                href="/finn"
+                variant="accent"
+              />
+            </PortalWrap>
           ) : null}
 
           {flags.los ? (
-            <PortalCard
-              icon={MessageCircle}
-              title={t('homeLosCardTitle')}
-              description={t('homeLosCardDesc')}
-              ctaLabel={t('homeLosCardCta')}
-              href="/los"
-              variant="teal"
-            />
+            <PortalWrap
+              moduleId="los"
+              activeModule={activeModule}
+              onActivate={activateModule}
+              onDeactivate={deactivateModule}
+            >
+              <PortalCard
+                icon={MessageCircle}
+                title={t('homeLosCardTitle')}
+                description={t('homeLosCardDesc')}
+                ctaLabel={t('homeLosCardCta')}
+                href="/los"
+                variant="teal"
+              />
+            </PortalWrap>
           ) : null}
         </div>
       </div>
 
-      <FeatureSection
-        title={t('homeFeaturesTitle')}
-        lead={t('homeFeaturesLead')}
-        items={[
-          {
-            icon: Building2,
-            title: t('homeFeatureKommuneTitle'),
-            description: t('homeFeatureKommuneDesc'),
-          },
-          {
-            icon: HomeIcon,
-            title: t('homeFeatureLandlordTitle'),
-            description: t('homeFeatureLandlordDesc'),
-          },
-          ...(flags.finn
-            ? [
-                {
-                  icon: Compass,
-                  title: t('homeFeatureFinnTitle'),
-                  description: t('homeFeatureFinnDesc'),
-                },
-              ]
-            : []),
-          ...(flags.los
-            ? [
-                {
-                  icon: MessageCircle,
-                  title: t('homeFeatureLosTitle'),
-                  description: t('homeFeatureLosDesc'),
-                },
-              ]
-            : []),
-        ]}
-      />
+      <div className="home-landing-features container">
+        <FeatureSection
+          title={t('homeFeaturesTitle')}
+          lead={t('homeFeaturesLead')}
+          items={[
+            {
+              icon: Building2,
+              title: t('homeFeatureKommuneTitle'),
+              description: t('homeFeatureKommuneDesc'),
+            },
+            {
+              icon: HomeIcon,
+              title: t('homeFeatureLandlordTitle'),
+              description: t('homeFeatureLandlordDesc'),
+            },
+            ...(flags.finn
+              ? [
+                  {
+                    icon: Compass,
+                    title: t('homeFeatureFinnTitle'),
+                    description: t('homeFeatureFinnDesc'),
+                  },
+                ]
+              : []),
+            ...(flags.los
+              ? [
+                  {
+                    icon: MessageCircle,
+                    title: t('homeFeatureLosTitle'),
+                    description: t('homeFeatureLosDesc'),
+                  },
+                ]
+              : []),
+          ]}
+        />
+      </div>
 
       <Modal open={showDemoPopup} onClose={() => setShowDemoPopup(false)} title={t('homeDemoCardTitle')}>
         <div className="hrt-modal-contact">

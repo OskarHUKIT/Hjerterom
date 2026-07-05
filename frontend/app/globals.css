@@ -297,11 +297,14 @@ body:has(.site-main--ops) {
   flex-direction: column;
 }
 
-/* Forside: fyll site-main slik at kort kan sentreres vertikalt mot fold (footer under scroll) */
+/* Forside: fyll site-main slik at kort kan ligge under hero-fold (footer under scroll) */
 .site-main > main.home-landing {
   flex: 1 1 auto;
   min-height: 0;
   align-self: stretch;
+  width: 100%;
+  max-width: none;
+  padding: 0;
 }
 
 @media (max-width: 768px) {
