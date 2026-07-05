@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext'
 import { usePlatformMode } from '../context/PlatformModeContext'
 import FeatureSection from './components/design-system/FeatureSection'
 import LandingHero from './components/landing/LandingHero'
+import { LazyAuroraBackground } from '@/components/ui/lazy-aurora-background'
 import type { LandingHeroModule } from '@/lib/landingHeroContent'
 
 export default function Home() {
@@ -25,11 +26,11 @@ export default function Home() {
     <main className="home-landing">
       <div className="hrt-landing-aurora">
         <div className="hrt-landing-aurora__grain" aria-hidden />
-        <div className="hrt-landing-aurora__blob hrt-landing-aurora__blob--indigo" aria-hidden />
-        <div className="hrt-landing-aurora__blob hrt-landing-aurora__blob--teal" aria-hidden />
-        <div className="hrt-landing-aurora__blob hrt-landing-aurora__blob--rose" aria-hidden />
 
-        <LandingHero activeModule={activeModule} />
+        <div className="relative isolate">
+          <LazyAuroraBackground className="-z-10" intensity={0.5} />
+          <LandingHero activeModule={activeModule} />
+        </div>
 
         <div className="home-landing-features container">
           <FeatureSection

@@ -15,6 +15,7 @@ import { usePlatformMode } from '../../context/PlatformModeContext'
 import { bolyLocaleToSignicatUi } from '../lib/signicatLocale'
 import { getLandlordPostLoginHref } from '../lib/landlordNavGate'
 import { Button } from '../components/ui/Button'
+import { LazyAuroraBackground } from '@/components/ui/lazy-aurora-background'
 import { devWarn } from '@/app/lib/appLogger'
 import { resolveEmailSignUpOutcome } from '../lib/authSignUp'
 import { ensureOwnProfile } from '../lib/ensureProfile'
@@ -298,7 +299,9 @@ function LoginPageContent() {
 
   return (
     <main className="login-page">
-      <div className="card login-card">
+      <div className="card login-card relative isolate overflow-hidden">
+        <LazyAuroraBackground className="-z-10 rounded-[inherit]" intensity={0.4} />
+        <div className="relative z-10">
         <div className="hrt-login-header">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
             <Logo />
@@ -404,6 +407,7 @@ function LoginPageContent() {
             <Link href="/login/forgot-password">{t('forgotPassword')}</Link>
           </div>
         ) : null}
+        </div>
       </div>
 
       {flags.finn || flags.los ? (

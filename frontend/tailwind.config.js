@@ -3,6 +3,19 @@
  * Preflight er av — eksisterende globals.css og design tokens beholdes.
  * Tema: `dark:` matcher `document.documentElement[data-theme="dark"]`.
  */
+const {
+  default: flattenColorPalette,
+} = require('tailwindcss/lib/util/flattenColorPalette')
+
+/** Expose Tailwind palette as CSS variables (e.g. var(--indigo-500)) for aurora layers. */
+function addVariablesForColors({ addBase, theme }) {
+  const allColors = flattenColorPalette(theme('colors'))
+  const newVars = Object.fromEntries(
+    Object.entries(allColors).map(([key, val]) => [`--${key}`, val])
+  )
+  addBase({ ':root': newVars })
+}
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ['selector', '[data-theme="dark"]'],
@@ -88,12 +101,21 @@ module.exports = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        aurora: {
+          from: {
+            backgroundPosition: '50% 50%, 50% 50%',
+          },
+          to: {
+            backgroundPosition: '350% 50%, 350% 50%',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        aurora: 'aurora 60s linear infinite',
       },
     },
   },
-  plugins: [],
+  plugins: [addVariablesForColors],
 }
