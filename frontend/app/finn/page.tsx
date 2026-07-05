@@ -6,7 +6,7 @@ import { MapPin, Search } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/app/lib/supabase'
 import { useLanguage } from '@/context/LanguageContext'
-import { EmptyState, PageSkeleton, PropertyCard, RangeDatePicker } from '@/app/components/design-system'
+import { EmptyState, PageHero, PageSkeleton, PropertyCard, RangeDatePicker } from '@/app/components/design-system'
 import { QK } from '@/app/lib/queries/queryKeys'
 import FinnTourismMap from '@/features/tourism/components/FinnTourismMap'
 import { buttonClassName } from '@/app/components/ui/Button'
@@ -82,10 +82,7 @@ export default function FinnSearchPage() {
 
   return (
     <>
-      <section className="finn-hero">
-        <h1>{t('finnHeroTitle')}</h1>
-        <p>{subtitle}</p>
-      </section>
+      <PageHero title={t('finnHeroTitle')} lead={subtitle} />
 
       <form className="finn-search-bar" onSubmit={onSearch}>
         <label>

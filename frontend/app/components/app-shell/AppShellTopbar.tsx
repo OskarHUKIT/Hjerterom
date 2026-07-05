@@ -115,7 +115,7 @@ export default function AppShellTopbar({
 
   return (
     <>
-      <header className="app-shell-topbar">
+      <header className="app-shell-topbar hrt-glass-header">
         <div className="app-shell-topbar__left">
           {showHomeownerMenuButton ? (
             <button

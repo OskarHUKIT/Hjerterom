@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import type { LucideIcon } from 'lucide-react'
 import { ArrowRight } from 'lucide-react'
-import { Button, buttonClassName } from '../ui/Button'
+import { buttonClassName } from '../ui/Button'
 
 type PortalCardProps = {
   icon: LucideIcon
@@ -32,7 +32,10 @@ export default function PortalCard({
   variant = 'accent',
   ariaLabel,
 }: PortalCardProps) {
-  const ctaClass = buttonClassName(variant === 'primary' ? 'primary' : 'accent')
+  const ctaClass = buttonClassName(
+    variant === 'primary' ? 'gradient' : 'pill-ghost',
+    'hrt-portal-cta-link'
+  )
 
   return (
     <article className="hrt-portal-card">
@@ -51,9 +54,9 @@ export default function PortalCard({
             {ctaLabel} <ArrowRight size={18} aria-hidden />
           </Link>
         ) : (
-          <Button type="button" variant={variant === 'primary' ? 'primary' : 'accent'} onClick={onClick}>
+          <button type="button" className={ctaClass} onClick={onClick} aria-label={ariaLabel}>
             {ctaLabel} <ArrowRight size={18} aria-hidden />
-          </Button>
+          </button>
         )}
       </div>
     </article>

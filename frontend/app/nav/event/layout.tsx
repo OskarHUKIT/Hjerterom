@@ -33,7 +33,7 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="event-staff-shell">
-      <header className="event-staff-header">
+      <header className="event-staff-header hrt-glass-header">
         <span className="event-staff-badge">
           <Ticket size={14} aria-hidden />
           {t('eventStaffBadge')}

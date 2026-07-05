@@ -17,7 +17,6 @@ import {
   Menu,
   X,
   MessageSquare,
-  Globe,
   Building2,
   Home,
   Shield,
@@ -33,14 +32,13 @@ import {
 import { devInfo, logError } from '@/app/lib/appLogger'
 import MobileBottomNav from './MobileBottomNav'
 import ShellChromeControls from './design-system/ShellChromeControls'
-import { CurtainThemeToggle } from './ui/curtain-theme-toggle'
 import { navItemsFor, isNavActive } from '../../lib/navConfig'
 
 export default function Header() {
   const router = useRouter()
   const pathname = usePathname()
   const { user, isReady: authReady } = useAuthSession()
-  const { t, locale, setLocale } = useLanguage()
+  const { t } = useLanguage()
   const { flags: platformFlags } = usePlatformMode()
   const platformNav = {
     social: platformFlags.social,
@@ -394,52 +392,18 @@ export default function Header() {
               </Link>
 
               <div style={{ padding: 'var(--space-2) var(--space-4)' }}>
-                <p
-                  className="text-sm"
-                  style={{
-                    fontWeight: 600,
-                    color: 'var(--color-accent)',
-                    marginBottom: 'var(--space-2)',
+                <Link
+                  prefetch={false}
+                  href="/settings/privacy"
+                  className="menu-item"
+                  onClick={() => {
+                    setIsMenuOpen(false)
+                    closeMobileNav()
                   }}
-                  aria-hidden
                 >
-                  {t('settings')}
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  <Link
-                    prefetch={false}
-                    href="/settings/privacy"
-                    className="menu-item"
-                    onClick={() => {
-                      setIsMenuOpen(false)
-                      closeMobileNav()
-                    }}
-                  >
-                    <Shield size={16} aria-hidden /> {t('settingsPrivacyLink')}
-                  </Link>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                    <Globe size={14} style={{ opacity: 0.7 }} />
-                    <select
-                      value={locale}
-                      onChange={(e) => setLocale(e.target.value as 'no' | 'se' | 'en')}
-                      style={{
-                        flex: 1,
-                        padding: '8px 10px',
-                        minHeight: 'var(--touch-target)',
-                        borderRadius: 6,
-                        background: 'var(--bg-app)',
-                        border: '1px solid var(--border-subtle)',
-                        color: 'var(--text-main)',
-                        fontSize: '0.85rem',
-                      }}
-                    >
-                      <option value="no">{t('norwegian')}</option>
-                      <option value="se">{t('sami')}</option>
-                      <option value="en">{t('english')}</option>
-                    </select>
-                  </div>
-                  <CurtainThemeToggle variant="menu" compact />
-                </div>
+                  <Shield size={16} aria-hidden /> {t('settingsPrivacyLink')}
+                </Link>
+                <ShellChromeControls variant="menu" compact />
               </div>
 
               <div

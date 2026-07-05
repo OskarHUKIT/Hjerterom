@@ -27,8 +27,6 @@
   gap: var(--space-4);
   padding: var(--space-4) max(var(--space-4), env(safe-area-inset-left))
     var(--space-4) max(var(--space-4), env(safe-area-inset-right));
-  border-bottom: 1px solid var(--finn-border);
-  background: var(--finn-bg-elevated);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -107,28 +105,6 @@
   color: var(--finn-accent);
   text-decoration: none;
   font-weight: 600;
-}
-
-.finn-hero {
-  margin-bottom: var(--space-8);
-}
-
-.finn-hero h1 {
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 900;
-  font-style: italic;
-  font-size: clamp(1.75rem, 5vw, 2.5rem);
-  margin: 0 0 var(--space-3);
-  letter-spacing: -0.03em;
-  color: var(--finn-text);
-}
-
-.finn-hero p {
-  margin: 0;
-  font-size: 1.05rem;
-  line-height: 1.6;
-  color: var(--finn-text-secondary);
-  max-width: 52ch;
 }
 
 .finn-search-bar {

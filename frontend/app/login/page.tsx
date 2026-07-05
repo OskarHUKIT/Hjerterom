@@ -8,14 +8,17 @@ import Link from 'next/link'
 import { Mail, Lock, UserPlus, LogIn, User, Phone } from 'lucide-react'
 import Logo from '../components/Logo'
 import FieldInput from '../components/design-system/FieldInput'
+import PortalCard from '../components/design-system/PortalCard'
 import ShellChromeControls from '../components/design-system/ShellChromeControls'
 import { useLanguage } from '../../context/LanguageContext'
+import { usePlatformMode } from '../../context/PlatformModeContext'
 import { bolyLocaleToSignicatUi } from '../lib/signicatLocale'
 import { getLandlordPostLoginHref } from '../lib/landlordNavGate'
 import { Button } from '../components/ui/Button'
 import { devWarn } from '@/app/lib/appLogger'
 import { resolveEmailSignUpOutcome } from '../lib/authSignUp'
 import { ensureOwnProfile } from '../lib/ensureProfile'
+import { Compass, MessageCircle } from 'lucide-react'
 
 const AUTH_NETWORK_MS = 25000
 
@@ -57,6 +60,7 @@ function isBrowserFetchNetworkError(error: unknown): boolean {
 
 function LoginPageContent() {
   const { t, locale } = useLanguage()
+  const { flags } = usePlatformMode()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/'
@@ -366,7 +370,7 @@ function LoginPageContent() {
             icon={<Lock size={18} />}
           />
 
-          <Button type="submit" variant="primary" disabled={loading} className="hrt-login-submit">
+          <Button type="submit" variant="gradient" disabled={loading} className="hrt-login-submit">
             {loading ? (
               isSignUp ? (
                 <UserPlus size={20} style={{ opacity: 0.8 }} />
@@ -401,6 +405,31 @@ function LoginPageContent() {
           </div>
         ) : null}
       </div>
+
+      {flags.finn || flags.los ? (
+        <div className="hrt-login-portals">
+          {flags.finn ? (
+            <PortalCard
+              icon={Compass}
+              title={t('homeFeatureFinnTitle')}
+              description={t('homeFeatureFinnDesc')}
+              ctaLabel={t('homeFeatureGoTo')}
+              href="/finn"
+              variant="accent"
+            />
+          ) : null}
+          {flags.los ? (
+            <PortalCard
+              icon={MessageCircle}
+              title={t('homeFeatureLosTitle')}
+              description={t('homeFeatureLosDesc')}
+              ctaLabel={t('homeFeatureGoTo')}
+              href="/los"
+              variant="teal"
+            />
+          ) : null}
+        </div>
+      ) : null}
     </main>
   )
 }

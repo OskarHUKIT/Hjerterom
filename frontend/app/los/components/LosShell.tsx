@@ -16,7 +16,7 @@ export default function LosShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="los-shell">
-      <header className="los-header">
+      <header className="los-header hrt-glass-header">
         <div>
           <h1>{t('losTitle')}</h1>
           <p>{t('losSubtitle')}</p>

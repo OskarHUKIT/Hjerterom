@@ -4,6 +4,8 @@ export type { InteractiveEmptyStateAction, InteractiveEmptyStateProps } from './
 export { default as PageSkeleton } from './PageSkeleton'
 export { default as PortalPageShell } from './PortalPageShell'
 export { default as ShellChromeControls } from './ShellChromeControls'
+export { default as ChromeRoundButton } from './ChromeRoundButton'
+export { default as PageHero } from './PageHero'
 export { default as ComingSoonPlaceholder } from './ComingSoonPlaceholder'
 export { default as SkipLink } from './SkipLink'
 export { default as Modal } from './Modal'

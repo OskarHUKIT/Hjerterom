@@ -772,12 +772,50 @@ body:has(.site-main--ops) {
   background: rgba(15, 23, 42, 0.06) !important;
 }
 
+/* Hero-aligned gradient primary pill */
+.button-gradient {
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--hrt-primary), var(--hrt-teal));
+  color: var(--text-on-dark);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--hrt-primary) 20%, transparent);
+  text-decoration: none;
+}
+
+.button-gradient:hover {
+  opacity: 0.92;
+  background: linear-gradient(90deg, var(--hrt-primary), var(--hrt-teal));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--hrt-primary) 24%, transparent);
+}
+
+/* Hero-aligned ghost pill for secondary CTAs */
+.button-pill-ghost {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-main) 4%, transparent);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-body);
+  box-shadow: none;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.5rem 0.875rem;
+  min-height: var(--touch-target-sm);
+  text-decoration: none;
+}
+
+.button-pill-ghost:hover {
+  color: var(--text-main);
+  border-color: color-mix(in srgb, var(--hrt-primary) 35%, var(--border-subtle));
+  background: color-mix(in srgb, var(--hrt-primary) 8%, transparent);
+  box-shadow: none;
+}
+
 .button:focus-visible,
 .button-accent:focus-visible,
 .button-secondary:focus-visible,
 .button-success:focus-visible,
 .button-danger:focus-visible,
-.button-ghost:focus-visible {
+.button-ghost:focus-visible,
+.button-gradient:focus-visible,
+.button-pill-ghost:focus-visible {
   outline: 2px solid var(--color-royal-blue);
   outline-offset: 2px;
 }
@@ -2789,41 +2827,39 @@ body.mobile-bottom-nav-active .ds-toast-region {
   flex-wrap: wrap;
 }
 
-.shell-chrome-controls__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.shell-chrome-controls--menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  padding-top: var(--space-3);
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.shell-chrome-controls__menu-label {
   margin: 0;
-}
-
-.shell-chrome-controls__select {
-  padding: 8px 10px;
-  min-height: var(--touch-target, 44px);
-  border-radius: 8px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-main);
   font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
-.shell-chrome-controls__theme {
-  display: inline-flex;
+.shell-chrome-controls__menu-lang {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.shell-chrome-controls__menu-theme {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  min-height: var(--touch-target, 44px);
-  border-radius: 8px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-main);
-  cursor: pointer;
-  font-size: 0.85rem;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
-.shell-chrome-controls__theme:focus-visible,
-.shell-chrome-controls__select:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+.shell-chrome-controls__menu-theme-label {
+  font-size: 0.85rem;
+  color: var(--text-body);
 }
 
 .header-desktop-chrome,

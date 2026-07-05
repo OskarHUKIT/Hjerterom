@@ -7,6 +7,8 @@ export type ButtonVariant =
   | 'success'
   | 'danger'
   | 'ghost'
+  | 'gradient'
+  | 'pill-ghost'
 
 const variantClass: Record<ButtonVariant, string> = {
   primary: 'button',
@@ -15,6 +17,8 @@ const variantClass: Record<ButtonVariant, string> = {
   success: 'button button-success',
   danger: 'button button-danger',
   ghost: 'button button-ghost',
+  gradient: 'button button-gradient',
+  'pill-ghost': 'button button-pill-ghost',
 }
 
 /** CSS-klasser for knapper — bruk på `<Link className={buttonClassName('accent')} />` osv. */

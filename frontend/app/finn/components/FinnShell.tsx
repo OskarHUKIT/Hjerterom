@@ -61,7 +61,7 @@ export default function FinnShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="finn-shell">
-      <header className="finn-header">
+      <header className="finn-header hrt-glass-header">
         <Link href="/finn" className="finn-brand" aria-label={t('finnBrand')}>
           <Logo />
           <span className="finn-brand-text">{t('finnBrand')}</span>

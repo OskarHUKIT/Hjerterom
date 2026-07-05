@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { Upload } from 'lucide-react'
+import PageHero from '../components/design-system/PageHero'
 import { contactFormStorageFileName, publicDocumentsFileUrl } from '../lib/storagePublicUrl'
 
 export default function Documents() {
@@ -11,24 +12,13 @@ export default function Documents() {
 
   return (
     <main className="container">
-      <div className="page-hero">
-        <Link href="/" className="nav-link page-hero-back">
-          ← Tilbake til forsiden
-        </Link>
-        <h1
-          style={{
-            fontSize: 'var(--fluid-h1-hero)',
-            fontWeight: 700,
-            color: 'var(--text-main)',
-            marginBottom: '0.5rem',
-          }}
-        >
-          Dokumentadministrasjon
-        </h1>
-        <p style={{ fontSize: '1.1rem', color: 'var(--text-body)' }}>
-          Last opp og administrer dokumenter
-        </p>
-      </div>
+      <PageHero
+        title="Dokumentadministrasjon"
+        lead="Last opp og administrer dokumenter"
+        backHref="/"
+        backLabel="← Tilbake til forsiden"
+        centered
+      />
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <h2 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>Last opp dokument</h2>

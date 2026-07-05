@@ -673,8 +673,10 @@ body::before {
 .login-page {
   min-height: 100svh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-6);
   padding: var(--space-6);
   padding-left: max(var(--space-6), env(safe-area-inset-left));
   padding-right: max(var(--space-6), env(safe-area-inset-right));
@@ -775,6 +777,7 @@ body::before {
   margin-top: var(--space-2);
   font-size: 1.05rem;
   font-weight: 600;
+  justify-content: center;
 }
 
 .hrt-login-footer {
@@ -917,13 +920,11 @@ a:focus-visible {
 }
 
 .event-staff-header {
-  border-bottom: 1px solid var(--border-subtle);
   padding: var(--space-3) var(--space-4);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
-  background: var(--bg-card);
 }
 
 .event-staff-badge {
@@ -1020,5 +1021,183 @@ a:focus-visible {
   .db-header-row {
     margin-bottom: var(--space-3);
     gap: var(--space-2);
+  }
+}
+
+/* ─── Glass header utility (hero-aligned chrome) ─── */
+.hrt-glass-header {
+  border-bottom: 1px solid color-mix(in srgb, var(--text-main) 10%, transparent);
+  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--bg-app) 60%, transparent);
+}
+
+/* ─── Chrome controls (round buttons + language popover) ─── */
+.hrt-chrome-round-btn,
+.landing-round-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text-main) 15%, transparent);
+  background: transparent;
+  color: var(--text-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast) ease,
+    color var(--transition-fast) ease;
+}
+
+.hrt-chrome-round-btn--compact,
+.landing-round-btn.hrt-chrome-round-btn--compact {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+.hrt-chrome-round-btn:hover,
+.landing-round-btn:hover {
+  background: color-mix(in srgb, var(--text-main) 8%, transparent);
+  color: var(--text-main);
+}
+
+.hrt-chrome-round-btn:focus-visible,
+.landing-round-btn:focus-visible {
+  outline: 2px solid var(--hrt-primary);
+  outline-offset: 2px;
+}
+
+.hrt-chrome-lang {
+  position: relative;
+}
+
+.hrt-chrome-lang-menu,
+.landing-header__lang-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 11rem;
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+  border-radius: var(--hrt-radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--hrt-surface-raised);
+  box-shadow: var(--shadow-lg);
+  z-index: 120;
+}
+
+.hrt-chrome-lang-option,
+.landing-header__lang-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0.625rem 0.75rem;
+  min-height: var(--touch-target-sm);
+  border: none;
+  border-radius: var(--hrt-radius-sm);
+  background: transparent;
+  color: var(--text-main);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hrt-chrome-lang-option:hover,
+.hrt-chrome-lang-option[aria-selected='true'],
+.landing-header__lang-option:hover,
+.landing-header__lang-option[aria-selected='true'] {
+  background: var(--hrt-primary-soft);
+}
+
+/* ─── Page hero (shared typography, no aurora) ─── */
+.hrt-page-hero,
+.finn-hero {
+  margin-bottom: var(--space-8);
+}
+
+.hrt-page-hero__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  color: var(--color-accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.hrt-page-hero__back:hover {
+  text-decoration: underline;
+}
+
+.hrt-page-hero__eyebrow {
+  margin: 0 0 var(--space-3);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hrt-teal);
+}
+
+.hrt-page-hero__title,
+.finn-hero h1 {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  margin: 0 0 var(--space-3);
+  letter-spacing: -0.03em;
+  color: var(--text-main);
+}
+
+.hrt-page-hero--compact .hrt-page-hero__title {
+  font-size: clamp(1.35rem, 4vw, 1.85rem);
+}
+
+.hrt-page-hero__lead,
+.finn-hero p {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--text-body);
+  max-width: 52ch;
+}
+
+.hrt-page-hero--centered {
+  text-align: center;
+}
+
+.hrt-page-hero--centered .hrt-page-hero__lead {
+  margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .hrt-page-hero--centered {
+    text-align: center;
+  }
+}
+
+.hrt-portal-cta-link {
+  width: 100%;
+  justify-content: center;
+}
+
+.hrt-login-portals {
+  margin-top: 0;
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: min(920px, 100%);
+}
+
+@media (min-width: 640px) {
+  .hrt-login-portals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
