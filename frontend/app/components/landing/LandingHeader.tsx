@@ -7,6 +7,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import { useTheme } from '@/context/ThemeContext'
 import type { Locale } from '@/lib/translations'
 import LandingRoundButton from './LandingRoundButton'
+import Logo from '../Logo'
 
 const LOCALE_LABEL: Record<Locale, string> = {
   no: 'NO',
@@ -34,16 +35,7 @@ export default function LandingHeader() {
     <header className="landing-header">
       <div className="landing-header__inner">
         <Link prefetch={false} href="/" className="landing-header__brand" aria-label={t('goHome')}>
-          <span className="landing-header__mark" aria-hidden>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 21s-7.5-4.6-10-9.2C.5 8.1 2.3 4.5 6 4c2.4-.3 4.4 1 6 3.1C13.6 5 15.6 3.7 18 4c3.7.5 5.5 4.1 4 7.8C19.5 16.4 12 21 12 21Z"
-                fill="white"
-              />
-            </svg>
-          </span>
-          <span className="landing-header__name">Hjerterom</span>
-          <span className="landing-header__badge">Boly</span>
+          <Logo />
         </Link>
 
         <div className="landing-header__actions">

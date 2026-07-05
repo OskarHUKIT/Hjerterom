@@ -37,7 +37,6 @@ function HeroTitle({ brandLine, title, titleAccent }: { brandLine?: string; titl
 
   return (
     <>
-      {brandLine ? <span className="hrt-landing-hero__brand-line">{brandLine}</span> : null}
       <span className="hrt-landing-hero__title-line">
         {accent ? (
           <>
@@ -49,6 +48,7 @@ function HeroTitle({ brandLine, title, titleAccent }: { brandLine?: string; titl
           title
         )}
       </span>
+      {brandLine ? <span className="hrt-landing-hero__brand-line">{brandLine}</span> : null}
     </>
   )
 }
