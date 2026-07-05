@@ -614,6 +614,8 @@ a.ds-property-card:hover {
 .ds-feature-section__title {
   margin: 0 0 var(--space-2);
   font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
+  font-weight: 900;
+  font-style: italic;
   font-size: clamp(1.25rem, 2.5vw, 1.75rem);
   font-weight: 700;
   color: var(--text-main);

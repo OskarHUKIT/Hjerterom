@@ -314,9 +314,10 @@ body::before {
 .hrt-landing-hero__title {
   max-width: 56rem;
   margin: 0 0 var(--space-5);
-  font-family: var(--font-display), serif;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(2.25rem, 4.8vw + 0.5rem, 4.2rem);
-  font-weight: 600;
+  font-weight: 900;
+  font-style: italic;
   line-height: 1.08;
   letter-spacing: -0.03em;
   color: var(--text-main);
@@ -482,8 +483,9 @@ body::before {
 }
 
 .home-landing .hero-title {
-  font-family: var(--font-display), serif;
-  font-weight: 700;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 900;
+  font-style: italic;
   letter-spacing: -0.03em;
   color: var(--text-main);
   line-height: 1.1;
@@ -742,9 +744,10 @@ body::before {
 }
 
 .hrt-login-header h1 {
-  font-family: var(--font-display), serif;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(1.5rem, 4vw, 1.85rem);
-  font-weight: 700;
+  font-weight: 900;
+  font-style: italic;
   margin: var(--space-5) 0 var(--space-2);
   color: var(--text-main);
 }
