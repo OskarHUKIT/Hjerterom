@@ -437,6 +437,14 @@ export const commonTranslations = {
     losPrivacyLink: "Personvern for Digital Los",
     losWelcome:
       "Hei! Jeg er Los. Fortell kort hva du trenger hjelp med — bolig, økonomi eller noe annet?",
+    losWidgetLabel: "Los — trenger du hjelp med bolig?",
+    losWidgetClose: "Lukk Los-chat",
+    losWidgetWelcome:
+      "Hei! Du chatter anonymt med Los. Vi lagrer en sesjons-ID i nettleseren din slik at du kan fortsette senere — ingen innlogging kreves. Fortell kort hva du trenger hjelp med.",
+    losWidgetBusinessHours:
+      "En saksbehandler svarer i kommunens åpningstid (man–fre). Du får veiledning med en gang, og kan be om å snakke med saksbehandler.",
+    losSensitiveDataNotice:
+      "Unngå å dele sensitive personopplysninger (f.eks. helse, straffesak eller opplysninger om andre) i chatten.",
     losInputPlaceholder: "Skriv melding…",
     losSend: "Send",
     losConsentLabel:
@@ -930,6 +938,14 @@ export const commonTranslations = {
     losExit: "Heaittit",
     losPrivacyLink: "Persovdnasuodjaleapmi Los",
     losWelcome: "Bures! Mii leat dás veahkehit du.",
+    losWidgetLabel: "Los — dárbbašat veahkki orruin?",
+    losWidgetClose: "Gidde Los-čállima",
+    losWidgetWelcome:
+      "Bures! Don čállit anonymt Losii. Mii vurket sesjona-ID du neahttalohkkis nu ahte sáhtát joatkkit maŋŋá — ii gáibiduvvo sisačáleheapmi. Muital oanehis maid dárbbašat veahkki.",
+    losWidgetBusinessHours:
+      "Saksbehandler vástida gieldda rabeaivviin (vuos–lá). Don oaččut veahkki meddalbottos ja sáhtát bivdit ságastallat saksbehandleriin.",
+    losSensitiveDataNotice:
+      "Ale juoge sensitiva persovdnadieđuid (ovdamearkka sihkkarvuođa, riektaášši dahje dieđuid eará olbmuin) čállimis.",
     losInputPlaceholder: "Čále dieđuid dahje gažaldaga…",
     losSend: "Sádde",
     losConsentLabel: "Mun dohkkehan ahte saksbehandler sáhttá oažžut dieđuid maid lean čállán.",
@@ -1422,6 +1438,14 @@ export const commonTranslations = {
     losPrivacyLink: "Digital Los privacy",
     losWelcome:
       "Hi! I am Los. Briefly tell me what you need help with — housing, finances, or something else?",
+    losWidgetLabel: "Los — need help with housing?",
+    losWidgetClose: "Close Los chat",
+    losWidgetWelcome:
+      "Hi! You are chatting anonymously with Los. We store a session ID in your browser so you can continue later — no login required. Briefly tell us what you need help with.",
+    losWidgetBusinessHours:
+      "A caseworker will reply during municipal opening hours (Mon–Fri). You get guidance right away and can ask to speak with a caseworker.",
+    losSensitiveDataNotice:
+      "Avoid sharing sensitive personal data (e.g. health, criminal matters, or information about others) in chat.",
     losInputPlaceholder: "Type a message…",
     losSend: "Send",
     losConsentLabel:

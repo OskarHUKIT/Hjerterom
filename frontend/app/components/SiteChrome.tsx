@@ -6,6 +6,7 @@ import Footer from './Footer'
 import LandingHeader from './landing/LandingHeader'
 import AppShell, { isAppShellRoute } from './app-shell/AppShell'
 import { useAppShellNav } from './app-shell/useAppShellNav'
+import LosFloatingWidgetMount from '@/features/los/LosFloatingWidgetMount'
 
 function isFinnRoute(pathname: string | null): boolean {
   return pathname === '/finn' || (pathname?.startsWith('/finn/') ?? false)
@@ -57,15 +58,23 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
 
   if (ops || finn || los || eventStaff) {
     return (
-      <div
-        id="main-content"
-        tabIndex={-1}
-        className={`site-main${ops ? ' site-main--ops' : finn ? ' site-main--finn' : los ? ' site-main--los' : ' site-main--event'}`}
-      >
-        {children}
-      </div>
+      <>
+        <div
+          id="main-content"
+          tabIndex={-1}
+          className={`site-main${ops ? ' site-main--ops' : finn ? ' site-main--finn' : los ? ' site-main--los' : ' site-main--event'}`}
+        >
+          {children}
+        </div>
+        <LosFloatingWidgetMount />
+      </>
     )
   }
 
-  return <AppShellOrClassic>{children}</AppShellOrClassic>
+  return (
+    <>
+      <AppShellOrClassic>{children}</AppShellOrClassic>
+      <LosFloatingWidgetMount />
+    </>
+  )
 }

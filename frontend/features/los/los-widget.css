@@ -1,0 +1,78 @@
+/* Los floating widget — dark glass, cyan pulse, mobile sheet */
+
+.los-widget-root {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+.los-widget-launcher {
+  min-height: var(--touch-target, 44px);
+  min-width: var(--touch-target, 44px);
+}
+
+.los-widget-launcher-pulse {
+  animation: los-widget-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes los-widget-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .los-widget-launcher-pulse {
+    animation: none;
+    opacity: 0.3;
+  }
+}
+
+.los-widget-panel {
+  background: color-mix(in srgb, var(--bg-app, #020617) 72%, transparent);
+  border-color: color-mix(in srgb, var(--hrt-teal, #2dd4bf) 18%, transparent);
+}
+
+@media (max-width: 640px) {
+  .los-widget-root {
+    bottom: 0;
+    right: 0;
+    left: 0;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .los-widget-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    width: 100% !important;
+    max-width: none;
+    border-radius: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .los-widget-panel [role="log"] {
+    flex: 1;
+    height: auto !important;
+    min-height: 0;
+  }
+
+  .los-widget-launcher {
+    position: fixed;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+    right: calc(1rem + env(safe-area-inset-right, 0));
+    z-index: 70;
+  }
+
+  .los-widget-launcher-tooltip {
+    display: none !important;
+  }
+}

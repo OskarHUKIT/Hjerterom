@@ -24,11 +24,11 @@ export type PlatformSettings = {
   updatedAt: string | null
 }
 
-/** Safe default: social module only (matches migration seed). */
+/** Safe default: social + Los (anonymous public entry); Finn/events off until enabled in ops. */
 export const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   socialModuleEnabled: true,
   finnPortalEnabled: false,
-  losPortalEnabled: false,
+  losPortalEnabled: true,
   centralEventsEnabled: false,
   tourismLaneEnabled: false,
   stripeBookingsEnabled: false,
