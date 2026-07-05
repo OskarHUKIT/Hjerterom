@@ -7,6 +7,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import LoadingPlaceholder from '@/app/components/LoadingPlaceholder'
 import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
 import ShellLogoutButton from '@/app/components/design-system/ShellLogoutButton'
+import { CommandPaletteTrigger } from '@/components/layout/command-palette-provider'
 import { useAuthGate } from '@/features/auth/hooks/useAuthGate'
 
 const NAV = [
@@ -56,6 +57,7 @@ export default function EventStaffLayout({ children }: { children: React.ReactNo
           })}
         </nav>
         <div className="event-staff-header-actions">
+          <CommandPaletteTrigger compact />
           <ShellChromeControls compact className="event-staff-chrome" />
           <ShellLogoutButton compact />
         </div>

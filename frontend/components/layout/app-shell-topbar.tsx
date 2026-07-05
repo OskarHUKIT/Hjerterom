@@ -7,6 +7,7 @@ import { useLanguage } from '@/context/LanguageContext'
 import Logo from '@/app/components/Logo'
 import ShellChromeControls from '@/app/components/design-system/ShellChromeControls'
 import UserMenu from '@/components/layout/user-menu'
+import { CommandPaletteTrigger } from '@/components/layout/command-palette-provider'
 import {
   appShellNavItems,
   isAppShellNavActive,
@@ -80,6 +81,7 @@ export default function AppShellTopbar({
         <h1 className="app-shell-topbar__title">{pageTitle}</h1>
       </div>
       <div className="app-shell-topbar__right">
+        <CommandPaletteTrigger compact />
         <ShellChromeControls compact className="app-shell-topbar-chrome" />
         <UserMenu user={user} navRole={navRole} hasSignedTerms={hasSignedTerms} />
       </div>

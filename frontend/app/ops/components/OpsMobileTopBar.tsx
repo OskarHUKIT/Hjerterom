@@ -6,6 +6,7 @@ import { ArrowLeft, Menu, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useLanguage } from '@/context/LanguageContext'
 import { useTheme } from '@/context/ThemeContext'
+import { CommandPaletteTrigger } from '@/components/layout/command-palette-provider'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import type { Locale } from '@/lib/translations'
 const ROOT_PATHS = ['/ops', '/ops/kommuner', '/ops/accounts', '/ops/broadcasts']
@@ -57,6 +58,8 @@ export default function OpsMobileTopBar({ title, onOpenMenu }: OpsMobileTopBarPr
         <span className="ops-mode-pill-dot" aria-hidden />
         <span>{modeLabel.replace(/\s*\(.*\)/, '').split(' ')[0]}</span>
       </Link>
+
+      <CommandPaletteTrigger compact />
 
       <div className="ops-lang-group" role="group" aria-label={t('languageLabel')}>
         {LOCALES.map((code) => (

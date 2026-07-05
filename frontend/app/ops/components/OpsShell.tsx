@@ -12,6 +12,7 @@ import OpsMobileNav from './OpsMobileNav'
 import OpsMobileTopBar from './OpsMobileTopBar'
 import OpsSidebar from './OpsSidebar'
 import OpsBadge from './OpsBadge'
+import { CommandPaletteTrigger } from '@/components/layout/command-palette-provider'
 import { OpsPageSkeleton } from './OpsSkeleton'
 import { opsGetDashboardStats } from '@/app/lib/opsApi'
 import { flattenOpsNav, isOpsNavActive } from '../lib/opsNav'
@@ -86,6 +87,7 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="ops-topbar-actions">
+              <CommandPaletteTrigger compact className="ops-topbar-search" />
               {termsPending > 0 ? (
                 <Link href="/ops/terms" className="ops-topbar-alert">
                   <OpsBadge tone="warning" dot>

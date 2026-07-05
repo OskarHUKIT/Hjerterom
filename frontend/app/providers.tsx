@@ -13,6 +13,7 @@ import PrefetchAuthUser from './components/PrefetchAuthUser'
 import CookieBanner from './components/CookieBanner'
 import { ConfirmProvider, ToastProvider } from './components/design-system'
 import { PlatformModeProvider } from '../context/PlatformModeContext'
+import { CommandPaletteProvider } from '@/components/layout/command-palette-provider'
 
 function makeQueryClient() {
   return new QueryClient({
@@ -39,12 +40,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <ToastProvider>
                 <ConfirmProvider>
                   <PlatformModeProvider>
+                  <CommandPaletteProvider>
                   <PrefetchAuthUser />
                   <AuthQuerySync />
                   <NotificationsRealtimeSync />
                   <NavigationProgress />
                   {children}
                   <CookieBanner />
+                  </CommandPaletteProvider>
                   </PlatformModeProvider>
                 </ConfirmProvider>
               </ToastProvider>
