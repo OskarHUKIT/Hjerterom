@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
+import { mergeUniqueById } from '@/app/lib/mergeUniqueById'
 import { useLanguage } from '@/context/LanguageContext'
 import { EmptyState, PageSkeleton } from '@/app/components/design-system'
 import { buttonClassName } from '@/app/components/ui/Button'
@@ -18,14 +19,33 @@ type ThreadRow = {
   unread: boolean
 }
 
+const FINN_INBOX_ACTIVE_STATUSES = ['pending', 'accepted', 'paid', 'completed']
+const FINN_INBOX_SELECT = 'id, check_in, updated_at, listings(address, city)'
+const FINN_INBOX_LIMIT = 20
+
+// Two `.eq()` queries run in parallel instead of a single `.or()` with an interpolated
+// email — see app/lib/mergeUniqueById.ts for why the merge below reproduces the exact
+// same top-20 a single OR query would have returned.
 async function fetchInboxThreads(userId: string, email: string): Promise<ThreadRow[]> {
-  const { data: bookings } = await supabase
-    .from('bookings')
-    .select('id, check_in, listings(address, city)')
-    .or(`guest_user_id.eq.${userId},guest_email.eq.${email}`)
-    .in('status', ['pending', 'accepted', 'paid', 'completed'])
-    .order('updated_at', { ascending: false })
-    .limit(20)
+  const base = () =>
+    supabase
+      .from('bookings')
+      .select(FINN_INBOX_SELECT)
+      .in('status', FINN_INBOX_ACTIVE_STATUSES)
+      .order('updated_at', { ascending: false })
+      .limit(FINN_INBOX_LIMIT)
+
+  const [{ data: byUser }, { data: byEmail }] = await Promise.all([
+    base().eq('guest_user_id', userId),
+    base().eq('guest_email', email),
+  ])
+
+  const bookings = mergeUniqueById(
+    byUser ?? [],
+    byEmail ?? [],
+    (x, y) => new Date(y.updated_at).getTime() - new Date(x.updated_at).getTime(),
+    FINN_INBOX_LIMIT
+  )
 
   const rows: ThreadRow[] = []
   for (const b of bookings ?? []) {

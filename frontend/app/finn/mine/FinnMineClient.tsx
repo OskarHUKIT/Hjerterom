@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Mail, CalendarCheck, Star, AlertCircle } from 'lucide-react'
 import { supabase, getAuthUserDeduped } from '@/app/lib/supabase'
+import { mergeUniqueById } from '@/app/lib/mergeUniqueById'
 import { useLanguage } from '@/context/LanguageContext'
 import { usePlatformMode } from '@/context/PlatformModeContext'
 import { PageSkeleton, PortalPageShell, useConfirm, useToast } from '@/app/components/design-system'
@@ -36,15 +37,34 @@ type FinnMineBookingsData = {
   reviewedIds: Set<string>
 }
 
+const FINN_MINE_SELECT =
+  'id, check_in, check_out, status, listing_id, created_at, updated_at, listings(address, city)'
+const FINN_MINE_LIMIT = 20
+
+// Two `.eq()` queries run in parallel instead of a single `.or()` with an interpolated
+// email — see app/lib/mergeUniqueById.ts for why the merge below reproduces the exact
+// same top-20 a single OR query would have returned.
 async function fetchFinnMineBookings(uid: string, em: string): Promise<FinnMineBookingsData> {
-  const { data, error } = await supabase
-    .from('bookings')
-    .select('id, check_in, check_out, status, listing_id, created_at, updated_at, listings(address, city)')
-    .or(`guest_user_id.eq.${uid},guest_email.eq.${em}`)
-    .order('created_at', { ascending: false })
-    .limit(20)
+  const base = () =>
+    supabase
+      .from('bookings')
+      .select(FINN_MINE_SELECT)
+      .order('created_at', { ascending: false })
+      .limit(FINN_MINE_LIMIT)
+
+  const [
+    { data: byUser, error: byUserError },
+    { data: byEmail, error: byEmailError },
+  ] = await Promise.all([base().eq('guest_user_id', uid), base().eq('guest_email', em)])
+  const error = byUserError ?? byEmailError
   if (error) throw error
-  const bookings = (data ?? []) as BookingRow[]
+
+  const bookings = mergeUniqueById(
+    (byUser ?? []) as BookingRow[],
+    (byEmail ?? []) as BookingRow[],
+    (x, y) => new Date(y.created_at ?? 0).getTime() - new Date(x.created_at ?? 0).getTime(),
+    FINN_MINE_LIMIT
+  )
   const ids = bookings.map((b) => b.id)
   let reviewedIds = new Set<string>()
   if (ids.length > 0) {

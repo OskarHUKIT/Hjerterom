@@ -46,15 +46,20 @@ function shellMode(pathname: string | null): 'app' | 'detail' | 'auth' {
   return 'app'
 }
 
-async function fetchFinnUnreadHint(userId: string, email: string): Promise<number> {
-  const { data: bookings } = await supabase
-    .from('bookings')
-    .select('id')
-    .or(`guest_user_id.eq.${userId},guest_email.eq.${email}`)
-    .in('status', ['pending', 'accepted', 'paid', 'completed'])
-    .limit(1)
+const FINN_ACTIVE_BOOKING_STATUSES = ['pending', 'accepted', 'paid', 'completed']
 
-  return (bookings ?? []).length > 0 ? 1 : 0
+// Two `.eq()` queries run in parallel instead of a single `.or()` with an interpolated
+// email — see app/lib/mergeUniqueById.ts for why. Only existence matters here, so no
+// merge/sort is needed: either side finding a row is enough to return the hint.
+async function fetchFinnUnreadHint(userId: string, email: string): Promise<number> {
+  const base = () =>
+    supabase.from('bookings').select('id').in('status', FINN_ACTIVE_BOOKING_STATUSES).limit(1)
+  const [{ data: byUser }, { data: byEmail }] = await Promise.all([
+    base().eq('guest_user_id', userId),
+    base().eq('guest_email', email),
+  ])
+
+  return (byUser ?? []).length > 0 || (byEmail ?? []).length > 0 ? 1 : 0
 }
 
 export default function FinnShell({ children }: { children: React.ReactNode }) {
