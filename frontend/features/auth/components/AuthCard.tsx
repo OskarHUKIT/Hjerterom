@@ -386,7 +386,7 @@ export default function AuthCard({
         ) : null}
 
         {showMagicLink && context === 'guest' && !isSignUp ? (
-          <form onSubmit={(e) => void handleMagicLink(e)} className="hrt-login-form">
+          <form onSubmit={(e) => void handleMagicLink(e)} className="hrt-login-form" noValidate>
             <FieldInput
               label={t('email')}
               name="email"
@@ -415,7 +415,7 @@ export default function AuthCard({
             </button>
           </form>
         ) : (
-          <form onSubmit={(e) => void handlePasswordAuth(e)} className="hrt-login-form">
+          <form onSubmit={(e) => void handlePasswordAuth(e)} className="hrt-login-form" noValidate>
             {isSignUp ? (
               <>
                 <FieldInput
