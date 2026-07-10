@@ -15,7 +15,7 @@ Primær kildekode vedlikeholdes i [OskarHUKIT/Boly](https://github.com/OskarHUKI
 
 ## Kom i gang
 
-Se [QUICK_START.md](./QUICK_START.md) for lokal utvikling og deploy.
+Se [QUICK_START.md](./docs/setup/QUICK_START.md) for lokal utvikling og deploy.
 
 ```bash
 npm run install:all

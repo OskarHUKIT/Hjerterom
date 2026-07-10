@@ -19,7 +19,7 @@ Your Boligbanken app is now fully configured for mobile app store publishing. He
 - **`docs/PUBLISHING_GUIDE.md`** - Complete step-by-step publishing guide
 - **`docs/QUICK_PUBLISH_START.md`** - Fast track guide
 - **`docs/ICON_SPLASH_SETUP.md`** - App icon and splash screen setup
-- **`README_MOBILE.md`** - Overview and quick reference
+- **`docs/setup/README_MOBILE.md`** - Overview and quick reference
 
 ### ✅ Git Configuration
 - `.gitignore` updated to exclude mobile build files and signing keys
@@ -122,7 +122,7 @@ That's it! The script handles:
 
 | Document | Purpose |
 |----------|---------|
-| `README_MOBILE.md` | Overview and quick reference |
+| `docs/setup/README_MOBILE.md` | Overview and quick reference |
 | `docs/QUICK_PUBLISH_START.md` | Fast track to publishing |
 | `docs/PUBLISHING_GUIDE.md` | Complete step-by-step guide |
 | `docs/ICON_SPLASH_SETUP.md` | App icon and splash screen setup |
