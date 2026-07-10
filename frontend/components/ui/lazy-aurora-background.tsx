@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { AuroraBackgroundFallback } from "@/components/ui/aurora-background";
+import {
+  AuroraBackgroundFallback,
+  type AuroraBackgroundProps,
+} from "@/components/ui/aurora-background";
 
 const AuroraBackgroundAnimated = dynamic(
   () =>
@@ -12,7 +15,8 @@ const AuroraBackgroundAnimated = dynamic(
   { ssr: false, loading: () => null }
 );
 
-type LazyAuroraBackgroundProps = ComponentProps<typeof AuroraBackgroundFallback>;
+/** Full aurora-API minus staticFallback — showRadialGradient gjelder kun den animerte varianten. */
+type LazyAuroraBackgroundProps = Omit<AuroraBackgroundProps, "staticFallback">;
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -32,7 +36,10 @@ function usePrefersReducedMotion() {
  * Defers aurora animation until after hydration (LCP-safe).
  * Renders an identical-size static gradient until mounted; no layout shift.
  */
-export function LazyAuroraBackground(props: LazyAuroraBackgroundProps) {
+export function LazyAuroraBackground({
+  showRadialGradient,
+  ...props
+}: LazyAuroraBackgroundProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const [ready, setReady] = useState(false);
 
@@ -52,5 +59,5 @@ export function LazyAuroraBackground(props: LazyAuroraBackgroundProps) {
     return <AuroraBackgroundFallback {...props} />;
   }
 
-  return <AuroraBackgroundAnimated {...props} />;
+  return <AuroraBackgroundAnimated showRadialGradient={showRadialGradient} {...props} />;
 }
