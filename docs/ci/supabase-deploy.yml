@@ -1,0 +1,75 @@
+name: Supabase DB Push
+
+# Runs only against the Supabase project in GitHub Secrets (SUPABASE_PROJECT_REF).
+# Triggers on main when migrations change — no feature-branch pushes.
+#
+# Safety gate (docs/TRYGG-UTVIKLING.md): every PR and push first replays ALL
+# migrations against a fresh shadow database in CI. Non-idempotent or broken
+# migrations are caught here — before they ever reach production.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Skriv push for å bekrefte migrasjon til Hjerterum Supabase'
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/supabase-deploy.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/supabase-deploy.yml'
+
+jobs:
+  shadow-validate:
+    name: Replay migrations on shadow DB
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start shadow database
+        run: supabase db start
+
+      - name: Replay all migrations (fresh reset)
+        run: supabase db reset --local
+
+      - name: Lint schema
+        run: supabase db lint --local --level error
+
+  db-push:
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'push')
+    needs: shadow-validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Hjerterum project
+        working-directory: supabase
+        run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      - name: Push migrations to Supabase
+        working-directory: supabase
+        run: supabase db push --yes --include-all
