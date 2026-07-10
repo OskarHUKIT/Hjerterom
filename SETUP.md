@@ -37,7 +37,6 @@ Cursor.test/
 │   ├── package.json
 │   └── tsconfig.json
 ├── backend/                 # Express.js backend API
-│   ├── server.js           # Main server file
 │   └── package.json
 ├── docs/                    # Documentation
 │   └── REQUIREMENTS.md     # Requirements document
@@ -86,7 +85,7 @@ Cursor.test/
 
 ### Port Already in Use
 If port 3000 or 3001 is already in use:
-- Change the port in `frontend/package.json` or `backend/server.js`
+- Change the port in `frontend/package.json` if needed
 - Or stop the process using that port
 
 ### Module Not Found
