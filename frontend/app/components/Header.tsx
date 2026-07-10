@@ -44,13 +44,6 @@ export default function Header() {
     centralEvents: platformFlags.centralEvents,
     los: platformFlags.los,
   }
-  const [loading, setLoading] = useState(true)
-  const [hasSignedTerms, setHasSignedTerms] = useState(false)
-  /** Når utleier mangler aktiv avtale: logo/pekere til register eller signering (fra getLandlordPostLoginHref). */
-  const [landlordBootstrapHref, setLandlordBootstrapHref] = useState('/homeowner/register')
-  const [role, setRole] = useState<string | null>(null)
-  const [kommuneCanEdit, setKommuneCanEdit] = useState<boolean | null>(null)
-  const [unreadCount, setUnreadCount] = useState(0)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   /** Synlig under utlogging så gammel side ikke oppleves «hengt» før full redirect. */
@@ -67,52 +60,30 @@ export default function Header() {
     gcTime: 10 * 60 * 1000,
   })
 
-  useEffect(() => {
-    if (!user?.id) return
-    const b = headerBundleQ.data
-    if (!b) return
-    setRole(b.role)
-    setKommuneCanEdit(b.kommuneCanEdit)
-    setHasSignedTerms(b.hasSignedTerms)
-    setLandlordBootstrapHref(b.landlordBootstrapHref)
-    setUnreadCount(b.unreadCount)
-  }, [user?.id, headerBundleQ.data])
+  /**
+   * Avledet direkte fra React Query — ingen state-speiling.
+   * Tidligere ble bundle kopiert inn i fem useState via useEffect (dobbel
+   * re-render per refetch + risiko for stale sync). Query-cachen ER staten.
+   */
+  const bundle = user?.id ? headerBundleQ.data : undefined
+  const role = bundle?.role ?? null
+  const hasSignedTerms = bundle?.hasSignedTerms ?? false
+  /** Når utleier mangler aktiv avtale: logo/pekere til register eller signering (fra getLandlordPostLoginHref). */
+  const landlordBootstrapHref = bundle?.landlordBootstrapHref ?? '/homeowner/register'
+  const unreadCount = bundle?.unreadCount ?? 0
+  const loading = !authReady
+    ? true
+    : user?.id
+      ? headerBundleQ.isPending && !headerBundleQ.isError
+      : false
 
   useEffect(() => {
     if (headerBundleQ.isError) {
       logError('Header bundle:', headerBundleQ.error)
-      setLoading(false)
     }
   }, [headerBundleQ.isError, headerBundleQ.error])
 
   useEffect(() => {
-    if (!authReady) return
-    if (!user?.id) {
-      setLoading(false)
-      return
-    }
-    if (headerBundleQ.isPending && !headerBundleQ.isError) {
-      setLoading(true)
-      return
-    }
-    setLoading(false)
-  }, [authReady, user?.id, headerBundleQ.isPending, headerBundleQ.isError])
-
-  useEffect(() => {
-    if (user) return
-    setHasSignedTerms(false)
-    setLandlordBootstrapHref('/homeowner/register')
-    setRole(null)
-    setKommuneCanEdit(null)
-    setUnreadCount(0)
-  }, [user])
-
-  useEffect(() => {
-    let cancelled = false
-    const timeoutId = setTimeout(() => {
-      if (!cancelled) setLoading(false)
-    }, 8000)
-
     const closeMenu = (e: MouseEvent) => {
       if (!(e.target as Element).closest('.user-menu-trigger')) {
         setIsMenuOpen(false)
@@ -132,8 +103,6 @@ export default function Header() {
     mq.addEventListener('change', syncMobileLayout)
 
     return () => {
-      cancelled = true
-      clearTimeout(timeoutId)
       window.removeEventListener('click', closeMenu)
       window.removeEventListener('resize', handleResize)
       mq.removeEventListener('change', syncMobileLayout)

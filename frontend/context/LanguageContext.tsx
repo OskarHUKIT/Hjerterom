@@ -1,7 +1,18 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { Locale, translations, TranslationKey } from '../lib/translations'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+} from 'react'
+import type { Locale, TranslationKey } from '../lib/translations'
+import { commonTranslations } from '../lib/i18n/common'
+import { navTranslations } from '../lib/i18n/nav'
+import { lazyDomainsPromise, type DomainBundle, type LocaleSlice } from '../lib/i18n/lazy'
 import { getAuthUserDeduped, supabase } from '../app/lib/supabase'
 import { useAuthSession } from './AuthSessionContext'
 
@@ -20,10 +31,51 @@ function isLocale(x: string | null | undefined): x is Locale {
   return x === 'no' || x === 'se' || x === 'en'
 }
 
+type Dicts = Record<Locale, LocaleSlice>
+
+function mergeLocale(locale: Locale, parts: DomainBundle[]): LocaleSlice {
+  return Object.assign({}, ...parts.map((part) => part[locale]))
+}
+
+function buildDicts(parts: DomainBundle[]): Dicts {
+  return {
+    no: mergeLocale('no', parts),
+    se: mergeLocale('se', parts),
+    en: mergeLocale('en', parts),
+  }
+}
+
+/**
+ * Eager-basen dekker header/nav/felles-tekster (common + nav).
+ * listings/finn/ops lastes som egne chunks via lazyDomainsPromise —
+ * ~60 % av ordboksvekten holdes utenfor førstelast-bunten.
+ */
+const baseDicts: Dicts = buildDicts([commonTranslations, navTranslations])
+
+/** Stabil fallback når useLanguage brukes utenfor provider (identitet bevares mellom kall). */
+const noProviderFallback: LanguageContextType = {
+  locale: defaultLocale,
+  setLocale: () => {},
+  t: (key: TranslationKey) => baseDicts.no[key] ?? key,
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const { user, isReady: authReady } = useAuthSession()
   const [locale, setLocaleState] = useState<Locale>(defaultLocale)
+  const [dicts, setDicts] = useState<Dicts>(baseDicts)
   const [mounted, setMounted] = useState(false)
+
+  /** Flett inn lazy-domener når chunkene er lastet — samme flettrekkefølge som gamle lib/translations.ts. */
+  useEffect(() => {
+    let cancelled = false
+    lazyDomainsPromise.then(({ listings, finn, ops }) => {
+      if (cancelled) return
+      setDicts(buildDicts([commonTranslations, listings, navTranslations, finn, ops]))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   /** One pass when auth is ready / user id changes — replaces getSession + separate onAuthStateChange. */
   useEffect(() => {
@@ -75,7 +127,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `user?.id` only; avoid locale refetch on token refresh
   }, [authReady, user?.id])
 
-  const setLocale = (l: Locale) => {
+  const setLocale = useCallback((l: Locale) => {
     setLocaleState(l)
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, l)
@@ -87,7 +139,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       await supabase.from('profiles').update({ preferred_locale: l }).eq('id', u.id)
       await supabase.auth.updateUser({ data: { preferred_locale: l } })
     })()
-  }
+  }, [])
 
   useEffect(() => {
     if (mounted && typeof document !== 'undefined') {
@@ -95,22 +147,21 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   }, [locale, mounted])
 
-  const t = (key: TranslationKey): string =>
-    translations[locale][key] ?? translations.no[key] ?? key
-
-  return (
-    <LanguageContext.Provider value={{ locale, setLocale, t }}>{children}</LanguageContext.Provider>
+  const t = useCallback(
+    (key: TranslationKey): string => dicts[locale][key] ?? dicts.no[key] ?? key,
+    [dicts, locale]
   )
+
+  /** Stabil context-verdi — hindrer re-render av alle konsumenter ved provider-re-render. */
+  const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale, t])
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
 }
 
 export function useLanguage() {
   const ctx = useContext(LanguageContext)
   if (!ctx) {
-    return {
-      locale: defaultLocale as Locale,
-      setLocale: () => {},
-      t: (key: TranslationKey) => translations.no[key] ?? key,
-    }
+    return noProviderFallback
   }
   return ctx
 }

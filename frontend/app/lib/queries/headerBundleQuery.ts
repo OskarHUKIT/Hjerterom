@@ -25,7 +25,7 @@ export async function fetchHeaderBundle(
     supabase.from('profiles').select('role, kommune_can_edit').eq('id', userId).maybeSingle(),
     supabase
       .from('user_agreements')
-      .select('*')
+      .select('id')
       .eq('user_id', userId)
       .eq('is_terminated', false)
       .maybeSingle(),
@@ -39,14 +39,14 @@ export async function fetchHeaderBundle(
 
   const unreadMessagesQuery = supabase
     .from('chat_messages')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
     .eq('receiver_id', userId)
     .eq('is_read', false)
 
   const losInboxQuery = isKommuneStaffRole(userRole)
     ? supabase
         .from('los_handoffs')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('status', 'new')
     : Promise.resolve({ count: 0, error: null })
 

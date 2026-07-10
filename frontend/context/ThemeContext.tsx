@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   useRef,
   type ReactNode,
 } from 'react'
@@ -159,10 +160,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(theme === 'dark' ? 'light' : 'dark')
   }, [theme, setTheme])
 
+  /** Stabil context-verdi — hindrer re-render av alle konsumenter når provideren selv re-rendrer. */
+  const value = useMemo(
+    () => ({ theme, setTheme, toggleTheme, themePreferenceEnabled: true }),
+    [theme, setTheme, toggleTheme]
+  )
+
   return (
-    <ThemeContext.Provider
-      value={{ theme, setTheme, toggleTheme, themePreferenceEnabled: true }}
-    >
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   )
