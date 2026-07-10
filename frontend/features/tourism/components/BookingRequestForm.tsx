@@ -60,6 +60,8 @@ export default function BookingRequestForm({
   const [datesBlocked, setDatesBlocked] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
   const pendingSubmitRef = useRef(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const errorSummaryRef = useRef<HTMLDivElement>(null)
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -119,22 +121,34 @@ export default function BookingRequestForm({
     return nightlyPriceCents * nightsBetween(form.checkIn, form.checkOut)
   }, [nightlyPriceCents, form.checkIn, form.checkOut])
 
+  useEffect(() => {
+    if (formError) errorSummaryRef.current?.focus()
+  }, [formError])
+
+  // Persistent, focusable error summary alongside the toast: a toast alone is easy to miss
+  // for keyboard/screen-reader users since it disappears and is never in the tab order.
+  const reportError = (text: string) => {
+    toast(text, 'error')
+    setFormError(text)
+  }
+
   const submitBooking = async () => {
     if (!userId) return
+    setFormError(null)
     if (!form.name.trim() || !form.email.trim() || !form.checkIn || !form.checkOut) {
-      toast(t('finnBookingRequired'), 'error')
+      reportError(t('finnBookingRequired'))
       return
     }
     if (form.checkOut < form.checkIn) {
-      toast(t('finnBookingInvalidDates'), 'error')
+      reportError(t('finnBookingInvalidDates'))
       return
     }
     if (datesBlocked) {
-      toast(t('finnDatesNotAvailable'), 'error')
+      reportError(t('finnDatesNotAvailable'))
       return
     }
     if (!form.acceptTerms) {
-      toast(t('finnGuestTermsAccept'), 'error')
+      reportError(t('finnGuestTermsAccept'))
       return
     }
     setSubmitting(true)
@@ -153,7 +167,7 @@ export default function BookingRequestForm({
     if (!result.ok) {
       setSubmitting(false)
       const key = bookingErrorTranslationKey(result.errorCode)
-      toast(key ? t(key) : result.error, 'error')
+      reportError(key ? t(key) : result.error)
       return
     }
     if (form.guestInviteEmail.trim()) {
@@ -165,6 +179,7 @@ export default function BookingRequestForm({
     }
     clearPendingBooking(listingId)
     setSubmitting(false)
+    setFormError(null)
     if (result.instantBook && result.status === 'accepted') {
       toast(t('finnInstantBookConfirmed'), 'success')
       router.push(`/finn/book/${result.id}`)
@@ -176,8 +191,9 @@ export default function BookingRequestForm({
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
     if (!form.checkIn || !form.checkOut) {
-      toast(t('finnBookingRequired'), 'error')
+      reportError(t('finnBookingRequired'))
       return
     }
     if (!userId) {
@@ -277,6 +293,11 @@ export default function BookingRequestForm({
       </div>
 
       <form className="finn-inquiry-form" onSubmit={(e) => void onSubmit(e)}>
+        {formError ? (
+          <div ref={errorSummaryRef} role="alert" tabIndex={-1} className="hrt-alert hrt-alert--error">
+            {formError}
+          </div>
+        ) : null}
         <label>
           {t('finnInquiryName')}
           <input

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/context/LanguageContext'
@@ -26,6 +26,8 @@ export default function GroupBookingForm({ eventId, primaryListingId, nightlyPri
   const [userId, setUserId] = useState<string | null>(null)
   const [extraListingId, setExtraListingId] = useState('')
   const [busy, setBusy] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
+  const errorSummaryRef = useRef<HTMLDivElement>(null)
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -60,14 +62,26 @@ export default function GroupBookingForm({ eventId, primaryListingId, nightlyPri
     }
   }, [])
 
+  useEffect(() => {
+    if (formError) errorSummaryRef.current?.focus()
+  }, [formError])
+
+  // Persistent, focusable error summary alongside the toast: a toast alone is easy to miss
+  // for keyboard/screen-reader users since it disappears and is never in the tab order.
+  const reportError = (text: string) => {
+    toast(text, 'error')
+    setFormError(text)
+  }
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
     if (!userId) {
-      toast(t('finnBookingErrorAuthRequired'), 'error')
+      reportError(t('finnBookingErrorAuthRequired'))
       return
     }
     if (!form.acceptTerms || !form.name.trim() || !form.email.trim()) {
-      toast(t('finnBookingRequired'), 'error')
+      reportError(t('finnBookingRequired'))
       return
     }
     setBusy(true)
@@ -79,7 +93,7 @@ export default function GroupBookingForm({ eventId, primaryListingId, nightlyPri
       .select('id')
       .single()
     if (groupErr || !group) {
-      toast(groupErr?.message ?? t('finnCheckoutError'), 'error')
+      reportError(groupErr?.message ?? t('finnCheckoutError'))
       setBusy(false)
       return
     }
@@ -95,13 +109,14 @@ export default function GroupBookingForm({ eventId, primaryListingId, nightlyPri
       })
       if (!result.ok) {
         const key = bookingErrorTranslationKey(result.errorCode)
-        toast(key ? t(key) : result.error, 'error')
+        reportError(key ? t(key) : result.error)
         setBusy(false)
         return
       }
       await supabase.from('bookings').update({ booking_group_id: group.id }).eq('id', result.id)
     }
     setBusy(false)
+    setFormError(null)
     toast(t('finnBookingSent'), 'success')
   }
 
@@ -124,6 +139,11 @@ export default function GroupBookingForm({ eventId, primaryListingId, nightlyPri
       ) : null}
 
       <form className="finn-inquiry-form" onSubmit={(e) => void submit(e)}>
+        {formError ? (
+          <div ref={errorSummaryRef} role="alert" tabIndex={-1} className="hrt-alert hrt-alert--error">
+            {formError}
+          </div>
+        ) : null}
         <label>
           {t('finnGroupBookingAdd')}
           <input

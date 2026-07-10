@@ -397,8 +397,13 @@ export default function AuthCard({
               autoComplete="email"
               icon={<Mail size={18} />}
               aria-invalid={Boolean(fieldErrors.email)}
+              describedBy={fieldErrors.email ? 'email-error' : undefined}
             />
-            {fieldErrors.email ? <p className="auth-card__field-error">{fieldErrors.email}</p> : null}
+            {fieldErrors.email ? (
+              <p id="email-error" className="auth-card__field-error">
+                {fieldErrors.email}
+              </p>
+            ) : null}
             <Button type="submit" variant="accent" disabled={loading || magicLinkSent}>
               {t('finnMineMagicLinkCta')}
             </Button>
@@ -428,9 +433,12 @@ export default function AuthCard({
                   autoComplete="name"
                   icon={<User size={18} />}
                   aria-invalid={Boolean(fieldErrors.fullName)}
+                  describedBy={fieldErrors.fullName ? 'full_name-error' : undefined}
                 />
                 {fieldErrors.fullName ? (
-                  <p className="auth-card__field-error">{fieldErrors.fullName}</p>
+                  <p id="full_name-error" className="auth-card__field-error">
+                    {fieldErrors.fullName}
+                  </p>
                 ) : null}
                 <FieldInput
                   label={t('phone')}
@@ -453,8 +461,13 @@ export default function AuthCard({
               autoComplete="email"
               icon={<Mail size={18} />}
               aria-invalid={Boolean(fieldErrors.email)}
+              describedBy={fieldErrors.email ? 'email-error' : undefined}
             />
-            {fieldErrors.email ? <p className="auth-card__field-error">{fieldErrors.email}</p> : null}
+            {fieldErrors.email ? (
+              <p id="email-error" className="auth-card__field-error">
+                {fieldErrors.email}
+              </p>
+            ) : null}
             <FieldInput
               label={t('password')}
               name="password"
@@ -465,9 +478,12 @@ export default function AuthCard({
               autoComplete={isSignUp ? 'new-password' : 'current-password'}
               icon={<Lock size={18} />}
               aria-invalid={Boolean(fieldErrors.password)}
+              describedBy={fieldErrors.password ? 'password-error' : undefined}
             />
             {fieldErrors.password ? (
-              <p className="auth-card__field-error">{fieldErrors.password}</p>
+              <p id="password-error" className="auth-card__field-error">
+                {fieldErrors.password}
+              </p>
             ) : null}
 
             <Button type="submit" variant={context === 'guest' ? 'accent' : 'gradient'} disabled={loading}>
