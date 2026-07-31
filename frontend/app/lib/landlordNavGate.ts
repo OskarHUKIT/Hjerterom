@@ -4,6 +4,7 @@ import { isKommuneStaffRole } from './kommuneRoles'
 import { isEventStaffRole } from './eventStaffRoles'
 import { isLeietakerRole } from './guestRoles'
 import { isKommuneSocialActiveForCity } from './kommuneSocialSubscription'
+import { isPlatformOperator } from './platformOperator'
 
 const RT = encodeURIComponent('/homeowner/manage')
 
@@ -96,6 +97,7 @@ export async function getLandlordPostLoginHref(
   if (isKommuneStaffRole(role)) return '/nav/database'
   if (isEventStaffRole(role)) return '/nav/event/database'
   if (isLeietakerRole(role)) return '/finn/mine'
+  if (await isPlatformOperator(supabase)) return '/ops'
 
   if (ua?.is_terminated && ua?.terminated_by_kommune) {
     return '/homeowner/kommune-terminated'
@@ -146,5 +148,6 @@ export async function resolvePostAuthHref(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return '/login'
+  if (await isPlatformOperator(supabase)) return '/ops'
   return getLandlordPostLoginHref(supabase, user.id, user.email ?? null)
 }

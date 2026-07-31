@@ -8,6 +8,7 @@ import {
   Inbox,
   Map as MapIcon,
   MessageSquare,
+  ShieldCheck,
   TimerOff,
   Users,
 } from 'lucide-react'
@@ -108,6 +109,14 @@ const MUNICIPALITY_ITEMS: AppShellNavItem[] = [
     href: '/nav/terms-documents',
     labelKey: 'termsDocumentsNav',
     icon: FileText,
+    adminOnly: true,
+    requiresPlatform: 'social',
+  },
+  {
+    id: 'kommuneAccess',
+    href: '/nav/kommune-access',
+    labelKey: 'kommuneAccess',
+    icon: ShieldCheck,
     adminOnly: true,
     requiresPlatform: 'social',
   },

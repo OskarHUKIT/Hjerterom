@@ -59,7 +59,7 @@ export default function OpsShell({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (access.data?.kind === 'forbidden') {
+  if (access.isError || access.data?.kind === 'forbidden') {
     return (
       <div className="ops-root ops-access-denied">
         <p>{t('opsAccessDenied')}</p>

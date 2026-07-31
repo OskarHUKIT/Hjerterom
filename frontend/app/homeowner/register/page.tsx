@@ -39,6 +39,7 @@ import { getRegisterBackHref } from '../../lib/appHubNav'
 import { getLandlordPostLoginHref } from '../../lib/landlordNavGate'
 import { isKommuneSocialActiveForCity } from '../../lib/kommuneSocialSubscription'
 import { isKommuneStaffRole } from '../../lib/kommuneRoles'
+import { isPlatformOperator } from '../../lib/platformOperator'
 import { logError } from '@/app/lib/appLogger'
 import { uploadHouseRulesPdf } from '../../lib/houseRulesPdf'
 import PageSkeleton from '../../components/design-system/PageSkeleton'
@@ -156,6 +157,10 @@ export default function HomeownerRegister() {
       ])
       if (isKommuneStaffRole(profile?.role)) {
         router.replace('/nav/database')
+        return
+      }
+      if (await isPlatformOperator(supabase)) {
+        router.replace('/ops')
         return
       }
 

@@ -4,6 +4,7 @@ import { supabase } from '../supabase'
 import { isKommuneStaffRole } from '../kommuneRoles'
 import { isEventStaffRole } from '../eventStaffRoles'
 import { getLandlordPostLoginHref } from '../landlordNavGate'
+import { isPlatformOperator } from '../platformOperator'
 import { fetchAuthUserForQueryClient } from './authUserQuery'
 
 export const landlordNavGateQueryKey = ['landlord', 'navGate'] as const
@@ -52,6 +53,9 @@ export async function fetchLandlordNavGate(qc: QueryClient): Promise<LandlordNav
   }
   if (isEventStaffRole(r)) {
     return { kind: 'ready', mode: 'event', user, profile }
+  }
+  if (await isPlatformOperator(supabase)) {
+    return { kind: 'redirect', href: '/ops', user }
   }
 
   const href = await getLandlordPostLoginHref(supabase, user.id, user.email, {

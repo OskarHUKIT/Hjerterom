@@ -40,9 +40,6 @@ export async function resolvePostLoginHref(
   if (isKommuneStaffRole(role)) return '/nav/database'
   if (isEventStaffRole(role)) return '/nav/event/database'
 
-  const { data: opsOk } = await supabase.rpc('ops_check_access')
-  if (opsOk) return '/ops'
-
   return getLandlordPostLoginHref(supabase, userId, email ?? null, {
     reuseProfileRole: role,
   })

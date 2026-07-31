@@ -217,22 +217,6 @@ export default function MobileBottomNav({
                   : t(item.labelKey as Parameters<typeof t>[0])}
               </Link>
             ))}
-            {navRole === 'kommune_ansatt' && (
-              <Link
-                prefetch={false}
-                href="/nav/kommune-access"
-                className="button"
-                style={{
-                  justifyContent: 'flex-start',
-                  textDecoration: 'none',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-                onClick={() => setMoreOpen(false)}
-              >
-                {t('kommuneAccess')}
-              </Link>
-            )}
             <ShellChromeControls variant="menu" />
           </div>
         </BottomSheet>

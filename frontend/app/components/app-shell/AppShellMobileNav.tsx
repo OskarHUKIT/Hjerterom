@@ -91,11 +91,6 @@ export default function AppShellMobileNav({
   const kommuneMore =
     context === 'kommune' ? (
       <>
-        {navRole === 'kommune_ansatt' ? (
-          <Link prefetch={false} href="/nav/kommune-access" className="button mobile-shell-more-link">
-            {t('kommuneAccess')}
-          </Link>
-        ) : null}
         <ShellChromeControls variant="menu" />
       </>
     ) : null

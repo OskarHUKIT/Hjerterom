@@ -23,6 +23,7 @@ export type NavItemId =
   | 'users'
   | 'expired'
   | 'termsDocuments'
+  | 'kommuneAccess'
   | 'eventInquiries'
   | 'losInbox'
 
@@ -48,6 +49,7 @@ function shellItemToNavDef(item: AppShellNavItem, audience: NavAudience): NavIte
     'users',
     'expired',
     'termsDocuments',
+    'kommuneAccess',
     'eventInquiries',
     'losInbox',
   ]
@@ -61,6 +63,7 @@ function shellItemToNavDef(item: AppShellNavItem, audience: NavAudience): NavIte
     id === 'users' ||
     id === 'expired' ||
     id === 'termsDocuments' ||
+    id === 'kommuneAccess' ||
     id === 'eventInquiries' ||
     id === 'losInbox'
   ) {
@@ -111,6 +114,7 @@ export function navItemsFor(
         'users',
         'expired',
         'termsDocuments',
+        'kommuneAccess',
         'losInbox',
       ]
       if (socialOnly.includes(item.id)) return false
@@ -149,6 +153,7 @@ export function navItemsForSidebar(
         'users',
         'expired',
         'termsDocuments',
+        'kommuneAccess',
         'losInbox',
       ]
       if (socialOnly.includes(item.id)) return false
