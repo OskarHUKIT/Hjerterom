@@ -17,23 +17,9 @@ export type RegisterPropertySection = {
 
 type Props = {
   sections: RegisterPropertySection[]
-  /** When set, opens the matching accordion panel on mobile (e.g. after validation). */
+  /** When set, opens the matching accordion panel (e.g. after validation). */
   focusSectionId?: RegisterPropertySectionId | null
   onFocusHandled?: () => void
-}
-
-function useRegisterMobileLayout() {
-  const [mobile, setMobile] = useState(false)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)')
-    const update = () => setMobile(mq.matches)
-    update()
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
-  }, [])
-
-  return mobile
 }
 
 export default function RegisterPropertyStepLayout({
@@ -42,7 +28,6 @@ export default function RegisterPropertyStepLayout({
   onFocusHandled,
 }: Props) {
   const { t } = useLanguage()
-  const isMobile = useRegisterMobileLayout()
   const [openId, setOpenId] = useState<string | null>(sections[0]?.id ?? null)
 
   useEffect(() => {
@@ -64,43 +49,16 @@ export default function RegisterPropertyStepLayout({
     [sections]
   )
 
-  if (isMobile) {
-    return (
-      <div className="register-property-accordion">
-        <AccordionWithChevron
-          items={accordionItems}
-          openId={openId}
-          onOpenChange={setOpenId}
-          ariaLabel={t('registerPropertyAccordionAria')}
-          getExpandLabel={(title) => t('accordionExpandSection').replace('{title}', title)}
-          getCollapseLabel={(title) => t('accordionCollapseSection').replace('{title}', title)}
-        />
-      </div>
-    )
-  }
-
-  const [contact, details, price] = sections
-
   return (
-    <div className="register-form-columns">
-      <div className="register-form-main-col">
-        {[contact, details].map((section) => (
-          <section key={section.id} className="form-section">
-            <h3 className="form-section-heading">
-              {section.icon} {section.title}
-            </h3>
-            {section.content}
-          </section>
-        ))}
-      </div>
-      <div className="register-form-sidebar">
-        <section className="form-section">
-          <h3 className="form-section-heading">
-            {price.icon} {price.title}
-          </h3>
-          {price.content}
-        </section>
-      </div>
+    <div className="register-property-accordion">
+      <AccordionWithChevron
+        items={accordionItems}
+        openId={openId}
+        onOpenChange={setOpenId}
+        ariaLabel={t('registerPropertyAccordionAria')}
+        getExpandLabel={(title) => t('accordionExpandSection').replace('{title}', title)}
+        getCollapseLabel={(title) => t('accordionCollapseSection').replace('{title}', title)}
+      />
     </div>
   )
 }

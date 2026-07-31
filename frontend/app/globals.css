@@ -1847,12 +1847,6 @@ body {
 
 /* Registrer ny bolig: mobilvennlig layout */
 @media (max-width: 1024px) {
-  .register-form-columns {
-    grid-template-columns: 1fr !important;
-  }
-  .register-form-sidebar {
-    position: static !important;
-  }
   .register-form-footer {
     position: static !important;
   }

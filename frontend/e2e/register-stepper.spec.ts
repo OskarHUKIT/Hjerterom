@@ -60,6 +60,7 @@ test.describe('Register stepper', () => {
     await expect(page.getByRole('heading', { name: /registrer|register/i })).toBeVisible()
 
     const uniqueSuffix = Date.now()
+    // Contact accordion panel (open by default)
     await page.getByLabel(/navn|name/i).first().fill(`E2E Utleier ${uniqueSuffix}`)
     await page.locator('input[type="tel"]').first().fill('+47 900 00 000')
     await page.getByPlaceholder(/gate|street/i).first().fill(`E2E Testveien ${uniqueSuffix}`)
@@ -67,10 +68,19 @@ test.describe('Register stepper', () => {
     await page.getByPlaceholder(/kommune|city|narvik/i).first().fill('Narvik')
     await page.waitForTimeout(800)
 
+    // Property details accordion
+    await page
+      .getByRole('button', { name: /boligdetaljer|property details|dávvirdieđut/i })
+      .click()
     await page.locator('input[type="number"]').nth(0).fill('45')
     await page.locator('input[type="number"]').nth(1).fill('2')
-    await page.locator('input[type="number"]').nth(2).fill('3')
-    await page.locator('input[type="number"]').nth(3).fill('650')
+
+    // Price & capacity accordion
+    await page
+      .getByRole('button', { name: /pris og kapasitet|price and capacity|pris ja kapasitehta/i })
+      .click()
+    await page.locator('input[type="number"]').nth(0).fill('3')
+    await page.locator('input[type="number"]').nth(1).fill('650')
 
     await page.getByRole('button', { name: /neste|next|čuovvovaš/i }).click()
 
